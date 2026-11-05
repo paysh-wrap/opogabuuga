@@ -7,6 +7,8 @@ import Connections from "../pages/Connections";
 import NotFound from "../pages/NotFound";
 import Automation from "../pages/Automation";
 import Risk from "../pages/Risk";
+import Dashboard from "../pages/Dashboard";
+import Today from "../pages/Today";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -31,7 +33,9 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<Navigate to="/connections" replace />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/today" element={<Today />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />
         <Route path="/risk" element={<Risk />} />

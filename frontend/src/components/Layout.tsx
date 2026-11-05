@@ -2,6 +2,8 @@ import { NavLink, Outlet } from "react-router-dom";
 import Header from "./Header";
 
 const NAV = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/today", label: "Today" },
   { to: "/automation", label: "Automation" },
   { to: "/risk", label: "Risk" },
   { to: "/connections", label: "Connections" },

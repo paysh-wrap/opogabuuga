@@ -170,9 +170,7 @@ def attested_today(s: Session, now: datetime) -> bool:
 
 
 def payouts_processed(s: Session, acct: Account) -> int:
-    return len(
-        s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "processed")).all()
-    )
+    return len(s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "processed")).all())
 
 
 def payout_pending(s: Session, acct: Account) -> bool:

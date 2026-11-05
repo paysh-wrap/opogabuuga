@@ -125,3 +125,14 @@ def test_payout_countdown_on_funded_and_live(authed, clock):
     f = p["FUNDED"]
     assert f["seconds_left"] > 0 and f["needed"] == "1600" and f["live_trigger_left"] == "6000" and not f["pending"]
     assert p["LIVE"]["needed"] is None and p["LIVE"]["live_trigger_left"] is None
+
+
+def test_dashboard_and_today(authed, clock):
+    _, res = run(authed, clock, "EVAL")
+    d = authed.get("/api/dashboard").json()
+    a = d["accounts"][0]
+    assert d["bias"]["MNQ"] == "LONG_ONLY" and a["trades_today"] == 1
+    assert a["dll_left"] == "600.00" or float(a["dll_left"]) <= 600
+    assert a["consistency_cap"] == "500.00" and a["target_left"] == "1250"
+    t = authed.get("/api/today").json()
+    assert t["signals"][0]["status"] == "PASS" and len(t["trades"]) == 1
