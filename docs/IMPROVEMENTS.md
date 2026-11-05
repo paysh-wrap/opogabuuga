@@ -28,3 +28,22 @@ All stay inside the master prompt + Lucid rules. Pillars are never changed by th
 With 50% off at 0.75R and 50% at 1R: full win ≈ +0.875R; loss = −1R (+ fees). Break-even win rate ≈ 53–55% after
 fees; if the remainder is moved to breakeven after the partial, wins can be as small as +0.375R. Recommend:
 run 1:1 mode in SHADOW until it shows E ≥ 0.20R net over ≥100 trades before enabling it on a paid account.
+
+## E. Raising the 1:1-mode win rate toward 65–72% (proposals — need approval)
+Each is a 1:1-mode-only ENTRY FILTER (stricter only: it can skip trades, never loosen a rule). Each is tested in
+backtest + shadow and kept only if, out-of-sample, it raises win rate WITHOUT pushing E below 0.20R net or trades
+below ~150/year. No promise of a win rate — the backtest measures it.
+
+| # | Filter | Why it should raise win rate |
+|---|---|---|
+| E1 | **1R target must sit at or before the model's T1** (first objective) | Price only has to make part of the move the model expects first; biggest expected lever |
+| E2 | **Own T1 hit-rate ≥ threshold** per symbol+profile (≥30 recorded samples) | Trades only where this setup has proven to reach T1 |
+| E3 | **Score ≥ 75 in 1:1 mode** (instead of 60) | Takes only the cleaner setups (early CISD + structure turn) |
+| E4 | **Require CHoCH** (not just BoS) after the sweep | Stronger reversal evidence |
+| E5 | **Bias aligned + HTF structure agrees** (no NEUTRAL days in 1:1 mode) | Trades with the higher-timeframe flow |
+| E6 | **Volatility band**: skip when HTF ATR is in its top/bottom 10% | Avoids whipsaw and no-follow-through days |
+| E7 | **Skip 09:30–09:35 and 5 min after any high-impact release** | Avoids the most random minutes |
+| E8 | **Lab ranks 30-min slices by measured win rate** (already tunable) | Drops the weakest times of day, inside your windows only |
+
+Expectancy check (1:1, 50% at 0.75R then BE, fees ignored): win rate 60% → about +0.13R per trade,
+65% → +0.22R, 72% → +0.35R. So 65% is roughly where 1:1 mode clears the 0.20R gate.

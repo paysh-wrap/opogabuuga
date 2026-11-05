@@ -56,8 +56,11 @@ Interpretation (confirm): trades 4 and 5 are allowed only while the CURRENT cons
 DLL note: per-trade DLL check is never weakened, so on large risk bases (> ~$2,085 at default tiers) a 3rd loss
 cannot fit the $600 DLL and the day ends after 2. EVAL (max base $1,437.50): 3 losses = $450.98 incl. margins ✓;
 Evaluation Mode: $506.53 ✓; FUNDED at $3,000 cushion: $810.72 ✗ → 3rd trade skipped by the DLL check.
-Still open: Q2 breakeven after partial? Q3 1-contract sizes: skip or no partial? Q4 stages?
-Q6 own backtest gate before paid accounts? Q7 apply the 40% consistency cap on FUNDED too (firm has none there)?
+Answers 2 (user, 2026-11-05): stop → breakeven after the 75% partial. One contract: trail the stop into profit,
+~25–35% of the way (config: lock 0.30R at the 75% trigger, bounds 0.25–0.35R, ratchet only). A loss on the 4th
+trade ends the day. Must pass its own backtest gate (≥100 trades, E ≥ 0.20R net, PF ≥ 1.4, 0 violations) before
+paid accounts. Stages: EVAL + FUNDED (LIVE pending). Handles EOD and intraday drawdown accounts.
+Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)? LIVE stage allowed?
 
 ## D8 — 2026-11-05 — Minimum hold time (Lucid microscalping rule)
 - Lucid (FAQ, per search results): flagged if > 50% of profits come from trades held <= 5 s. VERIFY.
@@ -67,3 +70,9 @@ Q6 own backtest gate before paid accounts? Q7 apply the 40% consistency cap on F
   broker TP leg, kill switch, MLL/DLL breach, news flatten, flat times (earlier rules win, per user).
 - Metric: % of profit from trades held <= 5 s, per account per payout cycle; warn at 20%.
 - Proposal (needs approval): pause NEW entries on an account if that share reaches 35%.
+
+## D9 — 2026-11-05 — Funded drawdown type default = EOD
+- User: Lucid account stages are usually EOD drawdown → funded.drawdown_type: eod (VERIFY).
+  (A third-party guide said LucidDaily funded is intraday — confirm in your dashboard.)
+- Both types stay fully supported: each account has its own drawdown_type (Accounts page) and the MLL
+  tracker / guard / 1:1 management follow the account's type. Spec §21 MLL tests for both types are kept.

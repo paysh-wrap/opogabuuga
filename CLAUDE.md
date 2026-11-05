@@ -59,7 +59,7 @@ stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID
 ## Phase engine + MLL (§10)
 - update_mll: intraday trails always; EOD trails only on the once-per-session EOD call with settled balance; lock when peak ≥ lock_trigger.
 - EVAL: target $1,250, 40% consistency, ≥3 profitable days, $1,000 EOD DD (MLL 24,000 → lock 25,100 at EOD peak 26,100), DLL $600, news blacked out. Pass → auto-disarm "PASSED – awaiting Lucid", Eval Mode auto-OFF.
-- FUNDED: intraday trailing until 26,100 → locked 25,100; DLL $600; news = HARD BREACH (flat 1 min before → 1 min after); $6,000 day → live move.
+- FUNDED: default EOD drawdown (D9; per-account intraday supported) until 26,100 → locked 25,100; DLL $600; news = HARD BREACH (flat 1 min before → 1 min after); $6,000 day → live move.
 - LIVE: per config (VERIFY). Any account LIVE → block household sim accounts.
 - Stage change away from EVAL → Eval Mode forced OFF + audit + notify. Inactivity alert at 21 days.
 
@@ -90,3 +90,6 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D1: instruments MNQ (core), MES, MYM, MGC; MES/MYM/MGC disabled until §16.6 gate. METALS super-group for MGC.
 - D2: morning window 06:45–11:30 ET; calendar 06:00, bias 06:10, pre-flight 06:40.
 - D3: API Keys page; keys write-only, encrypted, never logged/returned.
+- D7: 1:1 mode (user toggle): TP 1R; 50% off at 0.75R then BE; 1 contract → lock +0.30R at 0.75R; 3 losses/day;
+  4th–5th trade only on a ≥3-win streak (4th loss ends day); never over consistency; own backtest gate first.
+- D8: hold ≥ 6 s for app exits; protective exits never wait. D9: funded default EOD, intraday supported per account.

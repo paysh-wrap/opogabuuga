@@ -19,7 +19,7 @@ eval:
 
 funded:
   max_loss_limit: 1000
-  drawdown_type: intraday              # VERIFY
+  drawdown_type: eod                   # VERIFY — D9: user says Lucid accounts are usually EOD; per-account override supports intraday
   lock_trigger: 26100
   lock_level: 25100
   daily_loss_limit: 600                # VERIFY
@@ -133,7 +133,16 @@ one_to_one_mode:                       # D7 — user toggle in Risk UI; the Lab 
   max_consecutive_losses_per_day: 3    # ONLY in this mode (normal mode: internal.max_consecutive_losses_per_day = 2)
   max_trades_per_day: 3
   extended_max_trades_per_day: 5       # trades 4–5 allowed only while the current win streak is >= 3
-  extend_after_win_streak: 3
+  extend_after_win_streak: 3           # W W W → 4th ok; W W W W → 5th ok; a loss on the 4th ends the day
+  breakeven_after_partial: true        # after the 75% partial, the rest's stop → entry + fee cover
+  # One contract (can't split): when price reaches 75% of the way to TP, ratchet the stop to lock in
+  # single_contract_lock_r of profit (0.30R default, allowed 0.25–0.35R). Ratchet only, never loosens.
+  single_contract_lock_r: 0.30
+  single_contract_lock_bounds: [0.25, 0.35]
+  stages: [EVAL, FUNDED]               # LIVE pending user confirmation
+  # Works for EOD and intraday-trailing accounts; on intraday accounts the partial + stop lock also limits how
+  # far open-profit peaks drag the MLL up. While ON, this management replaces the §8 drawdown guard for that trade.
+  gate: {min_trades: 100, min_e_net_r: 0.20, min_pf: 1.4, max_violations: 0}   # own backtest before paid accounts
   # Unchanged in this mode: all gates, per-trade DLL/MLL checks (never weakened), kill switch, 40% consistency
   # cap + day stop, hedge lock, news/flat times, min hold, force_floor after a loss, Evaluation Mode scope.
 

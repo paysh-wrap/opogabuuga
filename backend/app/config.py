@@ -244,6 +244,13 @@ class InternalCfg(_M):
     news_flatten_before_min: int
 
 
+class GateCfg(_M):
+    min_trades: int
+    min_e_net_r: D
+    min_pf: D
+    max_violations: int
+
+
 class OneToOneMode(_M):
     enabled: bool
     rr: D
@@ -253,6 +260,11 @@ class OneToOneMode(_M):
     max_trades_per_day: int
     extended_max_trades_per_day: int
     extend_after_win_streak: int
+    breakeven_after_partial: bool
+    single_contract_lock_r: D
+    single_contract_lock_bounds: tuple[D, D]
+    stages: list[Literal["EVAL", "FUNDED", "LIVE"]]
+    gate: GateCfg
 
 
 class TargetSessions(_M):
@@ -414,6 +426,11 @@ class RulesConfig(_M):
             raise ValueError("one_to_one_mode allows at most 3 consecutive losses per day")
         if o.extend_after_win_streak < 1:
             raise ValueError("extend_after_win_streak must be >= 1")
+        lo, hi = o.single_contract_lock_bounds
+        if not (D(0) < lo <= o.single_contract_lock_r <= hi < o.partial_at_fraction_of_tp * o.rr):
+            raise ValueError("single_contract_lock_r must sit inside its bounds and below the 75% trigger")
+        if o.gate.min_e_net_r < self.purchase_gate.min_e_net_r or o.gate.min_trades < self.purchase_gate.min_trades:
+            raise ValueError("1:1 gate can't be looser than the purchase gate")
         b = self.behavior
         if b.min_hold_seconds <= b.firm_microscalp_hold_seconds:
             raise ValueError("min_hold_seconds must exceed firm_microscalp_hold_seconds")

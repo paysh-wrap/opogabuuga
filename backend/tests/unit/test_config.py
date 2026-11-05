@@ -83,12 +83,14 @@ def test_verify_parser_nesting():
         (("drawdown_guard", "runner_trail_r"), 2.5),
         (("eval_mode", "pace_escalation"), True),
         (("eval_mode", "applies_to_stages"), ["EVAL", "FUNDED"]),
-    (("behavior", "min_hold_seconds"), 5),
-    (("one_to_one_mode", "rr"), 2),
-    (("one_to_one_mode", "max_consecutive_losses_per_day"), 4),
-    (("one_to_one_mode", "extended_max_trades_per_day"), 6),
-    (("one_to_one_mode", "partial_at_fraction_of_tp"), 1.2),
-    (("behavior", "rapid_trade_warn_pct"), 60),
+        (("behavior", "min_hold_seconds"), 5),
+        (("one_to_one_mode", "rr"), 2),
+        (("one_to_one_mode", "max_consecutive_losses_per_day"), 4),
+        (("one_to_one_mode", "extended_max_trades_per_day"), 6),
+        (("one_to_one_mode", "partial_at_fraction_of_tp"), 1.2),
+        (("one_to_one_mode", "single_contract_lock_r"), 0.5),
+        (("one_to_one_mode", "single_contract_lock_r"), 0.2),
+        (("behavior", "rapid_trade_warn_pct"), 60),
     ],
 )
 def test_structural_rejects(loaded_rules, path, value):
@@ -118,7 +120,11 @@ def test_lucid_symbols_and_fees(loaded_rules):
 def test_lucid_microscalp_rule(loaded_rules):
     b = loaded_rules.rules.behavior
     assert (b.firm_microscalp_hold_seconds, b.firm_microscalp_pct, b.min_hold_seconds, b.rapid_trade_warn_pct) == (
-        5, 50, 6, 20)
+        5,
+        50,
+        6,
+        20,
+    )
     assert "behavior.firm_microscalp_hold_seconds" in loaded_rules.verify_paths
 
 
@@ -129,3 +135,15 @@ def test_one_to_one_mode_d7(loaded_rules):
     assert (o.max_consecutive_losses_per_day, o.max_trades_per_day, o.extended_max_trades_per_day) == (3, 3, 5)
     assert o.extend_after_win_streak == 3
     assert loaded_rules.rules.internal.max_consecutive_losses_per_day == 2  # normal mode unchanged
+
+
+def test_one_to_one_answers_and_d9(loaded_rules):
+    r = loaded_rules.rules
+    o = r.one_to_one_mode
+    assert o.breakeven_after_partial is True
+    assert o.single_contract_lock_r == Decimal("0.30")
+    assert o.single_contract_lock_bounds == (Decimal("0.25"), Decimal("0.35"))
+    assert o.stages == ["EVAL", "FUNDED"]
+    assert o.gate.min_trades >= 100 and o.gate.min_e_net_r >= Decimal("0.20")
+    assert r.funded.drawdown_type == "eod" and r.eval.drawdown_type == "eod"
+    assert "funded.drawdown_type" in loaded_rules.verify_paths
