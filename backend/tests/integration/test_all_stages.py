@@ -128,7 +128,7 @@ def test_payout_countdown_on_funded_and_live(authed, clock):
 
 
 def test_dashboard_and_today(authed, clock):
-    _, res = run(authed, clock, "EVAL")
+    run(authed, clock, "EVAL")
     d = authed.get("/api/dashboard").json()
     a = d["accounts"][0]
     assert d["bias"]["MNQ"] == "LONG_ONLY" and a["trades_today"] == 1
