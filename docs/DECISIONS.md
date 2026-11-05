@@ -210,3 +210,14 @@ instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid
 - Simulator fills from on_bar were also left queued (harmless, but could be applied twice): now delivered once.
 - EOD MLL update was never scheduled (EOD accounts' MLL would never trail up → app under-estimated risk): now runs
   weekdays at `schedule.eod_update` 16:50 ET (after the 16:44 hard flat) on the settled balance, once per session.
+
+## D29 — Phase 9: backtest + Monte Carlo (2026-11-05)
+- Replay uses the live code end to end: 1-min CSV → Python ports of LunqFX fractal + BigBeluga MSO (TIGHT 1m→15m,
+  STD 5m→60m) → bridge alerts → real webhook → gates → risk → order manager → simulator (fees, slippage, stop-first),
+  in a throwaway app + DB. EOD MLL update per session. ~7 s per day of 1-min data.
+- Inputs history can't give are explicit assumptions on the result: bias (recorded TradingAgents decisions only →
+  missing days = no trade; or a fixed bias), no historical news calendar.
+- Stats: win rate, net, avg R, PF, max DD, best-day share vs 40% consistency. Monte Carlo resamples whole days with
+  EOD trailing $1,000 drawdown → eval pass/fail rate + median days.
+- Data: CSV upload (Databento GLBX.MDP3 ohlcv-1m or any 1-min OHLC with UTC/epoch time). Databento API pull not
+  built (needs your key + verified API format).

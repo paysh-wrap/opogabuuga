@@ -11,6 +11,7 @@ import Dashboard from "../pages/Dashboard";
 import Today from "../pages/Today";
 import Payouts from "../pages/Payouts";
 import Strategy from "../pages/Strategy";
+import Backtest from "../pages/Backtest";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/today" element={<Today />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/strategy" element={<Strategy />} />
+        <Route path="/backtest" element={<Backtest />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />
         <Route path="/risk" element={<Risk />} />
