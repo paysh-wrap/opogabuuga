@@ -54,6 +54,27 @@ export default function Risk() {
         </select>
       </section>
 
+      <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
+        <h2 className="font-semibold text-gold">Trading mode</h2>
+        <p className="text-xs">Intraday is the default (targets 1–3R, holds minutes to hours, always flat before 4:40 PM ET). Scalp and 1:1 are quicker trades on the same signals. Lower risk can be added to any mode.</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Trading mode">
+          {([
+            ["intraday", "Intraday", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": false }],
+            ["scalp", "Scalp", { "scalp_mode.enabled": true, "one_to_one_mode.enabled": false }],
+            ["one-to-one", "1:1", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": true }],
+          ] as const).map(([id, label, changes]) => {
+            const scalpOn = s.settings["scalp_mode.enabled"] === true;
+            const active = id === "scalp" ? scalpOn : id === "one-to-one" ? oneToOne && !scalpOn : !scalpOn && !oneToOne;
+            return (
+              <button key={id} role="radio" aria-checked={active} data-testid={`mode-${id}`}
+                className={`${btn} ${active ? "border-gold bg-gold/15 text-gold" : "border-blue text-blue"}`}
+                onClick={() => save({ ...changes })}>{label}{active ? " ✓" : ""}</button>
+            );
+          })}
+          <span className="self-center text-xs opacity-75">{low.data?.enabled ? "+ Lower risk ON" : ""}</span>
+        </div>
+      </section>
+
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">Lower risk {low.data?.enabled ? "· ON" : "· OFF"}</h2>
         <p className="text-xs">Halves the risk on every trade and allows twice as many losing trades per day ({low.data?.max_losses_per_day ?? "—"} losses, {low.data?.max_trades_per_day ?? "—"} trades max now). Firm rules and stops unchanged.</p>

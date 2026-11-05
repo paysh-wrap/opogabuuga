@@ -88,6 +88,9 @@ class TradeLimits:
     dll_safety_margin: Decimal
     pause_below_base: Decimal
     kill_switch_distance: Decimal
+    # D36 Lower-risk mode: when the (halved) risk can't buy min_qty micros, allow exactly min_qty if that costs no
+    # more than risk × this multiple (2 = the normal-mode risk). Never above normal risk; None = off.
+    min_qty_cap_mult: Decimal | None = None
 
 
 @dataclass
@@ -166,6 +169,14 @@ def pretrade(
     n = size_contracts(
         usd, stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks, lim.firm_max, lim.internal_max, lim.min_qty
     )
+    if n == 0 and lim.min_qty_cap_mult is not None:
+        cap = usd * lim.min_qty_cap_mult
+        need = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks) * lim.min_qty
+        dll_ok = dll_left is None or need + lim.dll_safety_margin <= dll_left
+        if need <= cap and dll_ok and lim.min_qty <= min(lim.firm_max, lim.internal_max):
+            n, usd = lim.min_qty, need
+            r.risk_usd = usd
+            r.log("low_risk_min_qty", True, risk=usd, cap=cap)
     if not r.log("size", n > 0, risk=usd, stop_ticks=stop_ticks, min_qty=lim.min_qty):
         return fail("STOP_TOO_WIDE")
     if consistency is not None:

@@ -35,6 +35,7 @@ class BacktestConfig:
     recorded_bias: dict[str, str] = field(default_factory=dict)  # session iso date → mapped
     one_to_one: bool = False
     scalp: bool = False
+    low_risk: bool = False  # Lower-risk mode button (half risk, more trades allowed)
     eval_mode: bool = False
     profiles: tuple[str, ...] = ("TIGHT", "STD")
     data_source: str = "futures"  # "futures" (MGC/MNQ contracts) | "spot" (e.g. XAUUSD: NOT what Lucid trades)
@@ -166,6 +167,8 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         c.headers["x-csrf-token"] = r.json()["csrf"]
         c.put("/api/risk/settings", json={"changes": changes})
         c.put("/api/markets", json={"symbol": cfg.symbol, "enabled": True})  # backtest the chosen market
+        if cfg.low_risk:
+            c.put("/api/risk/low-risk", json={"enabled": True})
         body = {"label": "BT", "stage": cfg.stage, "balance": str(cfg.balance)}
         if cfg.drawdown_type:
             body["drawdown_type"] = cfg.drawdown_type

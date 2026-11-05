@@ -22,6 +22,8 @@ def test_lists_every_service_with_links(authed, mock_http):
         "traderspost",
         "lucid",
         "databento",
+        "fincept",
+        "openbb",
         "forexfactory",
         "crosstrade",
         "discord",

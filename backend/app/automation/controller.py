@@ -360,6 +360,7 @@ class Controller:
             r.internal.dll_safety_margin,
             r.internal.pause_below_risk_base,
             r.internal.kill_switch_mll_distance,
+            Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
         pt = pretrade(

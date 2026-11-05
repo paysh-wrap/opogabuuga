@@ -268,6 +268,7 @@ class InternalCfg(_M):
     pause_below_risk_base: D
     dll_safety_margin: D
     max_trades_per_day: int
+    low_risk_max_trades_per_day: int = 7  # D36: Lower-risk mode doubles max trades, capped here
     max_consecutive_losses_per_day: int
     internal_max_micros: int
     kill_switch_mll_distance: D
@@ -513,8 +514,8 @@ class RulesConfig(_M):
             raise ValueError("one_to_one_mode.rr must be exactly 1")
         if not (D(0) < o.partial_at_fraction_of_tp < D(1) and D(0) < o.partial_qty_fraction < D(1)):
             raise ValueError("one_to_one_mode partial fractions must be between 0 and 1")
-        if not (1 <= o.max_trades_per_day <= o.extended_max_trades_per_day <= 5):
-            raise ValueError("one_to_one_mode: max trades <= extended max trades <= 5")
+        if not (1 <= o.max_trades_per_day <= o.extended_max_trades_per_day <= 7):  # D36: scalp/1:1 up to 7/day
+            raise ValueError("one_to_one_mode: max trades <= extended max trades <= 7")
         if not (self.internal.max_consecutive_losses_per_day <= o.max_consecutive_losses_per_day <= 3):
             raise ValueError("one_to_one_mode allows at most 3 consecutive losses per day")
         if o.extend_after_win_streak < 1:

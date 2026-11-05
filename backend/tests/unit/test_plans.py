@@ -56,4 +56,5 @@ def test_gold_market_settings():
     g = r("lucid_flex_25k").instruments["MGC"]
     assert g.min_stop_ticks == 16 and g.news_after_min == 15 and g.tick_value == D(1)
     assert in_windows(datetime(2026, 11, 5, 8, 30, tzinfo=UTC), g.windows)  # 03:30 ET London open
-    assert not in_windows(datetime(2026, 11, 5, 17, 0, tzinfo=UTC), g.windows)  # 12:00 ET
+    assert in_windows(datetime(2026, 11, 5, 17, 0, tzinfo=UTC), g.windows)  # 12:00 ET (D36: 03:00–15:30)
+    assert not in_windows(datetime(2026, 11, 5, 21, 0, tzinfo=UTC), g.windows)  # 16:00 ET

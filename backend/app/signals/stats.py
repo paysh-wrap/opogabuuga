@@ -26,12 +26,14 @@ class StatsCache:
     ttl_s: float = 300.0
     _data: dict[tuple[str, str], tuple[float, History]] = field(default_factory=dict)
 
-    def get(self, key: tuple[str, str]) -> History | None:
+    def get(self, key: tuple[str, str], now: datetime | None = None) -> History | None:
+        """`now` = the app's (injected) clock, so replays/backtests age the cache in market time, not wall time."""
         hit = self._data.get(key)
-        return hit[1] if hit and time.monotonic() - hit[0] < self.ttl_s else None
+        t = now.timestamp() if now is not None else time.monotonic()
+        return hit[1] if hit and 0 <= t - hit[0] < self.ttl_s else None
 
-    def put(self, key: tuple[str, str], h: History) -> None:
-        self._data[key] = (time.monotonic(), h)
+    def put(self, key: tuple[str, str], h: History, now: datetime | None = None) -> None:
+        self._data[key] = (now.timestamp() if now is not None else time.monotonic(), h)
 
 
 def load_history(s: Session, symbol: str, profile: str, now: datetime, days: int = 120) -> History:

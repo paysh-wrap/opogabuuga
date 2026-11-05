@@ -261,6 +261,31 @@ PROVIDERS: tuple[Provider, ...] = (
         fields=(FieldSpec("api_key", "API key", placeholder="db-..."),),
     ),
     Provider(
+        id="fincept",
+        name="Fincept (fundamental research — optional)",
+        category="data",
+        testable=False,
+        purpose="Extra fundamental context for gold and Nasdaq (macro, rates, news). INFORMATION ONLY: never changes "
+        "the TradingAgents bias, the gates or sizing. Fincept Terminal itself is a separate desktop app (AGPL-3.0, "
+        "personal use).",
+        links=(
+            Link("Sign up (free tier)", "https://fincept.in"),
+            Link("Data API docs", "https://docs.fincept.in"),
+            Link("Desktop terminal", "https://github.com/Fincept-Corporation/FinceptTerminal/releases"),
+        ),
+        fields=(FieldSpec("api_key", "Fincept Data API key", required=False),),
+        note="Panel wiring waits until the API endpoints are verified (no guessing on data sources).",
+    ),
+    Provider(
+        id="openbb",
+        name="OpenBB (market data — no key needed)",
+        category="data",
+        testable=False,
+        purpose="Free daily MGC/MNQ data (Yahoo Finance via OpenBB) for research. Information only; signals still "
+        "come from TradingView webhooks and bias from TradingAgents.",
+        links=(Link("OpenBB", "https://github.com/OpenBB-finance/OpenBB"),),
+    ),
+    Provider(
         id="forexfactory",
         name="ForexFactory (economic calendar — no key needed)",
         category="data",

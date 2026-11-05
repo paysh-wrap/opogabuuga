@@ -59,10 +59,10 @@ behavior:
 # fee_rt = Lucid commission per side × 2 (MNQ/MES/MYM $0.50/side, MGC $0.80/side) — VERIFY in your dashboard.
 # Per-instrument trade-plan overrides fall back to trade_plan.* when absent.
 instruments:
-  MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}    # VERIFY fees
+  MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}, windows: [["06:45", "09:30"], ["09:35", "15:30"]]}    # VERIFY fees
   MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
   MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
-  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "11:00"], ["13:30", "15:30"]]}      # VERIFY fees
+  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: true, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
@@ -74,17 +74,21 @@ super_groups:
   EQUITY_INDEX: [NQ, ES, YM, RTY]
   METALS: [GC]
 
-trade_plan: {rr_min: 1.75, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
+trade_plan: {rr_min: 1.0, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
 filters:
-  c1_min_range_atr: 0.6                # tunable 0.4–1.0
+  c1_min_range_atr: 0.4                # tunable 0.4–1.0
   htf_atr_period: 14
   model_fail_cooldown: {streak: 3, sessions: 5}   # my setting, not Lab-tunable
+  require_mso_agree: false            # D36: G4 score-only (blend: confirmation lag killed entries)
+  require_structure_break: false      # D36: G5 score-only
+  t1_through_ok_with_limit: true      # D36: limit entry needs a full retrace, so T1 touched is fine
 
 score:
   weights: {cisd_before_c2_close: 25, choch_after_sweep: 20, bos_only: 10, osc_strength: 15, own_tp_rate: 15, bias_aligned: 15, htf_mso_agrees: 10}
   min_score: 60
-  neutral_min_score: 75
+  neutral_min_score: 60
+  exclude_unknown: true               # D36: unknown bias / unproven T2 rate leave the max
   osc_strength_min: 15
   tp_rate_min: 0.45
   tp_rate_min_samples: 30
@@ -93,7 +97,7 @@ score:
   session_open_times: ["09:30", "13:30"]
   smt_weight: 0                        # tunable 0–15, only after §16.6
 
-entry: {mode: market, limit_timeout_bars: 4, max_wait_bars: 6}
+entry: {mode: limit_cisd, limit_timeout_bars: 4, max_wait_bars: 6}
 
 profiles:
   TIGHT: {ltf: "1", htf: "15"}
@@ -116,7 +120,7 @@ internal:
   streak_release_wins: 2
   pause_below_risk_base: 2000
   dll_safety_margin: 40
-  max_trades_per_day: 3                # Aggressive preset: 4
+  max_trades_per_day: 5                # D36: 2–5 trades/day target
   max_consecutive_losses_per_day: 2
   internal_max_micros: 40
   kill_switch_mll_distance: 100
@@ -138,8 +142,8 @@ one_to_one_mode:                       # D7 — user toggle in Risk UI; the Lab 
   partial_at_fraction_of_tp: 0.75      # take profit on part of the position at 75% of the way to TP
   partial_qty_fraction: 0.5            # 50% of contracts
   max_consecutive_losses_per_day: 3    # ONLY in this mode (normal mode: internal.max_consecutive_losses_per_day = 2)
-  max_trades_per_day: 3
-  extended_max_trades_per_day: 5       # trades 4–5 allowed only while the current win streak is >= 3
+  max_trades_per_day: 5                # D36: scalp / 1:1 target 4–7 trades/day
+  extended_max_trades_per_day: 7                # D36: trades 6–7 only on a win streak
   extend_after_win_streak: 3           # W W W → 4th ok; W W W W → 5th ok; a loss on the 4th ends the day
   breakeven_after_partial: true        # after the 75% partial, the rest's stop → entry + fee cover
   # One contract (can't split): when price reaches 75% of the way to TP, ratchet the stop to lock in

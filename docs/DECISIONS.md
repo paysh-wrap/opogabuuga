@@ -283,3 +283,17 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   2–8 min). STD-only: ~0.2/day. Half of MGC passes don't fill (limit timeout). Sample far too small → need longer
   futures history before setting any of these live.
 - UI modes requested by user: Scalping, Intraday, Low risk, 1:1.
+
+## D36 — Blend for MGC + MNQ, Lucid Pro/Flex (user, 2026-11-05)
+- Pro/Flex plans (not the legacy Daily file the test suite uses): rr_min 1.0 (targets 1R–3R), limit_cisd entry, G4/G5
+  score-only, T1-through OK with limit, neutral score 60 + exclude_unknown, C1 ≥ 0.4 ATR, MGC enabled 03:00–15:30 ET,
+  MNQ 06:45–09:30 + 09:35–15:30, max 5 trades/day; 1:1/scalp max 5 (7 on a win streak); low risk max 7/day.
+- Lower risk: if half risk can't buy 1 micro, trade 1 micro when it costs ≤ normal-mode risk (never more).
+- Fixed: signal-history cache aged in wall time → backtests never "proved" T1 rates (scalp/1:1 always skipped).
+- UI: Trading mode selector (Intraday default / Scalp / 1:1) + Lower risk; Connections: Fincept + OpenBB (info only,
+  never touches TradingAgents bias, gates or sizing).
+- Futures backtest (Oct 12–Nov 5, 18 sessions, neutral bias, Flex = Pro 25K): normal MGC 40 trades 48% PF 1.28,
+  MNQ 19 trades 32% PF 1.41 (~3.3/day). Low risk: MGC 42 (48%, PF 1.48), MNQ 24 (38%, PF 1.58) ≈ 3.7/day.
+  Scalp: real T1 hit rate < 55% → its 65% filter blocks almost all (needs a design decision).
+- make_plans.py still uses the Daily file as its template: re-running it would drop D36 from Pro/Flex. Don't
+  regenerate without porting D36.

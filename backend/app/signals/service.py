@@ -213,11 +213,11 @@ def process(
     mso = st.mso or {}
     enabled = rules.instrument(st.symbol).enabled
     eval_rules = rules if enabled else shadow_rules(rules, st.symbol)
-    hist = cache.get((st.symbol, st.profile)) if cache else None
+    hist = cache.get((st.symbol, st.profile), now) if cache else None
     if hist is None:
         hist = load_history(s, st.symbol, st.profile, now)
         if cache:
-            cache.put((st.symbol, st.profile), hist)
+            cache.put((st.symbol, st.profile), hist, now)
     for m in list(st.models.values()):
         mv = model_view(m)
         if mv is None:

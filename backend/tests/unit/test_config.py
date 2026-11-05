@@ -86,7 +86,7 @@ def test_verify_parser_nesting():
         (("behavior", "min_hold_seconds"), 5),
         (("one_to_one_mode", "rr"), 2),
         (("one_to_one_mode", "max_consecutive_losses_per_day"), 4),
-        (("one_to_one_mode", "extended_max_trades_per_day"), 6),
+        (("one_to_one_mode", "extended_max_trades_per_day"), 8),  # D36: cap is 7
         (("one_to_one_mode", "partial_at_fraction_of_tp"), 1.2),
         (("one_to_one_mode", "single_contract_lock_r"), 0.5),
         (("one_to_one_mode", "single_contract_lock_r"), 0.2),

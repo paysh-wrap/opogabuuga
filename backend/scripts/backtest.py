@@ -23,15 +23,15 @@ from zoneinfo import ZoneInfo
 ET = ZoneInfo("America/New_York")
 
 
-def _one(args: tuple[str, str, str, str, bool, bool]) -> dict[str, Any]:
-    path, symbol, bias, plan, one_to_one, scalp = args
+def _one(args: tuple[str, str, str, str, bool, bool, bool]) -> dict[str, Any]:
+    path, symbol, bias, plan, one_to_one, scalp, low_risk = args
     logging.disable(logging.CRITICAL)
     from app.backtest.data import load_csv
     from app.backtest.runner import BacktestConfig, run_backtest
 
     bars = load_csv(Path(path).read_text())
     src = "spot" if any(x in Path(path).name.lower() for x in ("xauusd", "xau", "spot")) else "futures"
-    cfg = BacktestConfig(symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp, data_source=src)
+    cfg = BacktestConfig(symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp, data_source=src, low_risk=low_risk)
     r = run_backtest(bars, cfg, Path(plan))
     return {
         "file": Path(path).name,
@@ -53,12 +53,13 @@ def main() -> None:
     ap.add_argument("--plan", default="../config/rules/lucid_flex_25k.yaml")
     ap.add_argument("--one-to-one", action="store_true")
     ap.add_argument("--scalp", action="store_true")
+    ap.add_argument("--low-risk", action="store_true")
     ap.add_argument("--jobs", type=int, default=4)
     a = ap.parse_args()
     from app.backtest.stats import monte_carlo, stats
     from app.clock import session_date
 
-    jobs = [(c, a.symbol, a.bias, a.plan, a.one_to_one, a.scalp) for c in a.csv]
+    jobs = [(c, a.symbol, a.bias, a.plan, a.one_to_one, a.scalp, a.low_risk) for c in a.csv]
     with ProcessPoolExecutor(max_workers=a.jobs) as ex:
         runs = list(ex.map(_one, jobs))
     rows = []

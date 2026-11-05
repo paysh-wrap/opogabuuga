@@ -421,3 +421,28 @@ def test_pretrade_blocks_after_giving_back_profit():
     assert not r.ok and r.reason == "DLL_LIMIT"
     # high +$300, now +$100 → $400 room → allowed
     assert run(day=DayState(1, 0, 1, D(100), D(100), today_peak_pnl=D(300)), consistency=None).ok
+
+
+def test_low_risk_min_qty_floor_d36():
+    from dataclasses import replace
+
+    wide = build_trade_plan(Direction.LONG, D(20000), D(19900), D(20300), T, 4, 20)
+    base = run(plan=wide)
+    assert not base.ok and base.reason == "STOP_TOO_WIDE"
+    need = (wide.risk_pts / T) * TV + FEE + 1 * TV  # one micro, incl. fees + 1 tick slippage
+    mult = (need / base.risk_usd).quantize(D("0.01")) + D("0.01")
+    ok = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=mult), consistency=None)
+    assert ok.ok and ok.contracts == 1 and ok.risk_usd == need
+    assert any(c["check"] == "low_risk_min_qty" for c in ok.checks)
+    # never above the cap (normal-mode risk)
+    small = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=D(1)))
+    assert not small.ok and small.reason == "STOP_TOO_WIDE"
+    # DLL room still enforced
+    tight = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=mult), day=DayState(0, 0, 0, D(-500), D(0)))
+    assert not tight.ok
+    # firm/internal max below min_qty
+    capped = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=mult, internal_max=0))
+    assert not capped.ok and capped.reason == "STOP_TOO_WIDE"
+    # no DLL on the account (Flex funded): only the cap applies
+    nodll = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=mult), acct_dll=None, consistency=None)
+    assert nodll.ok and nodll.contracts == 1

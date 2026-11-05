@@ -24,7 +24,7 @@ def apply_low_risk(r: RulesConfig) -> RulesConfig:
             "risk_pct_ceiling": i.risk_pct_ceiling * HALF,
             "max_risk_usd": i.max_risk_usd * HALF if i.max_risk_usd is not None else None,
             "max_consecutive_losses_per_day": i.max_consecutive_losses_per_day * 2,
-            "max_trades_per_day": i.max_trades_per_day * 2,
+            "max_trades_per_day": min(i.max_trades_per_day * 2, i.low_risk_max_trades_per_day),  # D36: 4–7/day
         }
     )
     eval_mode = em.model_copy(
