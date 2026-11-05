@@ -134,7 +134,11 @@ PROVIDERS: tuple[Provider, ...] = (
         required=True,
         purpose="Daily AI bias (Buy/Overweight/Hold/Underweight/Sell → LONG_ONLY/NEUTRAL/SHORT_ONLY). "
         "Installed from GitHub at the pinned tag in its own isolated environment.",
-        links=(Link("GitHub repository", TA_REPO), Link("Releases", f"{TA_REPO}/releases")),
+        links=(
+            Link("GitHub repository", TA_REPO),
+            Link("Releases", f"{TA_REPO}/releases"),
+            *(Link(f"{k} key", v["keys_url"]) for k, v in LLM_PROVIDERS.items()),
+        ),
         fields=(
             FieldSpec("llm_provider", "LLM provider", "select", options=tuple(LLM_PROVIDERS)),
             FieldSpec("api_key", "LLM API key", "secret", placeholder="paste key"),
@@ -148,7 +152,7 @@ PROVIDERS: tuple[Provider, ...] = (
             FieldSpec("deep_think_llm", "Deep model", "text", required=False),
         ),
         steps=(
-            "Pick an LLM provider and create an API key (link appears after you choose).",
+            "Pick an LLM provider and get its API key from the matching link below (log in there).",
             "Paste it here and press Save & Test: we validate the key and the installed package.",
             "Until connected, bias = NO_TRADE (spec §15) and no trades are taken.",
         ),
