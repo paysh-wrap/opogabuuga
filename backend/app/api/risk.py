@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import Principal, current_user, get_db
 from app.models import Account, RiskProfile, RuleProfile
+from app.phases.phase_engine import stage_rules
 from app.risk import settings_store as ss
 from app.risk.eval_mode import eval_mode_effective
 from app.risk.validation import validate
@@ -255,6 +256,11 @@ def list_accounts(
                 "label": a.label,
                 "stage": a.stage,
                 "drawdown_type": a.drawdown_type,
+                "drawdown_expected": (exp := stage_rules(request.app.state.rules.rules, a.stage).drawdown_type),
+                "drawdown_check": None
+                if a.drawdown_type == exp
+                else f"{a.stage} accounts at Lucid normally use {exp.upper()} — confirm this account is "
+                f"{a.drawdown_type.upper()} in your Lucid dashboard",
                 "dll_enabled": a.dll_enabled,
                 "eval_mode": a.eval_mode,
                 "eval_mode_effective": eval_mode_effective(a.stage, a.eval_mode, on),

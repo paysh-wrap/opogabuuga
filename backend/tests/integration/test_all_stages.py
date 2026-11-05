@@ -99,9 +99,9 @@ def test_drawdown_toggle(authed):
     dd = {a["id"]: a["drawdown_type"] for a in authed.get("/api/accounts").json()["accounts"]}
     assert dd == {e: "eod", f: "intraday"}  # stage defaults (funded = intraday, D20)
     assert authed.patch(f"/api/accounts/{e}", json={"drawdown_type": "intraday"}).status_code == 200
-    assert authed.patch(f"/api/accounts/{f}", json={"drawdown_type": "eod"}).status_code == 422
-    assert (
-        authed.post("/api/accounts", json={"label": "X", "stage": "FUNDED", "drawdown_type": "eod"}).status_code == 422
-    )
-    dd = {a["id"]: a["drawdown_type"] for a in authed.get("/api/accounts").json()["accounts"]}
-    assert dd[e] == "intraday"
+    assert authed.patch(f"/api/accounts/{f}", json={"drawdown_type": "eod"}).status_code == 200  # user's choice
+    acc = {a["id"]: a for a in authed.get("/api/accounts").json()["accounts"]}
+    assert acc[e]["drawdown_type"] == "intraday" and acc[f]["drawdown_type"] == "eod"
+    assert "normally use EOD" in acc[e]["drawdown_check"] and "normally use INTRADAY" in acc[f]["drawdown_check"]
+    authed.patch(f"/api/accounts/{e}", json={"drawdown_type": "eod"})
+    assert authed.get("/api/accounts").json()["accounts"][0]["drawdown_check"] is None

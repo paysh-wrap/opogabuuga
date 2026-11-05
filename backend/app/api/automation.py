@@ -155,8 +155,6 @@ def create_account(
 ) -> dict[str, Any]:
     if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in (None, "eod", "intraday"):
         raise HTTPException(422, "stage EVAL/FUNDED/LIVE and drawdown eod/intraday")
-    if body.stage == "FUNDED" and body.drawdown_type == "eod":
-        raise HTTPException(422, "Lucid funded accounts always use intraday drawdown (D20)")
     dd = body.drawdown_type or stage_rules(request.app.state.rules.rules, body.stage).drawdown_type
     a = _ctl(request).create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username)
     return {"id": a.id, "broker_account_id": a.broker_account_id, "paper": True}
@@ -192,8 +190,6 @@ async def patch_account(
         if a.closed_by_firm:
             raise HTTPException(409, "account was closed by the firm — never re-enter")
     if body.drawdown_type is not None and body.drawdown_type != a.drawdown_type:
-        if a.stage == "FUNDED" and body.drawdown_type == "eod":
-            raise HTTPException(422, "Lucid funded accounts always use intraday drawdown (D20)")
         if any(t.account == a.broker_account_id for t in _ctl(request).om.trades.values()):
             raise HTTPException(409, "close the open trade before changing drawdown type")
         a.drawdown_type = body.drawdown_type

@@ -15,7 +15,7 @@ interface Status {
   rules_error: string | null;
 }
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
-interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; drawdown_type: string }
+interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; drawdown_type: string; drawdown_check: string | null }
 interface Pos { account_id: number; label: string; balance: string; open_pnl: string; mll: string; positions: { symbol: string; qty: number; avg: string }[] }
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
@@ -103,14 +103,15 @@ export default function Automation() {
                 <span className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Drawdown type">
                   {(["eod", "intraday"] as const).map((d) => (
                     <button key={d} data-testid={`dd-${a.id}-${d}`}
-                      disabled={a.drawdown_type === d || (a.stage === "FUNDED" && d === "eod")}
-                      title={a.stage === "FUNDED" && d === "eod" ? "Lucid funded accounts are always intraday" : "Must match your account at Lucid"}
+                      disabled={a.drawdown_type === d}
+                      title="Must match your account at Lucid"
                       className={`px-2 py-0.5 text-xs ${a.drawdown_type === d ? "bg-gold/15 text-gold" : "text-blue"} disabled:cursor-default`}
                       onClick={() => run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ drawdown_type: d }) }))}>
                       {d === "eod" ? "EOD trailing" : "Intraday trailing"}
                     </button>
                   ))}
                 </span>
+                {a.drawdown_check && <span data-testid={`dd-check-${a.id}`} className="text-goldLight">⚠ {a.drawdown_check}</span>}
                 {p && <span>bal {p.balance} · open {p.open_pnl} · MLL {p.mll} {p.positions.map((x) => `· ${x.symbol} ${x.qty}`).join(" ")}</span>}
                 {a.paused_reason && <span className="text-goldLight">paused: {a.paused_reason}</span>}
                 <label className="ml-auto flex items-center gap-1"><input type="checkbox" checked={a.selected}

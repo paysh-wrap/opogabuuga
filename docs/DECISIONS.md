@@ -175,5 +175,7 @@ after confirm). Still EVAL-only, capped $140, all other rules unchanged.
 
 ## D24 — Per-account EOD / Intraday trailing toggle (user request, 2026-11-05)
 Automation page → each account: "EOD trailing" | "Intraday trailing". Must mirror the account at Lucid (it drives MLL
-tracking and the drawdown guard). FUNDED is locked to intraday (D20). Change refused while a trade is open.
+tracking and the drawdown guard). Any account may use either (user choice); when it differs from the stage default
+(EVAL=EOD, FUNDED=intraday per D20) the account shows a ⚠ "confirm in your Lucid dashboard" note. Change refused while a
+trade is open.
 New accounts default to the stage's drawdown type from the rules file (was always EOD — fixed for FUNDED).
