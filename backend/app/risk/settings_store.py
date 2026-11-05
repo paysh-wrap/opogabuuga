@@ -63,6 +63,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "filters.model_fail_cooldown",
         "trade_plan.min_stop_ticks",
         "one_to_one_mode.enabled",
+        "behavior.min_hold_seconds",
         "scalp_mode.enabled",
         "scalp_mode.target_r",
         "scalp_mode.max_hold_s",

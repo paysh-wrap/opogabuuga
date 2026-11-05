@@ -116,8 +116,8 @@ async def test_early_exit_respects_hold_and_1r(env):
     plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
     t, _ = await opened(sim, om, plan, 1, False)
     await pump(sim, om, 20000, 20005, 19995, 20002)
-    assert await om.early_exit(t.trade_id, "C3_CLOSED", AT + timedelta(seconds=3)) == []  # < 6 s hold
-    ev = await om.early_exit(t.trade_id, "C3_CLOSED", AT + timedelta(seconds=7))
+    assert await om.early_exit(t.trade_id, "C3_CLOSED", AT + timedelta(seconds=8)) == []  # < 9 s hold
+    ev = await om.early_exit(t.trade_id, "C3_CLOSED", AT + timedelta(seconds=10))
     assert [e.detail for e in ev] == ["C3_CLOSED"] and await sim.get_positions("A") == []
 
 
