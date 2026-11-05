@@ -1,0 +1,31 @@
+# Binds to 127.0.0.1 only. Expose to TradingView via Cloudflare Tunnel (README), never by opening ports.
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports: ["127.0.0.1:6379:6379"]
+  api:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PAYTIENCE_DATABASE_URL: sqlite:////data/paytience.db
+      PAYTIENCE_REDIS_URL: redis://redis:6379/0
+      PAYTIENCE_RULES_PATH: /app/config/rules/lucid_daily_25k.yaml
+      PAYTIENCE_TA_PYTHON: /opt/ta/bin/python
+      PAYTIENCE_WEB_DIST: /app/web
+    volumes: ["./data:/data"]
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on: [redis]
+  worker:
+    build: { context: ., dockerfile: docker/api.Dockerfile }
+    restart: unless-stopped
+    env_file: .env
+    command: ["arq", "app.workers.jobs.WorkerSettings"]
+    environment:
+      PAYTIENCE_DATABASE_URL: sqlite:////data/paytience.db
+      PAYTIENCE_REDIS_URL: redis://redis:6379/0
+      PAYTIENCE_RULES_PATH: /app/config/rules/lucid_daily_25k.yaml
+      PAYTIENCE_TA_PYTHON: /opt/ta/bin/python
+    volumes: ["./data:/data"]
+    depends_on: [redis]

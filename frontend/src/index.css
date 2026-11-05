@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font colors: blue/gold family only (§18). Body = light blue. */
+html, body { background: #0A1020; color: #93C5FD; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: #3B82F6; }
+a:hover { color: #93C5FD; }
+:focus-visible { outline: 2px solid #F2D27A; outline-offset: 2px; }
+input, select, textarea { background: #0A1020; color: #93C5FD; border: 1px solid #1E2A4A; border-radius: 6px; padding: 6px 10px; }
+input::placeholder, textarea::placeholder { color: #93C5FD; opacity: .55; }

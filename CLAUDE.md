@@ -54,7 +54,7 @@ stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID
 - size_contracts: per = stop_ticks×tick_value + fee_rt + slip_ticks×tick_value; n = min(risk//per, firm_max, internal_max); < min_qty → STOP_TOO_WIDE.
 - Day stop: 2 consecutive losses | risk + margin > DLL remaining | max trades | (EVAL) today's profit ≥ consistency day stop.
 - Pause account: risk_base < $500. Kill switch: within $100 of MLL or any breach (checked every P&L update, incl. intraday on EOD accounts).
-- Rapid-trade: warn at 20% of profit from ≤5 s holds; strategy exits wait 6 s.
+- Hold rule (D8): app-initiated exits wait ≥ 6 s; protective exits (stop, TP leg, kill switch, breach, news, flat) never wait. Warn at 20% of profit from ≤ 5 s holds (Lucid limit 50%).
 
 ## Phase engine + MLL (§10)
 - update_mll: intraday trails always; EOD trails only on the once-per-session EOD call with settled balance; lock when peak ≥ lock_trigger.
@@ -80,8 +80,11 @@ Tunables only within §17.2 bounds; walk-forward + guards; challenger in SHADOW 
 ## UI (§18)
 "Paytience" on every page; tab "Paytience · <Page>". Font colors blue/gold only (theme.ts). Red/green only as small badges; P&L uses ▲/▼ + sign. No mock data in pages.
 
-## Commands (filled in Phase 1)
-`make test` · `make lint` · `make typecheck` · `make up`
+## Commands
+`make install` · `make keys` · `make create-admin` · `make migrate` · `make dev` (API+UI :8000) · `make web` (Vite :5173)
+`make test` · `make lint` · `make typecheck` · `make e2e` (E2E_PASSWORD=…) · `make check` · `make up` (Docker)
+TradingAgents runs ONLY in `.venv-ta` via `app/bias/ta_runner.py` (subprocess JSON). Never import it in the API process.
+Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). Decisions: docs/DECISIONS.md.
 
 ## Approved changes (see docs/DECISIONS.md — these override the master prompt)
 - D1: instruments MNQ (core), MES, MYM, MGC; MES/MYM/MGC disabled until §16.6 gate. METALS super-group for MGC.

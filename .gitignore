@@ -1,6 +1,16 @@
 .env
 *.db
+*.db-wal
+*.db-shm
+data/
 __pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
 node_modules/
 .venv/
-dist/
+.venv-ta/
+vendor/
+frontend/dist/
+frontend/test-results/
+*.egg-info/

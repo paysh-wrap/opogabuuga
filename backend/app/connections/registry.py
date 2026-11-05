@@ -1,0 +1,280 @@
+"""Every outside service Paytience uses, with where to log in / get a key (D3).
+
+Links are informational. The app never logs into these sites for you (§1.1, §1.3).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Literal
+
+FieldKind = Literal["secret", "text", "select"]
+Category = Literal["signals", "ai_bias", "broker", "data", "notifications", "network", "firm"]
+
+
+@dataclass(frozen=True)
+class Link:
+    label: str
+    url: str
+
+
+@dataclass(frozen=True)
+class FieldSpec:
+    name: str
+    label: str
+    kind: FieldKind = "secret"
+    required: bool = True
+    placeholder: str = ""
+    options: tuple[str, ...] = ()
+    help: str = ""
+
+
+@dataclass(frozen=True)
+class Provider:
+    id: str
+    name: str
+    category: Category
+    purpose: str
+    links: tuple[Link, ...]
+    fields: tuple[FieldSpec, ...] = ()
+    required: bool = False  # needed before trading
+    testable: bool = True  # False → "Saved" (never "Connected") because a test would place orders
+    steps: tuple[str, ...] = field(default_factory=tuple)
+    note: str = ""
+
+
+# LLM providers supported by TauricResearch/TradingAgents v0.7.x (tradingagents/llm_clients/api_key_env.py)
+LLM_PROVIDERS: dict[str, dict[str, str]] = {
+    "openai": {
+        "env": "OPENAI_API_KEY",
+        "keys_url": "https://platform.openai.com/api-keys",
+        "models_url": "https://api.openai.com/v1/models",
+        "auth": "bearer",
+    },
+    "anthropic": {
+        "env": "ANTHROPIC_API_KEY",
+        "keys_url": "https://console.anthropic.com/settings/keys",
+        "models_url": "https://api.anthropic.com/v1/models",
+        "auth": "anthropic",
+    },
+    "google": {
+        "env": "GOOGLE_API_KEY",
+        "keys_url": "https://aistudio.google.com/app/apikey",
+        "models_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "auth": "google",
+    },
+    "openrouter": {
+        "env": "OPENROUTER_API_KEY",
+        "keys_url": "https://openrouter.ai/keys",
+        "models_url": "https://openrouter.ai/api/v1/key",
+        "auth": "bearer",
+    },
+    "deepseek": {
+        "env": "DEEPSEEK_API_KEY",
+        "keys_url": "https://platform.deepseek.com/api_keys",
+        "models_url": "https://api.deepseek.com/models",
+        "auth": "bearer",
+    },
+    "xai": {
+        "env": "XAI_API_KEY",
+        "keys_url": "https://console.x.ai/",
+        "models_url": "https://api.x.ai/v1/models",
+        "auth": "bearer",
+    },
+    "groq": {
+        "env": "GROQ_API_KEY",
+        "keys_url": "https://console.groq.com/keys",
+        "models_url": "https://api.groq.com/openai/v1/models",
+        "auth": "bearer",
+    },
+    "mistral": {
+        "env": "MISTRAL_API_KEY",
+        "keys_url": "https://console.mistral.ai/api-keys",
+        "models_url": "https://api.mistral.ai/v1/models",
+        "auth": "bearer",
+    },
+}
+
+LUNQFX_NAME = "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]"
+BIGBELUGA_NAME = "Market Structure Oscillator [BigBeluga]"
+TA_REPO = "https://github.com/TauricResearch/TradingAgents"
+
+
+def _tv_search(name: str) -> str:
+    from urllib.parse import quote
+
+    return f"https://www.tradingview.com/scripts/search/{quote(name)}/"
+
+
+PROVIDERS: tuple[Provider, ...] = (
+    Provider(
+        id="tradingview",
+        name="TradingView (webhook alerts)",
+        category="signals",
+        required=True,
+        testable=False,
+        purpose="Runs the Paytience Bridge + your two indicators and sends alerts to this app on every closed bar.",
+        links=(
+            Link("Log in", "https://www.tradingview.com/accounts/signin/"),
+            Link("Plans (webhooks need a paid plan)", "https://www.tradingview.com/pricing/"),
+            Link("Webhook help", "https://www.tradingview.com/support/solutions/43000529348-about-webhooks/"),
+            Link("2FA settings", "https://www.tradingview.com/settings/#account-settings"),
+        ),
+        steps=(
+            "Use a paid plan with webhooks and turn on 2FA.",
+            "Add both indicators and Paytience_Bridge to an MNQ chart.",
+            "Create an alert → 'Any alert() function call' → Webhook URL below.",
+            "This card turns gold when the first heartbeat arrives (Phase 2).",
+        ),
+    ),
+    Provider(
+        id="tradingagents",
+        name="TradingAgents — TauricResearch/TradingAgents",
+        category="ai_bias",
+        required=True,
+        purpose="Daily AI bias (Buy/Overweight/Hold/Underweight/Sell → LONG_ONLY/NEUTRAL/SHORT_ONLY). "
+        "Installed from GitHub at the pinned tag in its own isolated environment.",
+        links=(Link("GitHub repository", TA_REPO), Link("Releases", f"{TA_REPO}/releases")),
+        fields=(
+            FieldSpec("llm_provider", "LLM provider", "select", options=tuple(LLM_PROVIDERS)),
+            FieldSpec("api_key", "LLM API key", "secret", placeholder="paste key"),
+            FieldSpec(
+                "quick_think_llm",
+                "Quick model",
+                "text",
+                required=False,
+                help="Leave blank for TradingAgents' default. Cheaper model = lower daily cost.",
+            ),
+            FieldSpec("deep_think_llm", "Deep model", "text", required=False),
+        ),
+        steps=(
+            "Pick an LLM provider and create an API key (link appears after you choose).",
+            "Paste it here and press Save & Test: we validate the key and the installed package.",
+            "Until connected, bias = NO_TRADE (spec §15) and no trades are taken.",
+        ),
+    ),
+    Provider(
+        id="alpha_vantage",
+        name="Alpha Vantage (optional, TradingAgents data)",
+        category="ai_bias",
+        purpose="Optional extra market/news data for TradingAgents (default vendor yfinance needs no key).",
+        links=(Link("Get free key", "https://www.alphavantage.co/support/#api-key"),),
+        fields=(FieldSpec("api_key", "API key"),),
+    ),
+    Provider(
+        id="fred",
+        name="FRED (optional, TradingAgents macro data)",
+        category="ai_bias",
+        purpose="Free St. Louis Fed macro data used by TradingAgents' news analyst.",
+        links=(Link("Get free key", "https://fred.stlouisfed.org/docs/api/api_key.html"),),
+        fields=(FieldSpec("api_key", "API key"),),
+    ),
+    Provider(
+        id="tradovate",
+        name="Tradovate (broker for Lucid accounts)",
+        category="broker",
+        testable=False,
+        purpose="Places bracket orders and reads positions/fills. Prop accounts may not get API access — "
+        "ask Lucid support (Phase 0 B1). Tested in Phase 5.",
+        links=(
+            Link("Trader login", "https://trader.tradovate.com/welcome"),
+            Link("API docs", "https://api.tradovate.com/"),
+        ),
+        fields=(FieldSpec("cid", "Client ID (cid)", "text"), FieldSpec("sec", "Client secret")),
+        note="Your Tradovate password is never stored; it is asked once and discarded (§1.2).",
+    ),
+    Provider(
+        id="traderspost",
+        name="TradersPost (alternative order route)",
+        category="broker",
+        testable=False,
+        purpose="Webhook relay to Tradovate. Cannot be tested without sending an order, so it shows 'Saved'.",
+        links=(Link("Log in", "https://app.traderspost.io/login"), Link("Sign up", "https://traderspost.io/")),
+        fields=(FieldSpec("webhook_url", "Strategy webhook URL"),),
+    ),
+    Provider(
+        id="lucid",
+        name="Lucid Trading (dashboard link only)",
+        category="firm",
+        testable=False,
+        purpose="Lucid has no API. Use this to open your dashboard to buy/reset accounts and submit payouts.",
+        links=(Link("Open Lucid", "https://lucidtrading.com/"),),
+        note="Verify the dashboard URL; the app never logs into Lucid (§1.3).",
+    ),
+    Provider(
+        id="databento",
+        name="Databento (historical futures data)",
+        category="data",
+        purpose="1-minute MNQ/MES/MYM/MGC history for backtests and the Strategy Lab (self-learning).",
+        links=(Link("Sign up", "https://databento.com/signup"), Link("API keys", "https://databento.com/portal/keys")),
+        fields=(FieldSpec("api_key", "API key", placeholder="db-..."),),
+    ),
+    Provider(
+        id="finnhub",
+        name="Finnhub (economic calendar)",
+        category="data",
+        purpose="High-impact USD events → news blackouts. No calendar data = no trading (§15).",
+        links=(Link("Sign up", "https://finnhub.io/register"), Link("Dashboard / key", "https://finnhub.io/dashboard")),
+        fields=(FieldSpec("api_key", "API key"),),
+    ),
+    Provider(
+        id="discord",
+        name="Discord (notifications)",
+        category="notifications",
+        purpose="Alerts for approvals, fills, risk events and payouts.",
+        links=(
+            Link(
+                "How to create a webhook", "https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+            ),
+        ),
+        fields=(FieldSpec("webhook_url", "Webhook URL", placeholder="https://discord.com/api/webhooks/..."),),
+    ),
+    Provider(
+        id="telegram",
+        name="Telegram (notifications)",
+        category="notifications",
+        purpose="Alternative alert channel.",
+        links=(Link("Create a bot (BotFather)", "https://t.me/BotFather"),),
+        fields=(FieldSpec("bot_token", "Bot token"), FieldSpec("chat_id", "Chat ID", "text")),
+    ),
+    Provider(
+        id="tunnel",
+        name="Public HTTPS URL (Cloudflare Tunnel)",
+        category="network",
+        purpose="TradingView can only reach this app over HTTPS on port 443. A VPN alone does not provide this.",
+        links=(
+            Link("Cloudflare dashboard", "https://dash.cloudflare.com/"),
+            Link(
+                "Tunnel guide",
+                "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/",
+            ),
+        ),
+        fields=(FieldSpec("public_url", "Public URL", "text", placeholder="https://paytience.example.com"),),
+    ),
+)
+
+INDICATORS: tuple[dict[str, str], ...] = (
+    {
+        "id": "lunqfx",
+        "name": LUNQFX_NAME,
+        "author": "LunqFX",
+        "role": "WHERE / WHAT — direction, stop anchor, T2 target",
+        "link": _tv_search("ICT Fractal Model HTF Candles CISD C2 Targets LunqFX"),
+        "setting": "Require C2 to close back inside C1 = ON",
+    },
+    {
+        "id": "bigbeluga_mso",
+        "name": BIGBELUGA_NAME,
+        "author": "BigBeluga",
+        "role": "WHEN / WHETHER — structure turn, trend side, divergence veto",
+        "link": _tv_search("Market Structure Oscillator BigBeluga"),
+        "setting": "Default settings",
+    },
+)
+
+
+def get_provider(pid: str) -> Provider:
+    for p in PROVIDERS:
+        if p.id == pid:
+            return p
+    raise KeyError(pid)

@@ -1,0 +1,180 @@
+import json
+import stat
+
+import httpx
+import pytest
+
+from app.models import ApiCredential, AuditLog
+
+
+def _get(c, pid):
+    return next(x for x in c.get("/api/connections").json()["connections"] if x["id"] == pid)
+
+
+def test_lists_every_service_with_links(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(200, json=[{"name": "v0.7.1"}])
+    body = authed.get("/api/connections").json()
+    ids = {c["id"] for c in body["connections"]}
+    assert {
+        "tradingview",
+        "tradingagents",
+        "tradovate",
+        "traderspost",
+        "lucid",
+        "databento",
+        "finnhub",
+        "discord",
+        "telegram",
+        "tunnel",
+        "alpha_vantage",
+        "fred",
+    } <= ids
+    assert all(c["links"] and c["links"][0]["url"].startswith("https://") for c in body["connections"])
+    ta = _get(authed, "tradingagents")
+    assert any("github.com/TauricResearch/TradingAgents" in lk["url"] for lk in ta["links"])
+    assert ta["pinned_version"] == "0.7.1" and ta["latest_tag"] == "v0.7.1"
+    assert ta["status"] == "not_set"
+    assert ta["llm_key_urls"]["anthropic"] == "https://console.anthropic.com/settings/keys"
+    assert set(ta["llm_key_urls"]) == set(ta["fields"][0]["options"])
+    assert _get(authed, "tradingview")["status"] == "waiting"
+    lucid = _get(authed, "lucid")
+    assert lucid["status"] == "link" and lucid["detail"] == "" and "never logs into Lucid" in lucid["note"]
+    names = [i["name"] for i in body["indicators"]]
+    assert names == [
+        "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]",
+        "Market Structure Oscillator [BigBeluga]",
+    ]
+
+
+def test_save_test_connected_then_failed_is_write_only(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    key = "db-SECRETKEY-ABCDEFGH1234"
+    seen = {}
+
+    def databento(req):
+        seen["auth"] = req.headers["authorization"]
+        return httpx.Response(200, text='["GLBX.MDP3","XNAS.ITCH"]')
+
+    mock_http["https://hist.databento.com/"] = databento
+    r = authed.put("/api/connections/databento", json={"values": {"api_key": key}})
+    assert r.status_code == 200, r.text
+    v = r.json()
+    assert v["status"] == "connected" and "GLBX.MDP3" in v["detail"]
+    assert v["hints"] == {"api_key": "••••1234"}
+    full = authed.get("/api/connections").text
+    assert key not in full and "SECRETKEY" not in full  # never returned
+    with authed.app.state.sessionmaker() as s:
+        row = s.query(ApiCredential).filter_by(provider="databento").one()
+        assert key not in row.ciphertext  # encrypted at rest
+        assert key not in json.dumps([a.payload for a in s.query(AuditLog)])  # never audited
+    # key revoked → re-test turns red
+    mock_http["https://hist.databento.com/"] = lambda req: httpx.Response(401)
+    v = authed.post("/api/connections/databento/test").json()
+    assert v["status"] == "failed" and "rejected" in v["detail"]
+    # blank secret on re-save keeps the stored key
+    mock_http["https://hist.databento.com/"] = databento
+    v = authed.put("/api/connections/databento", json={"values": {"api_key": ""}}).json()
+    assert v["status"] == "connected"
+    assert authed.delete("/api/connections/databento").json()["status"] == "not_set"
+
+
+def test_validation_errors(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    assert authed.put("/api/connections/discord", json={"values": {}}).status_code == 422
+    assert authed.put("/api/connections/discord", json={"values": {"webhook_url": "x", "evil": "1"}}).status_code == 422
+    assert authed.put("/api/connections/nope", json={"values": {}}).status_code == 404
+    v = authed.put("/api/connections/discord", json={"values": {"webhook_url": "https://evil.example/x"}}).json()
+    assert v["status"] == "failed"
+    v = authed.put("/api/connections/tradingagents", json={"values": {"llm_provider": "notreal", "api_key": "k" * 20}})
+    assert v.status_code == 422
+
+
+def test_untestable_broker_shows_saved_not_connected(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    v = authed.put(
+        "/api/connections/traderspost",
+        json={"values": {"webhook_url": "https://webhooks.traderspost.io/trading/webhook/abc/def"}},
+    ).json()
+    assert v["status"] == "saved"  # we never send a test order
+
+
+def test_tunnel_reacts_when_reachable(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    mock_http["https://pt.example.com/api/health"] = lambda r: httpx.Response(200, json={"app": "paytience"})
+    v = authed.put("/api/connections/tunnel", json={"values": {"public_url": "https://pt.example.com"}}).json()
+    assert v["status"] == "connected" and v["hints"]["public_url"] == "https://pt.example.com"
+    v = authed.put("/api/connections/tunnel", json={"values": {"public_url": "http://pt.example.com"}}).json()
+    assert v["status"] == "failed"
+
+
+@pytest.fixture
+def fake_ta(tmp_path, authed):
+    script = tmp_path / "fake-ta-python"
+    script.write_text('#!/bin/sh\ncat >/dev/null\necho \'{"ok": true, "version": "0.7.1"}\'\n')
+    script.chmod(script.stat().st_mode | stat.S_IEXEC)
+    authed.app.state.ta.python_bin = str(script)
+    return authed
+
+
+def test_tradingagents_connects_with_valid_llm_key(fake_ta, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(200, json=[{"name": "v0.7.1"}])
+    mock_http["https://api.anthropic.com/v1/models"] = lambda r: httpx.Response(
+        200 if r.headers.get("x-api-key") == "good-key-123456" else 401
+    )
+    v = fake_ta.put(
+        "/api/connections/tradingagents", json={"values": {"llm_provider": "anthropic", "api_key": "bad-key-1234567"}}
+    ).json()
+    assert v["status"] == "failed"
+    v = fake_ta.put(
+        "/api/connections/tradingagents", json={"values": {"llm_provider": "anthropic", "api_key": "good-key-123456"}}
+    ).json()
+    assert v["status"] == "connected" and "0.7.1" in v["detail"]
+    assert v["installed_version"] == "0.7.1"
+    assert any(lk["url"] == "https://console.anthropic.com/settings/keys" for lk in v["links"])
+
+
+def test_tradingagents_version_mismatch_fails(fake_ta, mock_http, tmp_path):
+    script = tmp_path / "old-ta"
+    script.write_text('#!/bin/sh\ncat >/dev/null\necho \'{"ok": true, "version": "0.6.0"}\'\n')
+    script.chmod(0o755)
+    fake_ta.app.state.ta.python_bin = str(script)
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    v = fake_ta.put(
+        "/api/connections/tradingagents", json={"values": {"llm_provider": "openai", "api_key": "sk-1234567890ab"}}
+    ).json()
+    assert v["status"] == "failed" and "pinned 0.7.1" in v["detail"]
+
+
+def test_indicator_source_license(authed, mock_http):
+    src = "// This work is licensed under Attribution-NonCommercial-ShareAlike 4.0\n//@version=6\nindicator('x')"
+    r = authed.put("/api/indicators/bigbeluga_mso", json={"source": src})
+    ind = next(i for i in r.json()["indicators"] if i["id"] == "bigbeluga_mso")
+    assert ind["source_on_file"] and ind["license"] == "CC BY-NC-SA 4.0" and ind["personal_use_only"]
+    assert authed.put("/api/indicators/lunqfx", json={"source": "not pine at all"}).status_code == 422
+
+
+def test_websocket_pushes_connection_updates(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    mock_http["https://pt.example.com/"] = lambda r: httpx.Response(200, json={"app": "paytience"})
+    with authed.websocket_connect("/ws") as ws:
+        authed.put("/api/connections/tunnel", json={"values": {"public_url": "https://pt.example.com"}})
+        msg = ws.receive_json()
+        assert msg == {
+            "event": "connection.updated",
+            "data": {"id": "tunnel", "status": "connected", "detail": msg["data"]["detail"]},
+        }
+
+
+def test_websocket_rejects_anonymous(client):
+    from starlette.websockets import WebSocketDisconnect
+
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/ws") as ws:
+        ws.receive_text()
+
+
+def test_master_key_missing_is_loud(authed, mock_http):
+    from pydantic import SecretStr
+
+    authed.app.state.settings.master_key = SecretStr("")
+    r = authed.put("/api/connections/discord", json={"values": {"webhook_url": "https://discord.com/api/webhooks/1/x"}})
+    assert r.status_code == 503 and "make keys" in r.json()["detail"]

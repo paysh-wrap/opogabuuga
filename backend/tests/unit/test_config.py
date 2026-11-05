@@ -1,0 +1,118 @@
+from decimal import Decimal
+
+import pytest
+import yaml
+
+from app.config import RulesConfig, find_verify_paths, load_yaml_decimal
+
+
+def _walk(o):  # yields every leaf
+    if isinstance(o, dict):
+        for v in o.values():
+            yield from _walk(v)
+    elif isinstance(o, (list, tuple)):
+        for v in o:
+            yield from _walk(v)
+    else:
+        yield o
+
+
+def test_no_floats_anywhere(loaded_rules):
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    assert not any(isinstance(x, float) for x in _walk(raw))
+    assert not any(isinstance(x, float) for x in _walk(loaded_rules.rules.model_dump()))
+
+
+def test_exact_spec_values(loaded_rules):
+    r = loaded_rules.rules
+    assert r.instruments["MNQ"].tick == Decimal("0.25") and r.instruments["MNQ"].tick_value == Decimal("0.50")
+    assert r.eval.profit_target == 1250 and r.eval.daily_loss_limit == 600
+    assert r.eval.lock_trigger == 26100 and r.eval.lock_level == 25100
+    assert r.internal.risk_pct_by_score == {60: Decimal("0.07"), 75: Decimal("0.09"), 90: Decimal("0.11")}
+    assert r.eval_mode.risk_pct_by_score == {60: Decimal("0.10"), 75: Decimal("0.12"), 90: Decimal("0.14")}
+    assert r.eval_mode.max_risk_usd == 140 and r.eval_mode.warmup_trades == 10
+    assert r.eval_mode.applies_to_stages == ["EVAL"] and r.eval_mode.pace_escalation is False
+    assert r.trade_plan.rr_min == 2 and r.trade_plan.rr_max == 3
+    assert r.payouts.sweep_above == r.internal.cushion_target_balance == 28100
+    assert r.automation.default_mode == "OFF"
+    assert r.behavior.max_open_positions_per_account == 1
+
+
+def test_user_changes_d1_d2(loaded_rules):
+    r = loaded_rules.rules
+    assert r.internal.windows[0] == ("06:45", "11:30")
+    assert r.instruments["MYM"].tick == Decimal("1.0") and r.instruments["MYM"].tick_value == Decimal("0.50")
+    assert r.instruments["MGC"].tick == Decimal("0.10") and r.instruments["MGC"].tick_value == Decimal("1.00")
+    assert not r.instruments["MYM"].enabled and not r.instruments["MGC"].enabled  # §16.6 gate first
+    assert r.super_group_of("MYM") == r.super_group_of("MNQ") == r.super_group_of("ES") == "EQUITY_INDEX"
+    assert r.super_group_of("MGC") == "METALS"
+    assert r.schedule.preflight < "06:45" and r.schedule.bias < r.schedule.preflight
+    assert r.bias.proxy["YM"] == "DIA" and r.bias.proxy["GC"] == "GLD"
+    assert r.bias.pinned_version == "0.7.1"
+
+
+def test_verify_paths(loaded_rules):
+    p = set(loaded_rules.verify_paths)
+    for k in (
+        "purchase",
+        "eval.max_loss_limit",
+        "eval.lock_trigger",
+        "funded.drawdown_type",
+        "funded.payout",
+        "live",
+        "session",
+        "instruments.MNQ",
+        "instruments.MGC",
+        "instruments.MYM",
+    ):
+        assert k in p
+    assert "eval.profit_target" not in p
+
+
+def test_verify_parser_nesting():
+    text = "a:\n  b: 1   # VERIFY\n  c:\n    d: 2  # VERIFY\ne: 3\n"
+    assert find_verify_paths(text) == ["a.b", "a.c.d"]
+
+
+@pytest.mark.parametrize(
+    "path,value",
+    [
+        (("trade_plan", "rr_min"), 4),
+        (("internal", "risk_pct_floor"), 0.5),
+        (("eval_mode", "risk_pct_ceiling"), 0.2),
+        (("drawdown_guard", "runner_trail_r"), 2.5),
+        (("eval_mode", "pace_escalation"), True),
+        (("eval_mode", "applies_to_stages"), ["EVAL", "FUNDED"]),
+    (("behavior", "min_hold_seconds"), 5),
+    (("behavior", "rapid_trade_warn_pct"), 60),
+    ],
+)
+def test_structural_rejects(loaded_rules, path, value):
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    raw[path[0]][path[1]] = load_yaml_decimal(yaml.safe_dump({"v": value}))["v"]
+    with pytest.raises(ValueError):
+        RulesConfig.model_validate(raw)
+
+
+def test_unknown_key_rejected(loaded_rules):
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    raw["internal"]["surprise"] = 1
+    with pytest.raises(ValueError):
+        RulesConfig.model_validate(raw)
+
+
+def test_lucid_symbols_and_fees(loaded_rules):
+    i = loaded_rules.rules.instruments
+    assert {s: (x.exchange, x.tv_symbol, x.fee_rt) for s, x in i.items()} == {
+        "MNQ": ("CME", "MNQ1!", Decimal("1.00")),
+        "MES": ("CME", "MES1!", Decimal("1.00")),
+        "MYM": ("CBOT", "MYM1!", Decimal("1.00")),
+        "MGC": ("COMEX", "MGC1!", Decimal("1.60")),
+    }
+
+
+def test_lucid_microscalp_rule(loaded_rules):
+    b = loaded_rules.rules.behavior
+    assert (b.firm_microscalp_hold_seconds, b.firm_microscalp_pct, b.min_hold_seconds, b.rapid_trade_warn_pct) == (
+        5, 50, 6, 20)
+    assert "behavior.firm_microscalp_hold_seconds" in loaded_rules.verify_paths
