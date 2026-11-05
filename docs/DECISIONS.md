@@ -179,3 +179,10 @@ tracking and the drawdown guard). Any account may use either (user choice); when
 (EVAL=EOD, FUNDED=intraday per D20) the account shows a ⚠ "confirm in your Lucid dashboard" note. Change refused while a
 trade is open.
 New accounts default to the stage's drawdown type from the rules file (was always EOD — fixed for FUNDED).
+
+## D25 — Lucid sim → live path (user, 2026-11-05)
+EVAL and FUNDED accounts are Lucid SIMULATED accounts (real orders to Lucid's Tradovate sim via CrossTrade);
+LIVE = real money after Lucid moves you (≥ 1 processed payout; $6,000 day trigger). Badges: APP PAPER (our simulator),
+LUCID SIM, LUCID LIVE $. Payout line counts processed payouts toward live (`funded.payouts_to_live`, VERIFY — user to
+confirm the number). Once any account is LIVE, sim accounts are blocked (§10, account_selector). Live rules from config
+(start $0, EOD, no DLL, $15k sim-profit cap) — all VERIFY.

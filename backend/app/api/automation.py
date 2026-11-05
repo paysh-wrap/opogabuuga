@@ -335,6 +335,9 @@ def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decim
         "needed": str(c.needed) if funded else None,
         "live_trigger_left": str(c.live_trigger_left) if c.live_trigger_left is not None else None,
         "pending": stt.payout_pending(db, a),
+        "payouts_done": (done := stt.payouts_processed(db, a)),
+        "payouts_to_live": r.funded.payouts_to_live if funded else None,
+        "live_ready": funded and done >= max(1, r.funded.payouts_to_live or 1),
     }
 
 

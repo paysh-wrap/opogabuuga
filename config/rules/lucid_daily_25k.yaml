@@ -28,6 +28,7 @@ funded:
   news_breach_min_before: 1
   news_breach_min_after: 1
   max_daily_profit_live_trigger: 6000
+  payouts_to_live: null                # VERIFY — how many processed payouts before Lucid moves you live (Lucid: "≥ 1 payout first")
   payout: {split: 0.90, buffer: 26100, min_request: 500, min_cycle_profit: 1}   # VERIFY all
 
 live: {starting_balance: 0, max_loss_limit: 1000, drawdown_type: eod, lock_trigger: 1100, lock_level: 100, sim_payout_cap_on_move: 15000}   # VERIFY all

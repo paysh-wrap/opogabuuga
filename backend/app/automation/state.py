@@ -169,6 +169,12 @@ def attested_today(s: Session, now: datetime) -> bool:
     return s.execute(select(Attestation.id).where(Attestation.session_date == session_date(now))).first() is not None
 
 
+def payouts_processed(s: Session, acct: Account) -> int:
+    return len(
+        s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "processed")).all()
+    )
+
+
 def payout_pending(s: Session, acct: Account) -> bool:
     return (
         s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "submitted")).first()
