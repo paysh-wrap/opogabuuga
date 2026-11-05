@@ -172,3 +172,8 @@ after confirm). Still EVAL-only, capped $140, all other rules unchanged.
 ## D23 — 1:1 option inside Evaluation Mode (user request, 2026-11-05)
 `eval_mode.one_to_one`: when ON, EVAL accounts with Evaluation Mode effective use 1:1 plans (TP 1R, 0.75R partial → BE,
 3 losses/day, all D7 rules). Never FUNDED/LIVE via this option. 1:1 backtest gate still applies before LIVE use.
+
+## D24 — Per-account EOD / Intraday trailing toggle (user request, 2026-11-05)
+Automation page → each account: "EOD trailing" | "Intraday trailing". Must mirror the account at Lucid (it drives MLL
+tracking and the drawdown guard). FUNDED is locked to intraday (D20). Change refused while a trade is open.
+New accounts default to the stage's drawdown type from the rules file (was always EOD — fixed for FUNDED).

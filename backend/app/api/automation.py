@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -18,6 +18,7 @@ from app.automation.preflight import run as run_preflight
 from app.clock import session_date
 from app.execution.adapters.base import conservative_mode
 from app.models import Account, Attestation, Trade
+from app.phases.phase_engine import stage_rules
 
 router = APIRouter(prefix="/api")
 KILL_PHRASE = "KILL"
@@ -144,7 +145,7 @@ def attest(
 class NewAccount(BaseModel):
     label: str = Field(min_length=1, max_length=64)
     stage: str = "EVAL"
-    drawdown_type: str = "eod"
+    drawdown_type: str | None = None  # None → the stage default from the rules file
     balance: Decimal = Decimal(25000)
 
 
@@ -152,11 +153,12 @@ class NewAccount(BaseModel):
 def create_account(
     body: NewAccount, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
-    if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in ("eod", "intraday"):
+    if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in (None, "eod", "intraday"):
         raise HTTPException(422, "stage EVAL/FUNDED/LIVE and drawdown eod/intraday")
-    a = _ctl(request).create_paper_account(
-        db, body.label, body.stage, body.drawdown_type, body.balance, p.user.username
-    )
+    if body.stage == "FUNDED" and body.drawdown_type == "eod":
+        raise HTTPException(422, "Lucid funded accounts always use intraday drawdown (D20)")
+    dd = body.drawdown_type or stage_rules(request.app.state.rules.rules, body.stage).drawdown_type
+    a = _ctl(request).create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username)
     return {"id": a.id, "broker_account_id": a.broker_account_id, "paper": True}
 
 
@@ -166,6 +168,7 @@ class AccountPatch(BaseModel):
     priority: int | None = None
     label: str | None = None
     clear_pause: str | None = None  # typed "RESUME" to clear a pause that never auto-resumes
+    drawdown_type: Literal["eod", "intraday"] | None = None  # must match the account at Lucid
 
 
 @router.patch("/accounts/{acct_id}")
@@ -188,6 +191,12 @@ async def patch_account(
             raise HTTPException(409, f"account is paused: {a.paused_reason}")
         if a.closed_by_firm:
             raise HTTPException(409, "account was closed by the firm — never re-enter")
+    if body.drawdown_type is not None and body.drawdown_type != a.drawdown_type:
+        if a.stage == "FUNDED" and body.drawdown_type == "eod":
+            raise HTTPException(422, "Lucid funded accounts always use intraday drawdown (D20)")
+        if any(t.account == a.broker_account_id for t in _ctl(request).om.trades.values()):
+            raise HTTPException(409, "close the open trade before changing drawdown type")
+        a.drawdown_type = body.drawdown_type
     for k in ("armed", "selected", "priority", "label"):
         v = getattr(body, k)
         if v is not None:

@@ -16,8 +16,6 @@ def proven(monkeypatch):
     monkeypatch.setattr(svc, "atr_percentile", lambda h, v: (D(50), 300))
 
 
-
-
 def run(authed, clock, stage, changes=None, eval_on=False):
     authed.app.state.calendar = lambda d: []
     with authed.app.state.sessionmaker() as s:
@@ -46,6 +44,9 @@ def run(authed, clock, stage, changes=None, eval_on=False):
 @pytest.mark.parametrize("stage", ["EVAL", "FUNDED", "LIVE"])
 def test_standard_trade_every_stage(authed, clock, stage):
     _, res = run(authed, clock, stage)
+    if stage == "FUNDED":  # intraday → drawdown guard needs 2 contracts; $1,000 risk base can't fit this stop
+        assert res[0]["reason"] == "STOP_TOO_WIDE", res
+        return
     assert res[0]["ok"] and res[0]["contracts"] >= 1, (stage, res)
     hb(authed, clock, MS - MIN, close="20071")
     t = authed.get("/api/trades").json()["trades"][0]
@@ -69,8 +70,8 @@ def test_eval_mode_with_1to1_option_only_on_eval(authed, clock, proven):
     assert float(t["net_r"]) <= 1.05, t
 
 
-def test_eval_1to1_option_ignored_on_funded(authed, clock):
-    _, res = run(authed, clock, "FUNDED", {"eval_mode.one_to_one": True})
+def test_eval_1to1_option_ignored_off_eval(authed, clock):
+    _, res = run(authed, clock, "LIVE", {"eval_mode.one_to_one": True})
     assert res[0]["ok"], res
     hb(authed, clock, MS - MIN, close="20071")
     t = authed.get("/api/trades").json()["trades"][0]
@@ -90,3 +91,17 @@ def test_one_to_one_refuses_unproven_history(authed, clock):
     confirm(authed, clock)
     with authed.app.state.sessionmaker() as s:
         assert s.query(Signal).one().skip_reason == "1TO1_T1_RATE_UNPROVEN"
+
+
+def test_drawdown_toggle(authed):
+    e = authed.post("/api/accounts", json={"label": "E", "stage": "EVAL"}).json()["id"]
+    f = authed.post("/api/accounts", json={"label": "F", "stage": "FUNDED"}).json()["id"]
+    dd = {a["id"]: a["drawdown_type"] for a in authed.get("/api/accounts").json()["accounts"]}
+    assert dd == {e: "eod", f: "intraday"}  # stage defaults (funded = intraday, D20)
+    assert authed.patch(f"/api/accounts/{e}", json={"drawdown_type": "intraday"}).status_code == 200
+    assert authed.patch(f"/api/accounts/{f}", json={"drawdown_type": "eod"}).status_code == 422
+    assert (
+        authed.post("/api/accounts", json={"label": "X", "stage": "FUNDED", "drawdown_type": "eod"}).status_code == 422
+    )
+    dd = {a["id"]: a["drawdown_type"] for a in authed.get("/api/accounts").json()["accounts"]}
+    assert dd[e] == "intraday"
