@@ -7,7 +7,7 @@ from app.config import load_rules
 from app.monitor.feed import cme_globex_open, feed_status
 from app.webhook.parser_bridge import map_symbol, parse
 from tests.conftest import RULES_PATH
-from tests.unit.test_indicators import c1_bars, long_model_c2
+from tests.unit.test_indicators import c1_bars, long_model_c2, mk
 
 
 def et(y, m, d, hh, mm):
@@ -52,7 +52,7 @@ def test_symbol_mapping():
 def _replay():
     r = load_rules(RULES_PATH).rules
     return replay_payloads(
-        c1_bars() + long_model_c2(),
+        c1_bars() + long_model_c2() + [mk(30, 107, 107.5, 106.5, 107)],
         symbol="MNQ1!",
         profile="TIGHT",
         tf="1",

@@ -74,12 +74,13 @@ def test_long_model_full_lifecycle():
     assert ("CISD", "LONG", 20) in names  # bar 19 closes 105.5 > 105 (bear run opened at 105)
     conf = next(x for x in ev if x[0] == "MODEL_CONFIRMED")
     f = conf[3].fields
-    assert conf[1:3] == ("LONG", 30)
+    assert conf[1:3] == ("LONG", 31)  # original: confirmed on the first C3 bar (HTF close seen at timeframe.change)
     assert (f.c1_high, f.c1_low, f.t1, f.t2, f.invalid) == (D(110), D(100), D(105), D(110), D(99))
-    assert f.cisd_before_c2_close is True and f.t1_preticked is True and f.cisd_level == D(105)
+    assert f.t1_preticked is True  # C2 CLOSED at 107 ≥ T1 105
+    assert f.cisd_before_c2_close is True and f.cisd_level == D(105)
     assert f.c1_time_ms == T0 and f.c3_close_time_ms == T0 + 45 * MINUTE_MS and f.sweep_time_ms == T0 + 18 * MINUTE_MS
-    later = [(n, t) for n, d, t, _ in ev if t > 30 and d == "LONG"]
-    assert later == [("T1_HIT", 31), ("T2_HIT", 32), ("C3_CLOSED", 45)]
+    later = [(n, t) for n, d, t, _ in ev if t > 31 and d == "LONG"]
+    assert later == [("T2_HIT", 32)]  # T1 pre-ticked (no event); T2 completes the model
 
 
 def weak_long_c2():
@@ -100,17 +101,20 @@ def test_model_failed_when_invalid_breaks_before_t1():
 
 def test_cisd_during_c3_is_flagged_not_before_c2_close():
     e = FractalEngine(15, TICK)
-    c3 = [mk(30, 103.5, 105.5, 103.5, 105.25)] + [mk(i, 105, 105.5, 104.5, 105) for i in range(31, 45)]
+    c3 = [mk(30, 103.5, 104, 103.4, 103.6), mk(31, 103.6, 105.5, 103.5, 105.25)]
+    c3 += [mk(i, 105, 105.5, 104.5, 105) for i in range(32, 45)]
     ev = run(e, c1_bars() + weak_long_c2() + c3)
     cisd = [x for x in ev if x[0] == "CISD"]
-    assert len(cisd) == 1 and cisd[0][2] == 31 and cisd[0][3].fields.cisd_before_c2_close is False
+    conf = next(x for x in ev if x[0] == "MODEL_CONFIRMED")[3].fields
+    assert len(cisd) == 1 and cisd[0][2] == 32 and conf.cisd_before_c2_close is False
 
 
 def test_same_bar_t1_and_invalid_counts_as_failed():
     e = FractalEngine(15, TICK)
-    c3 = [mk(30, 102, 105.5, 98.5, 103)] + [mk(i, 103, 104, 102, 103) for i in range(31, 45)]
-    ev = run(e, c1_bars() + long_model_c2() + c3)
-    assert ("MODEL_FAILED", "LONG", 31) in [(n, d, t) for n, d, t, _ in ev]
+    c3 = [mk(30, 103.5, 104, 103, 103.5), mk(31, 102, 105.5, 98.5, 103)]  # bar 31 touches T1 AND the invalid
+    c3 += [mk(i, 103, 104, 102, 103) for i in range(32, 45)]
+    ev = run(e, c1_bars() + weak_long_c2() + c3)
+    assert ("MODEL_FAILED", "LONG", 32) in [(n, d, t) for n, d, t, _ in ev]
     assert not any(n == "T1_HIT" for n, *_ in ev)
 
 
@@ -126,14 +130,14 @@ def test_no_model_when_both_sides_swept():
     c2 = long_model_c2()
     c2[6] = mk(21, 105.5, 111, 105, 106)  # also sweeps the high
     ev = run(e, c1_bars() + c2)
-    assert {(n, d) for n, d, *_ in ev if n == "C1_SWEPT"} == {("C1_SWEPT", "LONG"), ("C1_SWEPT", "SHORT")}
+    assert [(n, d) for n, d, *_ in ev if n == "C1_SWEPT"] == [("C1_SWEPT", "LONG")]  # one model at a time
     assert not any(n == "MODEL_CONFIRMED" for n, *_ in ev)
 
 
 def test_short_model_mirror():
     e = FractalEngine(15, TICK)
     flip = lambda b: Bar(b.open_ms, b.close_ms, 210 - b.o, 210 - b.l, 210 - b.h, 210 - b.c)  # noqa: E731
-    ev = run(e, [flip(b) for b in c1_bars() + long_model_c2()])
+    ev = run(e, [flip(b) for b in c1_bars() + long_model_c2() + [mk(30, 107, 107.5, 106.5, 107)]])
     conf = next(x for x in ev if x[0] == "MODEL_CONFIRMED")
     f = conf[3].fields
     assert conf[1] == "SHORT" and (f.t1, f.t2, f.invalid, f.cisd_level) == (D(105), D(100), D(111), D(105))
