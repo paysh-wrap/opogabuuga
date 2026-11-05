@@ -148,6 +148,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         r = c.post("/api/auth/login", json={"username": "bt", "password": secret})
         c.headers["x-csrf-token"] = r.json()["csrf"]
         c.put("/api/risk/settings", json={"changes": changes})
+        c.put("/api/markets", json={"symbol": cfg.symbol, "enabled": True})  # backtest the chosen market
         body = {"label": "BT", "stage": cfg.stage, "balance": str(cfg.balance)}
         if cfg.drawdown_type:
             body["drawdown_type"] = cfg.drawdown_type
