@@ -153,6 +153,31 @@ async def _scheduler(app: FastAPI) -> None:
         await asyncio.sleep(30)
 
 
+async def watchdog_once(app: FastAPI) -> None:
+    """One wall-clock safety pass (flat time, hard flat, news, MLL monitor, stuck exits) on the injected clock."""
+    from app.clock import session_date
+
+    st = app.state
+    try:
+        events = st.calendar(session_date(st.clock.now()))
+    except Exception as e:  # calendar trouble must not skip the flatten checks
+        events = None
+        log.error("watchdog.calendar_error", error=type(e).__name__)
+        st.controller.notify("error", "Watchdog could not read the news calendar", type(e).__name__)
+    await st.controller.watchdog_tick(events)
+
+
+async def _watchdog(app: FastAPI) -> None:
+    interval = app.state.settings.watchdog_interval_s
+    while True:
+        try:
+            await watchdog_once(app)
+        except Exception as e:  # never silent (§1.8)
+            log.error("watchdog.error", error=type(e).__name__)
+            app.state.controller.notify("error", "Safety watchdog failed", type(e).__name__)
+        await asyncio.sleep(interval)
+
+
 def _start_live(app: FastAPI) -> list[asyncio.Task[None]]:
     """PAYTIENCE_ALLOW_LIVE=true only: attach CrossTrade for non-paper accounts. Orders still need the full
     Live-Readiness Checklist (re-checked every 30 s; any failure → live orders refused)."""
@@ -175,7 +200,20 @@ def _start_live(app: FastAPI) -> list[asyncio.Task[None]]:
         return []
     token = Vault(st.settings.master_key.get_secret_value()).open(cred.ciphertext).get("token", "")
     tv = {k: v.tv_symbol for k, v in st.rules.rules.instruments.items()}
-    ct = CrossTradeAdapter(token, st.http, tv)
+    from app.clock import session_date
+    from app.contracts import order_contract
+
+    def contract_for(sym: str) -> str:
+        """Real futures contract for orders (MGCZ6), never the continuous chart symbol (MGC1!)."""
+        inst = st.rules.rules.instruments[sym]
+        c = order_contract(sym, inst.contract, session_date(st.clock.now()))
+        if c is None:
+            from app.execution.adapters.base import BrokerError
+
+            raise BrokerError(f"{sym}: no futures contract configured; refusing to send a continuous symbol")
+        return c
+
+    ct = CrossTradeAdapter(token, st.http, tv, contract_for=contract_for)
     flag = {"ok": False}
     st.controller.adapter.set_live(ct, accts, lambda: flag["ok"])
     st.controller.adapter.start()
@@ -245,6 +283,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         app.state.calendar = CalendarStore.from_json(cached) if isinstance(cached, dict) else CalendarStore()
         if settings.scheduler_enabled:
             bg.append(asyncio.create_task(_scheduler(app)))
+            bg.append(asyncio.create_task(_watchdog(app)))
         yield
         for t in bg:
             t.cancel()

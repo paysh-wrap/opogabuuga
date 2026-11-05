@@ -184,3 +184,72 @@ async def test_scalp_half_banks_quick_target_half_runs_with_trailing_stop(env):
     assert b.stop == D(20020)
     await pump(sim, om, 20028, 20029, 20025, 20026)  # pullback: the stop never loosens
     assert b.stop == D(20020)
+
+
+async def test_leg_failure_with_failed_emergency_flatten_stays_tracked_as_orphan(env):
+    from app.execution.order_manager import OrphanedPosition
+
+    sim, om, _ = env
+    plan = apply_guard(build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20), T, 2)
+    orig = sim.place_bracket
+    calls = {"n": 0}
+
+    async def flaky(acct, req):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise BrokerError("reject")
+        return await orig(acct, req)
+
+    sim.place_bracket = flaky
+    sim.fail_next.add("flatten")
+    with pytest.raises(OrphanedPosition) as ei:
+        await om.open_trade("A", "MNQ", plan, 2, True, T, TV, AT, WIN)
+    t = ei.value.trade
+    assert om.trades[t.trade_id] is t and t.orphan and t.closing == "ORPHAN_FLATTEN"
+
+
+async def deferred(env):
+    sim, om, _ = env
+
+    async def noop(acct):
+        return None
+
+    sim.flatten = noop
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, _ = await opened(sim, om, plan, 2, False)
+    await pump(sim, om, 20000, 20001, 20000, 20000)
+    return sim, om, t
+
+
+async def test_exit_fill_after_deferred_flatten_books_real_pnl_and_partials_accumulate(env):
+    from app.execution.adapters.base import Fill
+
+    _sim, om, t = await deferred(env)
+    ev = await om.early_exit(t.trade_id, "C3_CLOSE", AT + timedelta(seconds=30))
+    assert [e.kind for e in ev] == ["FLATTENED"] and t.trade_id in om.trades and t.closing == "C3_CLOSE"
+    assert t.pnl() == 0 and not t.closed
+    qty = sum(x.qty for x in t.legs)
+    entry = t.legs[0].entry
+
+    def fill(q, px, side="SELL", sym="MNQ"):
+        return Fill("A", "o", None, "EXTERNAL", sym, side, q, px, AT, D("0.50"))
+
+    assert await om.on_fill(fill(qty, entry, side="BUY")) == []  # wrong side
+    assert await om.on_fill(fill(qty, entry, sym="MES")) == []  # other symbol
+    assert await om.on_fill(fill(qty - 1, entry + 4)) == []  # partial
+    ev = await om.on_fill(fill(1, entry + 8))
+    assert [(e.kind, e.detail) for e in ev] == [("CLOSED", "FLATTEN")] and t.closed
+    avg = (entry + 4) * (qty - 1) + (entry + 8)
+    assert t.legs[0].exit == avg / qty and t.pnl() > 0 and t.trade_id not in om.trades
+
+
+async def test_unmatched_fill_ignored_without_closing_trade_or_open_legs(env):
+    from app.execution.adapters.base import Fill
+
+    _sim, om, t = await deferred(env)
+    f = Fill("A", "o", None, "EXTERNAL", "MNQ", "SELL", 2, D(20000), AT)
+    assert await om.on_fill(f) == []  # trade not closing
+    t.closing = "X"
+    for leg in t.legs:
+        leg.closed = True
+    assert await om.on_fill(f) == []  # nothing left open

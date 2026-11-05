@@ -9,7 +9,6 @@ Safety rules enforced here:
 
 from __future__ import annotations
 
-import contextlib
 import itertools
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -53,6 +52,12 @@ class OpenTrade:
     locked: bool = False
     half_used: bool = False
     runner_trail: Decimal | None = None  # scalp runner: trail distance in R after the first half is banked
+    closing: str | None = None  # exit reason once a flatten was requested: stays tracked until the exit fill arrives
+    closing_since: datetime | None = None  # stamped by the controller (watchdog grace for a missing exit fill)
+    orphan: bool = False  # leg placement failed AND the emergency flatten failed: unprotected, watchdog flattens
+    exit_qty: int = 0  # unmatched (flatten) exit fills accumulated while closing
+    exit_notional: Decimal = Decimal(0)
+    exit_fee: Decimal = Decimal(0)
 
     @property
     def d(self) -> Direction:
@@ -76,6 +81,14 @@ class OpenTrade:
 
     def risk_usd(self) -> Decimal:
         return self.plan.risk_pts / self.tick * self.tick_value * self.qty
+
+
+class OrphanedPosition(BrokerError):
+    """A leg failed to place and the emergency flatten failed too: the trade stays tracked as an orphan."""
+
+    def __init__(self, trade: OpenTrade, detail: str) -> None:
+        super().__init__(detail)
+        self.trade = trade
 
 
 @dataclass(frozen=True)
@@ -166,8 +179,12 @@ class OrderManager:
                     account,
                     BracketRequest(f"{t.trade_id}-{leg.name}", symbol, side, leg.qty, plan.stop, leg.take_profit),
                 )
-            except BrokerError:
-                await self._emergency_flatten(t)
+            except BrokerError as e:
+                if not await self._emergency_flatten(t):
+                    # keep the (possibly unprotected) position tracked; the watchdog keeps trying to flatten it
+                    t.orphan, t.closing = True, "ORPHAN_FLATTEN"
+                    self.trades[t.trade_id] = t
+                    raise OrphanedPosition(t, str(e)) from e
                 raise
             leg.bracket_id, leg.stop_order_id, leg.stop = ack.bracket_id, ack.stop_order_id, plan.stop
         if self.scalp_runner is not None and len(t.legs) == 2 and t.legs[0].name == "A" and plan.mode == "ONE_TO_ONE":
@@ -175,9 +192,13 @@ class OrderManager:
         self.trades[t.trade_id] = t
         return t
 
-    async def _emergency_flatten(self, t: OpenTrade) -> None:
-        with contextlib.suppress(BrokerError):  # caller pauses + alerts; broker-side stops remain in place
+    async def _emergency_flatten(self, t: OpenTrade) -> bool:
+        """True when the broker accepted the flatten. False → caller keeps the trade tracked (never silent)."""
+        try:
             await self.adapter.flatten(t.account)
+        except BrokerError:
+            return False
+        return True
 
     def _find(self, bracket_id: str | None) -> tuple[OpenTrade, Leg] | None:
         for t in self.trades.values():
@@ -190,7 +211,7 @@ class OrderManager:
     async def on_fill(self, f: Fill) -> list[Event]:
         hit = self._find(f.bracket_id)
         if hit is None:
-            return []  # not ours → reconcile.py reports it
+            return self._closing_fill(f)  # a flatten exit fill (no bracket) or not ours → reconcile.py reports it
         t, leg = hit
         out: list[Event] = []
         if f.role == "ENTRY":
@@ -201,6 +222,7 @@ class OrderManager:
                 p = rebuild_after_fill(t.plan, avg, inv, t2, t.tick, buf, mst, rmin, rmax)
                 if isinstance(p, Skip):
                     await self.adapter.flatten(t.account)
+                    t.closing = "RR_INVALID_AFTER_FILL"  # stays tracked until the exit fill books the real P&L
                     out.append(Event("FLATTENED", t, "RR_INVALID_AFTER_FILL"))
             if all(x.entry is not None for x in t.legs):
                 out.append(Event("OPENED", t))
@@ -217,6 +239,29 @@ class OrderManager:
             out.append(Event("CLOSED", t, f.role))
         return out
 
+    def _closing_fill(self, f: Fill) -> list[Event]:
+        """Exit fill of a flatten order (no bracket id, e.g. CrossTrade polling): books the real exit price on the
+        trade that is waiting in 'closing'. Partial fills accumulate until the whole open quantity is out."""
+        for t in self.trades.values():
+            if not t.closing or t.account != f.account_id or t.symbol != f.symbol:
+                continue
+            if f.side != ("SELL" if t.d is Direction.LONG else "BUY"):
+                continue
+            open_legs = [x for x in t.legs if x.entry is not None and not x.closed]
+            if not open_legs:
+                continue
+            t.exit_qty += f.qty
+            t.exit_notional += f.price * f.qty
+            t.exit_fee += f.fee
+            if t.exit_qty < sum(x.qty for x in open_legs):
+                return []
+            avg = t.exit_notional / t.exit_qty
+            for i, leg in enumerate(open_legs):
+                leg.exit, leg.fee, leg.closed = avg, (t.exit_fee if i == 0 else Decimal(0)), True
+            del self.trades[t.trade_id]
+            return [Event("CLOSED", t, "FLATTEN")]
+        return []
+
     async def _move_stop(self, t: OpenTrade, leg: Leg, price: Decimal, why: str) -> list[Event]:
         new = ratchet(leg.stop, price, t.d)
         if new == leg.stop:
@@ -227,6 +272,7 @@ class OrderManager:
         except BrokerError:
             ok = False
         if not ok:  # §8: stop-modify failure → flatten remainder + pause account
+            t.closing = t.closing or "STOP_MODIFY_FAILED"  # tracked until flat; watchdog retries a failed flatten
             await self._emergency_flatten(t)
             return [Event("PAUSE", t, "STOP_MODIFY_FAILED")]
         leg.stop = new
@@ -263,4 +309,5 @@ class OrderManager:
         if not exit_allowed_now("EARLY_EXIT", t.opened_at, now, self.min_hold_s):
             return []
         await self.adapter.flatten(t.account)
+        t.closing = reason
         return [Event("FLATTENED", t, reason)]

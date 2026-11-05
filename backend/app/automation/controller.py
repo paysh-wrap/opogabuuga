@@ -25,7 +25,7 @@ from app.engine.filters import news_flatten_due
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
-from app.execution.order_manager import Event, OpenTrade, OrderManager
+from app.execution.order_manager import Event, OpenTrade, OrderManager, OrphanedPosition
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
 from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
@@ -39,6 +39,7 @@ from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
+CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
 
 @dataclass
@@ -70,6 +71,7 @@ class Controller:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     notices: list[dict[str, Any]] = field(default_factory=list)  # banner/notify queue for the API layer
     _flatten_reason: str | None = None
+    _flatten_alerted: set[str] = field(default_factory=set)  # accounts whose failed flatten already raised the banner
 
     # ---------- setup ----------
     def load_accounts(self) -> None:
@@ -406,21 +408,55 @@ class Controller:
                 now,
                 rr_window,
             )
+        except OrphanedPosition as e:
+            # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
+            # pause the account for good (never auto-resumes) and raise the banner (§1.8)
+            self._persist_trade(
+                s, a, sig, plan, e.trade, pt.contracts, pt.risk_usd or Decimal(0), guard_on, rcfg.kind, actor
+            )
+            st.day_stats(s, a, now).trades += 1
+            a.paused_reason, a.armed = "ORPHAN_POSITION", False
+            audit.record(
+                s, self.clock, "automation", "account.paused", a.broker_account_id, {"reason": "ORPHAN_POSITION"}
+            )
+            self.notify("error", "ORPHAN POSITION — flatten failed, act manually in Tradovate", f"{a.label}: {e}")
+            return AccountResult(a.id, False, "ORPHAN_POSITION", checks=pt.checks)
         except BrokerError as e:
             a.paused_reason, a.armed = "ORDER_REJECTS", False
             self.notify("error", "Order failed — account paused", f"{a.label}: {e}")
             return AccountResult(a.id, False, "ORDER_FAILED", checks=pt.checks)
+        self._persist_trade(s, a, sig, plan, t, pt.contracts, pt.risk_usd or Decimal(0), guard_on, rcfg.kind, actor)
+        st.day_stats(s, a, now).trades += 1
+        a.last_trade_at = now
+        for f in self.adapter.drain_fills():
+            await self._handle_events(s, await self.om.on_fill(f))
+        return AccountResult(a.id, True, None, pt.contracts, t.trade_id, pt.checks)
+
+    def _persist_trade(
+        self,
+        s: Session,
+        a: Account,
+        sig: Signal,
+        plan: TradePlan,
+        t: OpenTrade,
+        contracts: int,
+        risk_usd: Decimal,
+        guard_on: bool,
+        kind: str,
+        actor: str,
+    ) -> None:
+        now = self.clock.now()
         s.add(
             Trade(
                 account_id=a.id,
                 signal_id=sig.id,
                 symbol=sig.symbol,
                 direction=plan.direction.value,
-                qty=pt.contracts,
+                qty=contracts,
                 entry=plan.entry,
-                risk_usd=pt.risk_usd or Decimal(0),
+                risk_usd=risk_usd,
                 guard_on=guard_on,
-                risk_profile_kind=rcfg.kind,
+                risk_profile_kind=kind,
                 opened_at=now,
                 mode="PAPER" if a.is_sim else "LIVE",
                 trade_ref=t.trade_id,
@@ -429,6 +465,8 @@ class Controller:
             )
         )
         for leg in t.legs:
+            if not leg.bracket_id:
+                continue  # never placed
             s.add(
                 Order(
                     account_id=a.id,
@@ -442,11 +480,6 @@ class Controller:
                     source="AUTO" if actor == "automation" else "SEMI",
                 )
             )
-        st.day_stats(s, a, now).trades += 1
-        a.last_trade_at = now
-        for f in self.adapter.drain_fills():
-            await self._handle_events(s, await self.om.on_fill(f))
-        return AccountResult(a.id, True, None, pt.contracts, t.trade_id, pt.checks)
 
     # ---------- fills / prices ----------
     async def on_bar(self, symbol: str, o: Decimal, h: Decimal, low: Decimal, c: Decimal, at: datetime) -> None:
@@ -489,13 +522,18 @@ class Controller:
     async def _handle_events(self, s: Session, events: list[Event]) -> None:
         for e in events:
             if e.kind == "CLOSED":
-                reason = self._flatten_reason if e.detail == "FLATTEN" and self._flatten_reason else e.detail
+                reason = e.detail
+                if e.detail == "FLATTEN":
+                    reason = e.trade.closing or self._flatten_reason or e.detail
                 self._close_trade(s, e.trade, reason)
             elif e.kind == "PAUSE":
                 self._pause(s, e.trade.account, e.detail)
             elif e.kind == "FLATTENED":
                 self.notify("warn", "Position flattened", f"{e.trade.account}: {e.detail}")
-                self._close_trade(s, e.trade, e.detail)
+                e.trade.closing = e.trade.closing or e.detail
+                # P&L is booked when the exit fill arrives (immediately on the simulator, later on CrossTrade)
+                for f in self.adapter.drain_fills():
+                    await self._handle_events(s, await self.om.on_fill(f))
 
     def _acct(self, s: Session, ext: str) -> Account | None:
         return s.execute(select(Account).where(Account.broker_account_id == ext)).scalar_one_or_none()
@@ -554,6 +592,8 @@ class Controller:
             a.mll, a.mll_peak, a.mll_locked = m.mll, m.peak, m.locked
             day = st.day_state(s, a, opnl, self.clock.now())
             if equity - m.mll <= r.internal.kill_switch_mll_distance and (opnl != 0 or equity <= m.mll):
+                if a.paused_reason in ("KILL_SWITCH", "MLL_BREACH") and not await self._exposed(a):
+                    continue  # already killed and flat: the watchdog must not re-fire every tick
                 await self._flatten_account(s, a, "KILL_SWITCH")
                 self._pause(s, a.broker_account_id, "KILL_SWITCH" if equity > m.mll else "MLL_BREACH")
                 continue
@@ -614,20 +654,41 @@ class Controller:
         a.mll, a.mll_peak, a.mll_locked = m.mll, m.peak, m.locked
 
     # ---------- flatten / kill ----------
-    async def _flatten_account(self, s: Session, a: Account, reason: str) -> None:
+    async def _exposed(self, a: Account) -> bool:
+        """Open exposure on the account: a tracked trade not already closing, or any broker position (unknown → yes)."""
+        if any(t.account == a.broker_account_id and not t.closing for t in self.om.trades.values()):
+            return True
+        try:
+            return bool(await self.adapter.get_positions(a.broker_account_id))
+        except BrokerError:
+            return True
+
+    async def _flatten_account(self, s: Session, a: Account, reason: str) -> bool:
+        """Flatten via the broker. Tracked trades stay 'closing' until their exit fill books the real P&L (instant on
+        the simulator, later on CrossTrade). Returns False when the broker call failed (caller retries/escalates)."""
+        ext = a.broker_account_id
         self._flatten_reason = reason
         try:
-            await self.adapter.flatten(a.broker_account_id)
+            await self.adapter.flatten(ext)
         except BrokerError as e:
             self._flatten_reason = None
-            self.notify("error", "FLATTEN FAILED — act manually in Tradovate", f"{a.label}: {e}")
-            return
+            if ext not in self._flatten_alerted:
+                self._flatten_alerted.add(ext)
+                self.notify("error", "FLATTEN FAILED — act manually in Tradovate", f"{a.label}: {e}")
+            return False
+        self._flatten_alerted.discard(ext)
+        now = self.clock.now()
+        for t in [t for t in self.om.trades.values() if t.account == ext]:
+            t.closing = t.closing or reason
+            t.closing_since = t.closing_since or now
         for f in self.adapter.drain_fills():
             await self._handle_events(s, await self.om.on_fill(f))
-        for t in [t for t in self.om.trades.values() if t.account == a.broker_account_id]:
-            self._close_trade(s, t, reason)
+        for t in [t for t in self.om.trades.values() if t.account == ext]:
+            if not any(x.entry is not None for x in t.legs) and ext not in self.adapter.live_accounts:
+                self._close_trade(s, t, reason)  # simulator: never filled → cancelled, nothing to wait for
         self._flatten_reason = None
-        audit.record(s, self.clock, "automation", "account.flattened", a.broker_account_id, {"reason": reason})
+        audit.record(s, self.clock, "automation", "account.flattened", ext, {"reason": reason})
+        return True
 
     async def flatten(self, account_id: int, actor: str, reason: str = "MANUAL_FLATTEN") -> None:
         async with self.lock:
@@ -662,38 +723,94 @@ class Controller:
         self.notify("error", "KILL SWITCH", f"by {actor}: all flat, all disarmed, automation OFF")
 
     async def flat_time_check(self) -> str | None:
-        """16:40 auto-flatten and 16:44 hard flat (ET); entries are blocked from 16:40 until the 18:00 reopen."""
+        """16:40 auto-flatten, then the 16:44 hard flat (ET) until the reopen. Based on BROKER positions as well as
+        tracked trades (restarts / untracked positions must flatten too). Called every watchdog tick, so a failed
+        flatten is retried; failing at the hard flat pauses the account (never auto-resumes) + banner (§1.8)."""
         r = self.rules.rules
         t = to_et(self.clock.now()).time()
-        if parse_hhmm(r.internal.auto_flatten) <= t < parse_hhmm(r.session.reopen) and self.om.trades:
-            await self.flatten_all("automation", "FLAT_TIME")
-            return "FLAT_TIME"
-        return None
+        if not parse_hhmm(r.internal.auto_flatten) <= t < parse_hhmm(r.session.reopen):
+            return None
+        hard = t >= parse_hhmm(r.internal.hard_flat)
+        reason = "HARD_FLAT" if hard else "FLAT_TIME"
+        hit = None
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for a in s.execute(select(Account)).scalars():
+                    if a.broker_account_id not in self.adapter.accounts or not await self._exposed(a):
+                        continue
+                    hit = reason
+                    if not await self._flatten_account(s, a, reason) and hard and a.paused_reason != "FLATTEN_FAILED":
+                        self._pause(s, a.broker_account_id, "FLATTEN_FAILED")
+                s.commit()
+        return hit
 
     async def news_check(self, events: list[Any] | None) -> str | None:
-        """Flatten open trades before high-impact news (§15): every account news_flatten_before_min ahead; accounts
+        """Flatten open exposure before high-impact news (§15): every account news_flatten_before_min ahead; accounts
         whose firm treats news as a hard breach (funded/live, eval when not allowed) stay flat until
         breach_min_after."""
-        if not events or not self.om.trades:
+        if not events:
             return None
         r, now = self.rules.rules, self.clock.now()
         hit = None
         async with self.lock:
             with self.sessionmaker() as s:
                 for a in s.execute(select(Account)).scalars():
-                    if not any(t.account == a.broker_account_id for t in self.om.trades.values()):
+                    if a.broker_account_id not in self.adapter.accounts:
                         continue
                     sr = stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled)
                     stage_cfg = r.funded if a.stage != "EVAL" else r.eval
                     before = max(r.internal.news_flatten_before_min, stage_cfg.news_breach_min_before)
                     after = stage_cfg.news_breach_min_after if sr.news_hard_breach else 0
                     ev = news_flatten_due(now, events, before, after)
-                    if ev is not None:
-                        await self._flatten_account(s, a, "NEWS")
-                        self.notify("warn", "Flattened for news", f"{a.label}: {ev.title}")
+                    if ev is not None and await self._exposed(a):
+                        if await self._flatten_account(s, a, "NEWS"):
+                            self.notify("warn", "Flattened for news", f"{a.label}: {ev.title}")
                         hit = "NEWS"
                 s.commit()
         return hit
+
+    async def monitor_accounts(self) -> None:
+        """Wall-clock MLL / kill-switch / DLL monitor (no new bar needed)."""
+        async with self.lock:
+            with self.sessionmaker() as s:
+                await self._monitor(s)
+                s.commit()
+
+    async def retry_closing(self) -> None:
+        """Trades waiting in 'closing' (flatten requested, exit fill not seen): still in the market → flatten again;
+        flat at the broker but no fill after CLOSE_GRACE_S → close with an error alert (P&L unverified)."""
+        now = self.clock.now()
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for t in [t for t in self.om.trades.values() if t.closing]:
+                    a = self._acct(s, t.account)
+                    if a is None:
+                        continue
+                    t.closing_since = t.closing_since or now
+                    try:
+                        pos = await self.adapter.get_positions(t.account)
+                    except BrokerError:
+                        continue
+                    if any(p.symbol == t.symbol and p.qty != 0 for p in pos):
+                        await self._flatten_account(s, a, t.closing)
+                    elif (now - t.closing_since).total_seconds() >= CLOSE_GRACE_S:
+                        self.notify("error", "Exit fill missing — P&L unverified", f"{a.label}: {t.closing}")
+                        self._close_trade(s, t, t.closing)
+                s.commit()
+
+    async def watchdog_tick(self, news_events: list[Any] | None) -> None:
+        """Wall-clock safety loop, independent of TradingView webhooks (a stalled feed must not stop the flatten)."""
+        steps: list[tuple[str, Any]] = [
+            ("flat_time", self.flat_time_check()),
+            ("news", self.news_check(news_events)),
+            ("monitor", self.monitor_accounts()),
+            ("closing", self.retry_closing()),
+        ]
+        for name, coro in steps:
+            try:
+                await coro
+            except Exception as e:  # never silent (§1.8); the other checks still run
+                self.notify("error", "Safety watchdog step failed", f"{name}: {type(e).__name__}")
 
     async def defence_check(
         self,

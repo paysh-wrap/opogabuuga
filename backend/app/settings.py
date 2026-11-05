@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     admin_password: SecretStr = SecretStr("")  # only used once by `make create-admin`; never stored
     http_timeout_s: float = 10.0
     scheduler_enabled: bool = True  # in-process jobs (payouts, calendar); tests turn it off
+    watchdog_interval_s: float = 5.0  # wall-clock flat-time / news / MLL watchdog (needs scheduler_enabled)
     ta_python: str = str(REPO_ROOT / ".venv-ta" / "bin" / "python")  # isolated TradingAgents venv
     web_dist: Path = REPO_ROOT / "frontend" / "dist"
 
