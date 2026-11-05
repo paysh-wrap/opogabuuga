@@ -121,3 +121,31 @@ def calendar(request: Request, _: Principal = Depends(current_user)) -> dict[str
         "error": getattr(store, "error", None),
         "source": "ForexFactory weekly feed (USD high impact)",
     }
+
+
+@router.get("/bias")
+def bias_today(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+    from app.models import BiasDecision
+
+    sess = session_date(request.app.state.clock.now())
+    rows = db.execute(
+        select(BiasDecision).where(BiasDecision.session_date == sess).order_by(BiasDecision.id.desc())
+    ).scalars()
+    return {
+        "session": sess.isoformat(),
+        "decisions": [
+            {"proxy": b.proxy, "raw": b.raw_rating, "mapped": b.mapped, "reasoning": b.reasoning[:4000]} for b in rows
+        ],
+    }
+
+
+@router.post("/bias/run")
+async def bias_run(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+    """Runs TradingAgents now for proxies without a valid bias today (retries failures; never re-runs successes)."""
+    from app.bias.service import run_bias
+    from app.crypto import Vault
+
+    st = request.app.state
+    sess = session_date(st.clock.now())
+    vault = Vault(st.settings.master_key.get_secret_value())
+    return {"ran": await run_bias(db, st.ta, vault, st.rules.rules, st.clock, sess, st.controller.notify)}

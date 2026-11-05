@@ -197,3 +197,8 @@ live review pool (not required). Config: funded.payouts_to_live 1, funded.payout
   ForexFactory weekly JSON (nfs.faireconomy.media, format verified: ISO dates with ET offset; impact High/Medium/
   Low/Holiday). USD + High only. Refreshed every 4 h; cached in DB. Covers the current week only: a date outside the
   fetched week = no data = no trading (§15). Feed terms could not be read (Cloudflare) — personal, low-rate use.
+
+## D27 — Phase 8: daily TradingAgents bias job (2026-11-05)
+06:10 ET Mon–Fri: TauricResearch/TradingAgents v0.7.1 runs once per enabled instrument's proxy ETF (QQQ for MNQ) in
+its isolated venv. Rating → five-tier map. Missing key / failure / timeout / unknown → NO_TRADE + alert (that
+instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid bias is never re-run that session.

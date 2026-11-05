@@ -50,6 +50,22 @@ SECURITY_HEADERS = {
 }
 
 
+async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
+    from app.automation import state as stt
+    from app.bias import service as bias
+    from app.clock import session_date
+    from app.crypto import Vault
+
+    st = app.state
+    sess = session_date(now)
+    if not bias.due(now, st.rules.rules.schedule.bias, stt.get_setting(s, "job.bias.session"), sess):  # type: ignore[arg-type]
+        return
+    vault = Vault(st.settings.master_key.get_secret_value())
+    await bias.run_bias(s, st.ta, vault, st.rules.rules, st.clock, sess, st.controller.notify)
+    stt.set_setting(s, "job.bias.session", sess.isoformat(), now)
+    s.commit()
+
+
 async def _refresh_calendar(app: FastAPI, s: Session, now: datetime) -> None:
     """Fetch the week's USD high-impact events when missing or older than 4 h. Failure → banner; trading stays
     blocked only if the session date isn't covered (no data = no trading, §15)."""
@@ -89,6 +105,7 @@ async def _scheduler(app: FastAPI) -> None:
                     stt.set_setting(s, "job.payouts.week", week_key(now), now)
                     s.commit()
                 await _refresh_calendar(app, s, now)
+                await _daily_bias(app, s, now)
         except Exception as e:  # never silent (§1.8)
             log.error("scheduler.error", error=type(e).__name__)
             st.controller.notify("error", "Scheduled job failed", type(e).__name__)

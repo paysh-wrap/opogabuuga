@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
@@ -10,6 +10,9 @@ export default function Today() {
   usePageTitle("Today");
   const q = useQuery({ queryKey: ["today"], queryFn: () => api<{ signals: Sig[]; trades: Tr[] }>("/api/today"), refetchInterval: 10000 });
   const cal = useQuery({ queryKey: ["calendar"], queryFn: () => api<{ loaded: boolean; events: { at: string; title: string }[]; error: string | null }>("/api/calendar"), refetchInterval: 60000 });
+  const qc = useQueryClient();
+  const bias = useQuery({ queryKey: ["bias"], queryFn: () => api<{ decisions: { proxy: string; raw: string; mapped: string; reasoning: string }[] }>("/api/bias"), refetchInterval: 60000 });
+  const runBias = useMutation({ mutationFn: () => api("/api/bias/run", { method: "POST" }), onSettled: () => void qc.invalidateQueries({ queryKey: ["bias"] }) });
   const d = q.data;
   if (!d) return <p role="status">Loading…</p>;
   const net = d.trades.reduce((s, t) => s + Number(t.pnl ?? 0), 0);
@@ -18,6 +21,19 @@ export default function Today() {
       <h1 className="text-2xl font-bold text-gold">Today</h1>
       <p className="text-sm">{d.signals.length} signals · {d.signals.filter((s) => s.status === "PASS").length} passed · {d.trades.length} trades · net{" "}
         <b className="text-gold">{net > 0 ? "▲ +" : net < 0 ? "▼ −" : ""}${Math.abs(net).toFixed(2)}</b></p>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-semibold text-gold">Bias today (TradingAgents)</h2>
+          <button className="rounded-md border border-blue px-3 py-1 text-sm font-semibold text-blue disabled:opacity-50" disabled={runBias.isPending}
+            onClick={() => runBias.mutate()}>{runBias.isPending ? "Running… (up to 10 min)" : "Run now"}</button>
+        </div>
+        {bias.data?.decisions.length === 0 && <p className="text-sm">Not run yet (06:10 ET). No bias = no trading.</p>}
+        {bias.data?.decisions.map((b, i) => (
+          <details key={i} className="text-sm"><summary>{b.proxy}: <b className="text-gold">{b.mapped}</b> ({b.raw})</summary>
+            <p className="whitespace-pre-wrap opacity-80">{b.reasoning.slice(0, 1500)}</p></details>
+        ))}
+      </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">News today (USD high impact)</h2>
