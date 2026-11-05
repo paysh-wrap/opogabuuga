@@ -125,6 +125,18 @@ internal:
   no_entry_before_news_min: 15
   news_flatten_before_min: 2
 
+one_to_one_mode:                       # D7 — user toggle in Risk UI; the Lab may never toggle or tune it
+  enabled: false
+  rr: 1.0                              # take-profit exactly 1R (replaces the 2–3R window while ON)
+  partial_at_fraction_of_tp: 0.75      # take profit on part of the position at 75% of the way to TP
+  partial_qty_fraction: 0.5            # 50% of contracts
+  max_consecutive_losses_per_day: 3    # ONLY in this mode (normal mode: internal.max_consecutive_losses_per_day = 2)
+  max_trades_per_day: 3
+  extended_max_trades_per_day: 5       # trades 4–5 allowed only while the current win streak is >= 3
+  extend_after_win_streak: 3
+  # Unchanged in this mode: all gates, per-trade DLL/MLL checks (never weakened), kill switch, 40% consistency
+  # cap + day stop, hedge lock, news/flat times, min hold, force_floor after a loss, Evaluation Mode scope.
+
 eval_mode:                             # §11C — EVAL stage ONLY
   default_on: false
   applies_to_stages: [EVAL]

@@ -43,14 +43,21 @@
 - Installed by `make tradingagents` into its own venv (.venv-ta); trading process talks to it via a
   JSON subprocess runner with a hard timeout. REVIEW / unknown rating → NO_TRADE + alert.
 
-## D7 — 2026-11-05 — "1:1 mode" toggle (REQUESTED — details pending user answers; build in Phases 3/4/6)
+## D7 — 2026-11-05 — "1:1 mode" toggle (APPROVED in part; build in Phases 3/4/6)
 User request: Risk Management toggle enabling 1:1 reward:risk trades; ONLY in that mode up to 3 losses/day
 (normal mode keeps 2); in that mode take 50% profit at 75% of the distance to take-profit.
 This overrides the §7 2–3R pillar while ON (user-owned change; the Lab may never toggle or tune it).
 Unchanged in this mode: all gates, DLL/MLL pre-trade checks, kill switch, consistency guard, hedge lock,
 news/flat times, force_floor after a loss, Evaluation Mode scope.
-Open questions: Q1 TP exactly 1R? Q2 stop → breakeven after the 75% partial? Q3 1-contract sizes: skip or
-no partial? Q4 which stages? Q5 max trades/day stays 3? Q6 own backtest gate before enabling on paid accounts?
+Answers (user, 2026-11-05): TP exactly 1R. Up to 3 losses/day in this mode. Up to 5 trades/day when on a
+3-trade winning streak, never exceeding the 40% consistency rule.
+Interpretation (confirm): trades 4 and 5 are allowed only while the CURRENT consecutive-win streak today is >= 3
+(W W W → 4th ok; W W W W → 5th ok; W W W L → stop). Config: one_to_one_mode.*
+DLL note: per-trade DLL check is never weakened, so on large risk bases (> ~$2,085 at default tiers) a 3rd loss
+cannot fit the $600 DLL and the day ends after 2. EVAL (max base $1,437.50): 3 losses = $450.98 incl. margins ✓;
+Evaluation Mode: $506.53 ✓; FUNDED at $3,000 cushion: $810.72 ✗ → 3rd trade skipped by the DLL check.
+Still open: Q2 breakeven after partial? Q3 1-contract sizes: skip or no partial? Q4 stages?
+Q6 own backtest gate before paid accounts? Q7 apply the 40% consistency cap on FUNDED too (firm has none there)?
 
 ## D8 — 2026-11-05 — Minimum hold time (Lucid microscalping rule)
 - Lucid (FAQ, per search results): flagged if > 50% of profits come from trades held <= 5 s. VERIFY.

@@ -84,6 +84,10 @@ def test_verify_parser_nesting():
         (("eval_mode", "pace_escalation"), True),
         (("eval_mode", "applies_to_stages"), ["EVAL", "FUNDED"]),
     (("behavior", "min_hold_seconds"), 5),
+    (("one_to_one_mode", "rr"), 2),
+    (("one_to_one_mode", "max_consecutive_losses_per_day"), 4),
+    (("one_to_one_mode", "extended_max_trades_per_day"), 6),
+    (("one_to_one_mode", "partial_at_fraction_of_tp"), 1.2),
     (("behavior", "rapid_trade_warn_pct"), 60),
     ],
 )
@@ -116,3 +120,12 @@ def test_lucid_microscalp_rule(loaded_rules):
     assert (b.firm_microscalp_hold_seconds, b.firm_microscalp_pct, b.min_hold_seconds, b.rapid_trade_warn_pct) == (
         5, 50, 6, 20)
     assert "behavior.firm_microscalp_hold_seconds" in loaded_rules.verify_paths
+
+
+def test_one_to_one_mode_d7(loaded_rules):
+    o = loaded_rules.rules.one_to_one_mode
+    assert o.enabled is False  # off until the user turns it on
+    assert (o.rr, o.partial_at_fraction_of_tp, o.partial_qty_fraction) == (1, Decimal("0.75"), Decimal("0.5"))
+    assert (o.max_consecutive_losses_per_day, o.max_trades_per_day, o.extended_max_trades_per_day) == (3, 3, 5)
+    assert o.extend_after_win_streak == 3
+    assert loaded_rules.rules.internal.max_consecutive_losses_per_day == 2  # normal mode unchanged

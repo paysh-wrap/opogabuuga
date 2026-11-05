@@ -244,6 +244,17 @@ class InternalCfg(_M):
     news_flatten_before_min: int
 
 
+class OneToOneMode(_M):
+    enabled: bool
+    rr: D
+    partial_at_fraction_of_tp: D
+    partial_qty_fraction: D
+    max_consecutive_losses_per_day: int
+    max_trades_per_day: int
+    extended_max_trades_per_day: int
+    extend_after_win_streak: int
+
+
 class TargetSessions(_M):
     target: int
     max: int
@@ -363,6 +374,7 @@ class RulesConfig(_M):
     profiles: Profiles
     drawdown_guard: GuardCfg
     internal: InternalCfg
+    one_to_one_mode: OneToOneMode
     eval_mode: EvalModeCfg
     bias: BiasCfg
     smt: SmtCfg
@@ -391,6 +403,17 @@ class RulesConfig(_M):
                 raise ValueError(f"instrument {sym}: unknown super_group {inst.super_group}")
             if inst.group not in self.correlation_groups or sym not in self.correlation_groups[inst.group]:
                 raise ValueError(f"instrument {sym}: not a member of correlation group {inst.group}")
+        o = self.one_to_one_mode
+        if o.rr != D(1):
+            raise ValueError("one_to_one_mode.rr must be exactly 1")
+        if not (D(0) < o.partial_at_fraction_of_tp < D(1) and D(0) < o.partial_qty_fraction < D(1)):
+            raise ValueError("one_to_one_mode partial fractions must be between 0 and 1")
+        if not (1 <= o.max_trades_per_day <= o.extended_max_trades_per_day <= 5):
+            raise ValueError("one_to_one_mode: max trades <= extended max trades <= 5")
+        if not (self.internal.max_consecutive_losses_per_day <= o.max_consecutive_losses_per_day <= 3):
+            raise ValueError("one_to_one_mode allows at most 3 consecutive losses per day")
+        if o.extend_after_win_streak < 1:
+            raise ValueError("extend_after_win_streak must be >= 1")
         b = self.behavior
         if b.min_hold_seconds <= b.firm_microscalp_hold_seconds:
             raise ValueError("min_hold_seconds must exceed firm_microscalp_hold_seconds")
