@@ -52,6 +52,25 @@ SECURITY_HEADERS = {
 }
 
 
+async def _nightly(app: FastAPI, s: Session, now: datetime) -> None:
+    """Weekdays at schedule.nightly_backtest (17:15 ET): self-review backtest of recent sessions → Lab."""
+    from app.automation import state as stt
+    from app.backtest.nightly import nightly
+    from app.clock import parse_hhmm, session_date, to_et
+
+    st = app.state
+    local, sess = to_et(now), session_date(now)
+    if local.weekday() >= 5 or local.time() < parse_hhmm(st.rules.rules.schedule.nightly_backtest):
+        return
+    if local.time() >= parse_hhmm(st.rules.rules.session.reopen):
+        return
+    if stt.get_setting(s, "job.nightly.session") == sess.isoformat():
+        return
+    stt.set_setting(s, "job.nightly.session", sess.isoformat(), now)  # mark first: one attempt per session
+    s.commit()
+    await nightly(app, s, now)
+
+
 async def _eod(app: FastAPI, s: Session, now: datetime) -> None:
     """Weekdays at schedule.eod_update (after the 16:44 hard flat): EOD accounts trail their MLL once."""
     from app.automation import state as stt
@@ -127,6 +146,7 @@ async def _scheduler(app: FastAPI) -> None:
                 await _refresh_calendar(app, s, now)
                 await _daily_bias(app, s, now)
                 await _eod(app, s, now)
+                await _nightly(app, s, now)
         except Exception as e:  # never silent (§1.8)
             log.error("scheduler.error", error=type(e).__name__)
             st.controller.notify("error", "Scheduled job failed", type(e).__name__)

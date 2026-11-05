@@ -25,3 +25,26 @@ def test_lab_api_and_proposals(authed):
     assert authed.put(f"/api/lab/proposals/{pid}", json={"status": "rejected"}).status_code == 409
     assert authed.put("/api/lab/proposals/999", json={"status": "rejected"}).status_code == 404
     assert authed.get("/api/lab").json()["proposals"][0]["status"] == "approved"
+
+
+def test_nightly_self_review_uses_recorded_bars(authed, clock):
+    import asyncio
+    from datetime import UTC, datetime
+
+    from app.backtest.nightly import nightly, recorded_bars
+    from app.models import Bar as BarRow
+    from tests.unit.test_indicators import T0
+
+    start = datetime.fromtimestamp(T0 / 1000, tz=UTC)
+    clock.set(start)
+    with authed.app.state.sessionmaker() as s:
+        px = D(20000)
+        for i in range(150):
+            close = datetime.fromtimestamp((T0 + (i + 1) * 60000) / 1000, tz=UTC)
+            s.add(BarRow(symbol="MNQ", tf="1", close_time=close, o=px, h=px + 1, l=px - 1, c=px, v=D(1), source="tv"))
+        s.commit()
+        assert len(recorded_bars(s, "MNQ", start)) == 150
+        ids = asyncio.run(nightly(authed.app, s, start, days=1))
+    assert len(ids) == 1
+    lab = authed.get("/api/lab").json()
+    assert lab["backtests"][0]["params"]["nightly"] is True and lab["backtests"][0]["trades"] == 0
