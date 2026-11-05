@@ -158,3 +158,9 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
 - Fees, DLL $600, MLL/lock, contracts, microscalping, news, payouts, live: all match config.
 - DLL is fixed per session (does not trail). D18's stricter "from today's best P&L" stays (user: protect the account).
 - Automation explicitly permitted.
+
+## D21 — 2026-11-05 — Indicators verified against the original sources
+- BigBeluga MSO: ROC/stdev → sigmoid → EMA(10); 5/5 pivots; ChoCh = first break in a direction; divergence on
+  oscillator pivots (5/5). LunqFX: one model at a time; HTF candle closes on the next period's first bar; CISD not
+  reset by deeper sweeps; failure beyond the sweep even after T1; raw midpoint T1; pre-tick = C2 close beyond T1.
+- Python + Pine bridge rewritten to match; LIVE still gated on ≥ 20-session three-way parity.

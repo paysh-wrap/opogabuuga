@@ -36,7 +36,7 @@ def _scan(line: str) -> tuple[str, bool]:
 
 def test_header_and_license_attribution():
     assert SRC.startswith("//@version=6\n")
-    for s in ("[LunqFX]", "[BigBeluga]", "PERSONAL USE ONLY", "spec-derived"):
+    for s in ("[LunqFX]", "[BigBeluga]", "PERSONAL USE ONLY", "Verified against both sources"):
         assert s in SRC
 
 
@@ -101,4 +101,5 @@ def test_contract_matches_python_payload_schema():
         assert f'"{evt}"' in SRC, evt
     assert 'evt + "-" + dir' in SRC  # id carries the direction (collision fix)
     assert "barstate.isconfirmed" in SRC and "lookahead" not in SRC and "request.security" not in SRC
-    assert "hC > c1L and hC < c1H" in SRC  # pillar: C2 must close back inside C1
+    assert "inside = lastC > c1L and lastC < c1H" in SRC and "not both and inside" in SRC  # pillar
+    assert "[LunqFX]" in SRC and "CC BY-NC-SA 4.0" in SRC

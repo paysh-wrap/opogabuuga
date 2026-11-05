@@ -1,14 +1,11 @@
 # Indicator definitions used by Paytience (Python reference + Paytience_Bridge.pine)
 
-**Status (2026-11-05):** the Market Structure Oscillator part is now a faithful port of the ORIGINAL BigBeluga source
-(PUB;8eb87677…, CC BY-NC-SA 4.0 — PERSONAL USE ONLY). The fractal part is still spec-derived; verifying against
-"ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" and "Market Structure Oscillator [BigBeluga]".
-tradingview.com is blocked in the build environment (D11). This is Paytience's own implementation of the
-master prompt's definitions (§5–§6) and the scripts' public descriptions — no code was copied. LIVE trading and Lab
-promotions stay blocked until three-way parity (Python ↔ bridge ↔ originals) passes over ≥ 20 sessions (§5.2).
-
-Both implementations follow this file exactly. Times are bar CLOSE times in ms (TradingView `time_close`).
-Closed bars only; nothing uses a bar before it has closed (no lookahead).
+**Status (2026-11-05): VERIFIED against both original sources.**
+- Fractal model = port of "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (PUB;121faffd…, open-source).
+- MSO = port of "Market Structure Oscillator [BigBeluga]" (PUB;8eb87677…, CC BY-NC-SA 4.0).
+Python (backend/app/indicators/) and pine/Paytience_Bridge.pine follow the originals; their module docstrings are the
+authoritative rule list (they supersede the older spec-derived text below). PERSONAL USE ONLY.
+Remaining LIVE gate (§5.2): three-way parity over ≥ 20 recorded sessions.
 
 ## Timeframes
 | Profile | Chart (LTF) | HTF candle | Grouping |
