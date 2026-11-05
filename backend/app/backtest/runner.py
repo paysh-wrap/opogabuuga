@@ -113,6 +113,12 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
     m = rules.indicators.mso
     clock = FixedClock(datetime.fromtimestamp(bars[0].open_ms / 1000, tz=UTC))
     app = create_app(settings, clock)
+    from sqlalchemy import event as _sa_event
+
+    @_sa_event.listens_for(app.state.engine, "connect")
+    def _fast(dbapi_conn: Any, _rec: Any) -> None:  # throwaway DB: durability not needed
+        dbapi_conn.execute("PRAGMA synchronous=OFF")
+
     payloads: list[dict[str, Any]] = []
     for prof in cfg.profiles:
         p = getattr(rules.profiles, prof)
@@ -164,34 +170,50 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         st.controller.mode = "FULL"  # backtest only: FULL-AUTO without the 5-session ramp (no real orders)
         seen: set[date] = set()
         rejects: dict[str, int] = {}
-        for p in payloads:
-            now = datetime.fromtimestamp(p["bar_time_ms"] / 1000 + 1, tz=UTC)
-            clock.set(now)
-            sess = session_date(now)
-            if sess not in seen:
-                seen.add(sess)
-                if len(seen) > 1:  # EOD MLL update for the session that just ended
-                    c.portal.call(st.controller.eod_all)  # type: ignore[union-attr]
-                with st.sessionmaker() as s:
-                    bias = cfg.recorded_bias.get(sess.isoformat(), "NO_TRADE") if cfg.bias == "recorded" else cfg.bias
-                    s.add(
-                        BiasDecision(
-                            session_date=sess, proxy=inst.bias_proxy, raw_rating="BACKTEST", mapped=bias, version="bt"
-                        )
+        # Speed: replay every alert inside the app's own event loop (one thread hop for the whole run instead of
+        # one per alert). Same routes, same code path; only the transport differs from TestClient.
+        import httpx
+
+        async def replay() -> None:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as ac:
+                for p in payloads:
+                    now = datetime.fromtimestamp(p["bar_time_ms"] / 1000 + 1, tz=UTC)
+                    clock.set(now)
+                    sess = session_date(now)
+                    if sess not in seen:
+                        seen.add(sess)
+                        if len(seen) > 1:  # EOD MLL update for the session that just ended
+                            await st.controller.eod_all()
+                        with st.sessionmaker() as s:
+                            bias = (
+                                cfg.recorded_bias.get(sess.isoformat(), "NO_TRADE")
+                                if cfg.bias == "recorded"
+                                else cfg.bias
+                            )
+                            s.add(
+                                BiasDecision(
+                                    session_date=sess,
+                                    proxy=inst.bias_proxy,
+                                    raw_rating="BACKTEST",
+                                    mapped=bias,
+                                    version="bt",
+                                )
+                            )
+                            s.commit()
+                        r = await ac.post("/api/auth/login", json={"username": "bt", "password": secret})
+                        ac.headers["x-csrf-token"] = r.json()["csrf"]
+                        await ac.post("/api/attestation", json={"confirm": True})
+                    resp = await ac.post(
+                        "/api/webhook/tradingview",
+                        content=json.dumps({**p, "secret": secret}),
+                        headers={"content-type": "text/plain"},
                     )
-                    s.commit()
-                r = c.post("/api/auth/login", json={"username": "bt", "password": secret})
-                c.headers["x-csrf-token"] = r.json()["csrf"]
-                c.post("/api/attestation", json={"confirm": True})
-            resp = c.post(
-                "/api/webhook/tradingview",
-                content=json.dumps({**p, "secret": secret}),
-                headers={"content-type": "text/plain"},
-            )
-            if resp.status_code != 200:
-                body = resp.json()
-                k = f"{p['event']}:{resp.status_code}:{str(body.get('detail', body.get('code', '')))[:40]}"
-                rejects[k] = rejects.get(k, 0) + 1
+                    if resp.status_code != 200:
+                        body = resp.json()
+                        k = f"{p['event']}:{resp.status_code}:{str(body.get('detail', body.get('code', '')))[:40]}"
+                        rejects[k] = rejects.get(k, 0) + 1
+
+        c.portal.call(replay)
         with st.sessionmaker() as s:
             trades = [
                 {
