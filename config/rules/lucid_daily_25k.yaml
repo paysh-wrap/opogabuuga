@@ -1,4 +1,5 @@
 # Paytience rule profile — Lucid Trading LucidDaily 25K (Master Prompt v9.2 §23 + docs/DECISIONS.md)
+# Checked 2026-11-05 against Lucid's help center (docs/LUCID_RULES.md). VERIFY badges stay until YOU confirm them.
 # Any line marked "# VERIFY" shows a gold badge in the UI until confirmed via Risk → Firm Rules.
 account_size: 25000
 purchase: {drawdown_type: eod, dll_enabled: true, consistency_pct: 40}   # VERIFY
@@ -19,7 +20,7 @@ eval:
 
 funded:
   max_loss_limit: 1000
-  drawdown_type: eod                   # VERIFY — D9: user says Lucid accounts are usually EOD; per-account override supports intraday
+  drawdown_type: intraday              # VERIFY — Lucid help center 15998425: "LucidDaily funded accounts always use an Intraday drawdown" (D20)
   lock_trigger: 26100
   lock_level: 25100
   daily_loss_limit: 600                # VERIFY

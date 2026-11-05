@@ -178,3 +178,16 @@ def test_master_key_missing_is_loud(authed, mock_http):
     authed.app.state.settings.master_key = SecretStr("")
     r = authed.put("/api/connections/discord", json={"values": {"webhook_url": "https://discord.com/api/webhooks/1/x"}})
     assert r.status_code == 503 and "make keys" in r.json()["detail"]
+
+
+def test_crosstrade_key_test(authed, mock_http):
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    mock_http["https://app.crosstrade.io/v1/api/tv/status"] = lambda r: (
+        httpx.Response(200, json={"success": True})
+        if r.headers["authorization"] == "Bearer good-key-12345"
+        else httpx.Response(401, json={"success": False, "error": "api_requires_pro"})
+    )
+    v = authed.put("/api/connections/crosstrade", json={"values": {"token": "bad-key-1234567"}}).json()
+    assert v["status"] == "failed" and "api_requires_pro" in v["detail"]
+    v = authed.put("/api/connections/crosstrade", json={"values": {"token": "good-key-12345"}}).json()
+    assert v["status"] == "connected"

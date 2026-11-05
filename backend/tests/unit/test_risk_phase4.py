@@ -179,7 +179,7 @@ def test_mll_funded_intraday():
     update_mll(st, D(26100))
     assert (st.mll, st.locked) == (D(25100), True)
     assert risk_base(D(27100), st.mll) == D(2000)
-    assert stage_rules(R, "FUNDED").drawdown_type == "eod"  # D9 default
+    assert stage_rules(R, "FUNDED").drawdown_type == "intraday"  # D20: Lucid says funded is always intraday
     assert stage_rules(R, "LIVE").dll is None and stage_rules(R, "EVAL", dll_enabled=False).dll is None
     with pytest.raises(ValueError):
         stage_rules(R, "NOPE")

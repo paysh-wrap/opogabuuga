@@ -145,7 +145,7 @@ def test_one_to_one_answers_and_d9(loaded_rules):
     assert o.single_contract_lock_bounds == (Decimal("0.25"), Decimal("0.35"))
     assert o.stages == ["EVAL", "FUNDED", "LIVE"]
     assert o.gate.min_trades >= 100 and o.gate.min_e_net_r >= Decimal("0.20")
-    assert r.funded.drawdown_type == "eod" and r.eval.drawdown_type == "eod"
+    assert r.funded.drawdown_type == "intraday" and r.eval.drawdown_type == "eod"  # D20
     assert "funded.drawdown_type" in loaded_rules.verify_paths
 
 

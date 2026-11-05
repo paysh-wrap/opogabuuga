@@ -151,3 +151,10 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   or stay in conservative mode with SEMI-AUTO.
 - A third-party guide says every LucidDaily FUNDED account uses intraday drawdown regardless of purchase choice —
   this conflicts with D9 (funded default EOD). Per-account drawdown type handles both; confirm with Lucid.
+
+## D20 — 2026-11-05 — Lucid rules checked on Lucid's own help center (docs/LUCID_RULES.md)
+- Funded drawdown is ALWAYS intraday → funded.drawdown_type back to intraday (replaces D9's EOD default).
+  Drawdown guard therefore turns ON for funded accounts until the MLL locks at $25,100 (§8, as designed).
+- Fees, DLL $600, MLL/lock, contracts, microscalping, news, payouts, live: all match config.
+- DLL is fixed per session (does not trail). D18's stricter "from today's best P&L" stays (user: protect the account).
+- Automation explicitly permitted.

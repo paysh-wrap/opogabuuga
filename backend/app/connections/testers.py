@@ -103,7 +103,16 @@ async def _tunnel(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     return TestResult(False, f"Not reachable or not Paytience (HTTP {r.status_code})")
 
 
+async def _crosstrade(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
+    r = await http.get("https://app.crosstrade.io/v1/api/tv/status", headers={"Authorization": f"Bearer {v['token']}"})
+    if r.status_code == 200:
+        return TestResult(True, "Key accepted · Tradovate link OK")
+    err = (r.json() or {}).get("error", "") if r.content else ""
+    return TestResult(False, f"HTTP {r.status_code} {err}".strip())
+
+
 TESTERS: dict[str, Tester] = {
+    "crosstrade": _crosstrade,
     "alpha_vantage": _alpha_vantage,
     "fred": _fred,
     "databento": _databento,

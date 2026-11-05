@@ -184,6 +184,23 @@ PROVIDERS: tuple[Provider, ...] = (
         note="Your Tradovate password is never stored; it is asked once and discarded (§1.2).",
     ),
     Provider(
+        id="crosstrade",
+        name="CrossTrade (Tradovate orders + positions)",
+        category="broker",
+        purpose="Places bracket orders on your Lucid Tradovate accounts and reads positions/P&L back, so the "
+        "kill switch can see live P&L. Needs CrossTrade Pro + your Tradovate account linked in CrossTrade.",
+        links=(
+            Link("Sign up / log in", "https://crosstrade.io/"),
+            Link("API docs", "https://crosstrade.io/docs/api/tradovate/overview"),
+        ),
+        fields=(FieldSpec("token", "Secret key (My Account → Security → Reveal)"),),
+        steps=(
+            "Subscribe to CrossTrade Pro (the REST API needs Pro).",
+            "Link your Lucid Tradovate login inside CrossTrade.",
+            "Paste the secret key here → Save & Test (read-only check, places no order).",
+        ),
+    ),
+    Provider(
         id="traderspost",
         name="TradersPost (alternative order route)",
         category="broker",
