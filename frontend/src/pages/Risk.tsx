@@ -59,6 +59,11 @@ export default function Risk() {
             if (on && !window.confirm("Turn ON Evaluation Mode? EVAL accounts risk 10/12/14% (max $140) per trade.")) return;
             run.mutate(() => api("/api/risk/eval-mode", { method: "PUT", body: JSON.stringify({ enabled: on, confirm: on ? em.data?.confirm_phrase : "" }) }));
           }}>{em.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input type="checkbox" data-testid="eval-1to1" checked={s.settings["eval_mode.one_to_one"] === true}
+            onChange={(e) => save({ "eval_mode.one_to_one": e.target.checked })} />
+          Use 1:1 mode on EVAL accounts while Evaluation Mode is on
+        </label>
       </section>
 
       <section className="rounded-xl border border-gold bg-card p-4">

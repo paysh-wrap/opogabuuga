@@ -30,7 +30,7 @@ from app.models import Account, Order, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
-from app.risk.eval_mode import effective_risk_cfg
+from app.risk.eval_mode import effective_risk_cfg, one_to_one_for
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -179,7 +179,9 @@ class Controller:
         return gone
 
     def _plan(self, s: Session, sig: Signal) -> TradePlan | None:
-        want = "ONE_TO_ONE" if self.rules.rules.one_to_one_mode.enabled else "STANDARD"
+        r = self.rules.rules
+        any_1to1 = r.one_to_one_mode.enabled or (self.rules.eval_mode_on and r.eval_mode.one_to_one)
+        want = "ONE_TO_ONE" if any_1to1 else "STANDARD"
         rows = list(s.execute(select(TradePlanRow).where(TradePlanRow.signal_id == sig.id)).scalars())
         row = next((r for r in rows if r.mode == want), None) or next((r for r in rows if r.mode == "STANDARD"), None)
         if row is None:
@@ -257,7 +259,13 @@ class Controller:
         mll = self._mll_state(a)
         equity = bal + opnl
         base = risk_base(equity, mll.mll)
-        one_to_one = plan0.mode == "ONE_TO_ONE" and a.stage in r.one_to_one_mode.stages
+        one_to_one = (
+            plan0.mode == "ONE_TO_ONE"
+            and a.stage in r.one_to_one_mode.stages
+            and one_to_one_for(
+                a.stage, a.eval_mode, self.rules.eval_mode_on, r.one_to_one_mode.enabled, r.eval_mode.one_to_one
+            )
+        )
         plan = plan0
         guard_on = False
         if not one_to_one:

@@ -70,6 +70,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
                 "risk_pct_ceiling",
                 "max_risk_usd",
                 "warmup_trades",
+                "one_to_one",
             )
         ),
         "payouts.frequency",

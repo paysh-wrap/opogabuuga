@@ -301,6 +301,7 @@ class EvalModeCfg(_M):
     target_sessions: TargetSessions
     auto_off_on_stage_change: bool
     pace_escalation: Literal[False]  # never raise risk to catch up (§11C)
+    one_to_one: bool = False  # D23: 1:1 plans on EVAL accounts while Evaluation Mode is on
 
 
 class BiasCfg(_M):

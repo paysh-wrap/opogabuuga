@@ -168,3 +168,7 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
 ## D22 — Evaluation Mode one-button toggle (user request, 2026-11-05)
 Typed phrase replaced in the UI by one ON/OFF button + a confirm dialog. Backend still requires the phrase (UI sends it
 after confirm). Still EVAL-only, capped $140, all other rules unchanged.
+
+## D23 — 1:1 option inside Evaluation Mode (user request, 2026-11-05)
+`eval_mode.one_to_one`: when ON, EVAL accounts with Evaluation Mode effective use 1:1 plans (TP 1R, 0.75R partial → BE,
+3 losses/day, all D7 rules). Never FUNDED/LIVE via this option. 1:1 backtest gate still applies before LIVE use.
