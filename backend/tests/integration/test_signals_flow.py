@@ -163,13 +163,43 @@ def test_one_entry_per_model_even_if_it_reconfirms(ready, clock):
         assert s.query(Signal).count() == 1 and s.query(TradePlanRow).count() == 1
 
 
+def test_unqualified_failures_do_not_start_cooldown(ready, clock, authed):
+    """D33: failures of models that never qualified for a trade don't count toward the cooldown."""
+    for i in range(3):
+        fr = {**FR, "c1_time_ms": C1T - (i + 1) * 15 * MIN}
+        send(ready, clock, "MODEL_FAILED", MS - (10 - i) * MIN, fractal=fr)
+    assert authed.get("/api/cooldowns").json()["cooldowns"] == [] or not any(
+        c["active"] for c in authed.get("/api/cooldowns").json()["cooldowns"]
+    )
+
+
 def test_cooldown_after_three_failures_profile_scoped(ready, clock, authed):
+    from datetime import datetime
+
+    with ready.app.state.sessionmaker() as s:  # three models that DID qualify (passed every gate)
+        for i in range(3):
+            key = f"MNQ-TIGHT-{C1T - (i + 1) * 15 * MIN}"
+            s.add(
+                Signal(
+                    symbol="MNQ",
+                    profile="TIGHT",
+                    direction="LONG",
+                    model_key=key,
+                    passed=True,
+                    status="PASS",
+                    bar_time=datetime.fromtimestamp(C1T / 1000, tz=UTC),
+                )
+            )
+        s.commit()
     for i in range(3):
         fr = {**FR, "c1_time_ms": C1T - (i + 1) * 15 * MIN}
         send(ready, clock, "MODEL_FAILED", MS - (10 - i) * MIN, fractal=fr)
     cds = {(c["symbol"], c["profile"]): c for c in authed.get("/api/cooldowns").json()["cooldowns"]}
     assert cds[("MNQ", "TIGHT")]["active"] and cds[("MNQ", "TIGHT")]["until_session"] == "2026-11-12"
     assert ("MNQ", "STD") not in cds
+    with ready.app.state.sessionmaker() as s:  # clear the helper rows so signal() sees only the new model
+        s.query(Signal).delete()
+        s.commit()
     choch(ready, clock)
     hb(ready, clock, MS - 2 * MIN, close="20010")
     confirm(ready, clock)

@@ -247,3 +247,9 @@ contracts + Flex scaling; microscalp (≥ 6 s app exits, ≤ 5 s profit share tr
 position per account); news per plan; payouts per plan rules. Added now: household limits for real accounts (10 total,
 5 funded, 5 live — 11404617) and inactivity warning (Lucid deletes after 30 days with no $1 P&L — 11404632).
 Only intraday trading (scalps + day trades, flat before the close); nothing overnight.
+
+## D33 — Cooldown counts only qualified models (user-approved, 2026-11-05)
+Gold backtest (Oct 2026, 741 models): 592 skipped by COOLDOWN because failures of models the strategy would never
+trade kept re-arming it. Now a MODEL_FAILED counts toward the 3-failure / 5-session cooldown only if that model's
+signal passed every gate. T1/T2 hits still reset the streak.
+Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of replayed alerts dropped).

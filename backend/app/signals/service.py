@@ -184,7 +184,17 @@ def process(
 ) -> list[SignalUpdate]:
     now = clock.now()
     at_dt = datetime.fromtimestamp(event_time_ms / 1000, tz=UTC)
-    apply_cooldown_event(s, clock, rules, st.symbol, st.profile, event, at_dt)
+    if event == "MODEL_FAILED":
+        # D33 (user-approved): only failures of models that qualified for a trade count toward the cooldown.
+        failed = [m for m in st.models.values() if (event, event_time_ms) in m.events]
+        qualified = any(
+            s.execute(select(Signal.id).where(Signal.model_key == m.model_key, Signal.passed)).first() is not None
+            for m in failed
+        )
+        if qualified:
+            apply_cooldown_event(s, clock, rules, st.symbol, st.profile, event, at_dt)
+    else:
+        apply_cooldown_event(s, clock, rules, st.symbol, st.profile, event, at_dt)
     updates: list[SignalUpdate] = []
     if st.last_heartbeat_ms is None or st.last_price is None:
         s.commit()
