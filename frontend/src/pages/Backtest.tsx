@@ -36,13 +36,13 @@ export default function Backtest() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Backtest</h1>
-      <p className="text-sm">Replays 1-minute history (Gold, Nasdaq or US30) through the <b>same code</b> as live trading (your two indicators → gates → risk → simulated fills with fees and slippage), then runs a Monte Carlo of passing the eval.
+      <p className="text-sm">Replays 1-minute history (Gold or Nasdaq) through the <b>same code</b> as live trading (your two indicators → gates → risk → simulated fills with fees and slippage), then runs a Monte Carlo of passing the eval.
         Get data from Databento (Connections page): dataset GLBX.MDP3, schema ohlcv-1m, CSV.</p>
       {err && <p role="alert" className="rounded-lg border border-gold p-3 text-sm text-goldLight">⚠ {err}</p>}
       <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4 text-sm">
         <label className="flex flex-col">1-minute CSV<input aria-label="CSV file" type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label>
         <label className="flex flex-col">Market<select aria-label="Market" value={opt.symbol} onChange={(e) => setOpt({ ...opt, symbol: e.target.value })}>
-          <option value="MGC">Gold (MGC)</option><option value="MNQ">Nasdaq (MNQ)</option><option value="MYM">US30 (MYM)</option></select></label>
+          <option value="MGC">Gold (MGC)</option><option value="MNQ">Nasdaq (MNQ)</option></select></label>
         <label className="flex flex-col">Stage<select value={opt.stage} onChange={(e) => setOpt({ ...opt, stage: e.target.value })}><option>EVAL</option><option>FUNDED</option><option>LIVE</option></select></label>
         <label className="flex flex-col">Bias<select value={opt.bias} onChange={(e) => setOpt({ ...opt, bias: e.target.value })}>
           <option value="recorded">Recorded TradingAgents only</option><option>NEUTRAL</option><option>LONG_ONLY</option><option>SHORT_ONLY</option></select></label>

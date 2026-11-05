@@ -192,7 +192,7 @@ def test_invalid_stored_settings_block_and_report(authed):
 
 def test_market_buttons_toggle_instruments(authed):
     m = {x["symbol"]: x["enabled"] for x in authed.get("/api/markets").json()["markets"]}
-    assert m == {"MGC": False, "MNQ": True, "MYM": False, "MES": False}
+    assert m == {"MGC": False, "MNQ": True}
     r = authed.put("/api/markets", json={"symbol": "MGC", "enabled": True}).json()
     assert {x["symbol"]: x["enabled"] for x in r["markets"]}["MGC"] is True
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
