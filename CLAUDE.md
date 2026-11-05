@@ -82,3 +82,8 @@ Tunables only within §17.2 bounds; walk-forward + guards; challenger in SHADOW 
 
 ## Commands (filled in Phase 1)
 `make test` · `make lint` · `make typecheck` · `make up`
+
+## Approved changes (see docs/DECISIONS.md — these override the master prompt)
+- D1: instruments MNQ (core), MES, MYM, MGC; MES/MYM/MGC disabled until §16.6 gate. METALS super-group for MGC.
+- D2: morning window 06:45–11:30 ET; calendar 06:00, bias 06:10, pre-flight 06:40.
+- D3: API Keys page; keys write-only, encrypted, never logged/returned.
