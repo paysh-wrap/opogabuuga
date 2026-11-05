@@ -555,6 +555,34 @@ class Controller:
             self._pause(s, m.account, "POSITION_MISMATCH")
         return bad
 
+    async def eod_all(self) -> int:
+        """Once per session after the hard flat: EOD-trailing accounts trail their MLL on the settled balance (§10).
+        Intraday accounts already trail on every P&L update. Returns how many accounts were updated."""
+        n = 0
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for a in s.execute(select(Account)).scalars():
+                    if a.drawdown_type != "eod" or a.broker_account_id not in self.adapter.accounts:
+                        continue
+                    try:
+                        bal = await self.adapter.get_balance(a.broker_account_id)
+                    except BrokerError as e:
+                        self.notify("error", "EOD drawdown update failed", f"{a.label}: {e}")
+                        continue
+                    before = a.mll
+                    self.eod_update(s, a, bal)
+                    audit.record(
+                        s,
+                        self.clock,
+                        "automation",
+                        "mll.eod",
+                        a.broker_account_id,
+                        {"balance": str(bal), "mll_before": str(before), "mll": str(a.mll), "locked": a.mll_locked},
+                    )
+                    n += 1
+                s.commit()
+        return n
+
     def eod_update(self, s: Session, a: Account, settled_balance: Decimal) -> None:
         m = self._mll_state(a)
         update_mll(m, settled_balance, eod=True)

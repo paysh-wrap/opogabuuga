@@ -166,3 +166,19 @@ def test_news_flatten(authed, clock, stage, offset_min, flat):
     got = asyncio.run(authed.app.state.controller.news_check([ev]))
     assert (got == "NEWS") is flat
     assert (authed.get("/api/positions").json()["accounts"][0]["positions"] == []) is flat
+
+
+def test_eod_update_trails_mll_on_eod_accounts_only(authed, clock):
+    import asyncio
+
+    e = authed.post("/api/accounts", json={"label": "E", "stage": "EVAL", "balance": "25400"}).json()["id"]
+    i = authed.post("/api/accounts", json={"label": "I", "stage": "EVAL", "drawdown_type": "intraday"}).json()["id"]
+    with authed.app.state.sessionmaker() as s:
+        from app.models import Account
+
+        for a in s.query(Account):  # both created with start-balance MLL; pretend they started at 25,000
+            a.mll, a.mll_peak = D(24000), D(25000)
+        s.commit()
+    assert asyncio.run(authed.app.state.controller.eod_all()) == 1
+    acc = {a["id"]: a for a in authed.get("/api/dashboard").json()["accounts"]}
+    assert acc[e]["mll"] == "24400" and acc[i]["mll"] == "24000"

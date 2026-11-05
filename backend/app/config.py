@@ -348,6 +348,7 @@ class WebhookCfg(_M):
 
 class ScheduleCfg(_M):
     reconcile_reset: str
+    eod_update: str = "16:50"
     calendar: str
     bias: str
     preflight: str

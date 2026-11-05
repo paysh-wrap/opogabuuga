@@ -50,6 +50,24 @@ SECURITY_HEADERS = {
 }
 
 
+async def _eod(app: FastAPI, s: Session, now: datetime) -> None:
+    """Weekdays at schedule.eod_update (after the 16:44 hard flat): EOD accounts trail their MLL once."""
+    from app.automation import state as stt
+    from app.clock import parse_hhmm, session_date, to_et
+
+    st = app.state
+    local, sess = to_et(now), session_date(now)
+    if local.weekday() >= 5 or local.time() < parse_hhmm(st.rules.rules.schedule.eod_update):
+        return
+    if local.time() >= parse_hhmm(st.rules.rules.session.reopen):
+        return  # after the reopen it is already the next session
+    if stt.get_setting(s, "job.eod.session") == sess.isoformat():
+        return
+    await st.controller.eod_all()
+    stt.set_setting(s, "job.eod.session", sess.isoformat(), now)
+    s.commit()
+
+
 async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
     from app.automation import state as stt
     from app.bias import service as bias
@@ -106,6 +124,7 @@ async def _scheduler(app: FastAPI) -> None:
                     s.commit()
                 await _refresh_calendar(app, s, now)
                 await _daily_bias(app, s, now)
+                await _eod(app, s, now)
         except Exception as e:  # never silent (§1.8)
             log.error("scheduler.error", error=type(e).__name__)
             st.controller.notify("error", "Scheduled job failed", type(e).__name__)

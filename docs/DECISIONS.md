@@ -208,3 +208,5 @@ instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid
   firm `news_breach_min_before` (1) before a USD high-impact event; hard-breach stages (FUNDED/LIVE, and EVAL since
   LucidDaily disallows news) stay flat until `news_breach_min_after` (1) after. Tested.
 - Simulator fills from on_bar were also left queued (harmless, but could be applied twice): now delivered once.
+- EOD MLL update was never scheduled (EOD accounts' MLL would never trail up → app under-estimated risk): now runs
+  weekdays at `schedule.eod_update` 16:50 ET (after the 16:44 hard flat) on the settled balance, once per session.

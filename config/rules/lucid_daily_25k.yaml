@@ -212,6 +212,7 @@ schedule:                              # ET; D2 moved morning jobs before the 06
   sync_every_min: 15
   report: "17:00"
   payouts: "Fri 17:05"
+  eod_update: "16:50"                  # EOD-trailing MLL update on the settled balance (after hard flat)
   nightly_backtest: "17:15"
   lab_cycle: "Sat 08:00"
 
