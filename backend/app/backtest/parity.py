@@ -38,11 +38,14 @@ def replay_payloads(
     atr_period: int,
     pivot_left: int,
     pivot_right: int,
-    osc_length: int,
+    mom_length: int = 14,
+    smooth_length: int = 10,
+    div_pivot_left: int = 5,
+    div_pivot_right: int = 5,
 ) -> list[dict[str, Any]]:
     fe = FractalEngine(htf_min, tick, atr_period)
-    mso = MsoEngine(pivot_left, pivot_right, osc_length)
-    htf_mso = MsoEngine(pivot_left, pivot_right, osc_length)
+    mso = MsoEngine(pivot_left, pivot_right, mom_length, smooth_length, div_pivot_left, div_pivot_right)
+    htf_mso = MsoEngine(pivot_left, pivot_right, mom_length, smooth_length, div_pivot_left, div_pivot_right)
     htf_agg = HtfAggregator(htf_min)
     out: list[dict[str, Any]] = []
 

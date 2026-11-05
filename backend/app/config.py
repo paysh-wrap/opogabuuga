@@ -323,7 +323,10 @@ class SmtCfg(_M):
 class MsoCfg(_M):
     pivot_left: int = Field(ge=1, le=50)
     pivot_right: int = Field(ge=1, le=50)
-    osc_length: int = Field(ge=2, le=200)
+    mom_length: int = Field(ge=1, le=200)
+    smooth_length: int = Field(ge=1, le=200)
+    div_pivot_left: int = Field(ge=1, le=50)
+    div_pivot_right: int = Field(ge=1, le=50)
 
 
 class IndicatorsCfg(_M):

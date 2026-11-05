@@ -1,6 +1,7 @@
 # Indicator definitions used by Paytience (Python reference + Paytience_Bridge.pine)
 
-**Status: spec-derived, NOT yet verified against the original source code** of
+**Status (2026-11-05):** the Market Structure Oscillator part is now a faithful port of the ORIGINAL BigBeluga source
+(PUB;8eb87677…, CC BY-NC-SA 4.0 — PERSONAL USE ONLY). The fractal part is still spec-derived; verifying against
 "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" and "Market Structure Oscillator [BigBeluga]".
 tradingview.com is blocked in the build environment (D11). This is Paytience's own implementation of the
 master prompt's definitions (§5–§6) and the scripts' public descriptions — no code was copied. LIVE trading and Lab

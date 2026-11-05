@@ -3,7 +3,7 @@
 // Implements docs/INDICATOR_SPEC.md exactly (same rules as the Python reference in backend/app/indicators/).
 //
 // Paytience's own implementation — spec-derived, NOT yet verified against the original source code.
-// Concepts credit: "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (© LunqFX) and
+// Credits: "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (© LunqFX) and
 // "Market Structure Oscillator [BigBeluga]" (© BigBeluga). No code from those scripts is included.
 // PERSONAL USE ONLY.
 //
@@ -14,8 +14,11 @@ indicator("Paytience_Bridge", overlay = true, max_labels_count = 200)
 secret   = input.string("", "Webhook secret")
 profile  = input.string("STD", "Profile", options = ["TIGHT", "STD"])
 pivL     = input.int(5, "MSO pivot left", minval = 1)
-pivR     = input.int(3, "MSO pivot right", minval = 1)
-oscLen   = input.int(14, "MSO oscillator length", minval = 2)
+pivR     = input.int(5, "MSO pivot right", minval = 1)
+momLen   = input.int(14, "MSO momentum length", minval = 1)
+smoothLen = input.int(10, "MSO smoothing length", minval = 1)
+divL     = input.int(5, "MSO divergence pivot left", minval = 1)
+divR     = input.int(5, "MSO divergence pivot right", minval = 1)
 atrLen   = input.int(14, "HTF ATR length", minval = 1)
 showMarks = input.bool(true, "Show markers")
 
@@ -77,6 +80,7 @@ var int   cisdST = na
 var bool  t1TS = false
 // HTF ATR (Wilder)
 var float prevHtfC = na
+var float prevHtfStructC = na
 var float atrV = na
 var int   atrN = 0
 var float atrSum = 0.0
@@ -103,20 +107,6 @@ var float bearRunOpen = na
 var float bullRunOpen = na
 var bool  prevBear = false
 var bool  prevBull = false
-// MSO (chart timeframe)
-var float rPrev = na
-var float rAg = na
-var float rAl = na
-var int   rN = 0
-var float rSumG = 0.0
-var float rSumL = 0.0
-var string trend = "NONE"
-var float phP = na
-var float phR = na
-var bool  phUsed = true
-var float plP = na
-var float plR = na
-var bool  plUsed = true
 // MSO on HTF candles (structure only → htf_trend)
 var array<float> hHs = array.new_float()
 var array<float> hLs = array.new_float()
@@ -126,11 +116,69 @@ var bool  hPhUsed = true
 var float hPl = na
 var bool  hPlUsed = true
 
-float rawRsi = na
 bool mkSweepL = false
 bool mkSweepS = false
 bool mkConfL = false
 bool mkConfS = false
+
+// ---------- MSO — logic from "Market Structure Oscillator [BigBeluga]" (© BigBeluga, CC BY-NC-SA 4.0) ----------
+// https://creativecommons.org/licenses/by-nc-sa/4.0/ — this bridge is shared under the same license. PERSONAL USE ONLY.
+var bool msUp = false
+var bool msAny = false
+var int bullN = 0
+var int bearN = 0
+var float swHi = na
+var float swLo = na
+float ph = ta.pivothigh(pivL, pivR)
+float pl = ta.pivotlow(pivL, pivR)
+if not na(ph)
+    swHi := ph
+if not na(pl)
+    swLo := pl
+bool xUp = ta.crossover(close, swHi)
+bool xDn = ta.crossunder(close, swLo)
+bool brkUp = xUp and not na(swHi)
+string evUp = bullN + 1 <= 1 ? "MSO_CHOCH" : "MSO_BOS"
+if brkUp
+    msUp := true
+    msAny := true
+    bullN += 1
+    bearN := 0
+    swHi := na
+bool brkDn = xDn and not na(swLo)
+string evDn = bearN + 1 <= 1 ? "MSO_CHOCH" : "MSO_BOS"
+if brkDn
+    msUp := false
+    msAny := true
+    bearN += 1
+    bullN := 0
+    swLo := na
+string trend = msAny ? (msUp ? "BULL" : "BEAR") : "NONE"
+float roc = ta.change(close, momLen)
+float vol = ta.stdev(ta.change(close), momLen)
+float rawMom = vol != 0 ? roc / vol : 0.0
+float smoothed = ta.ema(100 / (1 + math.exp(-rawMom)), smoothLen)
+float osc = na(smoothed) ? na : msUp ? 50 + math.abs(smoothed - 50) : 50 - math.abs(smoothed - 50)
+float oph = ta.pivothigh(smoothed, divL, divR)
+float opl = ta.pivotlow(smoothed, divL, divR)
+var float prevOH = na
+var float prevOHP = na
+var float prevOL = na
+var float prevOLP = na
+bool divShort = false
+bool divLong = false
+if not na(oph)
+    float curP = high[divR]
+    if not na(prevOH) and curP > prevOHP and oph < prevOH
+        divShort := true
+    prevOH := oph
+    prevOHP := curP
+if not na(opl)
+    float curPl = low[divR]
+    if not na(prevOL) and curPl < prevOLP and opl > prevOL
+        divLong := true
+    prevOL := opl
+    prevOLP := curPl
 
 if barstate.isconfirmed
     // ---------- runs ----------
@@ -261,12 +309,13 @@ if barstate.isconfirmed
                 if isPl
                     hPl := cL
                     hPlUsed := false
-            if not na(hPh) and not hPhUsed and hC > hPh
+            if not na(hPh) and not hPhUsed and hC > hPh and not na(prevHtfStructC) and prevHtfStructC <= hPh
                 hPhUsed := true
                 hTrend := "BULL"
-            if not na(hPl) and not hPlUsed and hC < hPl
+            if not na(hPl) and not hPlUsed and hC < hPl and not na(prevHtfStructC) and prevHtfStructC >= hPl
                 hPlUsed := true
                 hTrend := "BEAR"
+            prevHtfStructC := hC
             // evaluate C2 (exactly one side swept AND close strictly inside C1 — pillar)
             if hasC1 and (sL != sS) and hC > c1L and hC < c1H
                 isL = sL
@@ -315,62 +364,6 @@ if barstate.isconfirmed
                 // the late-closing bar starts the new HTF candle in step 1
                 lateClose := false
 
-    // ---------- MSO on the chart timeframe ----------
-    if not na(rPrev)
-        ch = close - rPrev
-        g = math.max(ch, 0.0)
-        lo = math.max(-ch, 0.0)
-        if na(rAg)
-            rSumG += g
-            rSumL += lo
-            rN += 1
-            if rN == oscLen
-                rAg := rSumG / oscLen
-                rAl := rSumL / oscLen
-        else
-            rAg := (rAg * (oscLen - 1) + g) / oscLen
-            rAl := (rAl * (oscLen - 1) + lo) / oscLen
-        if not na(rAg)
-            rawRsi := rAl == 0 ? (rAg > 0 ? 100.0 : 50.0) : 100.0 - 100.0 / (1.0 + rAg / rAl)
-    rPrev := close
-    bool divShort = false
-    bool divLong = false
-    if bar_index >= pivL + pivR
-        cH = high[pivR]
-        cL = low[pivR]
-        cR = rawRsi[pivR]
-        isPh = true
-        isPl = true
-        for i = 0 to pivL + pivR
-            if i < pivR
-                isPh := isPh and cH >= high[i]
-                isPl := isPl and cL <= low[i]
-            else if i > pivR
-                isPh := isPh and cH > high[i]
-                isPl := isPl and cL < low[i]
-        if isPh
-            if not na(phP) and cH > phP and not na(cR) and not na(phR) and cR < phR
-                divShort := true
-            phP := cH
-            phR := cR
-            phUsed := false
-        if isPl
-            if not na(plP) and cL < plP and not na(cR) and not na(plR) and cR > plR
-                divLong := true
-            plP := cL
-            plR := cR
-            plUsed := false
-    bool brkUp = not na(phP) and not phUsed and close > phP
-    string evUp = trend == "BEAR" ? "MSO_CHOCH" : "MSO_BOS"
-    if brkUp
-        phUsed := true
-        trend := "BULL"
-    bool brkDn = not na(plP) and not plUsed and close < plP
-    string evDn = trend == "BULL" ? "MSO_CHOCH" : "MSO_BOS"
-    if brkDn
-        plUsed := true
-        trend := "BEAR"
-    float osc = na(rawRsi) ? na : trend == "BULL" ? 50.0 + rawRsi / 2.0 : trend == "BEAR" ? rawRsi / 2.0 : rawRsi
     string oscS = na(osc) ? "null" : str.tostring(osc, "#.##")
     if brkUp
         f_send(evUp, "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")

@@ -27,7 +27,6 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
         atr_period=14,
         pivot_left=5,
         pivot_right=3,
-        osc_length=14,
     )
     sent = 0
     for p in payloads:

@@ -2,7 +2,7 @@ from decimal import Decimal as D
 
 from app.indicators.atr import WilderATR
 from app.indicators.bars import MINUTE_MS, Bar, HtfAggregator, round_tick, tf_minutes
-from app.indicators.bigbeluga_mso import MsoEngine, WilderRSI
+from app.indicators.bigbeluga_mso import MsoEngine
 from app.indicators.lunqfx_fractal import FractalEngine
 
 T0 = 1_762_354_800_000  # 2025-11-05 15:00:00 UTC — aligned to 15 and 60 minutes
@@ -139,15 +139,6 @@ def test_short_model_mirror():
     assert conf[1] == "SHORT" and (f.t1, f.t2, f.invalid, f.cisd_level) == (D(105), D(100), D(111), D(105))
 
 
-def test_rsi_bounds_and_values():
-    r = WilderRSI(3)
-    vals = [r.push(D(x)) for x in (10, 11, 12, 13, 14)]
-    assert vals[:3] == [None, None, None] and vals[3] == D(100)
-    r = WilderRSI(2)
-    vals = [r.push(D(x)) for x in (10, 11, 10)]
-    assert vals[2] == D(50)
-
-
 def _bars_from_closes(closes, highs=None, lows=None):
     out = []
     for i, c in enumerate(closes):
@@ -157,31 +148,83 @@ def _bars_from_closes(closes, highs=None, lows=None):
     return out
 
 
-def test_divergence_timestamped_at_confirmation_bar_not_pivot():
-    # pivot high #1 at bar 6 (high 20), pivot high #2 at bar 16 (high 21, weaker momentum)
-    closes = [10, 11, 12, 13, 14, 15, 19, 16, 15, 14, 13, 14, 15, 16, 17, 18, 20.5, 17, 16, 15, 14]
-    highs = [c + 0.5 for c in closes]
-    highs[6], highs[16] = 20, 21
-    m = MsoEngine(pivot_left=5, pivot_right=3, osc_length=3)
-    divs = []
-    for b in _bars_from_closes(closes, highs):
-        divs += [e for e in m.push(b) if e.event == "MSO_DIV"]
-    assert len(divs) == 1 and divs[0].direction == "SHORT"
-    pivot_bar, right = 16, 3
-    assert divs[0].confirm_time_ms == mk(pivot_bar + right, 0, 0, 0, 0, tf=5).close_ms  # usable from t+3
+def test_divergence_on_oscillator_pivots_stamped_at_confirmation_bar():
+    import math
+
+    closes = [100 + 10 * math.sin(i / 3) + i * 0.8 for i in range(80)]
+    m = MsoEngine(pivot_left=3, pivot_right=3, mom_length=4, smooth_length=2, div_left=2, div_right=2)
+    raws, evs = [], []
+    for i, b in enumerate(_bars_from_closes([round(c, 2) for c in closes])):
+        evs += [(i, e) for e in m.push(b) if e.event == "MSO_DIV"]
+        raws.append(m.last.raw)
+    assert evs, "expected at least one divergence"
+    for i, e in evs:
+        j = i - 2  # pivot bar = confirmation bar − right bars
+        assert e.confirm_time_ms == mk(i, 0, 0, 0, 0, tf=5).close_ms
+        win = raws[j - 2 : j + 3]
+        if e.direction == "SHORT":
+            assert all(win[2] > x for x in win[:2]) and all(win[2] >= x for x in win[3:])
+        else:
+            assert all(win[2] < x for x in win[:2]) and all(win[2] <= x for x in win[3:])
 
 
-def test_structure_bos_then_choch_and_osc_side():
-    closes = [10, 11, 12, 13, 14, 15, 14, 13, 12, 11, 12, 13, 14, 15, 16, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8]
-    m = MsoEngine(pivot_left=2, pivot_right=2, osc_length=3)
+def test_structure_choch_then_bos_counts_and_osc_side():
+    closes = [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        14,
+        13,
+        12,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        16,
+        15,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        11,
+        10,
+        9,
+        8,
+        7,
+    ]
+    m = MsoEngine(pivot_left=2, pivot_right=2, mom_length=3, smooth_length=2, div_left=2, div_right=2)
     evs, snaps = [], []
     for b in _bars_from_closes(closes):
-        evs += [(e.event, e.direction) for e in m.push(b)]
+        evs += [(e.event, e.direction) for e in m.push(b) if e.event != "MSO_DIV"]
         snaps.append(m.last)
-    assert ("MSO_BOS", "LONG") in evs  # first break with no prior trend
-    assert ("MSO_CHOCH", "SHORT") in evs  # bullish → bearish change of character
+    assert evs[0] == ("MSO_CHOCH", "LONG")  # first break in a direction = ChoCh (original's count ≤ 1)
+    assert ("MSO_BOS", "LONG") in evs  # a second consecutive bullish break = BoS
+    assert ("MSO_CHOCH", "SHORT") in evs
     for s in snaps:
-        if s.osc is not None and s.trend == "BULL":
-            assert s.osc >= 50
-        if s.osc is not None and s.trend == "BEAR":
-            assert s.osc <= 50
+        if s.osc is not None:
+            assert (s.osc >= 50) if s.trend == "BULL" else (s.osc <= 50)
+
+
+def test_oscillator_formula_matches_original():
+    m = MsoEngine(mom_length=2, smooth_length=1)
+    for i, c in enumerate([10, 12, 15]):
+        m.push(mk(i, c, c, c, c))
+    # roc = 15 − 10 = 5; changes [2, 3] → mean 2.5, pop stdev 0.5; raw = 10; sigmoid = 100/(1+e^-10)
+    assert abs(m.last.raw - D(100) / (1 + D(-10).exp())) < D("1e-20")

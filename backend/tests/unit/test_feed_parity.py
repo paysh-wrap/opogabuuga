@@ -61,7 +61,6 @@ def _replay():
         atr_period=14,
         pivot_left=5,
         pivot_right=3,
-        osc_length=14,
     ), r
 
 
