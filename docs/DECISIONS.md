@@ -138,3 +138,16 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
 - 1:1 partial on an odd contract count closes ceil(n/2) (same split as the drawdown guard's leg A).
 - Effective rules = YAML ⊕ Firm Rules versions ⊕ My Settings versions; if a stored version stops validating, the
   app reports it and must not trade (Phase 5 automation checks `rules.error`).
+
+## D18 — 2026-11-05 — DLL room measured from today's best P&L (safe under every reading)
+- Sources disagree whether Lucid's $600 DLL is measured from the prior close (fixed floor) or trails today's high.
+  Room = DLL − (today's best P&L incl. open − current P&L). Profits never add room; giving profit back uses room.
+  Stricter than or equal to both readings (user: "whatever best protects the account").
+- D17 item 2 confirmed by user: worst case must fit both the DLL room and the kill-switch distance.
+
+## D19 — 2026-11-05 — Conflicts to verify with Lucid (docs/LUCID_SUPPORT_MESSAGE.md)
+- Tradovate's own help center: prop/evaluation accounts are NOT eligible for Tradovate API keys → the native
+  Tradovate route is very likely unavailable; read-back must come via a supported bridge (CrossTrade/NinjaTrader)
+  or stay in conservative mode with SEMI-AUTO.
+- A third-party guide says every LucidDaily FUNDED account uses intraday drawdown regardless of purchase choice —
+  this conflicts with D9 (funded default EOD). Per-account drawdown type handles both; confirm with Lucid.

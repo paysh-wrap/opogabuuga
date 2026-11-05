@@ -39,9 +39,10 @@ money = st.integers(min_value=0, max_value=600_000).map(lambda c: D(c) / 100)
     losses=st.integers(0, 3),
     trades=st.integers(0, 40),
     today_profit=st.integers(0, 600).map(D),
+    giveback=st.integers(0, 700).map(D),
 )
 def test_risk_never_exceeds_ceiling_cap_or_dll(
-    base, score, stage, override, global_on, pnl, stop_pts, first, losses, trades, today_profit
+    base, score, stage, override, global_on, pnl, stop_pts, first, losses, trades, today_profit, giveback
 ):
     cfg = effective_risk_cfg(stage, override, global_on, STD, EVM)
     if stage != "EVAL":
@@ -59,7 +60,7 @@ def test_risk_never_exceeds_ceiling_cap_or_dll(
         rcfg=cfg,
         ctx=ctx,
         floor=FL,
-        day=DayState(losses, losses, 0, pnl, today_profit),
+        day=DayState(losses, losses, 0, pnl, today_profit, today_peak_pnl=pnl + giveback),
         day_limits=DayLimits(3, 2),
         consistency=eval_limits(D(1250), D(40), D(5)),
         lim=LIM,
@@ -69,7 +70,8 @@ def test_risk_never_exceeds_ceiling_cap_or_dll(
         assert r.risk_usd <= cfg.ceiling * base + D("0.005")
         if cfg.max_risk_usd is not None:
             assert r.risk_usd <= cfg.max_risk_usd
-        left = dll_remaining(D(600), pnl)
+        left = dll_remaining(D(600), pnl, pnl + giveback)
+        assert left <= D(600) + min(D(0), pnl)  # never more room than the strictest firm reading
         assert r.risk_usd + LIM.dll_safety_margin <= left
         assert r.worst_case_usd + LIM.dll_safety_margin <= left
         assert r.worst_case_usd + LIM.dll_safety_margin <= equity - D(24000) - LIM.kill_switch_distance

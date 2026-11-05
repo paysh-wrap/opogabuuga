@@ -21,6 +21,7 @@ class DayState:
     current_win_streak_today: int
     today_pnl: Decimal  # realised + open, $
     today_profit_for_consistency: Decimal  # realised net profit today, $
+    today_peak_pnl: Decimal = Decimal(0)  # best P&L (incl. open) reached today, $ (D18)
 
 
 @dataclass(frozen=True)
@@ -48,9 +49,14 @@ def day_stop_reason(day: DayState, lim: DayLimits, consistency: ConsistencyLimit
     return None
 
 
-def dll_remaining(dll: Decimal, today_pnl: Decimal) -> Decimal:
-    """Conservative: profits today do not add room; losses use it up."""
-    return money(dll + min(Decimal(0), today_pnl))
+def dll_remaining(dll: Decimal, today_pnl: Decimal, today_peak_pnl: Decimal = Decimal(0)) -> Decimal:
+    """D18 — safe under every reading of the firm's DLL: room = DLL − drop from today's best P&L.
+
+    • If the firm measures from yesterday's close (fixed floor), this is stricter than the firm.
+    • If the firm trails from today's high, this matches it.
+    Profits never add room; giving profits back uses room up."""
+    peak = max(Decimal(0), today_peak_pnl, today_pnl)
+    return money(dll - (peak - today_pnl))
 
 
 @dataclass(frozen=True)
@@ -151,7 +157,7 @@ def pretrade(
     assert pct is not None
     usd = risk_usd(pct, acct.base, rcfg)
     r.risk_pct, r.risk_usd = pct, usd
-    dll_left = dll_remaining(acct.dll, day.today_pnl) if acct.dll is not None else None
+    dll_left = dll_remaining(acct.dll, day.today_pnl, day.today_peak_pnl) if acct.dll is not None else None
     if dll_left is not None and not r.log(
         "dll_room", usd + lim.dll_safety_margin <= dll_left, risk=usd, margin=lim.dll_safety_margin, dll_left=dll_left
     ):

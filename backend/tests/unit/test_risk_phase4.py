@@ -404,3 +404,20 @@ def test_pretrade_consistency_reduces_contracts():
 def test_pretrade_without_dll_and_consistency():
     r = run(acct_dll=None, consistency=None)
     assert r.ok and r.contracts == 2
+
+
+def test_dll_room_safe_under_both_firm_readings_d18():
+    assert dll_remaining(D(600), D(0)) == D(600)
+    assert dll_remaining(D(600), D(-330)) == D(270)  # losses use room up
+    assert dll_remaining(D(600), D(200), D(200)) == D(600)  # profits never ADD room
+    assert dll_remaining(D(600), D(100), D(500)) == D(200)  # gave back $400 from today's high → $200 left
+    assert dll_remaining(D(600), D(-100), D(300)) == D(200)  # high +300, now −100 → $400 used
+    assert dll_remaining(D(600), D(50)) == D(600)  # peak unknown → at least the current P&L
+
+
+def test_pretrade_blocks_after_giving_back_profit():
+    # high +$600, now +$100 → $100 room; $90 risk + $40 margin = $130 > $100 → blocked
+    r = run(day=DayState(1, 0, 1, D(100), D(100), today_peak_pnl=D(600)), consistency=None)
+    assert not r.ok and r.reason == "DLL_LIMIT"
+    # high +$300, now +$100 → $400 room → allowed
+    assert run(day=DayState(1, 0, 1, D(100), D(100), today_peak_pnl=D(300)), consistency=None).ok

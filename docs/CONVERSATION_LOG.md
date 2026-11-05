@@ -70,6 +70,11 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 - Found and fixed: TradingAgents timeout left child processes holding pipes (now kills the whole process group);
   admin CLI leaked a database connection on error paths.
 
+### After Phase 4
+- 23. DLL "doesn't add" — double-checked: sources disagree on how Lucid measures it, so room is now measured from
+  today's best P&L (safe either way, D18). Worst case must fit DLL + kill distance (confirmed). Lucid support
+  message drafted (docs/LUCID_SUPPORT_MESSAGE.md).
+
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read
   and verified (only you can change that setting).
