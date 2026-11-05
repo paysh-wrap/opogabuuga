@@ -10,6 +10,7 @@ import Risk from "../pages/Risk";
 import Dashboard from "../pages/Dashboard";
 import Today from "../pages/Today";
 import Payouts from "../pages/Payouts";
+import Strategy from "../pages/Strategy";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/today" element={<Today />} />
         <Route path="/payouts" element={<Payouts />} />
+        <Route path="/strategy" element={<Strategy />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />
         <Route path="/risk" element={<Risk />} />

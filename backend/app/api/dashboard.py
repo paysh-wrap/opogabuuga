@@ -149,3 +149,81 @@ async def bias_run(request: Request, _: Principal = Depends(current_user), db: S
     sess = session_date(st.clock.now())
     vault = Vault(st.settings.master_key.get_secret_value())
     return {"ran": await run_bias(db, st.ta, vault, st.rules.rules, st.clock, sess, st.controller.notify)}
+
+
+GATES = [
+    ("G1", "Window, news, feed, halt, cooldown"),
+    ("G2", "TradingAgents bias allows this side"),
+    ("G3", "LunqFX fractal model valid + C1 range ≥ ATR minimum"),
+    ("G4", "BigBeluga MSO structure agrees"),
+    ("G5", "MSO CHoCH/BoS after the sweep"),
+    ("G6", "No opposing MSO divergence"),
+    ("G7", "Valid trade plan (stop + target, R:R 2–3)"),
+    ("G8", "Phase, drawdown guard, risk, consistency, hedge lock approve"),
+]
+
+
+@router.get("/strategy")
+async def strategy(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+    """How the three parts fit together, live: TradingAgents (which side) · LunqFX fractal (where/what) ·
+    BigBeluga MSO (when/whether) → gates G1–G8 → risk → orders."""
+    from app.models import ApiCredential, SignalGate
+    from app.monitor.feed import feed_status
+
+    st = request.app.state
+    r, now = st.rules.rules, st.clock.now()
+    sess = session_date(now)
+    ver = await st.ta.version() if st.ta.installed() else None
+    configured = (
+        db.execute(select(ApiCredential).where(ApiCredential.provider == "tradingagents")).scalar_one_or_none()
+        is not None
+    )
+    instruments = []
+    for sym, i in r.instruments.items():
+        feeds = []
+        for (s_sym, prof), ss in st.market.states.items():
+            if s_sym != sym:
+                continue
+            tf = 1 if prof == "TIGHT" else 5
+            active = [m for m in ss.models.values() if m.status not in ("C3_CLOSED", "MODEL_FAILED")]
+            feeds.append(
+                {
+                    "profile": prof,
+                    "feed": feed_status(ss.last_heartbeat_ms, tf, now, 2),
+                    "mso_trend": (ss.mso or {}).get("trend"),
+                    "mso_osc": (ss.mso or {}).get("osc"),
+                    "active_models": [{"key": m.model_key, "dir": m.direction, "status": m.status} for m in active],
+                    "last_mso_event": ss.mso_events[-1][:2] if ss.mso_events else None,
+                }
+            )
+        instruments.append(
+            {
+                "symbol": sym,
+                "enabled": i.enabled,
+                "proxy": i.bias_proxy,
+                "bias": today_bias(db, sess, i.bias_proxy),
+                "feeds": feeds,
+            }
+        )
+    last = db.execute(select(Signal).order_by(Signal.id.desc()).limit(1)).scalar_one_or_none()
+    last_gates = (
+        {g.gate: g.passed for g in db.execute(select(SignalGate).where(SignalGate.signal_id == last.id)).scalars()}
+        if last
+        else {}
+    )
+    return {
+        "tradingagents": {
+            "installed_version": ver.data.get("version") if ver and ver.ok else None,
+            "pinned_version": st.ta.pinned_version,
+            "configured": configured,
+            "schedule": r.schedule.bias,
+        },
+        "indicators": [
+            "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]",
+            "Market Structure Oscillator [BigBeluga]",
+        ],
+        "instruments": instruments,
+        "gates": [{"id": g, "text": t, "last": last_gates.get(g)} for g, t in GATES],
+        "last_signal": {"id": last.id, "status": last.status, "skip_reason": last.skip_reason} if last else None,
+        "one_to_one": r.one_to_one_mode.enabled,
+    }

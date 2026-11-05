@@ -136,3 +136,13 @@ def test_dashboard_and_today(authed, clock):
     assert a["consistency_cap"] == "500.00" and a["target_left"] == "1250"
     t = authed.get("/api/today").json()
     assert t["signals"][0]["status"] == "PASS" and len(t["trades"]) == 1
+
+
+def test_strategy_overview(authed, clock):
+    run(authed, clock, "EVAL")
+    r = authed.get("/api/strategy").json()
+    mnq = next(i for i in r["instruments"] if i["symbol"] == "MNQ")
+    assert mnq["bias"] == "LONG_ONLY" and mnq["proxy"] == "QQQ" and mnq["feeds"][0]["profile"] == "TIGHT"
+    assert [g["id"] for g in r["gates"]] == [f"G{i}" for i in range(1, 9)]
+    assert r["last_signal"]["status"] == "PASS" and r["gates"][1]["last"] is True
+    assert "LunqFX" in r["indicators"][0] and "BigBeluga" in r["indicators"][1]
