@@ -5,6 +5,7 @@ import Layout from "../components/Layout";
 import Login from "../pages/Login";
 import Connections from "../pages/Connections";
 import NotFound from "../pages/NotFound";
+import Automation from "../pages/Automation";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -31,6 +32,7 @@ export default function App() {
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<Navigate to="/connections" replace />} />
         <Route path="/connections" element={<Connections />} />
+        <Route path="/automation" element={<Automation />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

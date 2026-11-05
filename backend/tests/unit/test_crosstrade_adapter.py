@@ -113,3 +113,76 @@ async def test_errors():
         CrossTradeAdapter("", httpx.AsyncClient(), {})
     h = await make(lambda r: httpx.Response(401, json={"success": False, "error": "api_requires_pro"})).health()
     assert not h.ok and "api_requires_pro" in h.detail
+
+
+def _fill(i, oid, action="Buy", px=20000.25):
+    # exact shape from crosstrade.io docs: GET /accounts/{account}/fills
+    return {
+        "id": i,
+        "orderId": oid,
+        "contractId": 1234,
+        "timestamp": "2026-10-27T12:00:00Z",
+        "tradeDate": {"year": 2026, "month": 10, "day": 27},
+        "action": action,
+        "qty": 1,
+        "price": px,
+        "active": True,
+        "finallyPaired": 0,
+        "external": False,
+        "instrument": "MNQZ6",
+        "executionId": f"tv:demo:{i}",
+        "fillId": i,
+        "environment": "demo",
+        "accountId": 1,
+        "accountName": "LUCID123",
+    }
+
+
+async def test_fills_polled_mapped_and_deduped():
+    fills = [_fill(10, 1)]
+
+    def h(req):
+        if req.url.path.endswith("/orders/place"):
+            return httpx.Response(200, json={"success": True, "response": {"orderId": 1, "oso1Id": 2, "oso2Id": 3}})
+        return httpx.Response(200, json={"success": True, "data": fills})
+
+    ct = make(h)
+    await ct.place_bracket("LUCID123", BracketRequest("c1", "MNQ", "BUY", 1, D(19990), D(20020)))
+    [f] = await ct.poll_fills("LUCID123")
+    assert (f.bracket_id, f.role, f.symbol, f.side, f.price, f.at.year) == (
+        "1",
+        "ENTRY",
+        "MNQ",
+        "BUY",
+        D("20000.25"),
+        2026,
+    )
+    fills.append(_fill(11, 3, "Sell", 19990))
+    fills.append(_fill(12, 77, "Sell"))
+    got = await ct.poll_fills("LUCID123")
+    assert [(x.role, x.bracket_id) for x in got] == [("STOP", "1"), ("EXTERNAL", None)]
+    assert await ct.poll_fills("LUCID123") == []
+
+
+async def test_fill_errors_raise():
+    ct = make(lambda r: httpx.Response(200, json={"success": False, "error": "unknown_account"}))
+    with pytest.raises(BrokerError):
+        await ct.poll_fills("X")
+
+
+async def test_stream_fills_skips_history_then_yields_new(monkeypatch):
+    calls = {"n": 0}
+
+    def h(req):
+        if req.url.path.endswith("/snapshot"):
+            return httpx.Response(200, json=SNAP)
+        calls["n"] += 1
+        data = [_fill(1, 9)] + ([_fill(2, 9, "Sell")] if calls["n"] > 1 else [])
+        return httpx.Response(200, json={"success": True, "data": data})
+
+    ct = make(h)
+    ct.poll_s = 0
+    gen = ct.stream_fills()
+    f = await gen.__anext__()
+    assert f.order_id == "9" and f.side == "SELL"
+    await gen.aclose()

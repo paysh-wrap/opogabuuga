@@ -8,7 +8,7 @@ Safety rules from the docs that this adapter follows:
 - after 500/502/timeouts on a mutation, NEVER resend blind → raise UnconfirmedError so the caller pauses + reconciles;
 - a stop "change" success is only a command ack → verify the new stop on the working order before reporting success;
 - 429 → BrokerError (rate limited); no market data here (prices come from TradingView).
-Fills are not streamed yet (WebSocket executionUpdate is the next step), so CAP_STREAM_FILLS is not declared.
+Fills: polled from GET /accounts/{a}/fills (verified format), deduped by executionId; session resets ~17:00 ET.
 """
 
 from __future__ import annotations
@@ -29,6 +29,7 @@ from app.execution.adapters.base import (
     CAP_READ_BALANCE,
     CAP_READ_ORDERS,
     CAP_READ_POSITIONS,
+    CAP_STREAM_FILLS,
     CAP_STREAM_PNL,
     AdapterHealth,
     BracketAck,
@@ -39,6 +40,7 @@ from app.execution.adapters.base import (
     Order,
     PnlUpdate,
     Position,
+    Side,
 )
 
 BASE = "https://app.crosstrade.io/v1/api/tv"
@@ -63,6 +65,7 @@ class CrossTradeAdapter:
             CAP_MODIFY_STOP,
             CAP_CANCEL_ALL,
             CAP_FLATTEN,
+            CAP_STREAM_FILLS,
             CAP_STREAM_PNL,
         }
     )
@@ -79,6 +82,8 @@ class CrossTradeAdapter:
             raise BrokerError("CrossTrade token missing (Connections page)")
         self._h = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         self.http, self.tv_symbols, self.poll_s, self.verify_delay_s = http, tv_symbols, poll_s, verify_delay_s
+        self._roles: dict[str, tuple[str, str]] = {}  # order id → (bracket id, role)
+        self._seen: set[str] = set()
         self._root = {v.rstrip("!").rstrip("1"): k for k, v in tv_symbols.items()}
 
     # ---------- http ----------
@@ -185,7 +190,9 @@ class CrossTradeAdapter:
         r = data.get("response", {})
         if not all(k in r for k in ("orderId", "oso1Id", "oso2Id")):
             raise UnconfirmedError(f"bracket ack incomplete: {r}")
-        return BracketAck(str(r["orderId"]), str(r["orderId"]), str(r["oso2Id"]), str(r["oso1Id"]))
+        b = str(r["orderId"])
+        self._roles.update({b: (b, "ENTRY"), str(r["oso2Id"]): (b, "STOP"), str(r["oso1Id"]): (b, "TP")})
+        return BracketAck(b, b, str(r["oso2Id"]), str(r["oso1Id"]))
 
     async def modify_stop(self, acct: str, order_id: str, price: Decimal) -> bool:
         try:
@@ -206,9 +213,41 @@ class CrossTradeAdapter:
     async def flatten(self, acct: str) -> None:
         await self._req("POST", f"/accounts/{acct}/positions/flatten", {}, mutation=True)
 
-    async def stream_fills(self) -> AsyncIterator[Fill]:  # not declared in capabilities yet
-        raise BrokerError("CrossTrade fill stream not implemented yet (WebSocket executionUpdate)")
-        yield  # pragma: no cover
+    def _fill(self, acct: str, f: dict[str, Any]) -> Fill | None:
+        key = str(f.get("executionId") or f.get("fillId") or f.get("id"))
+        if key in self._seen or f.get("action") not in ("Buy", "Sell"):
+            return None
+        self._seen.add(key)
+        oid = str(f["orderId"])
+        bracket, role = self._roles.get(oid, (None, "EXTERNAL"))
+        at = datetime.fromisoformat(str(f["timestamp"]).replace("Z", "+00:00"))
+        side: Side = "BUY" if f["action"] == "Buy" else "SELL"
+        return Fill(
+            acct,
+            oid,
+            bracket,
+            role,
+            self._symbol(str(f.get("instrument", ""))),
+            side,
+            int(f["qty"]),
+            _d(f["price"]),
+            at,
+        )
+
+    async def poll_fills(self, acct: str) -> list[Fill]:
+        data = await self._req("GET", f"/accounts/{acct}/fills")
+        return [x for f in data.get("data", []) if (x := self._fill(acct, f)) is not None]
+
+    async def stream_fills(self) -> AsyncIterator[Fill]:
+        """Polls each linked account's fills (180 req/min limit → poll_s ≥ 5 s)."""
+        first = True
+        while True:
+            for a in await self._snapshot():
+                for fill in await self.poll_fills(str(a["name"])):
+                    if not first:  # fills already on the books at startup are history, not new events
+                        yield fill
+            first = False
+            await asyncio.sleep(self.poll_s)
 
     async def stream_pnl(self) -> AsyncIterator[PnlUpdate]:
         """Polls the snapshot (docs: poll at five seconds or slower)."""

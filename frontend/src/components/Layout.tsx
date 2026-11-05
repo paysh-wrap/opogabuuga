@@ -1,7 +1,10 @@
 import { NavLink, Outlet } from "react-router-dom";
 import Header from "./Header";
 
-const NAV = [{ to: "/connections", label: "Connections" }];
+const NAV = [
+  { to: "/automation", label: "Automation" },
+  { to: "/connections", label: "Connections" },
+];
 
 export default function Layout() {
   return (
