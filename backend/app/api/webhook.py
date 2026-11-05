@@ -63,7 +63,19 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
     if p.event != "HEARTBEAT" or now - st.ws_throttle.get(key, 0.0) > 15:
         st.ws_throttle[key] = now
         await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
+    ctl = st.controller
+    if p.event == "HEARTBEAT" and p.price is not None:
+        await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
+        await ctl.flat_time_check()
     for u in updates:
+        if u.status == "PASS":
+            what = ctl.on_signal_pass(u.signal_id)
+            if what == "APPROVAL":
+                await st.hub.broadcast("approval.created", {"signal": u.signal_id})
+            elif what == "EXECUTE" and not ctl.entries_blocked_by_time():
+                res = await ctl.execute(u.signal_id, "automation")
+                await st.hub.broadcast("order.updated", {"signal": u.signal_id, "results": len(res)})
+
         await st.hub.broadcast(
             "signal.updated",
             {"id": u.signal_id, "model_key": u.model_key, "status": u.status, "reason": u.reason, "score": u.score},

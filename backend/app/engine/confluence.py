@@ -274,7 +274,15 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         plan if isinstance(plan, TradePlan) else None,
         plan11 if isinstance(plan11, TradePlan) else None,
         ratio,
-        {"choch": choch, "bos": bos, "entry_price": str(entry), "entry_mode": cfg.entry.mode, "tags": tags},
+        {
+            "choch": choch,
+            "bos": bos,
+            "entry_price": str(entry),
+            "entry_mode": cfg.entry.mode,
+            "tags": tags,
+            "invalid": str(m.invalid),
+            "t2": str(m.t2),
+        },
     )
 
 

@@ -57,6 +57,9 @@ class Account(_Row, Base):
     paused_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     last_trade_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     closed_by_firm: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_sim: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+    starting_balance: Mapped[Decimal | None] = mapped_column(DecimalType, nullable=True)
+    stage_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
 
 
 class AccountStageHistory(_Row, Base):
@@ -193,6 +196,10 @@ class Trade(_Row, Base):
     opened_at: Mapped[datetime] = mapped_column(UTCDateTime)
     closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     mode: Mapped[str] = mapped_column(String(8), default="PAPER")  # PAPER | LIVE | BACKTEST
+    trade_ref: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    profile: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    legs: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    exit_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
 
 class DailyAccountStats(_Row, Base):
@@ -207,6 +214,9 @@ class DailyAccountStats(_Row, Base):
     losses: Mapped[int] = mapped_column(Integer, default=0)
     eod_balance: Mapped[Decimal | None] = mapped_column(DecimalType, nullable=True)
     stopped_reason: Mapped[str | None] = mapped_column(String(48), nullable=True)
+    consecutive_losses: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    win_streak: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    peak_pnl: Mapped[Decimal] = mapped_column(DecimalType, default=Decimal(0), server_default="0")
 
 
 class Cooldown(_Row, Base):
@@ -331,6 +341,15 @@ class IndicatorSource(Base):
     source: Mapped[str] = mapped_column(Text)
     license: Mapped[str] = mapped_column(String(64))
     personal_use_only: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)
+
+
+class AppSetting(Base):
+    """Small key → JSON store for runtime state (automation mode, approvals config...)."""
+
+    __tablename__ = "app_settings"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[Any] = mapped_column(JSON)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=_utcnow)
 
 

@@ -43,7 +43,7 @@ def round_to_tick(
     With neither, rounds to nearest (half up). Values already on the grid are returned unchanged."""
     q = x / tick
     if q == q.to_integral_value():
-        return x
+        return q.to_integral_value() * tick  # same value, tick precision
     if away_from is not None:
         mode = ROUND_FLOOR if x < away_from else ROUND_CEILING
     elif toward is not None:

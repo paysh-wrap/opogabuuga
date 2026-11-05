@@ -11,16 +11,20 @@ from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.automation import router as automation_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
 from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
+from app.automation.controller import Controller
 from app.bias.tradingagents_adapter import TradingAgentsAdapter
 from app.clock import Clock, SystemClock
 from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
+from app.execution.adapters.sim import SimAdapter, SimInstrument
+from app.execution.order_manager import OrderManager
 from app.risk.holder import RulesHolder
 from app.settings import Settings, get_settings
 from app.signals.service import no_calendar
@@ -64,6 +68,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             app.state.rules.refresh(s)
         if app.state.rules.error:
             log.error("rules.invalid", error=app.state.rules.error)
+        app.state.controller.load_accounts()
         since = app.state.clock.now() - timedelta(days=2)
         with app.state.sessionmaker() as s:
             rows = [(e.symbol, e.payload) for e in s.execute(select(Event).where(Event.bar_time >= since)).scalars()]
@@ -89,6 +94,23 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.signal_locks = {}
     app.state.calendar = no_calendar
     app.state.stats_cache = StatsCache()
+    sim = SimAdapter(
+        app.state.clock,
+        {k: SimInstrument(v.tick, v.tick_value, v.fee_rt) for k, v in rules.rules.instruments.items()},
+        rules.rules.trade_plan.slippage_ticks,
+    )
+    app.state.controller = Controller(
+        app.state.sessionmaker,
+        app.state.clock,
+        app.state.rules,
+        sim,
+        OrderManager(
+            sim,
+            rules.rules.drawdown_guard.runner_trail_r,
+            rules.rules.behavior.min_hold_seconds,
+            rules.rules.drawdown_guard.early_exits_until_r,
+        ),
+    )
     app.state.ta = TradingAgentsAdapter(
         settings.ta_python, rules.rules.bias.pinned_version, timeout_s=rules.rules.bias.timeout_min * 60
     )
@@ -109,6 +131,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(webhook_router)
     app.include_router(signals_router)
     app.include_router(risk_router)
+    app.include_router(automation_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:
