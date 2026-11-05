@@ -15,6 +15,16 @@ Restore: `git clone paytience.bundle paytience && cd paytience && git checkout p
 - Gold: MGC windows 03:00–11:00 + 13:30–15:30 ET, 16-tick min stop, 15-min post-news pause (docs/GOLD.md).
 - Decisions: docs/DECISIONS.md D1–D31.
 
+## Added since (2026-11-05 PM)
+- Self-Learning Lab page + nightly self-review backtest (17:15 ET) → suggestions → proposals you approve.
+- Scalp mode button (gold + Nasdaq micros): 1:1 win-rate filters, 0.5R quick half, runner half (BE stop + trailing,
+  never widened), ~60 s time stop. Lower-risk button (half risk, double loss allowance). Half-off defence near stop.
+- Min hold 7.5 s for all app-initiated exits (protective exits never wait). Lucid household limits + inactivity warning.
+- TradingAgents: Claude default/top, Kimi + Qwen alternates, best-model defaults; cited price table on Connections.
+- Upscale navy/gold theme. Gold data in data/gold (spot XAUUSD 1m, 2024-01→2026-10, HistData; not MGC futures).
+- Gold backtest Aug–Oct 2026 (long bias): 0 trades, 39 setups all filtered (BIAS_OPPOSITE 13, T1_TRADED_THROUGH 6,
+  COOLDOWN 5, MODEL_FAILED 4, C1_TOO_SMALL 3 …) → strategy too strict on gold; relax only with user approval.
+
 ## Open
 - Gold data: helper session "Paytience gold data collector" → private Artifact with monthly XAUUSD 1m CSVs →
   save to data/gold/, run backtests (Backtest page or app.backtest.runner).
