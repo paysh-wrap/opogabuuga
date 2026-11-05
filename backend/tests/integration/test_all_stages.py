@@ -5,6 +5,8 @@ from decimal import Decimal as D
 import pytest
 
 import app.signals.service as svc
+from app.models import BiasDecision, Signal
+from tests.integration.test_signals_flow import AT, MIN, MS, choch, confirm, hb
 
 
 @pytest.fixture
@@ -14,8 +16,6 @@ def proven(monkeypatch):
     monkeypatch.setattr(svc, "atr_percentile", lambda h, v: (D(50), 300))
 
 
-from app.models import BiasDecision, Signal
-from tests.integration.test_signals_flow import AT, MIN, MS, choch, confirm, hb
 
 
 def run(authed, clock, stage, changes=None, eval_on=False):
@@ -45,7 +45,7 @@ def run(authed, clock, stage, changes=None, eval_on=False):
 
 @pytest.mark.parametrize("stage", ["EVAL", "FUNDED", "LIVE"])
 def test_standard_trade_every_stage(authed, clock, stage):
-    aid, res = run(authed, clock, stage)
+    _, res = run(authed, clock, stage)
     assert res[0]["ok"] and res[0]["contracts"] >= 1, (stage, res)
     hb(authed, clock, MS - MIN, close="20071")
     t = authed.get("/api/trades").json()["trades"][0]
