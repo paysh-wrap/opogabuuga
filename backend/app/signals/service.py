@@ -25,9 +25,10 @@ from app.engine.trade_plan import Direction, TradePlan
 from app.indicators.bars import tf_minutes
 from app.models import BiasDecision, Cooldown, Signal, SignalGate, TradePlanRow
 from app.monitor.feed import feed_status
+from app.signals.stats import StatsCache, atr_percentile, load_history, t1_rate
 
 CalendarProvider = Callable[[date], list[NewsEvent] | None]
-FINAL = {"PASS", "SKIP", "EXPIRED"}
+FINAL = {"PASS", "SKIP", "EXPIRED", "SHADOWED"}  # SHADOW = disabled instrument still being evaluated (A5)
 
 
 def no_calendar(_: date) -> list[NewsEvent] | None:
@@ -73,9 +74,13 @@ def model_view(m: ModelState) -> ModelView | None:
     )
 
 
-def today_bias(s: Session, sess: date) -> Bias:
+def today_bias(s: Session, sess: date, proxy: str) -> Bias:
+    """Bias computed on THIS instrument's proxy ETF (NQ→QQQ, ES→SPY, YM→DIA, GC→GLD). Missing → NO_TRADE."""
     row = s.execute(
-        select(BiasDecision).where(BiasDecision.session_date == sess).order_by(BiasDecision.id.desc()).limit(1)
+        select(BiasDecision)
+        .where(BiasDecision.session_date == sess, BiasDecision.proxy == proxy)
+        .order_by(BiasDecision.id.desc())
+        .limit(1)
     ).scalar_one_or_none()
     if row is None or row.mapped not in ("LONG_ONLY", "SHORT_ONLY", "NEUTRAL"):
         return "NO_TRADE"
@@ -159,6 +164,12 @@ def _store_plan(s: Session, sig: Signal, p: TradePlan) -> None:
     )
 
 
+def shadow_rules(rules: RulesConfig, symbol: str) -> RulesConfig:
+    """Same rules with this instrument enabled — used only to evaluate it in SHADOW (never traded)."""
+    inst = rules.instruments[symbol].model_copy(update={"enabled": True})
+    return rules.model_copy(update={"instruments": {**rules.instruments, symbol: inst}})
+
+
 def process(
     s: Session,
     st: SymbolState,
@@ -169,6 +180,7 @@ def process(
     event: str,
     event_time_ms: int,
     one_to_one: bool,
+    cache: StatsCache | None = None,
 ) -> list[SignalUpdate]:
     now = clock.now()
     at_dt = datetime.fromtimestamp(event_time_ms / 1000, tz=UTC)
@@ -185,10 +197,17 @@ def process(
     sess = session_date(at)
     tf_min = tf_minutes(st.tf)
     fresh = feed_status(bar_ms, tf_min, now, rules.webhook.stale_after_bar_multiple) == "FRESH"
-    bias = today_bias(s, sess)
+    bias = today_bias(s, sess, rules.instrument(st.symbol).bias_proxy)
     cal = calendar(sess)
     cooled = cooldown_active(s, st.symbol, st.profile, sess)
     mso = st.mso or {}
+    enabled = rules.instrument(st.symbol).enabled
+    eval_rules = rules if enabled else shadow_rules(rules, st.symbol)
+    hist = cache.get((st.symbol, st.profile)) if cache else None
+    if hist is None:
+        hist = load_history(s, st.symbol, st.profile, now)
+        if cache:
+            cache.put((st.symbol, st.profile), hist)
     for m in list(st.models.values()):
         mv = model_view(m)
         if mv is None:
@@ -203,7 +222,7 @@ def process(
                 direction=m.direction,
                 model_key=m.model_key,
                 bar_time=datetime.fromtimestamp(mv.confirm_time_ms / 1000, tz=UTC),
-                status="WAIT",
+                status="WAIT" if enabled else "SHADOW",
                 features={},
             )
             s.add(sig)
@@ -227,13 +246,39 @@ def process(
                 cooldown_active=cooled,
                 model_traded=traded,
                 one_to_one=one_to_one,
+                t1_rate=t1_rate(hist, mv.c1_time_ms),
+                atr_pct=atr_percentile(hist, mv.htf_atr14),
             ),
-            rules,
+            eval_rules,
         )
         deadline = entry_deadline_ms(mv.confirm_time_ms, mv.c3_close_time_ms, tf_min, rules.entry.max_wait_bars)
         final: str | None = None
         if dec.outcome == "WAIT" and bar_ms >= deadline:
             final = "EXPIRED"
+        if not enabled:  # A5 shadow: record what WOULD have happened; never trade, never store a real plan
+            _store(s, sig, dec, now, None)
+            sp = dec.plan_one_to_one if one_to_one and dec.plan_one_to_one else dec.plan
+            shadow_plan = (
+                None
+                if sp is None
+                else {
+                    "mode": sp.mode,
+                    "entry": str(sp.entry),
+                    "stop": str(sp.stop),
+                    "take_profit": str(sp.take_profit),
+                    "rr": str(sp.rr),
+                }
+            )
+            sig.features = {
+                **sig.features,
+                "shadow": {"outcome": final or dec.outcome, "reason": dec.skip_reason, "plan": shadow_plan},
+            }
+            sig.status = "SHADOW" if dec.outcome == "WAIT" and final is None else "SHADOWED"
+            sig.passed = False
+            sig.skip_reason = "INSTRUMENT_DISABLED"
+            score_s = str(sig.score) if sig.score is not None else None
+            updates.append(SignalUpdate(sig.id, m.model_key, sig.status, sig.skip_reason, score_s))
+            continue
         _store(s, sig, dec, now, final)
         if dec.outcome == "PASS":
             sig.entry_bar_time = at

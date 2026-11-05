@@ -237,6 +237,9 @@ class InternalCfg(_M):
     cushion_target_balance: D
     cap_guard_total_above_buffer: D
     consistency_day_stop_buffer_pct: D
+    consistency_on_funded: bool
+    funded_consistency_pct: D
+    funded_consistency_reference_min: D
     auto_flatten: str
     hard_flat: str
     windows: list[tuple[str, str]]
@@ -249,6 +252,18 @@ class GateCfg(_M):
     min_e_net_r: D
     min_pf: D
     max_violations: int
+
+
+class OneToOneFilters(_M):
+    target_within_t1: bool
+    t1_rate_min: D
+    t1_rate_min_samples: int
+    min_score: D
+    require_choch: bool
+    require_bias_and_htf: bool
+    atr_pct_band: tuple[D, D]
+    atr_pct_min_samples: int
+    news_after_min: int
 
 
 class OneToOneMode(_M):
@@ -265,6 +280,7 @@ class OneToOneMode(_M):
     single_contract_lock_bounds: tuple[D, D]
     stages: list[Literal["EVAL", "FUNDED", "LIVE"]]
     gate: GateCfg
+    filters: OneToOneFilters
 
 
 class TargetSessions(_M):
@@ -453,6 +469,15 @@ class RulesConfig(_M):
             raise ValueError("single_contract_lock_r must sit inside its bounds and below the 75% trigger")
         if o.gate.min_e_net_r < self.purchase_gate.min_e_net_r or o.gate.min_trades < self.purchase_gate.min_trades:
             raise ValueError("1:1 gate can't be looser than the purchase gate")
+        f = o.filters
+        if f.min_score < self.score.min_score:
+            raise ValueError("1:1 filters can only be stricter: min_score below the normal minimum")
+        if not (D(0) < f.t1_rate_min < D(1)) or not (D(0) <= f.atr_pct_band[0] < f.atr_pct_band[1] <= D(100)):
+            raise ValueError("1:1 filters: t1_rate_min in (0,1) and 0 <= ATR band low < high <= 100")
+        if f.news_after_min < self.eval.news_breach_min_after:
+            raise ValueError("1:1 news buffer can't be shorter than the firm's")
+        if not (D(0) < self.internal.funded_consistency_pct <= D(100)):
+            raise ValueError("funded_consistency_pct must be in (0, 100]")
         b = self.behavior
         if b.min_hold_seconds <= b.firm_microscalp_hold_seconds:
             raise ValueError("min_hold_seconds must exceed firm_microscalp_hold_seconds")

@@ -12,6 +12,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
+from app.clock import to_et
 from app.config import RulesConfig
 from app.engine.filters import NewsEvent, c1_range_ok, in_windows, news_block, session_open_c1
 from app.engine.scoring import ScoreInputs, ScoreResult, compute_score
@@ -68,6 +69,8 @@ class EvalInput:
     own_tp_rate: Decimal | None = None
     smt_divergence: bool = False
     one_to_one: bool = False
+    t1_rate: tuple[Decimal | None, int] = (None, 0)  # (rate, resolved samples) for this symbol+profile
+    atr_pct: tuple[Decimal | None, int] = (None, 0)  # (percentile 0–100 of this model's HTF ATR, samples)
 
 
 @dataclass(frozen=True)
@@ -241,6 +244,10 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         )
     )
 
+    # ---- D16 1:1-mode win-rate filters (stricter-only). E2/E6 are hard (fixed for this model); rest transient.
+    if x.one_to_one:
+        gates.append(_one_to_one_filters(x, cfg, plan11, choch, score.score))
+
     failing = [g for g in gates if not g.passed]
     if not failing:
         outcome: Outcome = "PASS"
@@ -250,6 +257,15 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         outcome = "SKIP" if any(g.hard for g in failing) else "WAIT"
         if outcome == "SKIP":
             reason = next(g.code for g in failing if g.hard)
+    et = to_et(x.at)
+    tags = {  # A4 regime / time-slice tags for the Lab
+        "weekday": et.strftime("%a"),
+        "slice": f"{et.hour:02d}:{0 if et.minute < 30 else 30:02d}",
+        "atr_pct": str(x.atr_pct[0]) if x.atr_pct[0] is not None else None,
+        "news_day": any(e.impact == "high" and e.currency == "USD" for e in x.calendar or []),
+        "bias": x.bias,
+        "one_to_one": x.one_to_one,
+    }
     return Decision(
         outcome,
         reason,
@@ -258,5 +274,40 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         plan if isinstance(plan, TradePlan) else None,
         plan11 if isinstance(plan11, TradePlan) else None,
         ratio,
-        {"choch": choch, "bos": bos, "entry_price": str(entry), "entry_mode": cfg.entry.mode},
+        {"choch": choch, "bos": bos, "entry_price": str(entry), "entry_mode": cfg.entry.mode, "tags": tags},
     )
+
+
+def _one_to_one_filters(
+    x: EvalInput, cfg: RulesConfig, plan11: TradePlan | Skip | None, choch: bool, score: Decimal
+) -> Gate:
+    f = cfg.one_to_one_mode.filters
+    m, d = x.model, x.model.direction
+    fails: list[tuple[str, bool]] = []  # (code, hard)
+    if f.target_within_t1 and isinstance(plan11, TradePlan) and (plan11.take_profit - m.t1) * d.sign > 0:
+        fails.append(("1TO1_TARGET_BEYOND_T1", False))  # E1
+    rate, n = x.t1_rate
+    if n < f.t1_rate_min_samples or rate is None:
+        fails.append(("1TO1_T1_RATE_UNPROVEN", True))  # E2
+    elif rate < f.t1_rate_min:
+        fails.append(("1TO1_T1_RATE_LOW", True))
+    if score < f.min_score:
+        fails.append(("1TO1_SCORE_LOW", False))  # E3
+    if f.require_choch and not choch:
+        fails.append(("1TO1_NEEDS_CHOCH", False))  # E4
+    if f.require_bias_and_htf:  # E5
+        aligned = x.bias == ("LONG_ONLY" if d is Direction.LONG else "SHORT_ONLY")
+        htf = x.htf_trend == ("BULL" if d is Direction.LONG else "BEAR")
+        if not (aligned and htf):
+            fails.append(("1TO1_BIAS_OR_HTF", not aligned))
+    pct, an = x.atr_pct  # E6
+    lo, hi = f.atr_pct_band
+    if an < f.atr_pct_min_samples or pct is None:
+        fails.append(("1TO1_ATR_UNPROVEN", True))
+    elif not (lo <= pct <= hi):
+        fails.append(("1TO1_ATR_EXTREME", True))
+    if x.calendar is not None and news_block(x.at, x.calendar, 0, f.news_after_min) is not None:
+        fails.append(("1TO1_NEWS_AFTER", False))  # E7
+    if not fails:
+        return Gate("F1TO1", True, "OK")
+    return Gate("F1TO1", False, fails[0][0], hard=any(h for _, h in fails), detail=",".join(c for c, _ in fails))

@@ -29,6 +29,7 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
     build continues with Paytience's own spec-derived indicators, clearly labelled, LIVE gated on parity.
 19. Always give a download of the conversation; keep it as a project.
 20. Admin name PayDay; "keep going" (TradingView access coming).
+21. Yes: 1:1 mode on LIVE; 40% consistency on funded; approve win-rate filters + self-learning proposals.
 
 ### What was decided / built
 - Phase 0: CLAUDE.md, file tree, broker/data analysis (docs/PHASE0.md).
@@ -54,6 +55,9 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
   rebuilt from the database after a restart.
 - Found and fixed: SHORT partial price in 1:1 mode pointed the wrong way (caught by randomized tests); missing
   migration import; heartbeat now carries the structure snapshot (D14).
+
+### After Phase 3 (built)
+- D16: 1:1 filters E1–E7, regime tags (A4), shadow evaluation for MES/MYM/MGC (A5), per-proxy bias fix.
 
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read

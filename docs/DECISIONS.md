@@ -118,3 +118,14 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
 - Entry price = the close of the bar whose HEARTBEAT has arrived; events for a bar wait for that bar's close.
 - "Not halted" (G1) has no separate data source; a halt shows up as a stale feed, which blocks entries.
 - Paytience_Bridge_Strategy.pine (§5.5, Strategy Tester) is built after Phase 4, once risk + guard exist.
+
+## D16 — 2026-11-05 — Approvals: 1:1 on LIVE, funded consistency, win-rate filters, self-learning
+- 1:1 mode stages: EVAL, FUNDED, LIVE.
+- 40% consistency also on FUNDED (user's own limit): cap = 40% × max($1,250, payout-cycle profit so far),
+  day stop at 35% of the same reference (interpretation — confirm). Built in Phase 4 (risk/consistency.py).
+- Win-rate filters E1–E7 active in 1:1 mode (stricter-only; config one_to_one_mode.filters); E2/E6 need ≥ 30
+  recorded samples or the 1:1 trade is skipped (fail-closed). E8 = Lab slice suggestion (Phase 9).
+- Self-learning A1–A8 approved. Built now: A4 (regime/time-slice tags on every signal), A5 (disabled instruments
+  evaluated in SHADOW, never traded). Scheduled: A1/A2/A8 Phase 8 (backtest), A3/A6/A7 Phase 9 (Lab).
+- Fix found while building: bias lookup ignored the proxy ETF (gold would have used the Nasdaq bias); bias is now
+  read per instrument proxy (QQQ/SPY/DIA/GLD).

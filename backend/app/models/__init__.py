@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Date, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base, DecimalType, UTCDateTime
@@ -254,6 +254,7 @@ class Bar(Base):
 
 class Event(_Row, Base):
     __tablename__ = "events"
+    __table_args__ = (Index("ix_events_symbol_profile_event", "symbol", "profile", "event"),)
     event_id: Mapped[str] = mapped_column(String(160), unique=True)  # webhook idempotency
     symbol: Mapped[str] = mapped_column(String(16))
     profile: Mapped[str] = mapped_column(String(8))

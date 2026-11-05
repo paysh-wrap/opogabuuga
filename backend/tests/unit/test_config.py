@@ -143,7 +143,28 @@ def test_one_to_one_answers_and_d9(loaded_rules):
     assert o.breakeven_after_partial is True
     assert o.single_contract_lock_r == Decimal("0.30")
     assert o.single_contract_lock_bounds == (Decimal("0.25"), Decimal("0.35"))
-    assert o.stages == ["EVAL", "FUNDED"]
+    assert o.stages == ["EVAL", "FUNDED", "LIVE"]
     assert o.gate.min_trades >= 100 and o.gate.min_e_net_r >= Decimal("0.20")
     assert r.funded.drawdown_type == "eod" and r.eval.drawdown_type == "eod"
     assert "funded.drawdown_type" in loaded_rules.verify_paths
+
+
+def test_d16_approvals(loaded_rules):
+    r = loaded_rules.rules
+    f = r.one_to_one_mode.filters
+    assert (f.target_within_t1, f.require_choch, f.require_bias_and_htf) == (True, True, True)
+    assert (f.t1_rate_min, f.t1_rate_min_samples, f.min_score) == (Decimal("0.65"), 30, 75)
+    assert f.atr_pct_band == (Decimal(10), Decimal(90)) and f.news_after_min == 5
+    assert r.internal.consistency_on_funded and r.internal.funded_consistency_pct == 40
+    assert r.internal.funded_consistency_reference_min == 1250
+
+
+def test_one_to_one_filters_can_only_be_stricter(loaded_rules):
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    raw["one_to_one_mode"]["filters"]["min_score"] = 50
+    with pytest.raises(ValueError):
+        RulesConfig.model_validate(raw)
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    raw["one_to_one_mode"]["filters"]["news_after_min"] = 0
+    with pytest.raises(ValueError):
+        RulesConfig.model_validate(raw)

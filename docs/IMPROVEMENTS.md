@@ -1,4 +1,7 @@
-# Improvement proposals — NOT built. Each needs your approval ("ask before you do it").
+# Improvement proposals
+Status (D16, 2026-11-05): **§A approved** (A4, A5 built; A1/A2/A8 → Phase 8; A3/A6/A7 → Phase 9) ·
+**§E approved** (E1–E7 built for 1:1 mode; E8 → Phase 9) · §B: B1 done (D10), B2–B5 still need approval ·
+§C still needs approval.
 All stay inside the master prompt + Lucid rules. Pillars are never changed by the Lab.
 
 ## A. Self-learning (Lab §17) — "backtest every trade"

@@ -190,8 +190,11 @@ def test_short_signal_mirror():
     assert d.outcome == "PASS" and (d.plan.stop, d.plan.take_profit) == (D(20020), D(19940))
 
 
+PROVEN = {"one_to_one": True, "t1_rate": (D("0.70"), 40), "atr_pct": (D(50), 40)}
+
+
 def test_one_to_one_mode_uses_1r_plan():
-    d = evaluate(good(one_to_one=True), CFG)
+    d = evaluate(good(**PROVEN), CFG)
     assert d.outcome == "PASS" and d.plan_one_to_one.rr == 1 and d.plan_one_to_one.take_profit == D(20020)
     assert d.plan.rr == 3  # standard plan still computed for stages where 1:1 mode doesn't apply
 
@@ -253,3 +256,45 @@ def test_state_machine():
         m.to("RESOLVED", 6)
     m.to("RESOLVED", 6, resolution="TP")
     assert m.ever_entered and m.resolution == "TP" and [x[2] for x in m.log][-1] == "RESOLVED"
+
+
+@pytest.mark.parametrize(
+    "over,code,outcome",
+    [
+        ({"close": D(20012)}, "1TO1_TARGET_BEYOND_T1", "WAIT"),  # E1: risk 32 → 1R target 20044 > T1 20030
+        ({"t1_rate": (D("0.90"), 10)}, "1TO1_T1_RATE_UNPROVEN", "SKIP"),  # E2: < 30 samples
+        ({"t1_rate": (D("0.60"), 50)}, "1TO1_T1_RATE_LOW", "SKIP"),
+        ({"model": model(cisd_before_c2_close=False)}, "1TO1_SCORE_LOW", "WAIT"),  # E3: 60 < 75
+        ({"mso_events": (("MSO_BOS", "LONG", MS - 5 * MIN),)}, "1TO1_NEEDS_CHOCH", "WAIT"),  # E4 (score is exactly 75)
+        ({"htf_trend": "BEAR"}, "1TO1_BIAS_OR_HTF", "WAIT"),  # E5
+        ({"atr_pct": (D(95), 40)}, "1TO1_ATR_EXTREME", "SKIP"),  # E6
+        ({"atr_pct": (D(50), 5)}, "1TO1_ATR_UNPROVEN", "SKIP"),
+        ({"calendar": [NewsEvent(AT - timedelta(minutes=3), "NFP")]}, "1TO1_NEWS_AFTER", "WAIT"),  # E7
+    ],
+)
+def test_one_to_one_filters(over, code, outcome):
+    d = evaluate(good(**{**PROVEN, **over}), CFG)
+    g = gate(d, "F1TO1")
+    assert not g.passed and g.code == code and d.outcome == outcome, (g, d.outcome)
+
+
+def test_one_to_one_bos_only_fails_choch_filter_too():
+    d = evaluate(good(**PROVEN, mso_events=(("MSO_BOS", "LONG", MS - 5 * MIN),)), CFG)
+    assert "1TO1_NEEDS_CHOCH" in gate(d, "F1TO1").detail
+
+
+def test_filters_never_apply_in_standard_mode():
+    d = evaluate(good(t1_rate=(None, 0), atr_pct=(None, 0)), CFG)
+    assert d.outcome == "PASS" and all(g.gate != "F1TO1" for g in d.gates)
+
+
+def test_regime_tags():
+    d = evaluate(good(calendar=[NewsEvent(AT + timedelta(hours=3), "FOMC")], atr_pct=(D(42), 40)), CFG)
+    assert d.features["tags"] == {
+        "weekday": "Thu",
+        "slice": "10:00",
+        "atr_pct": "42",
+        "news_day": True,
+        "bias": "LONG_ONLY",
+        "one_to_one": False,
+    }

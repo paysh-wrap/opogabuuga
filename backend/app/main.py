@@ -22,6 +22,7 @@ from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
 from app.settings import Settings, get_settings
 from app.signals.service import no_calendar
+from app.signals.stats import StatsCache
 from app.webhook.service import SlidingWindow, WebhookStats
 from app.ws import Hub
 
@@ -81,6 +82,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.ws_throttle = {}
     app.state.signal_locks = {}
     app.state.calendar = no_calendar
+    app.state.stats_cache = StatsCache()
     app.state.ta = TradingAgentsAdapter(
         settings.ta_python, rules.rules.bias.pinned_version, timeout_s=rules.rules.bias.timeout_min * 60
     )
