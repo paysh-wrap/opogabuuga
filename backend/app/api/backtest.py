@@ -47,8 +47,10 @@ def metrics(trades: list[dict[str, Any]], rules: Any, stage: str) -> dict[str, A
     mc = monte_carlo(list(by_day.values()), target, rules.eval.max_loss_limit)
     pct = rules.eval.consistency_max_day_pct
     cons_ok = s.best_day_share is None or pct is None or s.best_day_share <= pct / 100
+    bd = breakdown(trades)
     return {
-        "breakdown": breakdown(trades),
+        "suggestions": suggestions(bd),
+        "breakdown": bd,
         "stats": _j(asdict(s)),
         "monte_carlo_eval": _j(asdict(mc)),
         "consistency_ok": cons_ok,
@@ -85,6 +87,21 @@ def breakdown(trades: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any
         for b in buckets.values():
             b["win_rate"] = str(round(b["wins"] / b["trades"], 4))
             b["pnl"] = str(b["pnl"])
+    return out
+
+
+def suggestions(bd: dict[str, dict[str, dict[str, Any]]], min_trades: int = 10) -> list[str]:
+    """Lab (proposals only — nothing changes without your approval): flag hours / weekdays / sides that lose money
+    over a meaningful sample."""
+    out = []
+    names = {"hour_et": "hour {} ET", "weekday": "{}", "direction": "{} trades", "profile": "{} profile"}
+    for dim, label in names.items():
+        for k, b in sorted(bd.get(dim, {}).items()):
+            if b["trades"] >= min_trades and Decimal(b["pnl"]) < 0:
+                out.append(
+                    f"Consider skipping {label.format(k)}: {b['trades']} trades, "
+                    f"win rate {float(b['win_rate']) * 100:.0f}%, net ${Decimal(b['pnl']):.0f}"
+                )
     return out
 
 

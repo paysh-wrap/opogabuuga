@@ -47,3 +47,15 @@ def test_metrics_from_trades(authed):
     assert b["hour_et"]["10"]["trades"] == 3 and b["hour_et"]["11"]["pnl"] == "250"
     assert b["direction"]["LONG"]["trades"] == 3 and b["direction"]["SHORT"]["win_rate"] == "0.0"
     assert float(m["monte_carlo_eval"]["pass_rate"]) > 0.5 and m["day_pnls"]["2026-01-05"] == "300"
+
+
+def test_suggestions_flag_losing_buckets():
+    from app.api.backtest import suggestions
+
+    bd = {
+        "hour_et": {
+            "09": {"trades": 12, "wins": 3, "pnl": "-240", "win_rate": "0.25"},
+            "10": {"trades": 3, "wins": 0, "pnl": "-90", "win_rate": "0.0"},
+        }
+    }
+    assert suggestions(bd) == ["Consider skipping hour 09 ET: 12 trades, win rate 25%, net $-240"]

@@ -10,6 +10,7 @@ interface Run {
     stats?: { trades: number; win_rate: string | null; net: string; avg_r: string | null; profit_factor: string | null; max_drawdown: string; best_day_share: string | null; days: number };
     monte_carlo_eval?: { pass_rate: string; fail_rate: string; median_trades_to_pass: number | null };
     breakdown?: Record<string, Record<string, { trades: number; win_rate: string; pnl: string }>>;
+    suggestions?: string[];
     consistency_ok?: boolean; sessions?: number; assumptions?: string[]; skips?: Record<string, number>;
   };
 }
@@ -71,6 +72,10 @@ export default function Backtest() {
             )}
             {r.metrics.skips && Object.keys(r.metrics.skips).length > 0 && (
               <p className="mt-1 opacity-80">Top skips: {Object.entries(r.metrics.skips).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k} ${v}`).join(" · ")}</p>
+            )}
+            {r.metrics.suggestions && r.metrics.suggestions.length > 0 && (
+              <div className="mt-2 rounded-lg border border-gold p-2 text-xs"><b className="text-gold">Lab suggestions (not applied — your call):</b>
+                {r.metrics.suggestions.map((s) => <p key={s}>• {s}</p>)}</div>
             )}
             {r.metrics.breakdown && (
               <details className="mt-2"><summary className="cursor-pointer text-gold">Where the edge is (hour ET, weekday, direction, profile, exit)</summary>
