@@ -32,6 +32,7 @@ export default function Risk() {
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
   const plans = useQuery({ queryKey: ["plans"], queryFn: () => api<{ current: string; plans: { id: string; title: string }[] }>("/api/plans") });
+  const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean; max_losses_per_day: number; max_trades_per_day: number }>("/api/risk/low-risk") });
   const s = st.data;
   if (!s) return <p role="status">Loading…</p>;
   const oneToOne = s.settings["one_to_one_mode.enabled"] === true;
@@ -51,6 +52,14 @@ export default function Risk() {
           onChange={(e) => run.mutate(() => api("/api/plans", { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }).then(() => qc.invalidateQueries({ queryKey: ["plans"] })))}>
           {plans.data?.plans.map((p) => <option key={p.id} value={p.id}>{p.title.replace("Paytience rule profile — Lucid Trading ", "")}</option>)}
         </select>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold text-gold">Lower risk {low.data?.enabled ? "· ON" : "· OFF"}</h2>
+        <p className="text-xs">Halves the risk on every trade and allows twice as many losing trades per day ({low.data?.max_losses_per_day ?? "—"} losses, {low.data?.max_trades_per_day ?? "—"} trades max now). Firm rules and stops unchanged.</p>
+        <button data-testid="low-risk" className={`${btn} mt-2 ${low.data?.enabled ? "border-gold text-gold" : "border-blue text-blue"}`}
+          onClick={() => run.mutate(() => api("/api/risk/low-risk", { method: "PUT", body: JSON.stringify({ enabled: !low.data?.enabled }) }).then(() => qc.invalidateQueries({ queryKey: ["lowrisk"] })))}>
+          {low.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">

@@ -359,3 +359,34 @@ async def set_market(
     st.rules.refresh(db)
     await st.hub.broadcast("risk.settings_changed", {"market": body.symbol})
     return markets(request, p)
+
+
+class LowRiskIn(BaseModel):
+    enabled: bool
+
+
+@router.get("/risk/low-risk")
+def get_low_risk(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    i = request.app.state.rules.rules.internal
+    return {
+        "enabled": request.app.state.rules.low_risk,
+        "risk_pct": {k: str(v) for k, v in i.risk_pct_by_score.items()},
+        "max_losses_per_day": i.max_consecutive_losses_per_day,
+        "max_trades_per_day": i.max_trades_per_day,
+    }
+
+
+@router.put("/risk/low-risk")
+async def put_low_risk(
+    body: LowRiskIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    from app import audit
+    from app.automation import state as stt
+
+    st = request.app.state
+    stt.set_setting(db, "risk.low_risk", body.enabled, st.clock.now())
+    audit.record(db, st.clock, p.user.username, "risk.low_risk", "household", {"enabled": body.enabled})
+    db.commit()
+    st.rules.refresh(db)
+    await st.hub.broadcast("risk.settings_changed", {"low_risk": body.enabled})
+    return get_low_risk(request, p)

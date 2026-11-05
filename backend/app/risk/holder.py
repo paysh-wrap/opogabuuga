@@ -23,6 +23,7 @@ class RulesHolder:
     firm_version: int = 0
     verified_paths: list[str] = field(default_factory=list)
     error: str | None = None
+    low_risk: bool = False
     plan: str = ""  # file stem of the loaded rules (config/rules/<plan>.yaml)
 
     def __post_init__(self) -> None:
@@ -47,6 +48,12 @@ class RulesHolder:
             return
         self.rules, self.eval_mode_on = eff.rules, eff.eval_mode_on
         self._apply_instrument_toggles(s)
+        from app.automation.state import get_setting
+        from app.risk.low_risk import apply_low_risk
+
+        self.low_risk = bool(get_setting(s, "risk.low_risk", False))
+        if self.low_risk:
+            self.rules = apply_low_risk(self.rules)
         self.standard_version, self.firm_version, self.verified_paths = (
             eff.standard_version,
             eff.firm_version,

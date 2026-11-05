@@ -222,3 +222,10 @@ def test_plan_switch(authed):
         assert h.error and "not found" in h.error
     finally:
         alt.unlink(missing_ok=True)
+
+
+def test_low_risk_button(authed):
+    assert authed.get("/api/risk/low-risk").json()["enabled"] is False
+    r = authed.put("/api/risk/low-risk", json={"enabled": True}).json()
+    assert r["enabled"] is True and r["risk_pct"]["60"] == "0.035" and r["max_losses_per_day"] == 4
+    assert authed.put("/api/risk/low-risk", json={"enabled": False}).json()["max_losses_per_day"] == 2
