@@ -3,6 +3,7 @@ import Header from "./Header";
 
 const NAV = [
   { to: "/automation", label: "Automation" },
+  { to: "/risk", label: "Risk" },
   { to: "/connections", label: "Connections" },
 ];
 

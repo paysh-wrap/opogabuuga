@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.automation import router as automation_router
+from app.api.live import router as live_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
@@ -132,6 +133,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(signals_router)
     app.include_router(risk_router)
     app.include_router(automation_router)
+    app.include_router(live_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:
