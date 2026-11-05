@@ -99,6 +99,12 @@ class StrategyConfig(_Row, Base):
 # ---------- signals / trading ----------
 class Signal(_Row, Base):
     __tablename__ = "signals"
+    __table_args__ = (
+        UniqueConstraint("model_key", name="uq_signals_model_key"),
+    )  # one signal per fractal model (§6 one entry per model)
+    status: Mapped[str] = mapped_column(String(8), default="WAIT", server_default="WAIT")  # WAIT|PASS|SKIP|EXPIRED
+    updated_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    entry_bar_time: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
     symbol: Mapped[str] = mapped_column(String(16))
     profile: Mapped[str] = mapped_column(String(8))
     direction: Mapped[str] = mapped_column(String(6))
@@ -123,6 +129,8 @@ class SignalGate(_Row, Base):
 class TradePlanRow(_Row, Base):
     __tablename__ = "trade_plans"
     signal_id: Mapped[int] = mapped_column(ForeignKey("signals.id"))
+    mode: Mapped[str] = mapped_column(String(12), default="STANDARD", server_default="STANDARD")
+    lock_price: Mapped[Decimal | None] = mapped_column(DecimalType, nullable=True)
     direction: Mapped[str] = mapped_column(String(6))
     entry: Mapped[Decimal] = mapped_column(DecimalType)
     stop: Mapped[Decimal] = mapped_column(DecimalType)
@@ -191,6 +199,7 @@ class DailyAccountStats(_Row, Base):
 
 class Cooldown(_Row, Base):
     __tablename__ = "cooldowns"
+    __table_args__ = (UniqueConstraint("symbol", "profile", name="uq_cooldowns_symbol_profile"),)
     symbol: Mapped[str] = mapped_column(String(16))
     profile: Mapped[str] = mapped_column(String(8))
     streak: Mapped[int] = mapped_column(Integer, default=0)

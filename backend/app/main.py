@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import http_client, router
+from app.api.signals import router as signals_router
 from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
 from app.bias.tradingagents_adapter import TradingAgentsAdapter
@@ -20,6 +21,7 @@ from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
 from app.settings import Settings, get_settings
+from app.signals.service import no_calendar
 from app.webhook.service import SlidingWindow, WebhookStats
 from app.ws import Hub
 
@@ -48,6 +50,17 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
                 Path(settings_db_dir).parent.mkdir(parents=True, exist_ok=True)
         Base.metadata.create_all(engine)  # Alembic owns migrations; this is a no-op on a migrated DB
+        from datetime import timedelta
+
+        from sqlalchemy import select
+
+        from app.engine.market_state import rebuild
+        from app.models import Event
+
+        since = app.state.clock.now() - timedelta(days=2)
+        with app.state.sessionmaker() as s:
+            rows = [(e.symbol, e.payload) for e in s.execute(select(Event).where(Event.bar_time >= since)).scalars()]
+        log.info("market_state.rebuilt", events=rebuild(app.state.market, rows))
         app.state.http = http_client(settings.http_timeout_s)
         log.info("paytience.start", mode="LIVE" if settings.allow_live else "PAPER")
         yield
@@ -66,6 +79,8 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.webhook_stats = WebhookStats()
     app.state.market = MarketStateStore()
     app.state.ws_throttle = {}
+    app.state.signal_locks = {}
+    app.state.calendar = no_calendar
     app.state.ta = TradingAgentsAdapter(
         settings.ta_python, rules.rules.bias.pinned_version, timeout_s=rules.rules.bias.timeout_min * 60
     )
@@ -84,6 +99,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
     app.include_router(router)
     app.include_router(webhook_router)
+    app.include_router(signals_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:

@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import app.db  # noqa: F401  (custom column types)
 ${imports if imports else ""}
 
 # revision identifiers, used by Alembic.

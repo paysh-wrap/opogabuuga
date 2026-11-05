@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from pathlib import Path
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import func, select
@@ -17,34 +19,56 @@ from app.indicators.bars import tf_minutes
 from app.models import Event
 from app.monitor.feed import feed_status
 from app.settings import REPO_ROOT
+from app.signals.service import SignalUpdate, process
 from app.webhook.service import Accepted, ingest
 
 router = APIRouter(prefix="/api")
+log = structlog.get_logger()
 PINE_DIR = REPO_ROOT / "pine"
 PINE_FILES = {"bridge": "Paytience_Bridge.pine"}
 
 
 async def _after_accept(request: Request, acc: Accepted) -> None:
     st = request.app.state
-    state = st.market.apply(acc.symbol, acc.payload)
-    key = f"{acc.symbol}-{acc.payload.profile}"
+    p = acc.payload
+    key = f"{acc.symbol}-{p.profile}"
+    lock = st.signal_locks.setdefault(key, asyncio.Lock())
+    async with lock:  # one evaluation at a time per symbol+profile (webhooks for one bar arrive concurrently)
+        state = st.market.apply(acc.symbol, p)
+
+        def work() -> list[SignalUpdate]:
+            with st.sessionmaker() as s:
+                return process(
+                    s,
+                    state,
+                    rules=st.rules.rules,
+                    clock=st.clock,
+                    calendar=st.calendar,
+                    event=p.event,
+                    event_time_ms=p.bar_time_ms,
+                    one_to_one=st.rules.rules.one_to_one_mode.enabled,
+                )
+
+        try:
+            updates = await run_in_threadpool(work)
+        except Exception as e:  # §1.9: never silent — log + banner; entries stay blocked because nothing passed
+            log.error("signal.process_failed", key=key, error=type(e).__name__, detail=str(e)[:300])
+            await st.hub.broadcast(
+                "risk.alert",
+                {"level": "error", "title": "Signal processing failed", "detail": f"{key}: {type(e).__name__}"},
+            )
+            updates = []
     now = time.monotonic()
-    if acc.payload.event != "HEARTBEAT" or now - st.ws_throttle.get(key, 0.0) > 15:
+    if p.event != "HEARTBEAT" or now - st.ws_throttle.get(key, 0.0) > 15:
         st.ws_throttle[key] = now
-        await st.hub.broadcast(
-            "connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": acc.payload.profile}
-        )
-    if acc.payload.event != "HEARTBEAT":
+        await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
+    for u in updates:
         await st.hub.broadcast(
             "signal.updated",
-            {
-                "symbol": acc.symbol,
-                "profile": acc.payload.profile,
-                "event": acc.payload.event,
-                "direction": acc.payload.direction,
-                "models": len(state.models),
-            },
+            {"id": u.signal_id, "model_key": u.model_key, "status": u.status, "reason": u.reason, "score": u.score},
         )
+    if p.event == "MODEL_FAILED":
+        await st.hub.broadcast("cooldown.changed", {"symbol": acc.symbol, "profile": p.profile})
 
 
 @router.post("/webhook/tradingview")

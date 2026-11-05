@@ -15,7 +15,7 @@ class ModelState:
     direction: str
     status: str  # last fractal event name
     fields: dict[str, Any]
-    events: list[str] = field(default_factory=list)
+    events: list[tuple[str, int]] = field(default_factory=list)  # (event, bar close ms)
 
 
 @dataclass
@@ -50,7 +50,7 @@ class MarketStateStore:
         if p.event == "HEARTBEAT" and p.price is not None and newer:
             st.last_heartbeat_ms = p.bar_time_ms
             st.last_price = p.price.model_dump()
-        if p.mso is not None:
+        if p.mso is not None and (st.mso is None or p.mso.confirm_time_ms >= st.mso.get("confirm_time_ms", 0)):
             st.mso = p.mso.model_dump()
         if p.event in MSO_EVENTS:
             assert p.mso is not None
@@ -62,8 +62,21 @@ class MarketStateStore:
             if m is None:
                 m = st.models[key] = ModelState(key, p.direction, p.event, {})
             m.status, m.fields = p.event, p.fractal.model_dump()
-            m.events.append(p.event)
+            m.events.append((p.event, p.bar_time_ms))
             if len(st.models) > self.max_models:
                 for k in sorted(st.models)[: len(st.models) - self.max_models]:
                     del st.models[k]
         return st
+
+
+def rebuild(store: MarketStateStore, rows: list[tuple[str, dict[str, Any]]]) -> int:
+    """Replay stored webhook payloads (symbol, payload json) in bar-time order after a restart."""
+    n = 0
+    for symbol, payload in sorted(rows, key=lambda r: (r[1].get("bar_time_ms", 0), r[1].get("event") != "HEARTBEAT")):
+        try:
+            p = WebhookPayload.model_validate({**payload, "secret": "-"})
+        except Exception:  # noqa: S112 - a malformed historic row must not block startup
+            continue
+        store.apply(symbol, p)
+        n += 1
+    return n

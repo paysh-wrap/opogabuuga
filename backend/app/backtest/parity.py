@@ -74,6 +74,8 @@ def replay_payloads(
             }
         hb = base("HEARTBEAT", "NONE", b.close_ms)
         hb["price"] = {"o": str(b.o), "h": str(b.h), "l": str(b.l), "c": str(b.c), "v": str(b.v)}
+        if mso_fields is not None:
+            hb["mso"] = dict(mso_fields)
         out.append(hb)
         for fe_ev in fe.push(b):
             p = base(fe_ev.event, fe_ev.direction, fe_ev.time_ms)

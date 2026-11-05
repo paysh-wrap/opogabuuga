@@ -28,6 +28,7 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 18. Allow TradingView / "take control" / "figure out a workaround" — only you can change the network setting; the
     build continues with Paytience's own spec-derived indicators, clearly labelled, LIVE gated on parity.
 19. Always give a download of the conversation; keep it as a project.
+20. Admin name PayDay; "keep going" (TradingView access coming).
 
 ### What was decided / built
 - Phase 0: CLAUDE.md, file tree, broker/data analysis (docs/PHASE0.md).
@@ -46,6 +47,13 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
   TradingView setup section on the Connections page (secret reveal, script download, live feed status).
 - Found and fixed: spec §5.3 alert-id collision (D12); misleading "Not set" flash on load; JSON-max query that would
   break on Postgres; missing direction column on events (+ migration).
+
+### Phase 3 (built)
+- Trade plan (§7 exact) + 1:1 mode plan (D7), gates G1–G7 + score, model state machine, cooldowns, one entry per
+  model, expiry, signals stored with every gate result and skip reason, signals/skips/cooldowns APIs, market state
+  rebuilt from the database after a restart.
+- Found and fixed: SHORT partial price in 1:1 mode pointed the wrong way (caught by randomized tests); missing
+  migration import; heartbeat now carries the structure snapshot (D14).
 
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read

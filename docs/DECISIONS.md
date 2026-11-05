@@ -104,3 +104,17 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   stop-modify confirmation would run in CONSERVATIVE MODE (§4) and FULL-AUTO would stay blocked (§1.9).
 - Options for read-back: (a) ask Lucid support whether Tradovate API/OAuth can be enabled on your account IDs;
   (b) CrossTrade + NinjaTrader (reads positions/P&L; needs NinjaTrader running on a Windows PC).
+
+## D14 — 2026-11-05 — Heartbeat carries the structure snapshot
+- §5.3 heartbeat had price only, so oscillator strength (score item) would go stale between structure events.
+  HEARTBEAT now also carries `mso` {trend, osc, htf_trend} (optional field; backward compatible). Bridge + Python.
+
+## D15 — 2026-11-05 — Phase 3 interpretations (confirm or correct)
+- Cooldown streak resets when a model reaches T1 (or T2) — "a TP between failures resets the streak" (§21).
+  Cooldown is per symbol+profile and lasts the rest of the trigger session + 5 more trading sessions.
+- Gate failures are HARD (skip now: bias against/none, C1 too small, cooldown, model failed/traded/C3 closed,
+  T1 traded through, instrument disabled) or TRANSIENT (wait for the next bar: window, news, feed, calendar,
+  structure, divergence, R:R at this price, score). A waiting model EXPIRES after 6 bars or half of C3.
+- Entry price = the close of the bar whose HEARTBEAT has arrived; events for a bar wait for that bar's close.
+- "Not halted" (G1) has no separate data source; a halt shows up as a stale feed, which blocks entries.
+- Paytience_Bridge_Strategy.pine (§5.5, Strategy Tester) is built after Phase 4, once risk + guard exist.

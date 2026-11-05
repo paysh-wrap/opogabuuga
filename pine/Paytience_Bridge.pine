@@ -133,9 +133,6 @@ bool mkConfL = false
 bool mkConfS = false
 
 if barstate.isconfirmed
-    // ---------- heartbeat ----------
-    f_send("HEARTBEAT", "NONE", '"price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
-                                ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '}')
     // ---------- runs ----------
     isBear = close < open
     isBull = close > open
@@ -379,6 +376,11 @@ if barstate.isconfirmed
         f_send(evUp, "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
     if brkDn
         f_send(evDn, "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+    // ---------- heartbeat (price + current structure snapshot) ----------
+    f_send("HEARTBEAT", "NONE", '"price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
+                                ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '},"mso":{"trend":"' + trend +
+                                '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' +
+                                str.tostring(time_close) + "}")
     // divergence is reported with the trend/osc AFTER this bar's structure update (same as the Python reference)
     if divShort
         f_send("MSO_DIV", "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":"BEAR","htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")

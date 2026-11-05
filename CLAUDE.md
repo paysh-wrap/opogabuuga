@@ -93,3 +93,7 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D7: 1:1 mode (user toggle): TP 1R; 50% off at 0.75R then BE; 1 contract → lock +0.30R at 0.75R; 3 losses/day;
   4th–5th trade only on a ≥3-win streak (4th loss ends day); never over consistency; own backtest gate first.
 - D8: hold ≥ 6 s for app exits; protective exits never wait. D9: funded default EOD, intraday supported per account.
+- D10–D15: 09:30–09:35 excluded; indicators spec-derived (LIVE gated on parity); alert id ends -DIRECTION;
+  heartbeat carries mso snapshot; HARD vs TRANSIENT gates, expiry 6 bars / half C3, cooldown resets on T1.
+- Code map: indicators/ (pure, Decimal) · engine/{trade_plan,scoring,filters,confluence,state_machine,market_state}
+  (pure) · signals/service.py (I/O orchestration) · webhook/ · api/{routes,webhook,signals}.

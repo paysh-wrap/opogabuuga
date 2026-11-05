@@ -49,5 +49,6 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
     assert ("MODEL_CONFIRMED", "LONG") in events and ("T2_HIT", "LONG") in events
     st = client.app.state.market.get("MNQ", "TIGHT")
     model = st.models[f"MNQ-TIGHT-{T0}"]
-    assert model.events[-1] == "C3_CLOSED" and "MODEL_CONFIRMED" in model.events
+    names = [e for e, _ in model.events]
+    assert names[-1] == "C3_CLOSED" and "MODEL_CONFIRMED" in names
     assert st.last_heartbeat_ms == bars[-1].close_ms
