@@ -218,9 +218,18 @@ PROVIDERS: tuple[Provider, ...] = (
         name="Lucid Trading (dashboard link only)",
         category="firm",
         testable=False,
-        purpose="Lucid has no API. Use this to open your dashboard to buy/reset accounts and submit payouts.",
-        links=(Link("Open Lucid", "https://lucidtrading.com/"),),
-        note="Verify the dashboard URL; the app never logs into Lucid (§1.3).",
+        purpose="Lucid has no API. Log in on their site to buy accounts, check your drawdown type and request "
+        "payouts (the Payouts page tells you how much). Rules the app follows: docs/LUCID_RULES.md.",
+        links=(
+            Link("Lucid website / log in", "https://lucidtrading.com/"),
+            Link("Help center (rules, payouts, live)", "https://support.lucidtrading.com/"),
+        ),
+        steps=(
+            "Log in on Lucid's site → note each account's Tradovate account number.",
+            "Add it on the Automation page (Tradovate account #) and pick EOD or Intraday to match Lucid.",
+            "Fridays: request the payout amount shown on the Payouts page, then mark it here.",
+        ),
+        note="The app never logs into Lucid or automates their website (§1.3).",
     ),
     Provider(
         id="databento",
@@ -231,12 +240,13 @@ PROVIDERS: tuple[Provider, ...] = (
         fields=(FieldSpec("api_key", "API key", placeholder="db-..."),),
     ),
     Provider(
-        id="finnhub",
-        name="Finnhub (economic calendar)",
+        id="forexfactory",
+        name="ForexFactory (economic calendar — no key needed)",
         category="data",
-        purpose="High-impact USD events → news blackouts. No calendar data = no trading (§15).",
-        links=(Link("Sign up", "https://finnhub.io/register"), Link("Dashboard / key", "https://finnhub.io/dashboard")),
-        fields=(FieldSpec("api_key", "API key"),),
+        testable=False,
+        purpose="High-impact USD news → blackouts and funded flat windows. Fetched automatically every 4 h "
+        "(free weekly feed). No calendar data = no trading (§15). Status: Today page.",
+        links=(Link("Calendar", "https://www.forexfactory.com/calendar"),),
     ),
     Provider(
         id="discord",

@@ -71,13 +71,6 @@ async def _databento(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     return _status_msg(r, "Key accepted")
 
 
-async def _finnhub(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
-    r = await http.get(
-        "https://finnhub.io/api/v1/quote", params={"symbol": "SPY"}, headers={"X-Finnhub-Token": v["api_key"]}
-    )
-    return _status_msg(r, "Key accepted")
-
-
 async def _discord(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     url = v["webhook_url"]
     if not url.startswith(("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")):
@@ -116,7 +109,6 @@ TESTERS: dict[str, Tester] = {
     "alpha_vantage": _alpha_vantage,
     "fred": _fred,
     "databento": _databento,
-    "finnhub": _finnhub,
     "discord": _discord,
     "telegram": _telegram,
     "tunnel": _tunnel,
