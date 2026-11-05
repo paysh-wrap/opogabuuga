@@ -173,6 +173,18 @@ bias:
 
 smt: {enabled: false, pair: [MNQ, MES]}
 
+indicators:                            # docs/INDICATOR_SPEC.md (spec-derived; VERIFY vs original source, D11)
+  require_c2_close_inside_c1: true     # pillar — must stay true
+  mso: {pivot_left: 5, pivot_right: 3, osc_length: 14}   # VERIFY
+
+webhook:
+  heartbeat_max_age_s: 30              # §5.4 reject older HEARTBEAT (age from bar close)
+  event_max_age_s: 90                  # §5.4 reject older events
+  max_future_skew_s: 5
+  rate_limit_per_min: 300
+  max_body_bytes: 16384
+  stale_after_bar_multiple: 2          # no heartbeat for 2× bar interval in session → STALE
+
 schedule:                              # ET; D2 moved morning jobs before the 06:45 window
   reconcile_reset: "18:00"
   calendar: "06:00"

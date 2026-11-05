@@ -90,3 +90,16 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   It is labelled "spec-derived, not yet verified against the original source". Verification: (1) read original
   source once tradingview.com is allowed and align semantics; (2) §5.2 three-way parity over ≥20 sessions —
   mismatch blocks LIVE and Lab promotions (unchanged).
+
+## D12 — 2026-11-05 — Alert id carries the direction (spec §5.3 bug fix)
+- §5.3's id = ticker-profile-time-event. Two same-type events in opposite directions on one bar (outside bar
+  sweeping both sides, CISD both ways, divergence both ways) would share an id and the second would be dropped as a
+  duplicate. Id is now ticker-profile-time-event-DIRECTION (Python + Pine + tests). No trading rule changes.
+
+## D13 — 2026-11-05 — Order route research (decision needed before Phase 5)
+- TradersPost lists Lucid Trading as a supported prop firm (automation + copy trading allowed); Lucid permits bots
+  (HFT banned). Native Tradovate API keys are generally not issued for prop accounts (third-party reports).
+- TradersPost sends orders but (to my knowledge) does not report positions/fills back → kill switch, reconcile and
+  stop-modify confirmation would run in CONSERVATIVE MODE (§4) and FULL-AUTO would stay blocked (§1.9).
+- Options for read-back: (a) ask Lucid support whether Tradovate API/OAuth can be enabled on your account IDs;
+  (b) CrossTrade + NinjaTrader (reads positions/P&L; needs NinjaTrader running on a Windows PC).

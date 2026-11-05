@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, type Connection, type ConnectionsResponse, type Indicator } from "../lib/api";
 import StatusBadge from "../components/StatusBadge";
 import { usePageTitle } from "../components/usePageTitle";
+import TradingViewSetup from "../components/TradingViewSetup";
+import { etDateTime } from "../lib/time";
 
 const GROUPS: [string, string][] = [
   ["signals", "Signals"],
@@ -131,7 +133,7 @@ function ConnectionCard({ c }: { c: Connection }) {
                 Remove
               </button>
             )}
-            {c.tested_at && <span className="text-xs opacity-75">tested {new Date(c.tested_at).toLocaleString()}</span>}
+            {c.tested_at && <span className="text-xs opacity-75">tested {etDateTime(c.tested_at)}</span>}
           </div>
           {error && <p role="alert" className="text-sm text-goldLight sm:col-span-2">⚠ {error}</p>}
         </form>
@@ -189,13 +191,11 @@ function IndicatorCard({ ind }: { ind: Indicator }) {
 export default function Connections() {
   usePageTitle("Connections");
   const q = useQuery({ queryKey: ["connections"], queryFn: () => api<ConnectionsResponse>("/api/connections"), refetchInterval: 30_000 });
-  const [copied, setCopied] = useState(false);
   if (q.isLoading) return <p role="status">Loading connections…</p>;
   if (q.error || !q.data) return <p role="alert">Could not load connections: {String(q.error?.message ?? "unknown")}</p>;
-  const { connections, indicators, summary, webhook_path, master_key_set } = q.data;
+  const { connections, indicators, summary, master_key_set } = q.data;
   const tunnel = connections.find((c) => c.id === "tunnel");
   const base = tunnel?.status === "connected" ? tunnel.hints.public_url : undefined;
-  const webhookUrl = base ? `${base.replace(/\/$/, "")}${webhook_path}` : undefined;
   const required = connections.filter((c) => c.required);
 
   return (
@@ -228,21 +228,7 @@ export default function Connections() {
         )}
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold text-gold">TradingView webhook URL</h2>
-        {webhookUrl ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <code data-testid="webhook-url" className="break-all text-goldLight">{webhookUrl}</code>
-            <button className="rounded border border-blue px-2 py-0.5 text-xs text-blue"
-              onClick={() => { void navigator.clipboard?.writeText(webhookUrl); setCopied(true); }}>
-              {copied ? "Copied" : "Copy"}
-            </button>
-          </div>
-        ) : (
-          <p className="mt-1 text-sm">Connect your public HTTPS URL (Network section) and the exact URL to paste into TradingView appears here.</p>
-        )}
-        <p className="mt-1 text-xs opacity-80">The alert message carries the webhook secret from your <code>.env</code>; the app rejects alerts without it.</p>
-      </section>
+      <TradingViewSetup publicBase={base} />
 
       <section>
         <h2 className="mb-2 text-lg font-semibold text-gold">TradingView indicators</h2>

@@ -29,6 +29,10 @@ function setup(responses: ConnectionsResponse[]) {
   const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
     if (String(url) === "/api/connections" && (!init || !init.method || init.method === "GET"))
       return new Response(JSON.stringify(responses[Math.min(i++, responses.length - 1)]));
+    if (String(url) === "/api/webhook/status")
+      return new Response(JSON.stringify({ path: "/api/webhook/tradingview", secret_set: true,
+        feeds: [{ symbol: "MNQ", profile: "TIGHT", last_heartbeat: null, status: "FRESH" }], accepted: { HEARTBEAT: 3 },
+        rejected: {}, last_rejection: null }));
     return new Response(JSON.stringify({}));
   });
   render(
@@ -66,4 +70,13 @@ test("Save & Test sends PUT with the key, then the card reacts to Connected", as
   expect(within(screen.getByTestId("conn-databento")).getByLabelText("API key")).toHaveValue("");
   expect(within(screen.getByTestId("conn-databento")).getByLabelText("API key"))
     .toHaveAttribute("placeholder", "saved ••••1234 — leave blank to keep");
+});
+
+test("TradingView setup shows download link, masked secret and live feed status", async () => {
+  setup([payload("not_set")]);
+  const box = await screen.findByTestId("tv-setup");
+  expect(within(box).getByTestId("download-bridge")).toHaveAttribute("href", "/api/pine/bridge");
+  expect(await within(box).findByRole("button", { name: "Reveal" })).toBeInTheDocument();
+  expect(await within(box).findByTestId("feed-MNQ-TIGHT")).toHaveAttribute("data-status", "FRESH");
+  expect(within(box).getByTestId("webhook-counts")).toHaveTextContent("HEARTBEAT 3");
 });

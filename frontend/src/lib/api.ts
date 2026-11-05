@@ -88,3 +88,12 @@ export interface Health {
   time: string;
   mode: "PAPER" | "LIVE";
 }
+
+export interface WebhookStatus {
+  path: string;
+  secret_set: boolean;
+  feeds: { symbol: string; profile: string; last_heartbeat: string | null; status: "FRESH" | "STALE" | "CLOSED" | "NO_DATA" }[];
+  accepted: Record<string, number>;
+  rejected: Record<string, number>;
+  last_rejection: { code: string; detail: string; at: string } | null;
+}

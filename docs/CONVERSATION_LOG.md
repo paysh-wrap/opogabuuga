@@ -25,6 +25,9 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 15. Keep work private; give downloads; turn this into a project.
 16. Figure out API order placement yourself; find, verify and implement the indicator source yourself.
 17. "Go Phase 2".
+18. Allow TradingView / "take control" / "figure out a workaround" — only you can change the network setting; the
+    build continues with Paytience's own spec-derived indicators, clearly labelled, LIVE gated on parity.
+19. Always give a download of the conversation; keep it as a project.
 
 ### What was decided / built
 - Phase 0: CLAUDE.md, file tree, broker/data analysis (docs/PHASE0.md).
@@ -36,6 +39,13 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 - Lucid facts used (from search results; Lucid's own site is blocked here — VERIFY in your dashboard):
   MGC + MYM approved; commissions $0.50/side (MNQ/MES/MYM), $0.80/side (MGC); microscalping flag if > 50% of profit
   from trades held ≤ 5 s; automation allowed, HFT banned; TradersPost lists Lucid as a supported prop firm.
+
+### Phase 2 (built)
+- Webhook receiver (secret check, freshness, duplicates, rate limit, < 1 s reply), market state store, feed
+  staleness, Python indicators (fractal model + market structure oscillator), Paytience_Bridge.pine, parity checker,
+  TradingView setup section on the Connections page (secret reveal, script download, live feed status).
+- Found and fixed: spec §5.3 alert-id collision (D12); misleading "Not set" flash on load; JSON-max query that would
+  break on Postgres; missing direction column on events (+ migration).
 
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read

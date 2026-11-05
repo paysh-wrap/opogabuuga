@@ -14,6 +14,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
     s.on("connection.updated", (d) => {
       setLast(`connection.updated:${String(d.id)}:${String(d.status ?? "")}`);
       void qc.invalidateQueries({ queryKey: ["connections"] });
+      void qc.invalidateQueries({ queryKey: ["webhook-status"] });
     });
     s.start();
     return () => s.stop();

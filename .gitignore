@@ -14,3 +14,4 @@ vendor/
 frontend/dist/
 frontend/test-results/
 *.egg-info/
+backup/

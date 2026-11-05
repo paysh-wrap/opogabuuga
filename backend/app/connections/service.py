@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import timedelta
 from typing import Any
 
 import httpx
@@ -88,15 +87,34 @@ async def run_test(
 
 
 def _heartbeat_status(s: Session, clock: Clock) -> tuple[str, str]:
-    last = s.execute(
-        select(Event.bar_time).where(Event.event == "HEARTBEAT").order_by(Event.bar_time.desc()).limit(1)
-    ).scalar_one_or_none()
-    if last is None:
+    from app.indicators.bars import tf_minutes
+    from app.monitor.feed import feed_status
+
+    pairs = s.execute(select(Event.symbol, Event.profile).where(Event.event == "HEARTBEAT").distinct()).all()
+    rows = []
+    for sym, prof in pairs:
+        ev = s.execute(
+            select(Event)
+            .where(Event.event == "HEARTBEAT", Event.symbol == sym, Event.profile == prof)
+            .order_by(Event.bar_time.desc())
+            .limit(1)
+        ).scalar_one()
+        rows.append((sym, prof, ev.bar_time, ev.payload))
+    if not rows:
         return "waiting", "Waiting for the first TradingView heartbeat"
-    age = clock.now() - last
-    if age <= timedelta(minutes=10):
-        return "connected", f"Receiving alerts · last heartbeat {int(age.total_seconds())} s ago"
-    return "failed", f"Stale · last heartbeat {int(age.total_seconds() // 60)} min ago"
+    now = clock.now()
+    parts, statuses = [], []
+    for sym, prof, last, payload in rows:
+        tf = str((payload or {}).get("tf", "1"))
+        st = feed_status(int(last.timestamp() * 1000), tf_minutes(tf), now, 2)
+        statuses.append(st)
+        parts.append(f"{sym} {prof}: {st.lower()} ({int((now - last).total_seconds())} s ago)")
+    detail = " · ".join(parts)
+    if "FRESH" in statuses:
+        return "connected", "Receiving alerts · " + detail
+    if "STALE" in statuses:
+        return "failed", "Feed stale — check your TradingView alert · " + detail
+    return "waiting", "Market closed · " + detail
 
 
 def provider_view(

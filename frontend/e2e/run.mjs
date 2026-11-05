@@ -129,6 +129,37 @@ await step("pasting a non-Pine source is rejected with a message", async () => {
   await card.getByRole("alert").waitFor();
 });
 
+await step("TradingView setup: reveal secret and download the bridge script", async () => {
+  const box = page.getByTestId("tv-setup");
+  await box.getByRole("button", { name: "Reveal" }).click();
+  const secret = (await box.getByTestId("webhook-secret").textContent()).trim();
+  expect(secret.length >= 32, "secret length " + secret.length);
+  const r = await page.request.get(BASE + "/api/pine/bridge");
+  expect(r.status() === 200 && (await r.text()).startsWith("//@version=6"), "download");
+  globalThis.__secret = secret;
+});
+
+await step("a real webhook heartbeat turns the TradingView card gold live (no reload)", async () => {
+  const t = Date.now() - 1000;
+  const body = JSON.stringify({ v: 1, secret: globalThis.__secret, id: `MNQ1!-TIGHT-${t}-HEARTBEAT-NONE`, symbol: "MNQ1!",
+    profile: "TIGHT", tf: "1", bar_time_ms: t, event: "HEARTBEAT", direction: "NONE",
+    price: { o: "20000.25", h: "20001", l: "19999.5", c: "20000.75", v: "10" } });
+  const r = await page.request.post(BASE + "/api/webhook/tradingview", { data: body, headers: { "content-type": "text/plain" } });
+  expect(r.status() === 200, "webhook status " + r.status() + " " + (await r.text()));
+  await page.locator('[data-testid="conn-tradingview"][data-status="connected"]').waitFor({ timeout: 10000 });
+  await page.locator('[data-testid="feed-MNQ-TIGHT"][data-status="FRESH"]').waitFor({ timeout: 10000 });
+});
+
+await step("a webhook with the wrong secret is rejected and counted", async () => {
+  const t = Date.now() - 1000;
+  const body = JSON.stringify({ v: 1, secret: "wrong", id: `x-${t}`, symbol: "MNQ1!", profile: "TIGHT", tf: "1",
+    bar_time_ms: t, event: "HEARTBEAT", direction: "NONE", price: { o: "1", h: "1", l: "1", c: "1", v: "0" } });
+  const r = await page.request.post(BASE + "/api/webhook/tradingview", { data: body, headers: { "content-type": "text/plain" } });
+  expect(r.status() === 401, "status " + r.status());
+  await page.reload();
+  await page.getByTestId("webhook-counts").filter({ hasText: "BAD_SECRET" }).waitFor({ timeout: 10000 });
+});
+
 await step("404 page keeps Paytience branding", async () => {
   await page.goto(BASE + "/nope");
   await page.getByRole("heading", { name: "Page not found" }).waitFor();

@@ -304,6 +304,26 @@ class SmtCfg(_M):
     pair: list[str]
 
 
+class MsoCfg(_M):
+    pivot_left: int = Field(ge=1, le=50)
+    pivot_right: int = Field(ge=1, le=50)
+    osc_length: int = Field(ge=2, le=200)
+
+
+class IndicatorsCfg(_M):
+    require_c2_close_inside_c1: Literal[True]  # pillar
+    mso: MsoCfg
+
+
+class WebhookCfg(_M):
+    heartbeat_max_age_s: int = Field(ge=1, le=300)
+    event_max_age_s: int = Field(ge=1, le=600)
+    max_future_skew_s: int = Field(ge=0, le=60)
+    rate_limit_per_min: int = Field(ge=10)
+    max_body_bytes: int = Field(ge=1024, le=1_048_576)
+    stale_after_bar_multiple: int = Field(ge=1, le=10)
+
+
 class ScheduleCfg(_M):
     reconcile_reset: str
     calendar: str
@@ -390,6 +410,8 @@ class RulesConfig(_M):
     eval_mode: EvalModeCfg
     bias: BiasCfg
     smt: SmtCfg
+    indicators: IndicatorsCfg
+    webhook: WebhookCfg
     schedule: ScheduleCfg
     automation: AutomationCfg
     payouts: PayoutsCfg

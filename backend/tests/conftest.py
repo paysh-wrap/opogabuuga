@@ -18,6 +18,7 @@ from app.settings import REPO_ROOT, Settings
 
 RULES_PATH = REPO_ROOT / "config" / "rules" / "lucid_daily_25k.yaml"
 PASSWORD = "correct-horse-battery"
+WEBHOOK_SECRET = "wh-secret-0123456789abcdef"
 
 
 @pytest.fixture(scope="session")
@@ -35,6 +36,7 @@ def settings(tmp_path: Path) -> Settings:
     return Settings(
         database_url=f"sqlite:///{tmp_path / 'test.db'}",
         master_key=SecretStr(new_master_key()),
+        webhook_secret=SecretStr(WEBHOOK_SECRET),
         rules_path=RULES_PATH,
         web_dist=tmp_path / "no-dist",
         ta_python=str(tmp_path / "missing-python"),

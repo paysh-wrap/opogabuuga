@@ -4,8 +4,8 @@ Automated confluence trading app for 1–5 Lucid Trading LucidDaily 25K accounts
 Signals come **only** from TradingView webhooks. Orders go **only** through the broker connection. The app never logs
 into, scrapes, or clicks around TradingView or Lucid.
 
-> **Status: Phase 1 of 11** — scaffold, config, database, audit log, login, Connections page, TradingAgents install.
-> **No trading logic yet.** Default mode is PAPER. Do not connect funded accounts until the Live-Readiness Checklist passes.
+> **Status: Phase 2 of 11** — webhook receiver, TradingView bridge script, Python indicators, parity checker
+> (+ Phase 1: config, database, audit log, login, Connections page, TradingAgents). **No trading decisions yet.** Default mode is PAPER. Do not connect funded accounts until the Live-Readiness Checklist passes.
 
 ## Quick start (your computer)
 
@@ -54,6 +54,19 @@ Ratings map Buy/Overweight → LONG_ONLY, Hold → NEUTRAL, Underweight/Sell →
 - "Market Structure Oscillator [BigBeluga]" — © BigBeluga
 Paste each script's source + license on the Connections page. The app records the license; non-commercial
 licenses mean this project is for personal use only.
+
+## TradingView alert setup (step by step)
+1. Connections page → **TradingView setup** → download `Paytience_Bridge.pine`.
+2. TradingView → open an **MNQ1!** chart: **1-minute** for profile TIGHT, **5-minute** for STD (one chart per profile).
+3. Pine Editor → paste the script → **Add to chart**.
+4. Indicator settings → paste the **Webhook secret** (Connections page → Reveal) → choose the profile.
+5. Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
+   Notifications → **Webhook URL** = the URL shown on the Connections page.
+6. Within one bar the **Live feeds** list shows the symbol as Fresh and the TradingView card turns gold.
+   If not, the rejection counter on the same page says why (bad secret, wrong chart timeframe, stale, …).
+
+The bridge is Paytience's own implementation of docs/INDICATOR_SPEC.md (spec-derived). It has not yet been verified
+against the original LunqFX/BigBeluga source; LIVE stays blocked until parity passes over ≥ 20 sessions.
 
 ## Exposing the webhook (TradingView → your app)
 TradingView only posts to HTTPS on port 443. Use a Cloudflare Tunnel to `http://127.0.0.1:8000`; a VPN alone

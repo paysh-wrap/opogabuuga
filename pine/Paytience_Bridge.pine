@@ -1,0 +1,394 @@
+//@version=6
+// Paytience_Bridge — sends closed-bar events to the Paytience app via ONE webhook alert per chart.
+// Implements docs/INDICATOR_SPEC.md exactly (same rules as the Python reference in backend/app/indicators/).
+//
+// Paytience's own implementation — spec-derived, NOT yet verified against the original source code.
+// Concepts credit: "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (© LunqFX) and
+// "Market Structure Oscillator [BigBeluga]" (© BigBeluga). No code from those scripts is included.
+// PERSONAL USE ONLY.
+//
+// Setup: MNQ1! chart, 1-minute for profile TIGHT or 5-minute for STD. Add this indicator, paste the webhook secret,
+// create an alert: Condition "Paytience_Bridge" → "Any alert() function call", Webhook URL = your Paytience URL.
+indicator("Paytience_Bridge", overlay = true, max_labels_count = 200)
+
+secret   = input.string("", "Webhook secret")
+profile  = input.string("STD", "Profile", options = ["TIGHT", "STD"])
+pivL     = input.int(5, "MSO pivot left", minval = 1)
+pivR     = input.int(3, "MSO pivot right", minval = 1)
+oscLen   = input.int(14, "MSO oscillator length", minval = 2)
+atrLen   = input.int(14, "HTF ATR length", minval = 1)
+showMarks = input.bool(true, "Show markers")
+
+htfMin      = profile == "TIGHT" ? 15 : 60
+ltfExpected = profile == "TIGHT" ? "1" : "5"
+if timeframe.period != ltfExpected
+    runtime.error("Paytience_Bridge: profile " + profile + " needs a " + ltfExpected + "-minute chart")
+
+htfMs = htfMin * 60000
+tick  = syminfo.mintick
+
+// ---------- formatting helpers (pure) ----------
+f_px(float x) => na(x) ? "null" : str.tostring(x, format.mintick)
+f_b(bool b) => b ? "true" : "false"
+f_i(int x) => na(x) ? "null" : str.tostring(x)
+f_ticks(float x) => math.round(x / tick)
+
+f_send(string evt, string dir, string extra) =>
+    string tail = extra == "" ? "" : "," + extra
+    alert('{"v":1,"secret":"' + secret + '","id":"' + syminfo.ticker + "-" + profile + "-" +
+          str.tostring(time_close) + "-" + evt + "-" + dir + '","symbol":"' + syminfo.ticker + '","profile":"' +
+          profile + '","tf":"' + timeframe.period + '","bar_time_ms":' + str.tostring(time_close) +
+          ',"event":"' + evt + '","direction":"' + dir + '"' + tail + "}", alert.freq_once_per_bar_close)
+
+f_fr(float c1h, float c1l, int c1t, float atr, float t1, float t2, float inv, int exT, float cisd, bool cb, bool pre, int c3) =>
+    '"fractal":{"c1_high":' + f_px(c1h) + ',"c1_low":' + f_px(c1l) + ',"c1_time_ms":' + f_i(c1t) +
+     ',"htf_atr14":' + (na(atr) ? "null" : str.tostring(atr, "#.####")) + ',"t1":' + f_px(t1) + ',"t2":' + f_px(t2) +
+     ',"invalid":' + f_px(inv) + ',"sweep_extreme":' + f_px(inv) + ',"sweep_time_ms":' + f_i(exT) +
+     ',"cisd_level":' + f_px(cisd) + ',"cisd_before_c2_close":' + f_b(cb) + ',"t1_preticked":' + f_b(pre) +
+     ',"c3_close_time_ms":' + f_i(c3) + "}"
+
+// T1 = C1 midpoint rounded half-up to tick, computed in integer ticks (exact for every tick size)
+f_t1(float h, float l) => math.round((f_ticks(h) + f_ticks(l)) / 2.0) * tick
+
+// ---------- state ----------
+// HTF candle being built
+var int   hStart = na
+var float hO = na
+var float hH = na
+var float hL = na
+var float hC = na
+// C1
+var bool  hasC1 = false
+var float c1H = na
+var float c1L = na
+var int   c1T = na
+// C2 sides: L = low side swept (LONG), S = high side swept (SHORT)
+var bool  sL = false
+var float exL = na
+var int   exLT = na
+var float cisdL = na
+var int   cisdLT = na
+var bool  t1TL = false
+var bool  sS = false
+var float exS = na
+var int   exST = na
+var float cisdS = na
+var int   cisdST = na
+var bool  t1TS = false
+// HTF ATR (Wilder)
+var float prevHtfC = na
+var float atrV = na
+var int   atrN = 0
+var float atrSum = 0.0
+// confirmed model in C3
+var bool   mOn = false
+var string mDir = ""
+var float  mC1H = na
+var float  mC1L = na
+var int    mC1T = na
+var float  mT1 = na
+var float  mT2 = na
+var float  mInv = na
+var int    mExT = na
+var float  mCisd = na
+var int    mCisdT = na
+var float  mAtr = na
+var int    mC3 = na
+var bool   mCb = false
+var bool   mPre = false
+var bool   mT1Hit = false
+var bool   mDone = false
+// same-colour runs
+var float bearRunOpen = na
+var float bullRunOpen = na
+var bool  prevBear = false
+var bool  prevBull = false
+// MSO (chart timeframe)
+var float rPrev = na
+var float rAg = na
+var float rAl = na
+var int   rN = 0
+var float rSumG = 0.0
+var float rSumL = 0.0
+var string trend = "NONE"
+var float phP = na
+var float phR = na
+var bool  phUsed = true
+var float plP = na
+var float plR = na
+var bool  plUsed = true
+// MSO on HTF candles (structure only → htf_trend)
+var array<float> hHs = array.new_float()
+var array<float> hLs = array.new_float()
+var string hTrend = "NONE"
+var float hPh = na
+var bool  hPhUsed = true
+var float hPl = na
+var bool  hPlUsed = true
+
+float rawRsi = na
+bool mkSweepL = false
+bool mkSweepS = false
+bool mkConfL = false
+bool mkConfS = false
+
+if barstate.isconfirmed
+    // ---------- heartbeat ----------
+    f_send("HEARTBEAT", "NONE", '"price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
+                                ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '}')
+    // ---------- runs ----------
+    isBear = close < open
+    isBull = close > open
+    if isBear and not prevBear
+        bearRunOpen := open
+    if isBull and not prevBull
+        bullRunOpen := open
+    prevBear := isBear
+    prevBull := isBull
+
+    thisStart = int(math.floor(time / htfMs) * htfMs)
+    lateClose = not na(hStart) and thisStart != hStart
+    normalClose = false
+
+    // step 0: late HTF close · step 1: manage C3, track C2, add bar · step 2: normal HTF close
+    for k = 0 to 2
+        if k == 1
+            // ----- manage confirmed model during C3 -----
+            if mOn and time_close > mC3
+                f_send("C3_CLOSED", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                mOn := false
+            if mOn
+                isLong = mDir == "LONG"
+                if not mDone
+                    pastInv = isLong ? low < mInv : high > mInv
+                    if not mT1Hit and pastInv
+                        mDone := true
+                        f_send("MODEL_FAILED", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                    else
+                        if na(mCisdT) and not na(mCisd) and (isLong ? close > mCisd : close < mCisd)
+                            mCisdT := time_close
+                            f_send("CISD", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                        reach = isLong ? high : low
+                        if not mT1Hit and (isLong ? reach >= mT1 : reach <= mT1)
+                            mT1Hit := true
+                            f_send("T1_HIT", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                        if mT1Hit and (isLong ? reach >= mT2 : reach <= mT2)
+                            mDone := true
+                            f_send("T2_HIT", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                if time_close == mC3
+                    f_send("C3_CLOSED", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+                    mOn := false
+            // ----- track sweeps of C1 during C2 -----
+            if hasC1
+                t1x = f_t1(c1H, c1L)
+                // LONG side (low swept)
+                refL = sL ? exL : c1L
+                if low < refL
+                    firstL = not sL
+                    sL := true
+                    exL := low
+                    exLT := time_close
+                    cisdL := na(bearRunOpen) ? open : bearRunOpen
+                    cisdLT := na
+                    if firstL
+                        mkSweepL := true
+                        f_send("C1_SWEPT", "LONG", f_fr(c1H, c1L, c1T, atrV, t1x, c1H, exL, exLT, cisdL, false, false, na))
+                else if sL
+                    if na(cisdLT) and not na(cisdL) and close > cisdL
+                        cisdLT := time_close
+                        f_send("CISD", "LONG", f_fr(c1H, c1L, c1T, atrV, t1x, c1H, exL, exLT, cisdL, true, t1TL, na))
+                    if high >= t1x
+                        t1TL := true
+                // SHORT side (high swept)
+                refS = sS ? exS : c1H
+                if high > refS
+                    firstS = not sS
+                    sS := true
+                    exS := high
+                    exST := time_close
+                    cisdS := na(bullRunOpen) ? open : bullRunOpen
+                    cisdST := na
+                    if firstS
+                        mkSweepS := true
+                        f_send("C1_SWEPT", "SHORT", f_fr(c1H, c1L, c1T, atrV, t1x, c1L, exS, exST, cisdS, false, false, na))
+                else if sS
+                    if na(cisdST) and not na(cisdS) and close < cisdS
+                        cisdST := time_close
+                        f_send("CISD", "SHORT", f_fr(c1H, c1L, c1T, atrV, t1x, c1L, exS, exST, cisdS, true, t1TS, na))
+                    if low <= t1x
+                        t1TS := true
+            // ----- add bar to the HTF candle -----
+            if na(hStart)
+                hStart := thisStart
+                hO := open
+                hH := high
+                hL := low
+                hC := close
+            else
+                hH := math.max(hH, high)
+                hL := math.min(hL, low)
+                hC := close
+            normalClose := time_close >= hStart + htfMs
+        if (k == 0 and lateClose) or (k == 2 and normalClose)
+            // ----- HTF candle closed: ATR, HTF structure, evaluate C2, roll C1 -----
+            tr = na(prevHtfC) ? hH - hL : math.max(hH - hL, math.abs(hH - prevHtfC), math.abs(hL - prevHtfC))
+            prevHtfC := hC
+            if na(atrV)
+                atrSum += tr
+                atrN += 1
+                if atrN == atrLen
+                    atrV := atrSum / atrLen
+            else
+                atrV := (atrV * (atrLen - 1) + tr) / atrLen
+            // HTF structure (pivots on completed HTF candles)
+            array.push(hHs, hH)
+            array.push(hLs, hL)
+            if array.size(hHs) > pivL + pivR + 1
+                array.shift(hHs)
+                array.shift(hLs)
+            if array.size(hHs) == pivL + pivR + 1
+                cH = array.get(hHs, pivL)
+                cL = array.get(hLs, pivL)
+                isPh = true
+                isPl = true
+                for i = 0 to pivL + pivR
+                    if i < pivL
+                        isPh := isPh and cH > array.get(hHs, i)
+                        isPl := isPl and cL < array.get(hLs, i)
+                    else if i > pivL
+                        isPh := isPh and cH >= array.get(hHs, i)
+                        isPl := isPl and cL <= array.get(hLs, i)
+                if isPh
+                    hPh := cH
+                    hPhUsed := false
+                if isPl
+                    hPl := cL
+                    hPlUsed := false
+            if not na(hPh) and not hPhUsed and hC > hPh
+                hPhUsed := true
+                hTrend := "BULL"
+            if not na(hPl) and not hPlUsed and hC < hPl
+                hPlUsed := true
+                hTrend := "BEAR"
+            // evaluate C2 (exactly one side swept AND close strictly inside C1 — pillar)
+            if hasC1 and (sL != sS) and hC > c1L and hC < c1H
+                isL = sL
+                mOn := true
+                mDir := isL ? "LONG" : "SHORT"
+                mC1H := c1H
+                mC1L := c1L
+                mC1T := c1T
+                mT1 := f_t1(c1H, c1L)
+                mT2 := isL ? c1H : c1L
+                mInv := isL ? exL : exS
+                mExT := isL ? exLT : exST
+                mCisd := isL ? cisdL : cisdS
+                mCisdT := isL ? cisdLT : cisdST
+                mAtr := atrV
+                mC3 := hStart + htfMs + htfMs
+                mCb := not na(mCisdT)
+                mPre := isL ? t1TL : t1TS
+                mT1Hit := false
+                mDone := false
+                if isL
+                    mkConfL := true
+                else
+                    mkConfS := true
+                f_send("MODEL_CONFIRMED", mDir, f_fr(mC1H, mC1L, mC1T, mAtr, mT1, mT2, mInv, mExT, mCisd, mCb, mPre, mC3))
+            hasC1 := true
+            c1H := hH
+            c1L := hL
+            c1T := hStart
+            sL := false
+            sS := false
+            t1TL := false
+            t1TS := false
+            exL := na
+            exS := na
+            cisdL := na
+            cisdS := na
+            cisdLT := na
+            cisdST := na
+            hStart := na
+            hO := na
+            hH := na
+            hL := na
+            hC := na
+            if k == 0
+                // the late-closing bar starts the new HTF candle in step 1
+                lateClose := false
+
+    // ---------- MSO on the chart timeframe ----------
+    if not na(rPrev)
+        ch = close - rPrev
+        g = math.max(ch, 0.0)
+        lo = math.max(-ch, 0.0)
+        if na(rAg)
+            rSumG += g
+            rSumL += lo
+            rN += 1
+            if rN == oscLen
+                rAg := rSumG / oscLen
+                rAl := rSumL / oscLen
+        else
+            rAg := (rAg * (oscLen - 1) + g) / oscLen
+            rAl := (rAl * (oscLen - 1) + lo) / oscLen
+        if not na(rAg)
+            rawRsi := rAl == 0 ? (rAg > 0 ? 100.0 : 50.0) : 100.0 - 100.0 / (1.0 + rAg / rAl)
+    rPrev := close
+    bool divShort = false
+    bool divLong = false
+    if bar_index >= pivL + pivR
+        cH = high[pivR]
+        cL = low[pivR]
+        cR = rawRsi[pivR]
+        isPh = true
+        isPl = true
+        for i = 0 to pivL + pivR
+            if i < pivR
+                isPh := isPh and cH >= high[i]
+                isPl := isPl and cL <= low[i]
+            else if i > pivR
+                isPh := isPh and cH > high[i]
+                isPl := isPl and cL < low[i]
+        if isPh
+            if not na(phP) and cH > phP and not na(cR) and not na(phR) and cR < phR
+                divShort := true
+            phP := cH
+            phR := cR
+            phUsed := false
+        if isPl
+            if not na(plP) and cL < plP and not na(cR) and not na(plR) and cR > plR
+                divLong := true
+            plP := cL
+            plR := cR
+            plUsed := false
+    bool brkUp = not na(phP) and not phUsed and close > phP
+    string evUp = trend == "BEAR" ? "MSO_CHOCH" : "MSO_BOS"
+    if brkUp
+        phUsed := true
+        trend := "BULL"
+    bool brkDn = not na(plP) and not plUsed and close < plP
+    string evDn = trend == "BULL" ? "MSO_CHOCH" : "MSO_BOS"
+    if brkDn
+        plUsed := true
+        trend := "BEAR"
+    float osc = na(rawRsi) ? na : trend == "BULL" ? 50.0 + rawRsi / 2.0 : trend == "BEAR" ? rawRsi / 2.0 : rawRsi
+    string oscS = na(osc) ? "null" : str.tostring(osc, "#.##")
+    if brkUp
+        f_send(evUp, "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+    if brkDn
+        f_send(evDn, "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+    // divergence is reported with the trend/osc AFTER this bar's structure update (same as the Python reference)
+    if divShort
+        f_send("MSO_DIV", "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":"BEAR","htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+    if divLong
+        f_send("MSO_DIV", "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":"BULL","htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+
+plotshape(showMarks and mkSweepL, "C1 low swept", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)
+plotshape(showMarks and mkSweepS, "C1 high swept", shape.triangledown, location.abovebar, color.new(#3B82F6, 0), size = size.tiny)
+plotshape(showMarks and mkConfL, "Model LONG", shape.labelup, location.belowbar, color.new(#D4AF37, 0), text = "L", textcolor = #0A1020)
+plotshape(showMarks and mkConfS, "Model SHORT", shape.labeldown, location.abovebar, color.new(#D4AF37, 0), text = "S", textcolor = #0A1020)
+plot(mOn ? mT1 : na, "T1", color.new(#93C5FD, 0), style = plot.style_linebr)
+plot(mOn ? mT2 : na, "T2", color.new(#D4AF37, 0), style = plot.style_linebr)
+plot(mOn ? mInv : na, "Invalid", color.new(#F2D27A, 40), style = plot.style_linebr)

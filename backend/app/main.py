@@ -12,12 +12,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import http_client, router
+from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
 from app.bias.tradingagents_adapter import TradingAgentsAdapter
 from app.clock import Clock, SystemClock
 from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
+from app.engine.market_state import MarketStateStore
 from app.settings import Settings, get_settings
+from app.webhook.service import SlidingWindow, WebhookStats
 from app.ws import Hub
 
 log = structlog.get_logger()
@@ -59,6 +62,10 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.sessionmaker = make_sessionmaker(engine)
     app.state.hub = Hub()
     app.state.login_limiter = RateLimiter(5, 60)
+    app.state.webhook_limiter = SlidingWindow(rules.rules.webhook.rate_limit_per_min, 60)
+    app.state.webhook_stats = WebhookStats()
+    app.state.market = MarketStateStore()
+    app.state.ws_throttle = {}
     app.state.ta = TradingAgentsAdapter(
         settings.ta_python, rules.rules.bias.pinned_version, timeout_s=rules.rules.bias.timeout_min * 60
     )
@@ -76,6 +83,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         return JSONResponse({"detail": "internal error — see logs"}, status_code=500)
 
     app.include_router(router)
+    app.include_router(webhook_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:

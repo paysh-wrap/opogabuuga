@@ -249,6 +249,7 @@ class Event(_Row, Base):
     symbol: Mapped[str] = mapped_column(String(16))
     profile: Mapped[str] = mapped_column(String(8))
     event: Mapped[str] = mapped_column(String(20))
+    direction: Mapped[str] = mapped_column(String(6), default="NONE", server_default="NONE")
     bar_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
 
