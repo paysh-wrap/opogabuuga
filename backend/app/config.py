@@ -292,6 +292,8 @@ class ScalpMode(_M):
     enabled: bool = False
     target_r: D = Field(default=D("0.5"), ge=D("0.3"), le=D("1.0"))
     max_hold_s: int = Field(default=60, ge=25, le=300)
+    runner_r: D = Field(default=D("2.0"), ge=D("1.0"), le=D("3.0"))  # where the second half aims (never past 3R)
+    trail_r: D = Field(default=D("0.5"), ge=D("0.25"), le=D("1.0"))  # runner trails this far behind the best price
 
 
 class OneToOneMode(_M):

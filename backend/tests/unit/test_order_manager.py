@@ -164,3 +164,23 @@ async def test_adverse_half_broker_failure_is_reported(env):
     sim.fail_next.add("close_leg")
     ev = await om.adverse_half(t.trade_id, D(20018), D("0.9"), True, AT + timedelta(seconds=30))
     assert ev[0].detail.startswith("HALF_OFF_FAILED")
+
+
+async def test_scalp_half_banks_quick_target_half_runs_with_trailing_stop(env):
+    sim, om, _ = env
+    om.scalp_runner = (D(2), D("0.5"))
+    # 0.5R scalp plan: entry 20000, stop 19980 (20 pts), TP 20010
+    plan = build_one_to_one_plan(
+        Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20, D("0.75"), D("0.3"), 2, D("0.5")
+    )
+    t, _ = await opened(sim, om, plan, 2, False)
+    assert [(x.name, x.qty, x.take_profit) for x in t.legs] == [("A", 1, D(20010)), ("B", 1, D(20040))]
+    assert t.runner_trail == D("0.5")
+    ev = await pump(sim, om, 20001, 20011, 20000, 20010)  # quick target hit → half banked
+    assert any(e.kind == "STOP_MOVED" and e.detail.startswith("BREAKEVEN") for e in ev)
+    b = t.legs[1]
+    assert b.stop >= t.plan.entry  # runner can no longer lose
+    await pump(sim, om, 20010, 20030, 20012, 20028)  # best 20030 → trail 0.5R (10 pts) → 20020
+    assert b.stop == D(20020)
+    await pump(sim, om, 20028, 20029, 20025, 20026)  # pullback: the stop never loosens
+    assert b.stop == D(20020)

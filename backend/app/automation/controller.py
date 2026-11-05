@@ -393,6 +393,8 @@ class Controller:
         )
         try:
             self.om.split_for_defence = r.internal.adverse_half_enabled
+            sm = r.scalp_mode
+            self.om.scalp_runner = (sm.runner_r, sm.trail_r) if sm.enabled else None
             t = await self.om.open_trade(
                 a.broker_account_id,
                 sig.symbol,
@@ -476,6 +478,8 @@ class Controller:
             return
         now = self.clock.now()
         for t in [t for t in self.om.trades.values() if t.symbol == symbol and t.plan.mode == "ONE_TO_ONE"]:
+            if t.partial_done:
+                continue  # first half banked: the runner may run (stop at breakeven, trailing) until the day's close
             held = (now - t.opened_at).total_seconds()
             if held >= max(r.scalp_mode.max_hold_s, r.behavior.min_hold_seconds):
                 a = s.execute(select(Account).where(Account.broker_account_id == t.account)).scalar_one_or_none()

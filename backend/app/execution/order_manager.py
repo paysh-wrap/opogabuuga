@@ -16,7 +16,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 
-from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill
+from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill, round_to_tick
 from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerError, Fill, Side
 from app.management.drawdown_guard import ratchet, runner_stop, split_legs
 from app.management.exits import adverse_half_due, early_exit_allowed, exit_allowed_now
@@ -52,6 +52,7 @@ class OpenTrade:
     partial_done: bool = False
     locked: bool = False
     half_used: bool = False
+    runner_trail: Decimal | None = None  # scalp runner: trail distance in R after the first half is banked
 
     @property
     def d(self) -> Direction:
@@ -91,11 +92,18 @@ class OrderManager:
     min_hold_s: int = 6
     early_exit_until_r: Decimal = Decimal(1)
     split_for_defence: bool = False
+    scalp_runner: tuple[Decimal, Decimal] | None = None  # (runner target R, trail R) when Scalp mode is on
     trades: dict[str, OpenTrade] = field(default_factory=dict)
     _ids: itertools.count[int] = field(default_factory=lambda: itertools.count(1))
 
     # ---------- open ----------
-    def legs_for(self, plan: TradePlan, n: int, guard_on: bool) -> list[Leg]:
+    def legs_for(self, plan: TradePlan, n: int, guard_on: bool, tick: Decimal | None = None) -> list[Leg]:
+        if self.scalp_runner is not None and plan.mode == "ONE_TO_ONE" and n >= 2 and tick is not None:
+            # Scalp: half takes the quick target, half runs (stop → breakeven after the first half, then trails).
+            runner_r, _ = self.scalp_runner
+            a, b = split_legs(n)
+            far = round_to_tick(plan.entry + plan.direction.sign * runner_r * plan.risk_pts, tick, toward=plan.entry)
+            return [Leg("A", a, plan.take_profit), Leg("B", b, far)]
         split = (guard_on or plan.mode == "ONE_TO_ONE") and n >= 2 and plan.partial_price is not None
         if split:
             a, b = split_legs(n)
@@ -149,7 +157,7 @@ class OrderManager:
             tick,
             tick_value,
             now,
-            self.legs_for(plan, contracts, guard_on),
+            self.legs_for(plan, contracts, guard_on, tick),
             rr_window,
         )
         for leg in t.legs:
@@ -162,6 +170,8 @@ class OrderManager:
                 await self._emergency_flatten(t)
                 raise
             leg.bracket_id, leg.stop_order_id, leg.stop = ack.bracket_id, ack.stop_order_id, plan.stop
+        if self.scalp_runner is not None and len(t.legs) == 2 and t.legs[0].name == "A" and plan.mode == "ONE_TO_ONE":
+            t.runner_trail = self.scalp_runner[1]
         self.trades[t.trade_id] = t
         return t
 
@@ -230,10 +240,11 @@ class OrderManager:
                 continue
             fav = high if t.d is Direction.LONG else low
             t.best = fav if t.best is None or (fav - t.best) * t.d.sign > 0 else t.best
-            if t.guard_on and t.partial_done and t.plan.breakeven_price is not None:
+            trail = t.runner_trail or (self.trail_r if t.guard_on else None)
+            if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")
                 if not b.closed:
-                    out += await self._move_stop(t, b, runner_stop(t.plan, t.best, self.trail_r, t.tick), "TRAIL")
+                    out += await self._move_stop(t, b, runner_stop(t.plan, t.best, trail, t.tick), "TRAIL")
             single_1to1 = t.plan.mode == "ONE_TO_ONE" and len(t.legs) == 1 and not t.locked
             p, lock = t.plan.partial_price, t.plan.lock_price
             if single_1to1 and p is not None and lock is not None and (t.best - p) * t.d.sign >= 0:

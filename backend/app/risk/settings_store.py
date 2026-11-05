@@ -66,6 +66,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "scalp_mode.enabled",
         "scalp_mode.target_r",
         "scalp_mode.max_hold_s",
+        "scalp_mode.runner_r",
+        "scalp_mode.trail_r",
         *(
             f"eval_mode.{k}"
             for k in (
