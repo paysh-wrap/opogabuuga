@@ -224,6 +224,20 @@ class SimAdapter:
                     o.role,
                 )
 
+    async def cancel_entry(self, acct: str, bracket_id: str) -> None:
+        """Cancel ONE bracket whose entry has not filled (its stop + target go with it). Filled legs are untouched."""
+        self._check("cancel_entry")
+        a = self._acct(acct)
+        b = a.brackets.get(bracket_id)
+        if b is None or b.done or b.entry_filled:
+            raise BrokerError(f"sim: bracket {bracket_id} has no working entry")
+        b.done = True
+        for oid in (b.entry_id, b.stop_id, b.tp_id):
+            o = a.orders[oid]
+            a.orders[oid] = Order(
+                o.order_id, o.account_id, o.symbol, o.side, o.qty, o.kind, o.price, "CANCELLED", o.bracket_id, o.role
+            )
+
     @staticmethod
     def _protects_open(a: _Account, o: Order) -> bool:
         b = a.brackets.get(o.bracket_id or "")

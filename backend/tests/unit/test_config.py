@@ -32,7 +32,7 @@ def test_exact_spec_values(loaded_rules):
     assert r.eval_mode.risk_pct_by_score == {60: Decimal("0.10"), 75: Decimal("0.12"), 90: Decimal("0.14")}
     assert r.eval_mode.max_risk_usd == 140 and r.eval_mode.warmup_trades == 10
     assert r.eval_mode.applies_to_stages == ["EVAL"] and r.eval_mode.pace_escalation is False
-    assert r.trade_plan.rr_min == 2 and r.trade_plan.rr_max == 3
+    assert r.trade_plan.rr_min == Decimal("1.75") and r.trade_plan.rr_max == 3  # D35 (user: 1.75)
     assert r.payouts.sweep_above == r.internal.cushion_target_balance == 28100
     assert r.automation.default_mode == "OFF"
     assert r.behavior.max_open_positions_per_account == 1

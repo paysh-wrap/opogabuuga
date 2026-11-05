@@ -267,3 +267,19 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - Approved safety fixes from the review: feed-independent watchdog (flat/news/MLL), 16:44 hard flat enforced with
   retries, flatten exits book real fill P&L, failed emergency flatten stays tracked + retried.
 - $50–70k/year analysis dropped for now (user).
+
+## D35 — More signals on MGC/MNQ (user, 2026-11-05)
+- R:R minimum 1.75 (was 2.0), all plans. User: "I'll settle with 1.75". Target: MGC 2–4 signals/day, MGC+MNQ 3–5 trades/day.
+- New strategy switches (defaults = old behaviour; set per plan once proven on futures data):
+  filters.require_mso_agree / require_structure_break (G4/G5 hard vs score-only), filters.t1_through_ok_with_limit,
+  score.exclude_unknown (neutral bias / unproven T2 rate leave the max instead of scoring 0), profiles.enabled
+  (["STD"] = intraday 5m→1H only).
+- Fixed: entry.mode limit_cisd now sends LIMIT brackets (before: market orders → every fill failed the R:R recheck),
+  unfilled limits cancel after limit_timeout_bars and don't count as trades. Live partial-leg cancel not supported by
+  CrossTrade (account pauses) — VERIFY before live.
+- Futures test (Yahoo MGC=F/MNQ=F 1m, 18 sessions, neutral bias): as built 0 trades. Best so far "c4" (1.75R, limit
+  CISD, G4/G5 score-only, exclude_unknown, neutral min 60, C1 ≥ 0.4 ATR, T1-through OK with limit, MGC 03:00–15:30,
+  MNQ 06:45–15:30, max 5/day): MGC 19 trades (~1/day) 42% win, PF 1.43; MNQ 10 trades, 10% win (TIGHT 1m stops in
+  2–8 min). STD-only: ~0.2/day. Half of MGC passes don't fill (limit timeout). Sample far too small → need longer
+  futures history before setting any of these live.
+- UI modes requested by user: Scalping, Intraday, Low risk, 1:1.

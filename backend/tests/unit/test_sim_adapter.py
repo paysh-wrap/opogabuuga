@@ -80,3 +80,30 @@ def test_bracket_requires_stop_and_tp():
         BracketRequest("c", "MNQ", "BUY", 0, D(1), D(2))
     with pytest.raises(ValueError):
         BracketRequest("c", "MNQ", "BUY", 1, None, D(2))  # type: ignore[arg-type]
+
+
+async def test_cancel_entry_cancels_only_that_unfilled_bracket():
+    from datetime import UTC, datetime
+
+    from app.clock import FixedClock
+    from app.execution.adapters.base import BracketRequest
+
+    sim = SimAdapter(
+        FixedClock(datetime(2026, 11, 5, 15, tzinfo=UTC)), {"MNQ": SimInstrument(D("0.25"), D("0.5"), D(1))}, 0
+    )
+    sim.add_account("A", D(25000))
+    sim.last["MNQ"] = D(20000)
+    mk = lambda cid, px: BracketRequest(cid, "MNQ", "BUY", 1, D(19980), D(20040), "LIMIT", px)  # noqa: E731
+    a = await sim.place_bracket("A", mk("a", D(19990)))
+    b = await sim.place_bracket("A", mk("b", D(19990)))
+    await sim.cancel_entry("A", b.bracket_id)
+    assert {o.bracket_id for o in await sim.get_orders("A")} == {a.bracket_id}
+    sim.on_bar("MNQ", D(19995), D(19996), D(19989), D(19992), datetime(2026, 11, 5, 15, 1, tzinfo=UTC))
+    assert [p.qty for p in await sim.get_positions("A")] == [1]  # only A filled
+    with pytest.raises(BrokerError):
+        await sim.cancel_entry("A", a.bracket_id)  # filled: nothing to cancel
+    with pytest.raises(BrokerError):
+        await sim.cancel_entry("A", b.bracket_id)  # already cancelled
+    sim.fail_next.add("cancel_entry")
+    with pytest.raises(BrokerError):
+        await sim.cancel_entry("A", b.bracket_id)

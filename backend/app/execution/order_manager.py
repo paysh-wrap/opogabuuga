@@ -4,6 +4,9 @@ Safety rules enforced here:
 - every leg is a full bracket (stop + take-profit), never a naked entry;
 - if any leg fails to place, the account is flattened and paused (no half-protected position);
 - a market fill is re-checked against the 2–3R window; outside it → flatten (RR_INVALID_AFTER_FILL);
+- limit_cisd mode: every leg is a LIMIT bracket at the planned entry (stop + TP attached); an entry still unfilled
+  after the timeout is cancelled (LIMIT_TIMEOUT) and is never booked as a trade; a failed cancel pauses the
+  account and is retried, a working order is never left behind silently;
 - a failed stop modification → flatten + pause (§8), never left at the old stop silently.
 """
 
@@ -58,6 +61,8 @@ class OpenTrade:
     exit_qty: int = 0  # unmatched (flatten) exit fills accumulated while closing
     exit_notional: Decimal = Decimal(0)
     exit_fee: Decimal = Decimal(0)
+    pending_until: datetime | None = None  # limit entries: cancel the unfilled legs from this moment on
+    cancel_alerted: bool = False  # a failed entry cancel already raised the pause/banner (retries stay quiet)
 
     @property
     def d(self) -> Direction:
@@ -93,7 +98,7 @@ class OrphanedPosition(BrokerError):
 
 @dataclass(frozen=True)
 class Event:
-    kind: Literal["OPENED", "CLOSED", "PAUSE", "FLATTENED", "STOP_MOVED"]
+    kind: Literal["OPENED", "CLOSED", "PAUSE", "FLATTENED", "STOP_MOVED", "CANCELLED", "ENTRY_TRIMMED"]
     trade: OpenTrade
     detail: str = ""
 
@@ -159,7 +164,10 @@ class OrderManager:
         tick_value: Decimal,
         now: datetime,
         rr_window: tuple[Decimal, Decimal, Decimal, Decimal, int, int],
+        entry_mode: Literal["market", "limit_cisd"] = "market",
+        limit_deadline: datetime | None = None,
     ) -> OpenTrade:
+        limit = entry_mode == "limit_cisd"
         side: Side = "BUY" if plan.direction is Direction.LONG else "SELL"
         t = OpenTrade(
             f"T{next(self._ids)}",
@@ -172,12 +180,22 @@ class OrderManager:
             now,
             self.legs_for(plan, contracts, guard_on, tick),
             rr_window,
+            pending_until=limit_deadline if limit else None,
         )
         for leg in t.legs:
             try:
                 ack = await self.adapter.place_bracket(
                     account,
-                    BracketRequest(f"{t.trade_id}-{leg.name}", symbol, side, leg.qty, plan.stop, leg.take_profit),
+                    BracketRequest(
+                        f"{t.trade_id}-{leg.name}",
+                        symbol,
+                        side,
+                        leg.qty,
+                        plan.stop,
+                        leg.take_profit,
+                        "LIMIT" if limit else "MARKET",
+                        plan.entry if limit else None,
+                    ),
                 )
             except BrokerError as e:
                 if not await self._emergency_flatten(t):
@@ -216,28 +234,77 @@ class OrderManager:
         out: list[Event] = []
         if f.role == "ENTRY":
             leg.entry = f.price
-            if all(x.entry is not None for x in t.legs) and t.plan.mode == "STANDARD":
-                inv, t2, rmin, rmax, buf, mst = t.rr_window
-                avg = sum(((x.entry or Decimal(0)) * x.qty for x in t.legs), Decimal(0)) / t.qty
-                p = rebuild_after_fill(t.plan, avg, inv, t2, t.tick, buf, mst, rmin, rmax)
-                if isinstance(p, Skip):
-                    await self.adapter.flatten(t.account)
-                    t.closing = "RR_INVALID_AFTER_FILL"  # stays tracked until the exit fill books the real P&L
-                    out.append(Event("FLATTENED", t, "RR_INVALID_AFTER_FILL"))
-            if all(x.entry is not None for x in t.legs):
-                out.append(Event("OPENED", t))
-            return out
+            if t.pending_until is not None and t.opened_at < f.at:
+                t.opened_at = f.at  # limit entries: the hold rule (D8) runs from the fill, not from the order
+            return await self._entries_done(t) if all(x.entry is not None for x in t.legs) else out
         leg.exit, leg.fee, leg.closed = f.price, f.fee, True
         if f.role == "TP" and leg.name == "A":
             t.partial_done = True
-            b = next(x for x in t.legs if x.name == "B")
+            b = next((x for x in t.legs if x.name == "B"), None)  # absent when B's limit entry was cancelled
             be = t.plan.breakeven_price
-            if not b.closed and be is not None:
+            if b is not None and not b.closed and be is not None:
                 out += await self._move_stop(t, b, be, "BREAKEVEN")
         if t.closed:
             del self.trades[t.trade_id]
             out.append(Event("CLOSED", t, f.role))
         return out
+
+    async def _entries_done(self, t: OpenTrade) -> list[Event]:
+        """Every remaining leg is filled: re-check the 2–3R window with the average fill (§7), then report OPENED.
+        A better-than-limit fill never fails the check (the rebuilt plan is capped at rr_max); only a real window
+        violation flattens."""
+        out: list[Event] = []
+        t.pending_until = None
+        if t.plan.mode == "STANDARD":
+            inv, t2, rmin, rmax, buf, mst = t.rr_window
+            avg = sum(((x.entry or Decimal(0)) * x.qty for x in t.legs), Decimal(0)) / t.qty
+            p = rebuild_after_fill(t.plan, avg, inv, t2, t.tick, buf, mst, rmin, rmax)
+            if isinstance(p, Skip):
+                await self.adapter.flatten(t.account)
+                t.closing = "RR_INVALID_AFTER_FILL"  # stays tracked until the exit fill books the real P&L
+                out.append(Event("FLATTENED", t, "RR_INVALID_AFTER_FILL"))
+        out.append(Event("OPENED", t))
+        return out
+
+    # ---------- unfilled limit entries ----------
+    @staticmethod
+    def has_unfilled(t: OpenTrade) -> bool:
+        return any(x.entry is None and x.bracket_id for x in t.legs)
+
+    async def expire_unfilled(self, now: datetime) -> list[Event]:
+        """Cancel the working entries of every limit trade whose timeout has passed (LIMIT_TIMEOUT)."""
+        out: list[Event] = []
+        for t in list(self.trades.values()):
+            if t.pending_until is not None and now >= t.pending_until and not t.closing and self.has_unfilled(t):
+                out += await self.cancel_unfilled(t, "LIMIT_TIMEOUT")
+        return out
+
+    async def cancel_unfilled(self, t: OpenTrade, reason: str) -> list[Event]:
+        """Cancel the unfilled limit entries of a trade (their stop + TP go with them).
+        Nothing filled → the trade is dropped (CANCELLED, never booked). Some legs filled → only the unfilled legs
+        are removed (ENTRY_TRIMMED) and the filled ones are managed normally. A failed cancel keeps everything
+        tracked, pauses the account once and is retried by the caller (never a silent working order)."""
+        pending = [x for x in t.legs if x.entry is None and x.bracket_id]
+        if not pending:
+            return []
+        filled = any(x.entry is not None for x in t.legs)
+        try:
+            if filled:  # a per-bracket cancel: an account-wide cancel would also remove the filled leg's stop
+                for leg in pending:
+                    await self.adapter.cancel_entry(t.account, leg.bracket_id)
+            else:
+                await self.adapter.cancel_all(t.account)
+        except BrokerError as e:
+            if t.cancel_alerted:
+                return []
+            t.cancel_alerted = True
+            return [Event("PAUSE", t, f"LIMIT_CANCEL_FAILED: {e}")]
+        t.pending_until = None
+        if not filled:
+            self.trades.pop(t.trade_id, None)
+            return [Event("CANCELLED", t, reason)]
+        t.legs = [x for x in t.legs if x not in pending]
+        return [Event("ENTRY_TRIMMED", t, reason)] + await self._entries_done(t)
 
     def _closing_fill(self, f: Fill) -> list[Event]:
         """Exit fill of a flatten order (no bracket id, e.g. CrossTrade polling): books the real exit price on the

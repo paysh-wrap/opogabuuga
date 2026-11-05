@@ -202,12 +202,19 @@ class Filters(_M):
     c1_min_range_atr: D
     htf_atr_period: int
     model_fail_cooldown: Cooldown
+    # D35: G4 (MSO trend/osc agrees) and G5 (CHoCH/BoS after the sweep) as hard gates (true) or score-only (false).
+    # Both still earn/lose score points either way.
+    require_mso_agree: bool = True
+    require_structure_break: bool = True
+    # D35: in limit_cisd entry mode, T1 already touched is not a skip (the limit only fills on a full retrace to CISD)
+    t1_through_ok_with_limit: bool = False
 
 
 class ScoreCfg(_M):
     weights: dict[str, D]
     min_score: D
     neutral_min_score: D
+    exclude_unknown: bool = False  # D35: unknown items (neutral bias, unproven T2 rate) leave the maximum
     osc_strength_min: D
     tp_rate_min: D
     tp_rate_min_samples: int
@@ -232,6 +239,8 @@ class Profiles(_M):
     TIGHT: ProfileTF
     STD: ProfileTF
     std_min_risk_base: D
+    # D35: which profiles may trade. ["STD"] = intraday 5m→1H only (user: intraday over scalping).
+    enabled: list[Literal["TIGHT", "STD"]] = Field(default_factory=lambda: ["TIGHT", "STD"], min_length=1)  # type: ignore[arg-type]
 
 
 class GuardCfg(_M):

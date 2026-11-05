@@ -37,8 +37,8 @@ Full spec: `docs/MASTER_PROMPT_v9.2.md` (binding; user to add verbatim). This fi
 - Score (sizing only), normalized to 100; < min_score(60) → no trade; NEUTRAL bias needs ≥ 75. Every skip stores a reason code.
 - Profiles: TIGHT 1m→15m (risk base < $1,500), STD 5m→1H (≥ $1,500). MNQ core; MES only after §16.6 gate.
 
-## TradePlan (§7) — R:R 2.0–3.0 [Pillar]
-stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID / STOP_TOO_TIGHT / RR_BELOW_MIN; TP = min(T2, 3R) rounded toward entry; recheck ≥2R after rounding. After market fill: rebuild with fill price; outside 2–3R → flatten "RR_INVALID_AFTER_FILL".
+## TradePlan (§7) — R:R 1.75–3.0 [Pillar; D35 user-approved 1.75 min]
+stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID / STOP_TOO_TIGHT / RR_BELOW_MIN; TP = min(T2, 3R) rounded toward entry; recheck ≥ rr_min after rounding. After a fill: rebuild with fill price; outside rr_min–3R → flatten "RR_INVALID_AFTER_FILL".
 
 ## Drawdown Guard (§8) [Pillar]
 - auto: ON only if drawdown_type == intraday AND MLL not locked. EVAL (EOD) → OFF.
@@ -101,3 +101,5 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   risk/{settings_store,holder} (versioned settings; app.state.rules = RulesHolder) · signals/{service,stats} ·
   webhook/ · api/{routes,webhook,signals,risk}.
 - `make test` fails below 100% coverage on risk/, management/, phases/ (§9). Never lower the bar to pass.
+- User prefs: all subagents on Sonnet. Focus MGC + MNQ futures only (no spot). Intraday > scalping. UI modes: Scalping,
+  Intraday, Low risk, 1:1. Target 3–5 trades/day total (MGC 2–4). Never break Lucid rules.

@@ -298,3 +298,49 @@ def test_regime_tags():
         "bias": "LONG_ONLY",
         "one_to_one": False,
     }
+
+
+def test_score_exclude_unknown_d35():
+    w = CFG.score.weights
+    # NEUTRAL day + unproven T2 rate: CISD 25 + CHoCH 20 + osc 15 + HTF 10 = 70 of 100
+    x = ScoreInputs(True, True, False, D(70), None, False, True, bias_known=False)
+    assert compute_score(x, w, D(15), D("0.45"), D(0), D(0)).score == D(70)
+    r = compute_score(x, w, D(15), D("0.45"), D(0), D(0), exclude_unknown=True)
+    assert r.max_points == 70 and r.score == D(100) and "bias_aligned" not in r.earned
+    # a KNOWN miss (bias against the trade) still counts as 0
+    known = ScoreInputs(True, True, False, D(70), D("0.40"), False, True, bias_known=True)
+    k = compute_score(known, w, D(15), D("0.45"), D(0), D(0), exclude_unknown=True)
+    assert k.max_points == 100 and k.score == D(70)
+
+
+def test_soft_structure_gates_d35():
+    soft = CFG.model_copy(
+        update={
+            "filters": CFG.filters.model_copy(update={"require_mso_agree": False, "require_structure_break": False})
+        }
+    )
+    x = good(mso_trend="BEAR", mso_events=())
+    hard = evaluate(x, CFG)
+    assert hard.outcome != "PASS" and {g.code for g in hard.gates} >= {"MSO_STRUCTURE_DISAGREES", "NO_STRUCTURE_BREAK"}
+    d = evaluate(x, soft)
+    g4 = next(g for g in d.gates if g.gate == "G4")
+    g5 = next(g for g in d.gates if g.gate == "G5")
+    assert g4.passed and "soft" in g4.detail and g5.passed and "soft" in g5.detail
+
+
+def test_t1_through_allowed_with_limit_entry_d35():
+    x = good(model=model(cisd_level=D(19998), events=(("MODEL_CONFIRMED", MS - 10 * MIN), ("T1_HIT", MS - 2 * MIN))))
+    assert any(g.code == "T1_TRADED_THROUGH" for g in evaluate(x, CFG).gates)
+    cfg = CFG.model_copy(
+        update={
+            "entry": CFG.entry.model_copy(update={"mode": "limit_cisd"}),
+            "filters": CFG.filters.model_copy(update={"t1_through_ok_with_limit": True}),
+        }
+    )
+    assert not any(g.code == "T1_TRADED_THROUGH" for g in evaluate(x, cfg).gates)
+
+
+def test_profile_disabled_d35():
+    cfg = CFG.model_copy(update={"profiles": CFG.profiles.model_copy(update={"enabled": ["STD"]})})
+    d = evaluate(good(), cfg)
+    assert d.outcome == "SKIP" and d.skip_reason == "PROFILE_DISABLED"

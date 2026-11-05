@@ -23,6 +23,7 @@ class ScoreInputs:
     htf_agrees: bool
     session_open_c1: bool = False
     smt_divergence: bool = False
+    bias_known: bool = True  # False on a NEUTRAL day: no side to agree with (D35)
 
 
 @dataclass(frozen=True)
@@ -39,7 +40,10 @@ def compute_score(
     tp_rate_min: Decimal,
     session_open_weight: Decimal,
     smt_weight: Decimal,
+    exclude_unknown: bool = False,
 ) -> ScoreResult:
+    """exclude_unknown (D35): items that cannot be known yet — bias on a NEUTRAL day, own T2 rate before
+    tp_rate_min_samples — are left out of the maximum instead of scoring 0. A known miss still scores 0."""
     w = weights
     earned = {
         "cisd_before_c2_close": w["cisd_before_c2_close"] if x.cisd_before_c2_close else D0,
@@ -59,6 +63,13 @@ def compute_score(
         + w["bias_aligned"]
         + w["htf_mso_agrees"]
     )
+    if exclude_unknown:
+        if not x.bias_known:
+            del earned["bias_aligned"]
+            max_points -= w["bias_aligned"]
+        if x.own_tp_rate is None:
+            del earned["own_tp_rate"]
+            max_points -= w["own_tp_rate"]
     if session_open_weight > 0:
         earned["session_open_c1"] = session_open_weight if x.session_open_c1 else D0
         max_points += session_open_weight

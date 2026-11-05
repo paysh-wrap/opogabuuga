@@ -83,6 +83,9 @@ class TradersPostAdapter:
         for sym in self.tv_symbols.values():
             await self._send(acct, {"ticker": sym, "action": "cancel"})
 
+    async def cancel_entry(self, acct: str, bracket_id: str) -> None:
+        raise BrokerError("traderspost: cancelling a single entry order is not supported")
+
     async def modify_stop(self, acct: str, order_id: str, price: Decimal) -> bool:
         return False  # not supported → callers flatten + pause; guard/1:1 trades are refused on this route
 

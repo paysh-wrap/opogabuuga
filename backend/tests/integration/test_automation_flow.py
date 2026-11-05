@@ -57,11 +57,11 @@ def test_kill_switch_flattens_disarms_and_turns_off(authed, clock):
     assert authed.patch(f"/api/accounts/{aid}", json={"armed": True}).status_code == 409  # never auto-resumes
 
 
-def test_slippage_past_2r_is_flattened_immediately(authed, clock):
+def test_slippage_below_min_rr_is_flattened_immediately(authed, clock):
     setup(authed, clock)
     authed.app.state.controller.mode = "FULL"
     choch(authed, clock)
-    hb(authed, clock, MS - 2 * MIN, close="20010")  # exactly 2R; 1 tick slippage → 1.98R
+    hb(authed, clock, MS - 2 * MIN, close="20012.5")  # 1.77R; 1 tick slippage → 1.748R < 1.75 (D35)
     confirm(authed, clock)
     assert authed.get("/api/trades").json()["trades"][0]["exit_reason"] == "RR_INVALID_AFTER_FILL"
 

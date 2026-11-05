@@ -113,6 +113,8 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
     def g1() -> Gate:
         if not inst.enabled:
             return Gate("G1", False, "INSTRUMENT_DISABLED", hard=True)
+        if x.profile not in cfg.profiles.enabled:
+            return Gate("G1", False, "PROFILE_DISABLED", hard=True)
         if x.cooldown_active:
             return Gate("G1", False, "COOLDOWN", hard=True)
         if not x.feed_fresh:
@@ -146,7 +148,8 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
             return Gate("G3", False, "MODEL_NOT_CONFIRMED")
         if x.model_traded:
             return Gate("G3", False, "MODEL_ALREADY_TRADED", hard=True)
-        if t1_after_confirm and not m.t1_preticked:
+        limit_retrace = cfg.entry.mode == "limit_cisd" and cfg.filters.t1_through_ok_with_limit
+        if t1_after_confirm and not m.t1_preticked and not limit_retrace:
             return Gate("G3", False, "T1_TRADED_THROUGH", hard=True)
         if not rng_ok:
             return Gate(
@@ -165,7 +168,10 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         g4 = x.mso_trend == "BULL" and x.mso_osc is not None and x.mso_osc > 50
     else:
         g4 = x.mso_trend == "BEAR" and x.mso_osc is not None and x.mso_osc < 50
-    gates.append(Gate("G4", g4, "OK" if g4 else "MSO_STRUCTURE_DISAGREES"))
+    if g4 or cfg.filters.require_mso_agree:
+        gates.append(Gate("G4", g4, "OK" if g4 else "MSO_STRUCTURE_DISAGREES"))
+    else:  # D35 score-only: recorded, not blocking
+        gates.append(Gate("G4", True, "OK", detail="soft: MSO disagrees"))
 
     # ---- G5: CHoCH/BoS in direction confirmed at/after the sweep
     breaks = [
@@ -175,7 +181,10 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
     ]
     choch = any(e == "MSO_CHOCH" for e, _ in breaks)
     bos = any(e == "MSO_BOS" for e, _ in breaks)
-    gates.append(Gate("G5", bool(breaks), "OK" if breaks else "NO_STRUCTURE_BREAK"))
+    if breaks or cfg.filters.require_structure_break:
+        gates.append(Gate("G5", bool(breaks), "OK" if breaks else "NO_STRUCTURE_BREAK"))
+    else:  # D35 score-only: recorded, not blocking
+        gates.append(Gate("G5", True, "OK", detail="soft: no structure break"))
 
     # ---- G6: no opposing divergence within lookback
     opp = Direction.SHORT.value if d is Direction.LONG else Direction.LONG.value
@@ -227,12 +236,14 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
             htf_agrees=x.htf_trend == ("BULL" if d is Direction.LONG else "BEAR"),
             session_open_c1=session_open_c1(m.c1_time_ms, cfg.score.session_open_times),
             smt_divergence=x.smt_divergence and cfg.smt.enabled,
+            bias_known=x.bias != "NEUTRAL",
         ),
         cfg.score.weights,
         cfg.score.osc_strength_min,
         cfg.score.tp_rate_min,
         cfg.score.session_open_c1_weight,
         cfg.score.smt_weight if cfg.smt.enabled else Decimal(0),
+        cfg.score.exclude_unknown,
     )
     need = cfg.score.neutral_min_score if x.bias == "NEUTRAL" else cfg.score.min_score
     score_ok = score.score >= need

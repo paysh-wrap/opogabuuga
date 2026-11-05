@@ -26,6 +26,7 @@ from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager, OrphanedPosition
+from app.indicators.bars import tf_minutes
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
 from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
@@ -340,7 +341,8 @@ class Controller:
             True,
             st.attested_today(s, now),
             st.payout_pending(s, a),
-            any(p.account == a.broker_account_id for p in positions),
+            any(p.account == a.broker_account_id for p in positions)
+            or any(t.account == a.broker_account_id and self.om.has_unfilled(t) for t in self.om.trades.values()),
             a.paused_reason,
             equity,
             mll.mll,
@@ -407,6 +409,8 @@ class Controller:
                 inst.tick_value,
                 now,
                 rr_window,
+                r.entry.mode,
+                self._limit_deadline(sig, now),
             )
         except OrphanedPosition as e:
             # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
@@ -431,6 +435,14 @@ class Controller:
         for f in self.adapter.drain_fills():
             await self._handle_events(s, await self.om.on_fill(f))
         return AccountResult(a.id, True, None, pt.contracts, t.trade_id, pt.checks)
+
+    def _limit_deadline(self, sig: Signal, now: datetime) -> datetime | None:
+        """limit_cisd: the entry may work for limit_timeout_bars bars of the signal's (LTF) timeframe."""
+        r = self.rules.rules
+        if r.entry.mode != "limit_cisd":
+            return None
+        ltf = r.profiles.TIGHT.ltf if sig.profile == "TIGHT" else r.profiles.STD.ltf
+        return now + timedelta(minutes=r.entry.limit_timeout_bars * tf_minutes(ltf))
 
     def _persist_trade(
         self,
@@ -487,6 +499,7 @@ class Controller:
             with self.sessionmaker() as s:
                 for f in self.adapter.on_bar(symbol, o, h, low, c, at):
                     await self._handle_events(s, await self.om.on_fill(f))
+                await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
                 await self._handle_events(s, await self.om.on_bar(symbol, h, low))
                 await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
@@ -528,6 +541,14 @@ class Controller:
                 self._close_trade(s, e.trade, reason)
             elif e.kind == "PAUSE":
                 self._pause(s, e.trade.account, e.detail)
+            elif e.kind == "CANCELLED":
+                self._drop_unfilled_trade(s, e.trade, e.detail)
+            elif e.kind == "ENTRY_TRIMMED":
+                row = s.execute(select(Trade).where(Trade.trade_ref == e.trade.trade_id)).scalar_one_or_none()
+                if row is not None:
+                    row.qty = e.trade.qty
+                    row.legs = [{"name": x.name, "qty": x.qty, "tp": str(x.take_profit)} for x in e.trade.legs]
+                self.notify("warn", "Unfilled limit leg cancelled", f"{e.trade.account}: {e.detail}")
             elif e.kind == "FLATTENED":
                 self.notify("warn", "Position flattened", f"{e.trade.account}: {e.detail}")
                 e.trade.closing = e.trade.closing or e.detail
@@ -537,6 +558,34 @@ class Controller:
 
     def _acct(self, s: Session, ext: str) -> Account | None:
         return s.execute(select(Account).where(Account.broker_account_id == ext)).scalar_one_or_none()
+
+    def _drop_unfilled_trade(self, s: Session, t: OpenTrade, reason: str) -> None:
+        """A limit entry that never filled (timeout / flatten / news): NOT a trade — no P&L, no win/loss, no count
+        towards max_trades_per_day. The persisted row is removed and the audit log keeps the record."""
+        a = self._acct(s, t.account)
+        row = s.execute(select(Trade).where(Trade.trade_ref == t.trade_id)).scalar_one_or_none()
+        if row is not None:
+            s.delete(row)
+        for o in s.execute(
+            select(Order).where(Order.broker_order_id.in_([x.bracket_id for x in t.legs if x.bracket_id]))
+        ).scalars():
+            o.status = "CANCELLED"
+        if a is not None:
+            ds = st.day_stats(s, a, self.clock.now())
+            ds.trades = max(0, ds.trades - 1)
+            audit.record(
+                s, self.clock, "automation", "trade.limit_cancelled", t.account, {"ref": t.trade_id, "reason": reason}
+            )
+            self.notify("info", "Limit entry cancelled", f"{a.label}: {reason}")
+
+    async def limit_timeout_check(self) -> None:
+        """Wall-clock watchdog step: cancel limit entries past their timeout (also retries a failed cancel)."""
+        if not any(t.pending_until is not None for t in self.om.trades.values()):
+            return
+        async with self.lock:
+            with self.sessionmaker() as s:
+                await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
+                s.commit()
 
     def _close_trade(self, s: Session, t: OpenTrade, reason: str) -> None:
         row = s.execute(select(Trade).where(Trade.trade_ref == t.trade_id)).scalar_one_or_none()
@@ -663,11 +712,21 @@ class Controller:
         except BrokerError:
             return True
 
+    async def _cancel_entries(self, s: Session, ext: str, reason: str) -> bool:
+        """Cancel the working (unfilled) limit entries of an account before it is flattened."""
+        ok = True
+        for t in [t for t in self.om.trades.values() if t.account == ext and self.om.has_unfilled(t)]:
+            events = await self.om.cancel_unfilled(t, reason)
+            ok = ok and any(e.kind in ("CANCELLED", "ENTRY_TRIMMED") for e in events)
+            await self._handle_events(s, events)
+        return ok
+
     async def _flatten_account(self, s: Session, a: Account, reason: str) -> bool:
         """Flatten via the broker. Tracked trades stay 'closing' until their exit fill books the real P&L (instant on
         the simulator, later on CrossTrade). Returns False when the broker call failed (caller retries/escalates)."""
         ext = a.broker_account_id
         self._flatten_reason = reason
+        cancel_ok = await self._cancel_entries(s, ext, reason)
         try:
             await self.adapter.flatten(ext)
         except BrokerError as e:
@@ -676,6 +735,12 @@ class Controller:
                 self._flatten_alerted.add(ext)
                 self.notify("error", "FLATTEN FAILED — act manually in Tradovate", f"{a.label}: {e}")
             return False
+        if not cancel_ok:
+            self._flatten_reason = None
+            if ext not in self._flatten_alerted:
+                self._flatten_alerted.add(ext)
+                self.notify("error", "ENTRY CANCEL FAILED — act manually in Tradovate", a.label)
+            return False  # a working entry is still out there: the watchdog retries
         self._flatten_alerted.discard(ext)
         now = self.clock.now()
         for t in [t for t in self.om.trades.values() if t.account == ext]:
@@ -784,7 +849,8 @@ class Controller:
             with self.sessionmaker() as s:
                 for t in [t for t in self.om.trades.values() if t.closing]:
                     a = self._acct(s, t.account)
-                    if a is None:
+                    reason = t.closing
+                    if a is None or reason is None:
                         continue
                     t.closing_since = t.closing_since or now
                     try:
@@ -792,10 +858,10 @@ class Controller:
                     except BrokerError:
                         continue
                     if any(p.symbol == t.symbol and p.qty != 0 for p in pos):
-                        await self._flatten_account(s, a, t.closing)
+                        await self._flatten_account(s, a, reason)
                     elif (now - t.closing_since).total_seconds() >= CLOSE_GRACE_S:
-                        self.notify("error", "Exit fill missing — P&L unverified", f"{a.label}: {t.closing}")
-                        self._close_trade(s, t, t.closing)
+                        self.notify("error", "Exit fill missing — P&L unverified", f"{a.label}: {reason}")
+                        self._close_trade(s, t, reason)
                 s.commit()
 
     async def watchdog_tick(self, news_events: list[Any] | None) -> None:
@@ -805,6 +871,7 @@ class Controller:
             ("news", self.news_check(news_events)),
             ("monitor", self.monitor_accounts()),
             ("closing", self.retry_closing()),
+            ("limit_timeout", self.limit_timeout_check()),
         ]
         for name, coro in steps:
             try:

@@ -156,6 +156,9 @@ class RoutingAdapter:
     async def cancel_all(self, acct: str) -> None:
         await self._for(acct).cancel_all(acct)
 
+    async def cancel_entry(self, acct: str, bracket_id: str) -> None:
+        await self._for(acct).cancel_entry(acct, bracket_id)
+
     async def flatten(self, acct: str) -> None:
         await self._for(acct).flatten(acct)
 

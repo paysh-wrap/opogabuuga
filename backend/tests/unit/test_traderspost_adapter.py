@@ -38,3 +38,9 @@ async def test_errors():
         await tp.flatten("A")
     with pytest.raises(BrokerError):
         TradersPostAdapter({"A": "https://evil.example/x"}, httpx.AsyncClient(), {})
+
+
+async def test_cancel_entry_is_not_supported():
+    tp = make(lambda r: httpx.Response(200, json={"success": True}))
+    with pytest.raises(BrokerError):
+        await tp.cancel_entry("A", "b")

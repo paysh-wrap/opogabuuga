@@ -186,3 +186,8 @@ async def test_stream_fills_skips_history_then_yields_new(monkeypatch):
     f = await gen.__anext__()
     assert f.order_id == "9" and f.side == "SELL"
     await gen.aclose()
+
+
+async def test_cancel_entry_is_refused_not_invented():
+    with pytest.raises(BrokerError, match="not supported"):
+        await make(lambda r: httpx.Response(200, json={})).cancel_entry("LUCID123", "91")

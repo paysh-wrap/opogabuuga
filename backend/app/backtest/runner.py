@@ -121,7 +121,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         dbapi_conn.execute("PRAGMA synchronous=OFF")
 
     payloads: list[dict[str, Any]] = []
-    for prof in cfg.profiles:
+    for prof in [x for x in cfg.profiles if x in rules.profiles.enabled]:  # replay only profiles that may trade
         p = getattr(rules.profiles, prof)
         ltf, htf = int(p.ltf), int(p.htf)
         series = bars if ltf == 1 else aggregate(bars, ltf)
@@ -219,6 +219,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
                         k = f"{p['event']}:{resp.status_code}:{str(body.get('detail', body.get('code', '')))[:40]}"
                         rejects[k] = rejects.get(k, 0) + 1
 
+        assert c.portal is not None  # set while the TestClient context is open
         c.portal.call(replay)
         with st.sessionmaker() as s:
             trades = [

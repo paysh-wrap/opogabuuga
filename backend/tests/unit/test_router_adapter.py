@@ -34,6 +34,9 @@ class FakeLive:
     async def flatten(self, a):
         self.flattened.append(a)
 
+    async def cancel_entry(self, a, bracket_id):
+        self.cancelled = getattr(self, "cancelled", []) + [(a, bracket_id)]
+
     async def health(self):
         from app.execution.adapters.base import AdapterHealth
 
@@ -126,3 +129,9 @@ async def test_on_bar_fills_are_not_left_queued():
     got = r.on_bar("MNQ", D(20000), D(20030), D(20000), D(20025), AT)
     assert [f.role for f in got] == ["TP"]
     assert r.drain_fills() == []  # each fill delivered exactly once
+
+
+async def test_cancel_entry_is_routed_and_never_blocked():
+    r, live, _ = mk()
+    await r.cancel_entry("LUCID1", "b1")
+    assert live.cancelled == [("LUCID1", "b1")]

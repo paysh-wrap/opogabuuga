@@ -215,6 +215,10 @@ class CrossTradeAdapter:
     async def cancel_all(self, acct: str) -> None:
         await self._req("POST", f"/accounts/{acct}/orders/cancel", {}, mutation=True)
 
+    async def cancel_entry(self, acct: str, bracket_id: str) -> None:
+        # Only an account-wide cancel is documented for this adapter, and it would also remove a filled leg's stop.
+        raise BrokerError("crosstrade: cancelling a single entry order is not supported")
+
     async def flatten(self, acct: str) -> None:
         await self._req("POST", f"/accounts/{acct}/positions/flatten", {}, mutation=True)
 

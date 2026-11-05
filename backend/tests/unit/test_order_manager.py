@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
 
@@ -253,3 +254,131 @@ async def test_unmatched_fill_ignored_without_closing_trade_or_open_legs(env):
     for leg in t.legs:
         leg.closed = True
     assert await om.on_fill(f) == []  # nothing left open
+
+
+# ---------- limit_cisd entries ----------
+DEADLINE = AT + timedelta(minutes=20)
+
+
+async def open_limit(sim, om, plan, n, guard, deadline=DEADLINE):
+    t = await om.open_trade("A", "MNQ", plan, n, guard, T, TV, AT, WIN, "limit_cisd", deadline)
+    return t, sim.drain_fills()
+
+
+async def test_limit_mode_places_limit_brackets_with_stop_and_tp(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, fills = await open_limit(sim, om, plan, 1, False)
+    assert fills == []
+    entry = next(o for o in sim.accounts["A"].orders.values() if o.role == "ENTRY")
+    assert (entry.kind, entry.price, entry.status) == ("LIMIT", D(19990), "WORKING")
+    assert {o.role for o in sim.accounts["A"].orders.values()} == {"ENTRY", "STOP", "TP"}
+    assert await sim.get_positions("A") == [] and om.has_unfilled(t)
+
+
+async def test_limit_fill_at_limit_passes_rr_recheck_and_hold_starts_at_fill(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    ev = await pump(sim, om, 19995, 19996, 19989, 19992)
+    assert [e.kind for e in ev] == ["OPENED"] and t.closing is None and t.pending_until is None
+    assert t.legs[0].entry == D(19990) and t.opened_at == AT  # same-instant fill: opened_at not moved back
+
+
+async def test_limit_fill_later_moves_opened_at_to_fill_time(env):
+    sim, om, clock = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    clock.set(AT + timedelta(minutes=5))
+    await pump(sim, om, 19995, 19996, 19989, 19992)
+    assert t.opened_at == AT + timedelta(minutes=5)
+
+
+async def test_gap_through_limit_fills_better_and_trade_is_kept(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    ev = await pump(sim, om, 19985, 19988, 19984, 19986)  # opens below the limit → better price, R:R above 3R
+    assert t.legs[0].entry == D(19985) and [e.kind for e in ev] == ["OPENED"] and t.closing is None
+
+
+async def test_limit_fill_with_broken_window_still_flattens(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    t.rr_window = (D(19981), D(19995), D(2), D(3), 4, 20)  # T2 now too close → below 2R
+    ev = await pump(sim, om, 19995, 19996, 19989, 19992)
+    assert ("FLATTENED", "RR_INVALID_AFTER_FILL") in [(e.kind, e.detail) for e in ev]
+    assert await sim.get_positions("A") == []
+
+
+async def test_unfilled_limit_is_cancelled_at_timeout_and_not_booked(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    await open_limit(sim, om, plan, 1, False)
+    assert await om.expire_unfilled(AT + timedelta(minutes=19)) == []  # not yet
+    ev = await om.expire_unfilled(DEADLINE)
+    assert [(e.kind, e.detail) for e in ev] == [("CANCELLED", "LIMIT_TIMEOUT")]
+    assert om.trades == {} and await sim.get_orders("A") == []
+    assert await pump(sim, om, 19995, 19996, 19980, 19992) == []  # the cancelled order can no longer fill
+    assert await sim.get_positions("A") == []
+
+
+async def test_failed_cancel_pauses_once_and_is_retried(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    sim.fail_next.add("cancel_all")
+    ev = await om.expire_unfilled(DEADLINE)
+    assert [e.kind for e in ev] == ["PAUSE"] and t.trade_id in om.trades
+    sim.fail_next.add("cancel_all")
+    assert await om.expire_unfilled(DEADLINE) == []  # still failing: tracked, retried, banner not repeated
+    ev = await om.expire_unfilled(DEADLINE)
+    assert [e.kind for e in ev] == ["CANCELLED"] and om.trades == {}
+
+
+async def test_partial_fill_cancels_unfilled_leg_and_manages_filled_leg(env):
+    sim, om, _ = env
+    plan = apply_guard(build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20), T, 2)
+    t, _ = await open_limit(sim, om, plan, 2, True)
+    a, b = t.legs
+    # fill only leg A: give B a limit the market never reaches
+    br = sim.accounts["A"].brackets[b.bracket_id]
+    br.req = replace(br.req, limit_price=D(19900))
+    ev = await pump(sim, om, 19995, 19996, 19989, 19992)
+    assert [e.kind for e in ev] == [] and a.entry == D(19990) and b.entry is None
+    ev = await om.expire_unfilled(DEADLINE)
+    assert [e.kind for e in ev] == ["ENTRY_TRIMMED", "OPENED"]
+    assert [x.name for x in t.legs] == ["A"] and t.qty == 1
+    assert [p.qty for p in await sim.get_positions("A")] == [1]  # A (and its stop) still protected
+    assert any(o.role == "STOP" and o.status == "WORKING" for o in await sim.get_orders("A"))
+    ev = await pump(sim, om, 19995, 20031, 19994, 20028)  # leg A's own TP, no leg B to move to breakeven
+    assert [e.kind for e in ev] == ["CLOSED"]
+
+
+async def test_partial_cancel_failure_keeps_everything_tracked(env):
+    sim, om, _ = env
+    plan = apply_guard(build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20), T, 2)
+    t, _ = await open_limit(sim, om, plan, 2, True)
+    t.legs[0].entry = D(19990)  # A filled
+    sim.fail_next.add("cancel_entry")
+    ev = await om.expire_unfilled(DEADLINE)
+    assert [e.kind for e in ev] == ["PAUSE"] and len(t.legs) == 2
+
+
+async def test_closing_or_filled_trades_are_not_expired(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(19990), D(19981), D(20070), T, 4, 20)
+    t, _ = await open_limit(sim, om, plan, 1, False)
+    t.closing = "FLAT_TIME"
+    assert await om.expire_unfilled(DEADLINE) == []
+    t.closing = None
+    t.legs[0].entry = D(19990)
+    assert await om.expire_unfilled(DEADLINE) == [] and await om.cancel_unfilled(t, "X") == []
+
+
+async def test_market_mode_unchanged(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, ev = await opened(sim, om, plan, 1, False)
+    assert t.pending_until is None and [e.kind for e in ev] == ["OPENED"]

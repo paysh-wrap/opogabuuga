@@ -226,3 +226,56 @@ def test_failed_emergency_flatten_keeps_orphan_tracked_and_pauses(authed, clock)
     clock.set(clock.now() + timedelta(seconds=61))
     asyncio.run(watchdog_once(authed.app))
     assert not ctl.om.trades and trade_row(authed).closed_at is not None
+
+
+def _limit_mode(authed, bars=4):
+    from app.config import EntryCfg
+
+    holder = authed.app.state.rules
+    holder.rules = holder.rules.model_copy(
+        update={"entry": EntryCfg(mode="limit_cisd", limit_timeout_bars=bars, max_wait_bars=6)}
+    )
+
+
+def test_unfilled_limit_is_cancelled_at_timeout_and_not_counted(authed, clock):
+    from app.models import DailyAccountStats
+
+    _limit_mode(authed)
+    _, res = run(authed, clock, "EVAL")
+    assert res[0]["ok"]
+    ctl = authed.app.state.controller
+    assert positions(authed) == [] and len(ctl.om.trades) == 1  # working limit, no position
+    clock.set(clock.now() + timedelta(minutes=59))  # STD ltf 5m × 4 bars = 20 min; TIGHT 1m × 4 → both passed
+    asyncio.run(watchdog_once(authed.app))
+    assert ctl.om.trades == {}
+    with authed.app.state.sessionmaker() as s:
+        assert s.query(Trade).count() == 0
+        assert all(d.trades == 0 and d.losses == 0 for d in s.query(DailyAccountStats))
+    assert any(n["title"] == "Limit entry cancelled" for n in ctl.notices)
+
+
+def test_flat_time_cancels_working_limit_and_failed_cancel_alerts(authed, clock):
+    _limit_mode(authed, bars=10_000)
+    run(authed, clock, "EVAL")
+    ctl = authed.app.state.controller
+    ctl.adapter.sim.fail_next.add("cancel_all")
+    clock.set(FLAT)
+    asyncio.run(watchdog_once(authed.app))
+    assert len(ctl.om.trades) == 1  # cancel failed: still tracked, retried
+    assert any(n["title"].startswith("ENTRY CANCEL FAILED") for n in ctl.notices)
+    asyncio.run(watchdog_once(authed.app))
+    assert ctl.om.trades == {}
+    with authed.app.state.sessionmaker() as s:
+        assert s.query(Trade).count() == 0
+
+
+def test_limit_fill_opens_a_normal_trade(authed, clock):
+    from tests.integration.test_signals_flow import MIN, MS, hb
+
+    _limit_mode(authed, bars=10_000)
+    _, res = run(authed, clock, "EVAL")
+    assert res[0]["ok"] and positions(authed) == []
+    hb(authed, clock, MS - MIN, close="19995")  # the bar touches the limit price → filled
+    assert positions(authed) and trade_row(authed).exit_reason is None
+    hb(authed, clock, MS, close="20071")  # through the 2R target
+    assert trade_row(authed).exit_reason == "TP"
