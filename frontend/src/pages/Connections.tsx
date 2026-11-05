@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import AiPricing from "../components/AiPricing";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, type Connection, type ConnectionsResponse, type Indicator } from "../lib/api";
 import StatusBadge from "../components/StatusBadge";
@@ -245,6 +246,7 @@ export default function Connections() {
           </section>
         );
       })}
+      <AiPricing />
     </div>
   );
 }

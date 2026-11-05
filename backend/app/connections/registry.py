@@ -53,7 +53,7 @@ LLM_PROVIDERS: dict[str, dict[str, str]] = {  # order = UI order; Claude (anthro
     },
     "kimi": {  # Moonshot AI (TradingAgents: MOONSHOT_API_KEY, base https://api.moonshot.ai/v1)
         "env": "MOONSHOT_API_KEY",
-        "keys_url": "https://platform.moonshot.ai/console/api-keys",
+        "keys_url": "https://platform.kimi.ai/",
         "models_url": "https://api.moonshot.ai/v1/models",
         "auth": "bearer",
     },
