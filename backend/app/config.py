@@ -170,6 +170,8 @@ class Instrument(_M):
     stop_buffer_ticks: int | None = None
     min_stop_ticks: int | None = None
     slippage_ticks: int | None = None
+    windows: list[tuple[str, str]] | None = None  # per-market entry windows (ET); falls back to internal.windows
+    news_after_min: int | None = None  # no entries until N min after a high-impact release (falls back to firm rule)
 
 
 class TradePlanCfg(_M):

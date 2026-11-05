@@ -117,11 +117,12 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
             return Gate("G1", False, "COOLDOWN", hard=True)
         if not x.feed_fresh:
             return Gate("G1", False, "FEED_STALE")
-        if not in_windows(x.at, cfg.internal.windows):
+        if not in_windows(x.at, inst.windows or cfg.internal.windows):
             return Gate("G1", False, "OUTSIDE_WINDOW")
         if x.calendar is None:
             return Gate("G1", False, "CALENDAR_MISSING", detail="no calendar data = no trading")
-        ev = news_block(x.at, x.calendar, cfg.internal.no_entry_before_news_min, cfg.eval.news_breach_min_after)
+        after = inst.news_after_min if inst.news_after_min is not None else cfg.eval.news_breach_min_after
+        ev = news_block(x.at, x.calendar, cfg.internal.no_entry_before_news_min, after)
         if ev is not None:
             return Gate("G1", False, "NEWS_BLACKOUT", detail=ev.title)
         return Gate("G1", True, "OK")

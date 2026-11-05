@@ -46,3 +46,14 @@ def test_flex_payout_rules():
         D(200),
         True,
     )
+
+
+def test_gold_market_settings():
+    from datetime import UTC, datetime
+
+    from app.engine.filters import in_windows
+
+    g = r("lucid_flex_25k").instruments["MGC"]
+    assert g.min_stop_ticks == 16 and g.news_after_min == 15 and g.tick_value == D(1)
+    assert in_windows(datetime(2026, 11, 5, 8, 30, tzinfo=UTC), g.windows)  # 03:30 ET London open
+    assert not in_windows(datetime(2026, 11, 5, 17, 0, tzinfo=UTC), g.windows)  # 12:00 ET

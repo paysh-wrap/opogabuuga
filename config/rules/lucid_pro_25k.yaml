@@ -62,7 +62,7 @@ instruments:
   MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!"}    # VERIFY fees
   MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!"}   # VERIFY fees
   MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!"}   # VERIFY fees
-  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!"}      # VERIFY fees
+  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "11:00"], ["13:30", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
