@@ -112,7 +112,7 @@ async def test_market_fill_outside_window_is_flattened(env):
 
 
 async def test_early_exit_respects_hold_and_1r(env):
-    sim, om, clock = env
+    sim, om, _clock = env
     plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
     t, _ = await opened(sim, om, plan, 1, False)
     await pump(sim, om, 20000, 20005, 19995, 20002)

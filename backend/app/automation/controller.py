@@ -68,6 +68,7 @@ class Controller:
     approvals: dict[int, Approval] = field(default_factory=dict)
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     notices: list[dict[str, Any]] = field(default_factory=list)  # banner/notify queue for the API layer
+    _flatten_reason: str | None = None
 
     # ---------- setup ----------
     def load_accounts(self) -> None:
@@ -415,7 +416,8 @@ class Controller:
     async def _handle_events(self, s: Session, events: list[Event]) -> None:
         for e in events:
             if e.kind == "CLOSED":
-                self._close_trade(s, e.trade, e.detail)
+                reason = self._flatten_reason if e.detail == "FLATTEN" and self._flatten_reason else e.detail
+                self._close_trade(s, e.trade, reason)
             elif e.kind == "PAUSE":
                 self._pause(s, e.trade.account, e.detail)
             elif e.kind == "FLATTENED":
@@ -488,15 +490,18 @@ class Controller:
 
     # ---------- flatten / kill ----------
     async def _flatten_account(self, s: Session, a: Account, reason: str) -> None:
+        self._flatten_reason = reason
         try:
             await self.adapter.flatten(a.broker_account_id)
         except BrokerError as e:
+            self._flatten_reason = None
             self.notify("error", "FLATTEN FAILED — act manually in Tradovate", f"{a.label}: {e}")
             return
         for f in self.adapter.drain_fills():
             await self._handle_events(s, await self.om.on_fill(f))
         for t in [t for t in self.om.trades.values() if t.account == a.broker_account_id]:
             self._close_trade(s, t, reason)
+        self._flatten_reason = None
         audit.record(s, self.clock, "automation", "account.flattened", a.broker_account_id, {"reason": reason})
 
     async def flatten(self, account_id: int, actor: str, reason: str = "MANUAL_FLATTEN") -> None:
