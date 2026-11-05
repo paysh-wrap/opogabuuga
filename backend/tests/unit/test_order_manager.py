@@ -127,3 +127,40 @@ async def test_no_early_exit_after_1r(env):
     t, _ = await opened(sim, om, plan, 1, False)
     await pump(sim, om, 20000, 20021, 19999, 20010)  # reached +1R (20 pts)
     assert await om.early_exit(t.trade_id, "CHOCH_AGAINST", AT + timedelta(minutes=5)) == []
+
+
+async def test_adverse_half_closes_one_leg_near_the_stop(env):
+    from datetime import timedelta
+
+    from app.management.exits import adverse_half_due
+
+    sim, om, _ = env
+    om.split_for_defence = True
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)  # risk 20 pts (stop 19980)
+    t, _ = await opened(sim, om, plan, 4, False)
+    assert [(x.name, x.qty) for x in t.legs] == [("H1", 2), ("H2", 2)]
+    later = AT + timedelta(seconds=30)
+    assert await om.adverse_half(t.trade_id, D(19990), D("0.9"), True, later) == []  # only 50% of the way
+    assert await om.adverse_half(t.trade_id, D(19982), D("0.9"), False, later) == []  # confirmations still OK
+    assert await om.adverse_half(t.trade_id, D(19982), D("0.9"), True, AT) == []  # minimum hold not reached
+    sim.last["MNQ"] = D(19982)
+    ev = await om.adverse_half(t.trade_id, D(19982), D("0.9"), True, later)
+    assert [e.detail for e in ev] == ["HALF_OFF 2"]
+    for f in sim.drain_fills():
+        await om.on_fill(f)
+    assert [x.closed for x in t.legs] == [True, False] and t.trade_id in om.trades  # other half keeps its stop
+    assert await om.adverse_half(t.trade_id, D(19981), D("0.9"), True, later) == []  # once per trade
+    assert not adverse_half_due(plan, D(19982), D("0.9"), True, 1, False)  # 1 contract can't be halved
+    assert await om.adverse_half("nope", D(1), D("0.9"), True, later) == []
+
+
+async def test_adverse_half_broker_failure_is_reported(env):
+    from datetime import timedelta
+
+    sim, om, _ = env
+    om.split_for_defence = True
+    plan = build_trade_plan(Direction.SHORT, D(20000), D(20019), D(19930), T, 4, 20)
+    t, _ = await opened(sim, om, plan, 2, False)
+    sim.fail_next.add("close_leg")
+    ev = await om.adverse_half(t.trade_id, D(20018), D("0.9"), True, AT + timedelta(seconds=30))
+    assert ev[0].detail.startswith("HALF_OFF_FAILED")

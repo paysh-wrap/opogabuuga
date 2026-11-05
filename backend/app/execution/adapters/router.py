@@ -147,6 +147,12 @@ class RoutingAdapter:
     async def modify_stop(self, acct: str, order_id: str, price: Decimal) -> bool:
         return bool(await self._for(acct).modify_stop(acct, order_id, price))
 
+    async def close_leg(self, acct: str, bracket_id: str) -> None:
+        ad = self._for(acct)
+        if not hasattr(ad, "close_leg"):
+            raise BrokerError(f"{ad.name}: closing one bracket is not supported yet")
+        await ad.close_leg(acct, bracket_id)
+
     async def cancel_all(self, acct: str) -> None:
         await self._for(acct).cancel_all(acct)
 

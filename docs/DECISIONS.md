@@ -229,3 +229,14 @@ instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid
   max 5 payouts. Pro 25K–150K per-trade risk capped so two max losses fit the DLL (§11 test).
 - Markets buttons (Gold MGC / Nasdaq MNQ / US30 MYM / S&P MES); micro contracts only. Backtest per market with an
   edge breakdown (hour ET, weekday, direction, profile, exit). A gold research agent is gathering MGC specifics.
+
+## D31 — Hold time + half-off defence (user, 2026-11-05)
+- Lucid has no minimum-minutes rule; only microscalping (> 50% of profit from trades held ≤ 5 s = flagged). App exits
+  wait ≥ 6 s; Dashboard shows each account's % of profit from ≤ 5 s trades (gold at 20%).
+- Half-off defence (internal.adverse_half_enabled, default ON; adverse_half_at 0.85–0.95, default 0.90): when every
+  confirmation is against the trade (MSO trend flipped AND an MSO CHoCH against since entry) and price has gone 90% of
+  the way to the stop, close one of two equal brackets (≈ half), once per trade, after the 6 s hold. Needs ≥ 2
+  contracts (trades of 2+ are placed as two identical brackets). The stop on the rest is unchanged.
+  Live via CrossTrade: closing a single bracket isn't built yet (API not verified) → reported, nothing sent.
+- Note: spec early exits (C3 close / CHoCH against before +1R → full exit) exist in code but were never wired.
+  Left unwired pending your choice (full exit vs this half-off rule).

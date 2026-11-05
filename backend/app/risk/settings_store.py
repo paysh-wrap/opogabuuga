@@ -51,6 +51,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
                 "windows",
                 "no_entry_before_news_min",
                 "news_flatten_before_min",
+                "adverse_half_enabled",
+                "adverse_half_at",
                 "consistency_on_funded",
                 "funded_consistency_pct",
                 "funded_consistency_reference_min",

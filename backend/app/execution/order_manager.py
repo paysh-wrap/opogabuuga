@@ -19,7 +19,7 @@ from typing import Literal
 from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill
 from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerError, Fill, Side
 from app.management.drawdown_guard import ratchet, runner_stop, split_legs
-from app.management.exits import early_exit_allowed, exit_allowed_now
+from app.management.exits import adverse_half_due, early_exit_allowed, exit_allowed_now
 
 
 @dataclass
@@ -51,6 +51,7 @@ class OpenTrade:
     best: Decimal | None = None
     partial_done: bool = False
     locked: bool = False
+    half_used: bool = False
 
     @property
     def d(self) -> Direction:
@@ -89,6 +90,7 @@ class OrderManager:
     trail_r: Decimal = Decimal(2)
     min_hold_s: int = 6
     early_exit_until_r: Decimal = Decimal(1)
+    split_for_defence: bool = False
     trades: dict[str, OpenTrade] = field(default_factory=dict)
     _ids: itertools.count[int] = field(default_factory=lambda: itertools.count(1))
 
@@ -99,7 +101,31 @@ class OrderManager:
             a, b = split_legs(n)
             assert plan.partial_price is not None
             return [Leg("A", a, plan.partial_price), Leg("B", b, plan.take_profit)]
+        if self.split_for_defence and n >= 2:  # two identical brackets so half can be closed on its own
+            a, b = split_legs(n)
+            return [Leg("H1", a, plan.take_profit), Leg("H2", b, plan.take_profit)]
         return [Leg("ONLY", n, plan.take_profit)]
+
+    async def adverse_half(
+        self, trade_id: str, worst: Decimal, at: Decimal, broken: bool, now: datetime
+    ) -> list[Event]:
+        """Close one leg (≈ half) when every confirmation is against the trade and price is near the stop."""
+        t = self.trades.get(trade_id)
+        if t is None or t.half_used:
+            return []
+        open_legs = [x for x in t.legs if not x.closed and x.entry is not None]
+        qty = sum(x.qty for x in open_legs)
+        if not adverse_half_due(t.plan, worst, at, broken, qty, t.half_used) or len(open_legs) < 2:
+            return []
+        if not exit_allowed_now("ADVERSE_HALF", t.opened_at, now, self.min_hold_s):
+            return []
+        t.half_used = True
+        leg = open_legs[0]
+        try:
+            await self.adapter.close_leg(t.account, leg.bracket_id)  # type: ignore[attr-defined]
+        except BrokerError as e:
+            return [Event("STOP_MOVED", t, f"HALF_OFF_FAILED: {e}")]
+        return [Event("STOP_MOVED", t, f"HALF_OFF {leg.qty}")]
 
     async def open_trade(
         self,

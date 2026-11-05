@@ -25,6 +25,17 @@ def _s(x: Decimal | None) -> str | None:
     return None if x is None else str(x)
 
 
+def _fast_share(db: Session, a: Account, r: Any) -> Decimal:
+    """Lucid microscalping metric: % of profit from trades held ≤ firm_microscalp_hold_seconds (limit 50%)."""
+    from app.management.exits import rapid_profit_share
+
+    rows = db.execute(select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_not(None))).scalars()
+    data = [
+        (t.pnl_usd or Decimal(0), (t.closed_at - t.opened_at).total_seconds()) for t in rows if t.closed_at is not None
+    ]
+    return rapid_profit_share(data, r.behavior.firm_microscalp_hold_seconds)
+
+
 @router.get("/dashboard")
 async def dashboard(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
@@ -61,6 +72,10 @@ async def dashboard(
             "consistency_stop": _s(cons.day_stop) if cons else None,
             "target_left": str(max(start + r.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
             "mll_locked": a.mll_locked,
+            "fast_profit_pct": str(_fast_share(db, a, r)),
+            "fast_warn_pct": str(r.behavior.rapid_trade_warn_pct),
+            "fast_limit_pct": str(r.behavior.firm_microscalp_pct),
+            "fast_hold_s": r.behavior.firm_microscalp_hold_seconds,
         }
         accounts.append(row)
     sess = session_date(now)

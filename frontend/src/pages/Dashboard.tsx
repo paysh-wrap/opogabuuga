@@ -7,7 +7,7 @@ interface Acct {
   id: number; label: string; stage: string; paper: boolean; armed: boolean; paused: string | null; error?: string;
   balance?: string; open_pnl?: string; mll?: string | null; to_mll?: string | null; kill_at?: string; today_pnl?: string;
   trades_today?: number; dll_left?: string | null; consistency_cap?: string | null; consistency_stop?: string | null;
-  target_left?: string | null; mll_locked?: boolean;
+  target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number;
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
 
@@ -55,6 +55,7 @@ export default function Dashboard() {
                   <Stat k="Trades today" v={a.trades_today} />
                   {a.consistency_cap && <Stat k="Consistency cap / stop" v={`${money(a.consistency_cap)} / ${money(a.consistency_stop)}`} warn={Number(a.today_pnl) >= Number(a.consistency_stop)} />}
                   {a.target_left != null && <Stat k="Eval target left" v={money(a.target_left)} />}
+                  <Stat k={`Profit from ≤${a.fast_hold_s}s trades (Lucid max ${a.fast_limit_pct}%)`} v={`${Number(a.fast_profit_pct ?? 0).toFixed(1)}%`} warn={Number(a.fast_profit_pct) >= Number(a.fast_warn_pct)} />
                 </div>
               )}
             </section>

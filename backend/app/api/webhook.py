@@ -71,6 +71,9 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
         from app.clock import session_date
 
         await ctl.news_check(st.calendar(session_date(st.clock.now())))
+        ss = st.market.states.get((acc.symbol, p.profile))
+        if ss is not None:
+            await ctl.defence_check(acc.symbol, p.price.h, p.price.l, ss.mso, ss.mso_events)
     for u in updates:
         if u.status == "PASS":
             what = ctl.on_signal_pass(u.signal_id)

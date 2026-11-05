@@ -240,6 +240,18 @@ class SimAdapter:
                 self._close(acct, b, "FLATTEN", px)
         await self.cancel_all(acct)
 
+    async def close_leg(self, acct: str, bracket_id: str) -> None:
+        """Close ONE bracket at market (its stop + target are cancelled). Used by the half-off defence."""
+        self._check("close_leg")
+        a = self._acct(acct)
+        b = a.brackets.get(bracket_id)
+        if b is None or b.done or not b.entry_filled:
+            raise BrokerError(f"sim: bracket {bracket_id} not open")
+        inst = self._inst(b.req.symbol)
+        sign = 1 if b.req.side == "BUY" else -1
+        px = self.last.get(b.req.symbol, b.entry_price or Decimal(0)) - sign * self.slip * inst.tick
+        self._close(acct, b, "MANUAL", px)
+
     async def stream_fills(self) -> AsyncIterator[Fill]:
         while True:
             yield await self._fills.get()

@@ -32,3 +32,14 @@ def rapid_profit_share(trades: list[tuple[Decimal, float]], hold_limit_s: int) -
         return Decimal(0)
     fast = sum((p for p, h in trades if p > 0 and h <= hold_limit_s), Decimal(0))
     return (fast * 100 / profit).quantize(Decimal("0.01"))
+
+
+def adverse_half_due(
+    plan: TradePlan, worst_price: Decimal, at_fraction: Decimal, confirmations_broken: bool, qty: int, used: bool
+) -> bool:
+    """User rule: when EVERY confirmation has turned against the trade and price has travelled `at_fraction` (0.85–0.95)
+    of the way from entry to the stop, close half (once per trade, needs ≥ 2 contracts). The stop stays in place."""
+    if used or qty < 2 or not confirmations_broken:
+        return False
+    travelled = (plan.entry - worst_price) * plan.direction.sign / plan.risk_pts
+    return travelled >= at_fraction

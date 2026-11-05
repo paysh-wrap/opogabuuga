@@ -386,6 +386,7 @@ class Controller:
             inst.min_stop_ticks or r.trade_plan.min_stop_ticks,
         )
         try:
+            self.om.split_for_defence = r.internal.adverse_half_enabled
             t = await self.om.open_trade(
                 a.broker_account_id,
                 sig.symbol,
@@ -669,6 +670,40 @@ class Controller:
                         hit = "NEWS"
                 s.commit()
         return hit
+
+    async def defence_check(
+        self,
+        symbol: str,
+        high: Decimal,
+        low: Decimal,
+        mso: dict[str, Any] | None,
+        mso_events: list[tuple[str, str, int]],
+    ) -> None:
+        """Half-off defence: every confirmation against the trade (MSO trend flipped AND a CHoCH against since entry)
+        and price ≥ adverse_half_at of the way to the stop → close one of the two brackets (once per trade)."""
+        r = self.rules.rules
+        if not r.internal.adverse_half_enabled or not self.om.trades:
+            return
+        now = self.clock.now()
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for t in [t for t in self.om.trades.values() if t.symbol == symbol]:
+                    against = "SHORT" if t.d is Direction.LONG else "LONG"
+                    trend_against = (mso or {}).get("trend") == ("BEAR" if against == "SHORT" else "BULL")
+                    opened_ms = int(t.opened_at.timestamp() * 1000)
+                    choch_against = any(
+                        e == "MSO_CHOCH" and d == against and ms >= opened_ms for e, d, ms in mso_events
+                    )
+                    worst = low if t.d is Direction.LONG else high
+                    ev = await self.om.adverse_half(
+                        t.trade_id, worst, r.internal.adverse_half_at, trend_against and choch_against, now
+                    )
+                    for e in ev:
+                        audit.record(s, self.clock, "automation", "trade.half_off", t.account, {"detail": e.detail})
+                        self.notify("warn", "Half-off defence", f"{t.symbol}: {e.detail}")
+                    for f in self.adapter.drain_fills():
+                        await self._handle_events(s, await self.om.on_fill(f))
+                s.commit()
 
     def entries_blocked_by_time(self) -> bool:
         r = self.rules.rules

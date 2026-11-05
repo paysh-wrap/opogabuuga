@@ -252,6 +252,8 @@ class InternalCfg(_M):
     max_consecutive_losses_per_day: int
     internal_max_micros: int
     kill_switch_mll_distance: D
+    adverse_half_enabled: bool = True  # user rule: half off near the stop when every confirmation is against
+    adverse_half_at: D = Field(default=D("0.90"), ge=D("0.85"), le=D("0.95"))
     cushion_target_balance: D
     cap_guard_total_above_buffer: D
     consistency_day_stop_buffer_pct: D
