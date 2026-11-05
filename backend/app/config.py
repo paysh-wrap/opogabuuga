@@ -144,7 +144,7 @@ class SessionRules(_M):
 
 
 class Behavior(_M):
-    min_hold_seconds: int = Field(ge=7, le=60)  # user: never sooner than 6.5–9 s
+    min_hold_seconds: D = Field(ge=D("6.5"), le=D(60))  # user: 7.5 s
     firm_microscalp_hold_seconds: int
     rapid_trade_warn_pct: D
     firm_microscalp_pct: D

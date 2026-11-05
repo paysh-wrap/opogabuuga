@@ -481,7 +481,7 @@ class Controller:
             if t.partial_done:
                 continue  # first half banked: the runner may run (stop at breakeven, trailing) until the day's close
             held = (now - t.opened_at).total_seconds()
-            if held >= max(r.scalp_mode.max_hold_s, r.behavior.min_hold_seconds):
+            if held >= max(float(r.scalp_mode.max_hold_s), float(r.behavior.min_hold_seconds)):
                 a = s.execute(select(Account).where(Account.broker_account_id == t.account)).scalar_one_or_none()
                 if a is not None:
                     await self._flatten_account(s, a, "SCALP_TIME")

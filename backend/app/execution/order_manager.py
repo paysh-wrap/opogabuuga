@@ -89,7 +89,7 @@ class Event:
 class OrderManager:
     adapter: BrokerAdapter
     trail_r: Decimal = Decimal(2)
-    min_hold_s: int = 9
+    min_hold_s: Decimal | float = Decimal("7.5")
     early_exit_until_r: Decimal = Decimal(1)
     split_for_defence: bool = False
     scalp_runner: tuple[Decimal, Decimal] | None = None  # (runner target R, trail R) when Scalp mode is on

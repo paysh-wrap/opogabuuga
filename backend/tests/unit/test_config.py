@@ -122,7 +122,7 @@ def test_lucid_microscalp_rule(loaded_rules):
     assert (b.firm_microscalp_hold_seconds, b.firm_microscalp_pct, b.min_hold_seconds, b.rapid_trade_warn_pct) == (
         5,
         50,
-        9,
+        7.5,
         20,
     )
     assert "behavior.firm_microscalp_hold_seconds" in loaded_rules.verify_paths

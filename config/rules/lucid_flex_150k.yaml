@@ -43,7 +43,7 @@ behavior:
   # <= firm_microscalp_hold_seconds. App-initiated exits (strategy, early exit, manual close in app) wait
   # min_hold_seconds. Protective exits are NEVER delayed: stop-loss, take-profit bracket leg, kill switch,
   # MLL/DLL breach, news flatten, flat times.
-  min_hold_seconds: 9                  # user: never close sooner than 6.5–9 s (Lucid flags ≤ 5 s)
+  min_hold_seconds: 7.5                # user: hold ≥ 7.5 s before any app exit (Lucid flags ≤ 5 s)
   firm_microscalp_hold_seconds: 5      # VERIFY
   rapid_trade_warn_pct: 20
   firm_microscalp_pct: 50              # VERIFY

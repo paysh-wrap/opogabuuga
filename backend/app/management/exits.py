@@ -18,11 +18,11 @@ def early_exit_allowed(plan: TradePlan, best_price: Decimal, partial_filled: boo
     return best_r < until_r
 
 
-def exit_allowed_now(kind: str, opened_at: datetime, now: datetime, min_hold_s: int) -> bool:
+def exit_allowed_now(kind: str, opened_at: datetime, now: datetime, min_hold_s: Decimal | float) -> bool:
     """D8: app-initiated exits wait until the trade is ≥ min_hold_s old; protective exits never wait."""
     if kind in PROTECTIVE:
         return True
-    return (now - opened_at).total_seconds() >= min_hold_s
+    return (now - opened_at).total_seconds() >= float(min_hold_s)
 
 
 def rapid_profit_share(trades: list[tuple[Decimal, float]], hold_limit_s: int) -> Decimal:
