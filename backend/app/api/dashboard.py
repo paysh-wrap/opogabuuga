@@ -105,3 +105,19 @@ def today(request: Request, _: Principal = Depends(current_user), db: Session = 
             for t in trades
         ],
     }
+
+
+@router.get("/calendar")
+def calendar(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    st = request.app.state
+    sess = session_date(st.clock.now())
+    ev = st.calendar(sess)
+    store = st.calendar
+    return {
+        "session": sess.isoformat(),
+        "loaded": ev is not None,
+        "events": [{"at": e.at.isoformat(), "title": e.title} for e in (ev or [])],
+        "fetched_at": store.fetched_at.isoformat() if getattr(store, "fetched_at", None) else None,
+        "error": getattr(store, "error", None),
+        "source": "ForexFactory weekly feed (USD high impact)",
+    }

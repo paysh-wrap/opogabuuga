@@ -58,3 +58,8 @@ def test_weekly_check_submit_blocks_then_processed_debits(authed, clock):
     bal = {x["label"]: x["balance"] for x in authed.get("/api/positions").json()["accounts"]}
     assert D(bal["F1"]) == D(28100) and ext
     assert ctl.notices and "Payout ready" in [n["title"] for n in ctl.notices]
+
+
+def test_calendar_api(authed):
+    r = authed.get("/api/calendar").json()
+    assert r["loaded"] is False and r["events"] == []  # no data → no trading

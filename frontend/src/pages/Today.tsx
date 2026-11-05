@@ -9,6 +9,7 @@ interface Tr { id: number; account_id: number; symbol: string; direction: string
 export default function Today() {
   usePageTitle("Today");
   const q = useQuery({ queryKey: ["today"], queryFn: () => api<{ signals: Sig[]; trades: Tr[] }>("/api/today"), refetchInterval: 10000 });
+  const cal = useQuery({ queryKey: ["calendar"], queryFn: () => api<{ loaded: boolean; events: { at: string; title: string }[]; error: string | null }>("/api/calendar"), refetchInterval: 60000 });
   const d = q.data;
   if (!d) return <p role="status">Loading…</p>;
   const net = d.trades.reduce((s, t) => s + Number(t.pnl ?? 0), 0);
@@ -17,6 +18,13 @@ export default function Today() {
       <h1 className="text-2xl font-bold text-gold">Today</h1>
       <p className="text-sm">{d.signals.length} signals · {d.signals.filter((s) => s.status === "PASS").length} passed · {d.trades.length} trades · net{" "}
         <b className="text-gold">{net > 0 ? "▲ +" : net < 0 ? "▼ −" : ""}${Math.abs(net).toFixed(2)}</b></p>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold text-gold">News today (USD high impact)</h2>
+        {cal.data && !cal.data.loaded && <p className="text-sm text-goldLight">⚠ Calendar not loaded — no trading until it is.{cal.data.error ? ` (${cal.data.error})` : ""}</p>}
+        {cal.data?.loaded && cal.data.events.length === 0 && <p className="text-sm">None today.</p>}
+        {cal.data?.events.map((e) => <p key={e.at + e.title} className="text-sm">{etTime(e.at)} · {e.title}</p>)}
+      </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">Trades</h2>

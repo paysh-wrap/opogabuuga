@@ -40,6 +40,7 @@ def settings(tmp_path: Path) -> Settings:
         rules_path=RULES_PATH,
         web_dist=tmp_path / "no-dist",
         ta_python=str(tmp_path / "missing-python"),
+        scheduler_enabled=False,
     )
 
 

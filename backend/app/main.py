@@ -5,12 +5,14 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from datetime import datetime
 from decimal import Decimal
 
 import structlog
 from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
 from app.api.automation import router as automation_router
 from app.api.dashboard import router as dashboard_router
@@ -48,6 +50,29 @@ SECURITY_HEADERS = {
 }
 
 
+async def _refresh_calendar(app: FastAPI, s: Session, now: datetime) -> None:
+    """Fetch the week's USD high-impact events when missing or older than 4 h. Failure → banner; trading stays
+    blocked only if the session date isn't covered (no data = no trading, §15)."""
+    from datetime import timedelta
+
+    from app.automation import state as stt
+    from app.econ_calendar.forexfactory import CalendarError, CalendarStore, fetch
+
+    store = app.state.calendar
+    if not isinstance(store, CalendarStore):
+        return
+    if store.fetched_at is not None and now - store.fetched_at < timedelta(hours=4):
+        return
+    try:
+        store.set(await fetch(app.state.http), now)
+    except CalendarError as e:
+        store.error = str(e)
+        app.state.controller.notify("error", "Economic calendar fetch failed", str(e))
+        return
+    stt.set_setting(s, "calendar.cache", store.to_json(), now)
+    s.commit()
+
+
 async def _scheduler(app: FastAPI) -> None:
     """In-process jobs (one app process). Each job runs once per period; failures never silent."""
     from app.automation import state as stt
@@ -63,6 +88,7 @@ async def _scheduler(app: FastAPI) -> None:
                     await weekly_check(s, st.controller, st.rules.rules, now)
                     stt.set_setting(s, "job.payouts.week", week_key(now), now)
                     s.commit()
+                await _refresh_calendar(app, s, now)
         except Exception as e:  # never silent (§1.8)
             log.error("scheduler.error", error=type(e).__name__)
             st.controller.notify("error", "Scheduled job failed", type(e).__name__)
@@ -152,7 +178,15 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         app.state.http = http_client(settings.http_timeout_s)
         log.info("paytience.start", mode="LIVE" if settings.allow_live else "PAPER")
         bg = _start_live(app) if settings.allow_live else []
-        bg.append(asyncio.create_task(_scheduler(app)))
+        from app.econ_calendar.forexfactory import CalendarStore
+
+        with app.state.sessionmaker() as s:
+            from app.automation.state import get_setting
+
+            cached = get_setting(s, "calendar.cache")
+        app.state.calendar = CalendarStore.from_json(cached) if isinstance(cached, dict) else CalendarStore()
+        if settings.scheduler_enabled:
+            bg.append(asyncio.create_task(_scheduler(app)))
         yield
         for t in bg:
             t.cancel()

@@ -188,3 +188,12 @@ confirm the number). Once any account is LIVE, sim accounts are blocked (§10, a
 (start $0, EOD, no DLL, $15k sim-profit cap) — all VERIFY.
 D25 update (user-confirmed): 1 processed payout qualifies for live (Lucid risk team decides); 5th payout enters the
 live review pool (not required). Config: funded.payouts_to_live 1, funded.payouts_live_review 5.
+
+## D26 — Phase 7: payouts + economic calendar (2026-11-05)
+- Payouts: pure `phases/payout_plan.py` (sweep above $28,100 / skim half of week profit when locked; ≥ $500; never
+  below $26,100 buffer; ≥ $1 profit since last payout). Weekly Fri 17:05 ET in-process scheduler. Lucid has no API:
+  app plans + reminds; user marks "I requested it" (account stops trading) → "Paid" (paper balance debited).
+- Calendar: Finnhub's economic calendar is PREMIUM ("Premium Access Required", verified) → using the free
+  ForexFactory weekly JSON (nfs.faireconomy.media, format verified: ISO dates with ET offset; impact High/Medium/
+  Low/Holiday). USD + High only. Refreshed every 4 h; cached in DB. Covers the current week only: a date outside the
+  fetched week = no data = no trading (§15). Feed terms could not be read (Cloudflare) — personal, low-rate use.
