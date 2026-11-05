@@ -40,7 +40,10 @@ def dll_two_loss_test(
 
 def max_base_for_stage(rules: RulesConfig, stage: str) -> Decimal:
     """EVAL EOD: $1,000 + day stop ($437.50) = $1,437.50; FUNDED: the $3,000 cushion (§11)."""
+    if stage == "EVAL" and rules.eval.consistency_max_day_pct is None:
+        return money(rules.eval.max_loss_limit + rules.eval.profit_target)
     if stage == "EVAL":
+        assert rules.eval.consistency_max_day_pct is not None
         day_stop = (
             (rules.eval.consistency_max_day_pct - rules.internal.consistency_day_stop_buffer_pct)
             / D100
@@ -102,6 +105,8 @@ def validate(rules: RulesConfig) -> Validation:
     ):
         base = max_base_for_stage(rules, stage)
         dll = rules.funded.daily_loss_limit if stage == "FUNDED" else rules.eval.daily_loss_limit
+        if dll is None:
+            continue
         l1, l2, total = dll_two_loss_test(base, ceil_, floor_, cap, margin)
         v.dll_tests[label] = {
             "base": str(base),

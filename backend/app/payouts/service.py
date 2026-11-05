@@ -43,12 +43,30 @@ def _last_processed(s: Session, a: Account) -> datetime | None:
     ).scalar_one_or_none()
 
 
+def _profitable_days(s: Session, a: Account, since: datetime | None, min_day: Decimal) -> int:
+    from app.clock import session_date
+
+    q = select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_not(None))
+    if since is not None:
+        q = q.where(Trade.closed_at >= since)
+    days: dict[str, Decimal] = {}
+    for t in s.execute(q).scalars():
+        assert t.closed_at is not None
+        k = session_date(t.closed_at).isoformat()
+        days[k] = days.get(k, Decimal(0)) + (t.pnl_usd or Decimal(0))
+    return sum(1 for v in days.values() if v >= min_day and v > 0)
+
+
 def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime) -> PayoutPlan:
     pr, pc = rules.funded.payout, rules.payouts
+    last = _last_processed(s, a)
+    done = len(s.execute(select(Payout.id).where(Payout.account_id == a.id, Payout.status == "processed")).all())
+    if pr.max_payouts is not None and done >= pr.max_payouts:
+        return PayoutPlan(None, Decimal(0), Decimal(0), "MAX_PAYOUTS_REACHED")
     return plan_payout(
         balance=balance,
         week_profit=_sum(s, a, _week_start(now)),
-        cycle_profit=_sum(s, a, _last_processed(s, a)),
+        cycle_profit=_sum(s, a, last),
         locked=bool(a.mll_locked),
         sweep_above=pc.sweep_above,
         skim_mode=pc.skim_mode,
@@ -56,6 +74,12 @@ def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime
         min_request=pr.min_request,
         min_cycle_profit=pr.min_cycle_profit,
         split=pr.split,
+        payout_no=done + 1,
+        max_first=pr.max_first,
+        max_next=pr.max_next,
+        max_pct_of_profit=pr.max_pct_of_profit,
+        profitable_days=_profitable_days(s, a, last, pr.min_day_profit),
+        min_profitable_days=pr.min_profitable_days,
     )
 
 

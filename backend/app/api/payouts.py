@@ -66,6 +66,9 @@ async def set_status(
     row.status = body.status
     if body.status == "submitted":
         row.submitted_at = now  # trading on this account blocks until processed (§14)
+        r = st.rules.rules
+        if a is not None and r.funded.payout.lock_mll_on_payout and not a.mll_locked:
+            a.mll, a.mll_locked = r.funded.lock_level, True  # LucidFlex: MLL moves to the locked level
     if body.status == "processed":
         row.processed_at = now
         sim = st.controller.adapter.sim

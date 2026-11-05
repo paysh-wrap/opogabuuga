@@ -145,6 +145,8 @@ def day_limits(rules: RulesConfig, stage: str) -> DayLimits:
 def consistency(s: Session, acct: Account, rules: RulesConfig) -> ConsistencyLimits | None:
     i = rules.internal
     if acct.stage == "EVAL":
+        if rules.eval.consistency_max_day_pct is None:
+            return None
         return eval_limits(
             rules.eval.profit_target, rules.eval.consistency_max_day_pct, i.consistency_day_stop_buffer_pct
         )

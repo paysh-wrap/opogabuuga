@@ -221,3 +221,11 @@ instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid
   EOD trailing $1,000 drawdown → eval pass/fail rate + median days.
 - Data: CSV upload (Databento GLBX.MDP3 ohlcv-1m or any 1-min OHLC with UTC/epoch time). Databento API pull not
   built (needs your key + verified API format).
+
+## D30 — Focus on LucidPro / LucidFlex; gold (2026-11-05)
+- 8 plan rule files from Lucid's help center; plan picker on Risk page (switch only when flat); default Flex 25K.
+- Schema: optional eval consistency / DLL, funded news allowed, Flex funded scaling (firm max micros by settled
+  profit), payout caps (Pro per payout #, Flex 50% of profit + 5 profitable days), Flex MLL lock on payout request,
+  max 5 payouts. Pro 25K–150K per-trade risk capped so two max losses fit the DLL (§11 test).
+- Markets buttons (Gold MGC / Nasdaq MNQ / US30 MYM / S&P MES); micro contracts only. Backtest per market with an
+  edge breakdown (hour ET, weekday, direction, profile, exit). A gold research agent is gathering MGC specifics.

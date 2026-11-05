@@ -35,13 +35,28 @@ def plan_payout(
     min_request: Decimal,
     min_cycle_profit: Decimal,
     split: Decimal,
+    payout_no: int = 1,
+    max_first: Decimal | None = None,
+    max_next: Decimal | None = None,
+    max_pct_of_profit: Decimal | None = None,
+    profitable_days: int = 0,
+    min_profitable_days: int = 0,
 ) -> PayoutPlan:
     def plan(kind: str, amt: Decimal, why: str) -> PayoutPlan:
+        cap = max_first if payout_no <= 1 else max_next
+        if cap is not None:
+            amt = min(amt, cap)
+        if max_pct_of_profit is not None:
+            amt = min(amt, cycle_profit * max_pct_of_profit)
         amt = amt.quantize(CENT, rounding=ROUND_DOWN)
+        if amt < min_request:
+            return PayoutPlan(None, Decimal(0), Decimal(0), "CAPPED_BELOW_MIN_REQUEST")
         return PayoutPlan(kind, amt, (amt * split).quantize(CENT, rounding=ROUND_DOWN), why)
 
     if cycle_profit < min_cycle_profit:
         return PayoutPlan(None, Decimal(0), Decimal(0), "NO_PROFIT_SINCE_LAST_PAYOUT")
+    if profitable_days < min_profitable_days:
+        return PayoutPlan(None, Decimal(0), Decimal(0), "NOT_ENOUGH_PROFITABLE_DAYS")
     if balance >= sweep_above + min_request:
         return plan("sweep", balance - sweep_above, f"balance above {sweep_above}")
     if locked and skim_mode == "half":

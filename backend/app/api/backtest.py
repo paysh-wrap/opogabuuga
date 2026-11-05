@@ -45,7 +45,8 @@ def metrics(trades: list[dict[str, Any]], rules: Any, stage: str) -> dict[str, A
         by_day[d] = by_day.get(d, Decimal(0)) + p
     target = rules.eval.profit_target
     mc = monte_carlo(list(by_day.values()), target, rules.eval.max_loss_limit)
-    cons_ok = s.best_day_share is None or s.best_day_share <= rules.eval.consistency_max_day_pct / 100
+    pct = rules.eval.consistency_max_day_pct
+    cons_ok = s.best_day_share is None or pct is None or s.best_day_share <= pct / 100
     return {
         "breakdown": breakdown(trades),
         "stats": _j(asdict(s)),

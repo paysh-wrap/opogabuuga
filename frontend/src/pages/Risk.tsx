@@ -31,6 +31,7 @@ export default function Risk() {
     onSuccess: () => { ["risk", "evalmode", "live"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] })); setEdit({}); },
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
+  const plans = useQuery({ queryKey: ["plans"], queryFn: () => api<{ current: string; plans: { id: string; title: string }[] }>("/api/plans") });
   const s = st.data;
   if (!s) return <p role="status">Loading…</p>;
   const oneToOne = s.settings["one_to_one_mode.enabled"] === true;
@@ -42,6 +43,15 @@ export default function Risk() {
       <h1 className="text-2xl font-bold text-gold">Risk management</h1>
       {err && <p role="alert" className="rounded-lg border border-gold p-3 text-sm text-goldLight">⚠ {err}</p>}
       {s.error && <p role="alert" className="text-goldLight">⚠ {s.error}</p>}
+
+      <section className="rounded-xl border border-gold bg-card p-4">
+        <h2 className="font-semibold text-gold">Lucid plan</h2>
+        <p className="text-xs">All rules (target, drawdown, DLL, consistency, contract limits, payouts) follow this plan. Pick the one you bought.</p>
+        <select aria-label="Lucid plan" className="mt-2" value={plans.data?.current ?? ""}
+          onChange={(e) => run.mutate(() => api("/api/plans", { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }).then(() => qc.invalidateQueries({ queryKey: ["plans"] })))}>
+          {plans.data?.plans.map((p) => <option key={p.id} value={p.id}>{p.title.replace("Paytience rule profile — Lucid Trading ", "")}</option>)}
+        </select>
+      </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">1:1 mode</h2>

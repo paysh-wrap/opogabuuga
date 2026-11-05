@@ -43,3 +43,16 @@ def test_never_below_buffer_property():
             r = p(bal, wk)
             if r.kind:
                 assert D(bal) - r.amount >= D(26100) and r.amount >= D(500)
+
+
+def test_pro_caps_by_payout_number():
+    r = p(30000, 3000, max_first=D(1000), max_next=D(1500))
+    assert (r.kind, r.amount) == ("sweep", D(1000))
+    assert p(30000, 3000, payout_no=2, max_first=D(1000), max_next=D(1500)).amount == D(1500)
+
+
+def test_flex_half_of_profit_and_profitable_days():
+    kw = {"max_pct_of_profit": D("0.5"), "min_profitable_days": 5, "max_first": D(1000)}
+    assert p(30000, 3000, cycle=D(1500), profitable_days=4, **kw).reason == "NOT_ENOUGH_PROFITABLE_DAYS"
+    assert p(30000, 3000, cycle=D(1500), profitable_days=5, **kw).amount == D(750)
+    assert p(30000, 3000, cycle=D(900), profitable_days=5, **kw).reason == "CAPPED_BELOW_MIN_REQUEST"

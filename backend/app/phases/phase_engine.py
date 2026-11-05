@@ -52,7 +52,7 @@ def stage_rules(
             f.lock_level,
             f.daily_loss_limit if dll_enabled else None,
             cons,
-            news_hard_breach=True,
+            news_hard_breach=not f.news_allowed_by_firm,
         )
     if stage == "LIVE":
         lv = rules.live
@@ -97,8 +97,20 @@ def eval_progress(day_profits: list[Decimal], target: Decimal, consistency_pct: 
 
 
 def funded_live_move_triggered(day_profit: Decimal, rules: RulesConfig) -> bool:
-    return day_profit >= rules.funded.max_daily_profit_live_trigger
+    t = rules.funded.max_daily_profit_live_trigger
+    return t is not None and day_profit >= t
 
 
 def inactivity_alert(last_trade_at: datetime | None, now: datetime, alert_days: int) -> bool:
     return last_trade_at is not None and (now - last_trade_at).days >= alert_days
+
+
+def firm_max_micros(rules: RulesConfig, stage: str, profit_before_today: Decimal) -> int:
+    """Firm contract cap in micros. LucidFlex funded scales with profit, updated at end of each session (so the
+    profit used is the settled profit BEFORE today). Never above the plan's max_contracts."""
+    cap = rules.max_contracts.micros
+    tiers = rules.funded.scaling if stage == "FUNDED" else None
+    if not tiers:
+        return cap
+    allowed = [t.micros for t in tiers if profit_before_today >= t.profit_from]
+    return min(cap, max(allowed) if allowed else min(t.micros for t in tiers))

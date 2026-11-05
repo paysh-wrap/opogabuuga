@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     allow_live: bool = False  # §1.5 — LIVE also needs UI toggle + typed phrase + checklist
     database_url: str = f"sqlite:///{REPO_ROOT / 'data' / 'paytience.db'}"
     redis_url: str = "redis://localhost:6379/0"
-    rules_path: Path = REPO_ROOT / "config" / "rules" / "lucid_daily_25k.yaml"
+    rules_path: Path = REPO_ROOT / "config" / "rules" / "lucid_flex_25k.yaml"  # default plan; switch on Risk page
     master_key: SecretStr = Field(default=SecretStr(""), description="Fernet key for stored API keys")
     webhook_secret: SecretStr = SecretStr("")
     bind_host: str = "127.0.0.1"

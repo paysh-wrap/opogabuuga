@@ -29,7 +29,7 @@ from app.execution.order_manager import Event, OpenTrade, OrderManager
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
 from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
-from app.phases.phase_engine import new_mll, stage_rules
+from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
 from app.risk.eval_mode import effective_risk_cfg, one_to_one_for
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
@@ -344,7 +344,7 @@ class Controller:
             inst.tick_value,
             inst.fee_rt,
             inst.slippage_ticks or r.trade_plan.slippage_ticks,
-            r.max_contracts.micros,
+            firm_max_micros(r, a.stage, bal - st.day_stats(s, a, now).day_profit - (a.starting_balance or Decimal(0))),
             r.internal.internal_max_micros,
             min_contracts(guard_on, r.drawdown_guard.min_contracts_on, r.drawdown_guard.min_contracts_off),
             r.internal.dll_safety_margin,

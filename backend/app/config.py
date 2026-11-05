@@ -71,7 +71,7 @@ class _M(BaseModel):
 class Purchase(_M):
     drawdown_type: DrawdownType
     dll_enabled: bool
-    consistency_pct: D
+    consistency_pct: D | None
 
 
 class MaxContracts(_M):
@@ -81,11 +81,11 @@ class MaxContracts(_M):
 
 class EvalRules(_M):
     profit_target: D
-    consistency_max_day_pct: D
+    consistency_max_day_pct: D | None  # None = no eval consistency rule (LucidPro)
     min_profitable_days: int
     max_loss_limit: D
     drawdown_type: DrawdownType
-    daily_loss_limit: D
+    daily_loss_limit: D | None  # None = no DLL
     lock_trigger: D
     lock_level: D
     news_allowed_by_firm: bool
@@ -98,6 +98,18 @@ class PayoutRules(_M):
     buffer: D
     min_request: D
     min_cycle_profit: D
+    max_first: D | None = None  # cap on payout #1
+    max_next: D | None = None  # cap on payouts #2+
+    max_pct_of_profit: D | None = None  # LucidFlex: 50% of cycle profit
+    min_profitable_days: int = 0  # LucidFlex: 5 days ≥ min_day_profit per cycle
+    min_day_profit: D = D(0)
+    max_payouts: int | None = None
+    lock_mll_on_payout: bool = False  # LucidFlex: MLL moves to the locked level once a payout is requested
+
+
+class ScaleTier(_M):
+    profit_from: D
+    micros: int
 
 
 class FundedRules(_M):
@@ -105,11 +117,13 @@ class FundedRules(_M):
     drawdown_type: DrawdownType
     lock_trigger: D
     lock_level: D
-    daily_loss_limit: D
+    daily_loss_limit: D | None
     consistency_max_day_pct: D | None
     news_breach_min_before: int
     news_breach_min_after: int
-    max_daily_profit_live_trigger: D
+    max_daily_profit_live_trigger: D | None
+    news_allowed_by_firm: bool = False
+    scaling: list[ScaleTier] | None = None  # LucidFlex funded: max micros by cycle profit
     payouts_to_live: int | None = None
     payouts_live_review: int | None = None
     payout: PayoutRules
