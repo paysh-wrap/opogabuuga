@@ -344,3 +344,13 @@ def test_profile_disabled_d35():
     cfg = CFG.model_copy(update={"profiles": CFG.profiles.model_copy(update={"enabled": ["STD"]})})
     d = evaluate(good(), cfg)
     assert d.outcome == "SKIP" and d.skip_reason == "PROFILE_DISABLED"
+
+
+def test_no_break_target_cap_d36():
+    soft = CFG.filters.model_copy(update={"require_structure_break": False, "no_break_rr_cap": D(1)})
+    tp = CFG.trade_plan.model_copy(update={"rr_min": D(1)})
+    cfg = CFG.model_copy(update={"filters": soft, "trade_plan": tp})
+    nobreak = evaluate(good(mso_events=()), cfg)
+    assert nobreak.plan.rr == 1 and nobreak.features["rr_max"] == "1"
+    withbreak = evaluate(good(), cfg)
+    assert withbreak.plan.rr == 3 and withbreak.features["rr_max"] == "3.0"

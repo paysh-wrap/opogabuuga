@@ -199,7 +199,11 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
     entry = x.close
     if cfg.entry.mode == "limit_cisd" and m.cisd_level is not None:
         entry = m.cisd_level
-    plan = build_trade_plan(d, entry, m.invalid, m.t2, inst.tick, buf, min_stop, tp_cfg.rr_min, tp_cfg.rr_max)
+    rr_max = tp_cfg.rr_max
+    cap = cfg.filters.no_break_rr_cap
+    if cap is not None and not breaks:  # D36: no structure break → closer target
+        rr_max = max(tp_cfg.rr_min, min(rr_max, cap))
+    plan = build_trade_plan(d, entry, m.invalid, m.t2, inst.tick, buf, min_stop, tp_cfg.rr_min, rr_max)
     plan11: TradePlan | Skip | None = None
     if x.one_to_one:
         o = cfg.one_to_one_mode
@@ -294,6 +298,7 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
             "tags": tags,
             "invalid": str(m.invalid),
             "t2": str(m.t2),
+            "rr_max": str(rr_max),
         },
     )
 

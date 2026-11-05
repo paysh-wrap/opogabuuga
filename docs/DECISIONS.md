@@ -297,3 +297,7 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   Scalp: real T1 hit rate < 55% → its 65% filter blocks almost all (needs a design decision).
 - make_plans.py still uses the Daily file as its template: re-running it would drop D36 from Pro/Flex. Don't
   regenerate without porting D36.
+- Win rate (D36b): setups without a CHoCH/BoS after the sweep keep trading but target 1R (filters.no_break_rr_cap
+  1.0); with a structure break they keep 1R–3R. Futures 18 sessions: MGC 61% win PF 1.73 +$601 MC 95%; MNQ 43% win
+  PF 1.73 +$404 MC 92%; ~3.6 trades/day total. One parameter, same effect on both markets, but small sample —
+  re-check on longer data.

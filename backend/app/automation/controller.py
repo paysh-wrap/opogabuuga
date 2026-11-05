@@ -392,7 +392,7 @@ class Controller:
             Decimal(str(sig.features["invalid"])),
             Decimal(str(sig.features["t2"])),
             r.trade_plan.rr_min,
-            r.trade_plan.rr_max,
+            Decimal(str(sig.features.get("rr_max", r.trade_plan.rr_max))),  # D36: per-signal cap survives the fill
             inst.stop_buffer_ticks or r.trade_plan.stop_buffer_ticks,
             inst.min_stop_ticks or r.trade_plan.min_stop_ticks,
         )

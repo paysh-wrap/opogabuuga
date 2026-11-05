@@ -208,6 +208,9 @@ class Filters(_M):
     require_structure_break: bool = True
     # D35: in limit_cisd entry mode, T1 already touched is not a skip (the limit only fills on a full retrace to CISD)
     t1_through_ok_with_limit: bool = False
+    # D36 blend: a setup WITHOUT a CHoCH/BoS after the sweep may trade, but its target is capped at this R
+    # (closer target → higher hit rate). None = no cap. Setups with a structure break keep the normal R:R window.
+    no_break_rr_cap: D | None = None
 
 
 class ScoreCfg(_M):
