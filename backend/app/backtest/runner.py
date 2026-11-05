@@ -189,7 +189,8 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
                 headers={"content-type": "text/plain"},
             )
             if resp.status_code != 200:
-                k = f"{p['event']}:{resp.status_code}:{str(resp.json().get('detail', resp.json().get('code', '')))[:40]}"
+                body = resp.json()
+                k = f"{p['event']}:{resp.status_code}:{str(body.get('detail', body.get('code', '')))[:40]}"
                 rejects[k] = rejects.get(k, 0) + 1
         with st.sessionmaker() as s:
             trades = [
