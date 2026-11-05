@@ -15,8 +15,9 @@ Check: `E2E_PASSWORD=<pw> make check` (lint, mypy strict, 292 backend tests w/ 1
 - Remaining Phase 5: CrossTrade WebSocket fills (executionUpdate) → wire CrossTrade into Controller when
   PAYTIENCE_ALLOW_LIVE + checklist; TradersPost send-only adapter (docs.traderspost.io needed);
   then Phase 6 UI (Automation page D4, Risk page w/ Eval Mode + 1:1 toggle, Accounts, Dashboard, Today, PWA).
-- Indicators are spec-derived (docs/INDICATOR_SPEC.md); verify against original Pine source once
-  www.tradingview.com is reachable (environment "Psyd" now has Full network access).
+- Indicators VERIFIED against original LunqFX + BigBeluga source (D21); TradersPost send-only adapter done.
+- Internet: this session's env is blocked; helper sessions in environment "Psyd" (Full network) fetch pages.
+- NEXT: CrossTrade WebSocket fills → wire into Controller; then Phase 6 UI.
 
 ## User preferences
 - Keep replies SHORT; do the complex work fully. Ask before building improvements. Never break Lucid rules.
