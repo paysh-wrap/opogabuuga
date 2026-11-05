@@ -320,7 +320,11 @@ MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq"}  # focus: gold (main) + Nasdaq
 
 @router.get("/markets")
 def markets(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    from app.clock import session_date
+    from app.contracts import order_contract
+
     r = request.app.state.rules.rules
+    today = session_date(request.app.state.clock.now())
     return {
         "markets": [
             {
@@ -328,6 +332,8 @@ def markets(request: Request, _: Principal = Depends(current_user)) -> dict[str,
                 "name": n,
                 "enabled": r.instruments[k].enabled,
                 "tick_value": str(r.instruments[k].tick_value),
+                "chart": r.instruments[k].tv_symbol,  # TradingView signals
+                "contract": order_contract(k, r.instruments[k].contract, today),  # real futures contract for orders
             }
             for k, n in MARKETS.items()
             if k in r.instruments

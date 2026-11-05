@@ -253,3 +253,17 @@ Gold backtest (Oct 2026, 741 models): 592 skipped by COOLDOWN because failures o
 trade kept re-arming it. Now a MODEL_FAILED counts toward the 3-failure / 5-session cooldown only if that model's
 signal passed every gate. T1/T2 hits still reset the streak.
 Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of replayed alerts dropped).
+
+## D34 — Real futures contracts; morning jobs before gold's London window (user, 2026-11-05)
+- Orders name the actual futures contract Lucid/Tradovate trades (MGCZ6, MNQZ6), never the continuous chart symbol
+  (MGC1!). app/contracts.py picks the front month from config `instruments.*.contract`: metals roll 2 business days
+  before first notice day (GJMQVZ), equity index 8 days before the 3rd-Friday expiry (HMUZ). `override` pins a contract
+  (exchange holidays aren't modelled). No contract config → order refused. Dashboard market buttons show the contract.
+  TradingView signals still come from MGC1!/MNQ1!.
+- Backtests label their data source; spot data (e.g. XAUUSD) is flagged "NOT FUTURES — signal counts only".
+  Real MGC/MNQ futures data to be loaded once the app is near finished.
+- Calendar 02:30, bias 02:40, pre-flight 02:50 ET (were 06:00/06:10/06:40) so gold's 03:00 window is tradeable live
+  (before: no bias until 06:10 → live couldn't trade what the backtest did).
+- Approved safety fixes from the review: feed-independent watchdog (flat/news/MLL), 16:44 hard flat enforced with
+  retries, flatten exits book real fill P&L, failed emergency flatten stays tracked + retried.
+- $50–70k/year analysis dropped for now (user).

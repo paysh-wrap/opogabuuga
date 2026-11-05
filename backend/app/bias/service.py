@@ -1,6 +1,6 @@
 """Daily bias (§15): run TauricResearch/TradingAgents once per session on each enabled instrument's proxy ETF.
 
-- Scheduled at `schedule.bias` (06:10 ET), Mon–Fri. Latest row per (session, proxy) wins (today_bias).
+- Scheduled at `schedule.bias` (02:40 ET, D34), Mon–Fri. Latest row per (session, proxy) wins (today_bias).
 - Failure / timeout / unknown rating → stored as NO_TRADE + alert (that instrument does not trade today).
 - A failed proxy may be retried ("Run now"); a successful one is not re-run the same session.
 - Live-only: always the CURRENT session date (never re-run history).

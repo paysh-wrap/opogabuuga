@@ -14,7 +14,7 @@ Fills: polled from GET /accounts/{a}/fills (verified format), deduped by executi
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -77,6 +77,7 @@ class CrossTradeAdapter:
         tv_symbols: dict[str, str],
         poll_s: float = 5.0,
         verify_delay_s: float = 1.0,
+        contract_for: Callable[[str], str] | None = None,
     ) -> None:
         if not token:
             raise BrokerError("CrossTrade token missing (Connections page)")
@@ -84,6 +85,8 @@ class CrossTradeAdapter:
         self.http, self.tv_symbols, self.poll_s, self.verify_delay_s = http, tv_symbols, poll_s, verify_delay_s
         self._roles: dict[str, tuple[str, str]] = {}  # order id → (bracket id, role)
         self._seen: set[str] = set()
+        # Orders must name the real futures contract (MGCZ6), resolved per call so rolls apply without restart.
+        self.contract_for = contract_for
         self._root = {v.rstrip("!").rstrip("1"): k for k, v in tv_symbols.items()}
 
     # ---------- http ----------
@@ -176,7 +179,9 @@ class CrossTradeAdapter:
     # ---------- writes ----------
     async def place_bracket(self, acct: str, req: BracketRequest) -> BracketAck:
         body: dict[str, Any] = {
-            "instrument": self.tv_symbols.get(req.symbol, req.symbol),
+            "instrument": self.contract_for(req.symbol)
+            if self.contract_for
+            else self.tv_symbols.get(req.symbol, req.symbol),
             "action": "buy" if req.side == "BUY" else "sell",
             "qty": req.qty,
             "orderType": req.entry_type.lower(),

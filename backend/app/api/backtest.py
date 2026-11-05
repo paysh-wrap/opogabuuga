@@ -118,6 +118,7 @@ async def start(
     one_to_one: bool = Query(False),
     scalp: bool = Query(False),
     eval_mode: bool = Query(False),
+    data_source: str = Query("futures", pattern="^(futures|spot)$"),
     p: Principal = Depends(current_user),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
@@ -141,6 +142,7 @@ async def start(
         "one_to_one": one_to_one,
         "scalp": scalp,
         "eval_mode": eval_mode,
+        "data_source": data_source,
     }
     run = BacktestRun(kind="ON_DEMAND", status="running", cache_key=f"{symbol}-{len(bars)}", params=params)
     db.add(run)
@@ -155,6 +157,7 @@ async def start(
         one_to_one=one_to_one,
         scalp=scalp,
         eval_mode=eval_mode,
+        data_source=data_source,
     )
 
     async def work() -> None:

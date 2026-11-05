@@ -28,7 +28,7 @@ export default function Today() {
           <button className="rounded-md border border-blue px-3 py-1 text-sm font-semibold text-blue disabled:opacity-50" disabled={runBias.isPending}
             onClick={() => runBias.mutate()}>{runBias.isPending ? "Running… (up to 10 min)" : "Run now"}</button>
         </div>
-        {bias.data?.decisions.length === 0 && <p className="text-sm">Not run yet (06:10 ET). No bias = no trading.</p>}
+        {bias.data?.decisions.length === 0 && <p className="text-sm">Not run yet (02:40 ET). No bias = no trading.</p>}
         {bias.data?.decisions.map((b, i) => (
           <details key={i} className="text-sm"><summary>{b.proxy}: <b className="text-gold">{b.mapped}</b> ({b.raw})</summary>
             <p className="whitespace-pre-wrap opacity-80">{b.reasoning.slice(0, 1500)}</p></details>

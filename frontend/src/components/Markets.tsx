@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
-interface M { symbol: string; name: string; enabled: boolean }
+interface M { symbol: string; name: string; enabled: boolean; contract?: string | null }
 
 export default function Markets() {
   const qc = useQueryClient();
@@ -16,10 +16,10 @@ export default function Markets() {
       {q.data?.markets.map((m) => (
         <button key={m.symbol} data-testid={`market-${m.symbol}`} disabled={set.isPending} onClick={() => set.mutate(m)}
           className={`rounded-md border px-3 py-1.5 text-sm font-semibold ${m.enabled ? "border-gold bg-gold/15 text-gold" : "border-blue text-blue"}`}>
-          {m.name} ({m.symbol}) {m.enabled ? "ON" : "OFF"}
+          {m.name} ({m.contract ?? m.symbol}) {m.enabled ? "ON" : "OFF"}
         </button>
       ))}
-      <span className="text-xs opacity-75">Micro contracts only.</span>
+      <span className="text-xs opacity-75">Micro futures only; orders go to the front contract shown (auto-roll).</span>
     </div>
   );
 }

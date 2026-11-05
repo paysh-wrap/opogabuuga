@@ -37,6 +37,7 @@ class BacktestConfig:
     scalp: bool = False
     eval_mode: bool = False
     profiles: tuple[str, ...] = ("TIGHT", "STD")
+    data_source: str = "futures"  # "futures" (MGC/MNQ contracts) | "spot" (e.g. XAUUSD: NOT what Lucid trades)
 
 
 @dataclass
@@ -141,6 +142,11 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         )
     payloads.sort(key=lambda p: (p["bar_time_ms"], p["event"] != "HEARTBEAT"))
     assumptions = ["no historical news calendar: sessions treated as having no high-impact USD events"]
+    if cfg.data_source != "futures":
+        assumptions.append(
+            f"DATA IS {cfg.data_source.upper()}, NOT {cfg.symbol} FUTURES: prices, ranges and fills differ from the "
+            "contract Lucid trades; use for signal counts only, not for P&L decisions"
+        )
     if cfg.bias != "recorded":
         assumptions.append(f"bias fixed to {cfg.bias} every session (not the live TradingAgents decision)")
     with TestClient(app) as c:

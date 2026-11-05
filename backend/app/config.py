@@ -157,6 +157,15 @@ class Behavior(_M):
     firm_inactivity_delete_days: int
 
 
+class ContractCfg(_M):
+    """Real futures contract for orders (app/contracts.py). override pins one, e.g. "MGCG7" (exchange holidays)."""
+
+    months: str
+    roll: Literal["fnd", "expiry"]
+    roll_days: int = Field(ge=0, le=20)
+    override: str | None = None
+
+
 class Instrument(_M):
     tick: D
     tick_value: D
@@ -167,6 +176,7 @@ class Instrument(_M):
     bias_proxy: str
     exchange: Literal["CME", "CBOT", "COMEX", "NYMEX"]
     tv_symbol: str
+    contract: ContractCfg | None = None  # orders go to the real contract (MGCZ6), not the continuous MGC1!
     stop_buffer_ticks: int | None = None
     min_stop_ticks: int | None = None
     slippage_ticks: int | None = None

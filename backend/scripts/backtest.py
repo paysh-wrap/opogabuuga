@@ -30,7 +30,9 @@ def _one(args: tuple[str, str, str, str, bool, bool]) -> dict[str, Any]:
     from app.backtest.runner import BacktestConfig, run_backtest
 
     bars = load_csv(Path(path).read_text())
-    r = run_backtest(bars, BacktestConfig(symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp), Path(plan))
+    src = "spot" if any(x in Path(path).name.lower() for x in ("xauusd", "xau", "spot")) else "futures"
+    cfg = BacktestConfig(symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp, data_source=src)
+    r = run_backtest(bars, cfg, Path(plan))
     return {
         "file": Path(path).name,
         "sessions": r.sessions,
@@ -39,6 +41,7 @@ def _one(args: tuple[str, str, str, str, bool, bool]) -> dict[str, Any]:
         "skips": r.skips,
         "rejects": r.rejects,
         "balance": r.final_balance,
+        "assumptions": r.assumptions,
     }
 
 

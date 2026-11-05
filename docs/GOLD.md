@@ -10,4 +10,4 @@
 - Macro: real-yield and DXY correlations are unstable (−0.96 … 0) → no hard-coded macro filter. GLD = daily proxy only.
 - No published evidence for sweep/CISD edge in gold → must be proven by our own out-of-sample MGC backtest.
 - Applied in config: MGC windows [03:00–11:00, 13:30–15:30], min_stop_ticks 16, news_after_min 15.
-- Open: CrossTrade order symbol for MGC must be the actual contract (e.g. MGCZ6) — VERIFY before live.
+- Orders now go to the actual contract (D34: MGCZ6 → MGCG7 at the late-Nov roll). CrossTrade docs list Tradovate form "MGCZ6" — VERIFY with a sim order before live.

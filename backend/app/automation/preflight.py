@@ -1,4 +1,4 @@
-"""Pre-flight (§13): run at 06:40 (D2) and whenever automation is enabled. Any failure → OFF + banner."""
+"""Pre-flight (§13): at schedule.preflight (02:50 ET, D34) and whenever automation is enabled. Fail → OFF + banner."""
 
 from __future__ import annotations
 

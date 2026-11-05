@@ -60,10 +60,10 @@ behavior:
 # fee_rt = Lucid commission per side × 2 (MNQ/MES/MYM $0.50/side, MGC $0.80/side) — VERIFY in your dashboard.
 # Per-instrument trade-plan overrides fall back to trade_plan.* when absent.
 instruments:
-  MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!"}    # VERIFY fees
-  MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!"}   # VERIFY fees
-  MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!"}   # VERIFY fees
-  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "11:00"], ["13:30", "15:30"]]}      # VERIFY fees
+  MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}    # VERIFY fees
+  MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
+  MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
+  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "11:00"], ["13:30", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
@@ -205,11 +205,11 @@ webhook:
   max_body_bytes: 16384
   stale_after_bar_multiple: 2          # no heartbeat for 2× bar interval in session → STALE
 
-schedule:                              # ET; D2 moved morning jobs before the 06:45 window
+schedule:                              # ET; D34: before gold's 03:00 London window (was 06:00/06:10/06:40)
   reconcile_reset: "18:00"
-  calendar: "06:00"
-  bias: "06:10"
-  preflight: "06:40"
+  calendar: "02:30"
+  bias: "02:40"
+  preflight: "02:50"
   sync: ["18:00", "16:50"]
   sync_every_min: 15
   report: "17:00"
