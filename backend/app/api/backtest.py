@@ -99,6 +99,7 @@ async def start(
     stage: Literal["EVAL", "FUNDED", "LIVE"] = Query("EVAL"),
     bias: Literal["recorded", "LONG_ONLY", "SHORT_ONLY", "NEUTRAL"] = Query("recorded"),
     one_to_one: bool = Query(False),
+    scalp: bool = Query(False),
     eval_mode: bool = Query(False),
     p: Principal = Depends(current_user),
     db: Session = Depends(get_db),
@@ -116,14 +117,27 @@ async def start(
         for b in db.execute(select(BiasDecision).order_by(BiasDecision.id)).scalars()
         if b.version != "bt"
     }
-    params = {"symbol": symbol, "stage": stage, "bias": bias, "one_to_one": one_to_one, "eval_mode": eval_mode}
+    params = {
+        "symbol": symbol,
+        "stage": stage,
+        "bias": bias,
+        "one_to_one": one_to_one,
+        "scalp": scalp,
+        "eval_mode": eval_mode,
+    }
     run = BacktestRun(kind="ON_DEMAND", status="running", cache_key=f"{symbol}-{len(bars)}", params=params)
     db.add(run)
     audit.record(db, st.clock, p.user.username, "backtest.start", str(len(bars)), params)
     db.commit()
     rid = run.id
     cfg = BacktestConfig(
-        symbol=symbol, stage=stage, bias=bias, recorded_bias=rec, one_to_one=one_to_one, eval_mode=eval_mode
+        symbol=symbol,
+        stage=stage,
+        bias=bias,
+        recorded_bias=rec,
+        one_to_one=one_to_one,
+        scalp=scalp,
+        eval_mode=eval_mode,
     )
 
     async def work() -> None:

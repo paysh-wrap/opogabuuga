@@ -208,7 +208,9 @@ class Controller:
 
     def _plan(self, s: Session, sig: Signal) -> TradePlan | None:
         r = self.rules.rules
-        any_1to1 = r.one_to_one_mode.enabled or (self.rules.eval_mode_on and r.eval_mode.one_to_one)
+        any_1to1 = (
+            r.one_to_one_mode.enabled or r.scalp_mode.enabled or (self.rules.eval_mode_on and r.eval_mode.one_to_one)
+        )
         want = "ONE_TO_ONE" if any_1to1 else "STANDARD"
         rows = list(s.execute(select(TradePlanRow).where(TradePlanRow.signal_id == sig.id)).scalars())
         row = next((r for r in rows if r.mode == want), None) or next((r for r in rows if r.mode == "STANDARD"), None)
@@ -291,7 +293,11 @@ class Controller:
             plan0.mode == "ONE_TO_ONE"
             and a.stage in r.one_to_one_mode.stages
             and one_to_one_for(
-                a.stage, a.eval_mode, self.rules.eval_mode_on, r.one_to_one_mode.enabled, r.eval_mode.one_to_one
+                a.stage,
+                a.eval_mode,
+                self.rules.eval_mode_on,
+                r.one_to_one_mode.enabled or r.scalp_mode.enabled,
+                r.eval_mode.one_to_one,
             )
         )
         plan = plan0
@@ -447,6 +453,7 @@ class Controller:
                 for f in self.adapter.on_bar(symbol, o, h, low, c, at):
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._handle_events(s, await self.om.on_bar(symbol, h, low))
+                await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
                 s.commit()
 
@@ -461,6 +468,19 @@ class Controller:
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._monitor(s)
                 s.commit()
+
+    async def _scalp_time_stop(self, s: Session, symbol: str) -> None:
+        """Scalp mode: a quick trade still open after max_hold_s is closed at market (app exit, ≥ 6 s hold)."""
+        r = self.rules.rules
+        if not r.scalp_mode.enabled:
+            return
+        now = self.clock.now()
+        for t in [t for t in self.om.trades.values() if t.symbol == symbol and t.plan.mode == "ONE_TO_ONE"]:
+            held = (now - t.opened_at).total_seconds()
+            if held >= max(r.scalp_mode.max_hold_s, r.behavior.min_hold_seconds):
+                a = s.execute(select(Account).where(Account.broker_account_id == t.account)).scalar_one_or_none()
+                if a is not None:
+                    await self._flatten_account(s, a, "SCALP_TIME")
 
     async def _handle_events(self, s: Session, events: list[Event]) -> None:
         for e in events:

@@ -63,6 +63,14 @@ export default function Risk() {
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold text-gold">Scalp mode {s.settings["scalp_mode.enabled"] === true ? "· ON" : "· OFF"}</h2>
+        <p className="text-xs">Quick trades on the same signals, only when the high-win-rate 1:1 filters pass (proven T1 hit rate ≥ 65%, CHoCH, bias + HTF agree, normal volatility, after news).
+          Target {String(s.settings["scalp_mode.target_r"] ?? "0.5")}R, closed after ~{String(s.settings["scalp_mode.max_hold_s"] ?? 60)} s if not hit (checked each 1-minute bar). Same stop. Must prove itself in Backtest first.</p>
+        <button data-testid="scalp" className={`${btn} mt-2 ${s.settings["scalp_mode.enabled"] === true ? "border-gold text-gold" : "border-blue text-blue"}`}
+          onClick={() => save({ "scalp_mode.enabled": s.settings["scalp_mode.enabled"] !== true })}>{s.settings["scalp_mode.enabled"] === true ? "ON — turn off" : "OFF — turn on"}</button>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">1:1 mode</h2>
         <p className="text-xs">Target 1R · 50% off at 0.75R then breakeven · max 3 losses/day · never over consistency.</p>
         <button data-testid="one-to-one" className={`${btn} mt-2 ${oneToOne ? "border-gold text-gold" : "border-blue text-blue"}`}

@@ -34,6 +34,7 @@ class BacktestConfig:
     bias: str = "recorded"  # recorded | LONG_ONLY | SHORT_ONLY | NEUTRAL
     recorded_bias: dict[str, str] = field(default_factory=dict)  # session iso date → mapped
     one_to_one: bool = False
+    scalp: bool = False
     eval_mode: bool = False
     profiles: tuple[str, ...] = ("TIGHT", "STD")
 
@@ -138,7 +139,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
     with TestClient(app) as c:
         st = app.state
         st.calendar = lambda d: []
-        changes: dict[str, Any] = {"one_to_one_mode.enabled": cfg.one_to_one}
+        changes: dict[str, Any] = {"one_to_one_mode.enabled": cfg.one_to_one, "scalp_mode.enabled": cfg.scalp}
         with st.sessionmaker() as s:
             from app.auth import create_user
 

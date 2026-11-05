@@ -205,7 +205,7 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
             o.partial_at_fraction_of_tp,
             o.single_contract_lock_r,
             fee_cover_ticks(inst.fee_rt, inst.tick_value),
-            o.rr,
+            cfg.scalp_mode.target_r if cfg.scalp_mode.enabled else o.rr,
         )
     usable = plan11 if x.one_to_one else plan
     if isinstance(usable, TradePlan):

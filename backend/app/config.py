@@ -286,6 +286,14 @@ class OneToOneFilters(_M):
     news_after_min: int
 
 
+class ScalpMode(_M):
+    """User button: quick trades on the same confluence + 1:1 win-rate filters, smaller target, time limit."""
+
+    enabled: bool = False
+    target_r: D = Field(default=D("0.5"), ge=D("0.3"), le=D("1.0"))
+    max_hold_s: int = Field(default=60, ge=25, le=300)
+
+
 class OneToOneMode(_M):
     enabled: bool
     rr: D
@@ -448,6 +456,7 @@ class RulesConfig(_M):
     drawdown_guard: GuardCfg
     internal: InternalCfg
     one_to_one_mode: OneToOneMode
+    scalp_mode: ScalpMode = ScalpMode()
     eval_mode: EvalModeCfg
     bias: BiasCfg
     smt: SmtCfg

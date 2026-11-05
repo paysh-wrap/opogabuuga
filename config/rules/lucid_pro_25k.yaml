@@ -244,3 +244,5 @@ plan:
   r_avg_assumed: 255                   # $ per 1R (assumption S3, confirm)
 
 self_improvement: {enabled: true, auto_promote_paper: false, cooldown_days: 14, min_oos_trades: 100, min_improvement_r: 0.03, max_param_step_pct: 25}
+
+scalp_mode: {enabled: false, target_r: 0.5, max_hold_s: 60}   # user button: quick trades (1:1 filters + time limit)

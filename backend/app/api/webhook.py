@@ -47,6 +47,7 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
                     event=p.event,
                     event_time_ms=p.bar_time_ms,
                     one_to_one=st.rules.rules.one_to_one_mode.enabled
+                    or st.rules.rules.scalp_mode.enabled
                     or (st.rules.eval_mode_on and st.rules.rules.eval_mode.one_to_one),
                     cache=st.stats_cache,
                 )

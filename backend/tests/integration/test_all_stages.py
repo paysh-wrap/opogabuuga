@@ -182,3 +182,20 @@ def test_eod_update_trails_mll_on_eod_accounts_only(authed, clock):
     assert asyncio.run(authed.app.state.controller.eod_all()) == 1
     acc = {a["id"]: a for a in authed.get("/api/dashboard").json()["accounts"]}
     assert acc[e]["mll"] == "24400" and acc[i]["mll"] == "24000"
+
+
+def test_scalp_mode_small_target(authed, clock, proven):
+    _, res = run(authed, clock, "EVAL", {"scalp_mode.enabled": True})
+    assert res[0]["ok"], res
+    hb(authed, clock, MS - MIN, close="20018")
+    t = authed.get("/api/trades").json()["trades"][0]
+    assert t["exit_reason"] == "TP" and 0 < float(t["net_r"]) <= 0.55, t
+
+
+def test_scalp_mode_time_stop(authed, clock, proven):
+    _, res = run(authed, clock, "EVAL", {"scalp_mode.enabled": True, "scalp_mode.max_hold_s": 60})
+    assert res[0]["ok"], res
+    hb(authed, clock, MS - MIN, close="20006")  # no target, no stop, ~1 min later
+    hb(authed, clock, MS, close="20006")
+    t = authed.get("/api/trades").json()["trades"][0]
+    assert t["exit_reason"] == "SCALP_TIME", t
