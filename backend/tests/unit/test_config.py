@@ -40,7 +40,7 @@ def test_exact_spec_values(loaded_rules):
 
 def test_user_changes_d1_d2(loaded_rules):
     r = loaded_rules.rules
-    assert r.internal.windows[0] == ("06:45", "11:30")
+    assert r.internal.windows == [("06:45", "09:30"), ("09:35", "11:30"), ("13:30", "15:30")]
     assert r.instruments["MYM"].tick == Decimal("1.0") and r.instruments["MYM"].tick_value == Decimal("0.50")
     assert r.instruments["MGC"].tick == Decimal("0.10") and r.instruments["MGC"].tick_value == Decimal("1.00")
     assert not r.instruments["MYM"].enabled and not r.instruments["MGC"].enabled  # §16.6 gate first

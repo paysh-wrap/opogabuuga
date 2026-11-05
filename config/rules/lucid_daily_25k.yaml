@@ -121,7 +121,7 @@ internal:
   consistency_day_stop_buffer_pct: 5
   auto_flatten: "16:40"
   hard_flat: "16:44"
-  windows: [["06:45", "11:30"], ["13:30", "15:30"]]   # D2 (was 09:35–11:30)
+  windows: [["06:45", "09:30"], ["09:35", "11:30"], ["13:30", "15:30"]]   # D2 + D10: 09:30–09:35 excluded
   no_entry_before_news_min: 15
   news_flatten_before_min: 2
 

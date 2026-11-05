@@ -36,7 +36,7 @@ def test_login_sets_httponly_cookie_and_csrf_enforced(client):
 
 def test_rules_endpoint(authed):
     body = authed.get("/api/rules").json()
-    assert body["rules"]["internal"]["windows"][0] == ["06:45", "11:30"]
+    assert body["rules"]["internal"]["windows"][0] == ["06:45", "09:30"]
     assert "eval.lock_trigger" in body["verify_paths"]
     assert body["rules"]["instruments"]["MNQ"]["tick"] == "0.25"  # Decimal serialized exactly
 

@@ -76,3 +76,17 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   (A third-party guide said LucidDaily funded is intraday — confirm in your dashboard.)
 - Both types stay fully supported: each account has its own drawdown_type (Accounts page) and the MLL
   tracker / guard / 1:1 management follow the account's type. Spec §21 MLL tests for both types are kept.
+
+## D10 — 2026-11-05 — Exclude 09:30–09:35 (opening bell)
+- Windows: 06:45–09:30, 09:35–11:30, 13:30–15:30 ET.
+- Backtest (Phase 8) reports performance with vs without 09:30–09:35; if excluding it hurts, the Lab raises a
+  suggestion for the user (windows are a user setting, never changed automatically).
+
+## D11 — 2026-11-05 — Indicator source access
+- Official pages: LunqFX https://www.tradingview.com/script/HGW9NYJZ-ICT-Fractal-Model-HTF-Candles-CISD-C2-Targets-LunqFX/
+  (open-source per search results); BigBeluga https://www.tradingview.com/script/mFMTYEYR-Market-Structure-Oscillator-BigBeluga/
+- tradingview.com is blocked by this build environment's network policy; user cannot paste source.
+- Phase 2 builds Paytience's OWN implementation of the spec's definitions (§5–§6) in Python + Pine (no copied code).
+  It is labelled "spec-derived, not yet verified against the original source". Verification: (1) read original
+  source once tradingview.com is allowed and align semantics; (2) §5.2 three-way parity over ≥20 sessions —
+  mismatch blocks LIVE and Lab promotions (unchanged).
