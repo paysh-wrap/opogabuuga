@@ -16,7 +16,7 @@ interface Status {
 }
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
 interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; paper: boolean; drawdown_type: string; drawdown_check: string | null }
-interface Payout { next_check: string | null; seconds_left: number | null; eligible: string | null; needed: string | null; live_trigger_left: string | null; pending: boolean; payouts_done: number; payouts_to_live: number | null; live_ready: boolean }
+interface Payout { next_check: string | null; seconds_left: number | null; eligible: string | null; needed: string | null; live_trigger_left: string | null; pending: boolean; payouts_done: number; payouts_to_live: number | null; payouts_live_review: number | null; live_ready: boolean }
 interface Pos { account_id: number; label: string; balance: string; open_pnl: string; mll: string; positions: { symbol: string; qty: number; avg: string }[]; payout?: Payout | null; error?: string }
 
 function left(s: number) {
@@ -30,8 +30,11 @@ function PayoutLine({ p }: { p: Payout }) {
   if (p.eligible && Number(p.eligible) > 0) parts.push(`$${p.eligible} available`);
   if (p.needed && Number(p.needed) > 0) parts.push(`$${p.needed} more to first payout`);
   if (p.live_trigger_left != null) parts.push(Number(p.live_trigger_left) > 0 ? `go-live trigger: $${p.live_trigger_left} more today` : "go-live trigger REACHED today");
-  if (p.payouts_to_live !== null || p.payouts_done) parts.push(`payouts ${p.payouts_done}${p.payouts_to_live ? `/${p.payouts_to_live}` : ""} toward live`);
-  if (p.live_ready) parts.push("eligible to go live — Lucid decides");
+  if (p.payouts_to_live !== null) {
+    const r = p.payouts_live_review;
+    parts.push(`payouts ${p.payouts_done}` + (r ? ` (${r}th = live review pool)` : ""));
+    if (p.live_ready) parts.push(r && p.payouts_done >= r ? "in live review pool" : "qualifies for live — Lucid risk team decides");
+  }
   return <span data-testid="payout" className="w-full text-xs text-gold">{parts.join(" · ")}</span>;
 }
 

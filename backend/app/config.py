@@ -111,6 +111,7 @@ class FundedRules(_M):
     news_breach_min_after: int
     max_daily_profit_live_trigger: D
     payouts_to_live: int | None = None
+    payouts_live_review: int | None = None
     payout: PayoutRules
 
 

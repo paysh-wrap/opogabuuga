@@ -186,3 +186,5 @@ LIVE = real money after Lucid moves you (≥ 1 processed payout; $6,000 day trig
 LUCID SIM, LUCID LIVE $. Payout line counts processed payouts toward live (`funded.payouts_to_live`, VERIFY — user to
 confirm the number). Once any account is LIVE, sim accounts are blocked (§10, account_selector). Live rules from config
 (start $0, EOD, no DLL, $15k sim-profit cap) — all VERIFY.
+D25 update (user-confirmed): 1 processed payout qualifies for live (Lucid risk team decides); 5th payout enters the
+live review pool (not required). Config: funded.payouts_to_live 1, funded.payouts_live_review 5.

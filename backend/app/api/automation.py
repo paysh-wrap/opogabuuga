@@ -337,6 +337,7 @@ def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decim
         "pending": stt.payout_pending(db, a),
         "payouts_done": (done := stt.payouts_processed(db, a)),
         "payouts_to_live": r.funded.payouts_to_live if funded else None,
+        "payouts_live_review": r.funded.payouts_live_review if funded else None,
         "live_ready": funded and done >= max(1, r.funded.payouts_to_live or 1),
     }
 
