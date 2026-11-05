@@ -255,6 +255,7 @@ def list_accounts(
                 "broker_account_id": a.broker_account_id,
                 "label": a.label,
                 "stage": a.stage,
+                "paper": a.is_sim,
                 "drawdown_type": a.drawdown_type,
                 "drawdown_expected": (exp := stage_rules(request.app.state.rules.rules, a.stage).drawdown_type),
                 "drawdown_check": None

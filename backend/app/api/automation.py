@@ -147,6 +147,7 @@ class NewAccount(BaseModel):
     stage: str = "EVAL"
     drawdown_type: str | None = None  # None → the stage default from the rules file
     balance: Decimal = Decimal(25000)
+    tradovate_account: str | None = Field(default=None, max_length=64)  # set → REAL account (not paper)
 
 
 @router.post("/accounts")
@@ -156,7 +157,15 @@ def create_account(
     if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in (None, "eod", "intraday"):
         raise HTTPException(422, "stage EVAL/FUNDED/LIVE and drawdown eod/intraday")
     dd = body.drawdown_type or stage_rules(request.app.state.rules.rules, body.stage).drawdown_type
-    a = _ctl(request).create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username)
+    c = _ctl(request)
+    if body.tradovate_account:
+        ext = body.tradovate_account.strip().upper()
+        if db.execute(select(Account).where(Account.broker_account_id == ext)).scalar_one_or_none():
+            raise HTTPException(409, "account already added")
+        a = c.create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username, real_id=ext)
+        db.commit()
+        return {"id": a.id, "broker_account_id": ext, "paper": False}
+    a = c.create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username)
     return {"id": a.id, "broker_account_id": a.broker_account_id, "paper": True}
 
 

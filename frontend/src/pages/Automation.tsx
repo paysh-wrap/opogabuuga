@@ -15,7 +15,7 @@ interface Status {
   rules_error: string | null;
 }
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
-interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; drawdown_type: string; drawdown_check: string | null }
+interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; paper: boolean; drawdown_type: string; drawdown_check: string | null }
 interface Pos { account_id: number; label: string; balance: string; open_pnl: string; mll: string; positions: { symbol: string; qty: number; avg: string }[] }
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
@@ -25,6 +25,7 @@ export default function Automation() {
   const qc = useQueryClient();
   const [err, setErr] = useState("");
   const [kill, setKill] = useState("");
+  const [nf, setNf] = useState({ label: "", stage: "EVAL", real: "" });
   const st = useQuery({ queryKey: ["automation"], queryFn: () => api<Status>("/api/automation"), refetchInterval: 5000 });
   const pf = useQuery({ queryKey: ["preflight"], queryFn: () => api<Preflight>("/api/automation/preflight", { method: "POST" }), refetchInterval: 30000 });
   const accts = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[] }>("/api/accounts") });
@@ -99,6 +100,7 @@ export default function Automation() {
             return (
               <li key={a.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
                 <b className="text-gold">{a.label || a.id}</b><span>{a.stage}</span>
+                <span className={`rounded border px-1 text-xs ${a.paper ? "border-border text-blue" : "border-gold text-gold"}`}>{a.paper ? "PAPER" : "REAL"}</span>
                 {a.eval_mode_effective && <span className="text-goldLight">EVAL MODE</span>}
                 <span className="inline-flex overflow-hidden rounded-md border border-border" role="group" aria-label="Drawdown type">
                   {(["eod", "intraday"] as const).map((d) => (
@@ -123,10 +125,23 @@ export default function Automation() {
             );
           })}
         </ul>
-        <button className={`${btn} mt-3 border-blue text-blue`} onClick={() => {
-          const label = window.prompt("Paper account name");
-          if (label) run.mutate(() => api("/api/accounts", { method: "POST", body: JSON.stringify({ label, stage: "EVAL" }) }));
-        }}>+ Add paper account</button>
+        <form className="mt-3 flex flex-wrap items-end gap-2 text-sm" onSubmit={(e) => {
+          e.preventDefault();
+          if (!nf.label) return;
+          run.mutate(() => api("/api/accounts", { method: "POST", body: JSON.stringify({ label: nf.label, stage: nf.stage, tradovate_account: nf.real || null }) }));
+          setNf({ label: "", stage: "EVAL", real: "" });
+        }}>
+          <label className="flex flex-col">Name<input aria-label="Account name" value={nf.label} onChange={(e) => setNf({ ...nf, label: e.target.value })} /></label>
+          <label className="flex flex-col">Stage
+            <select aria-label="Stage" value={nf.stage} onChange={(e) => setNf({ ...nf, stage: e.target.value })}>
+              <option>EVAL</option><option>FUNDED</option><option>LIVE</option>
+            </select>
+          </label>
+          <label className="flex flex-col">Tradovate account # (blank = paper)
+            <input aria-label="Tradovate account" value={nf.real} onChange={(e) => setNf({ ...nf, real: e.target.value })} />
+          </label>
+          <button className={`${btn} border-blue text-blue`}>+ Add {nf.real ? "real" : "paper"} account</button>
+        </form>
       </section>
 
       <section className="rounded-xl border border-gold bg-card p-4">

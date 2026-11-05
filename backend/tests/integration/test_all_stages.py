@@ -105,3 +105,12 @@ def test_drawdown_toggle(authed):
     assert "normally use EOD" in acc[e]["drawdown_check"] and "normally use INTRADAY" in acc[f]["drawdown_check"]
     authed.patch(f"/api/accounts/{e}", json={"drawdown_type": "eod"})
     assert authed.get("/api/accounts").json()["accounts"][0]["drawdown_check"] is None
+
+
+def test_real_account_never_trades_without_live(authed):
+    r = authed.post("/api/accounts", json={"label": "L1", "stage": "EVAL", "tradovate_account": "lt25k1"}).json()
+    assert r == {"id": r["id"], "broker_account_id": "LT25K1", "paper": False}
+    assert authed.post("/api/accounts", json={"label": "L2", "tradovate_account": "LT25K1"}).status_code == 409
+    ad = authed.app.state.controller.adapter
+    assert "LT25K1" not in ad.sim.accounts and ad.live is None  # no live broker attached → unreachable
+    assert not authed.app.state.controller.adapter.live_ok()

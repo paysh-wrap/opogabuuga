@@ -96,17 +96,25 @@ class Controller:
 
     # ---------- accounts ----------
     def create_paper_account(
-        self, s: Session, label: str, stage: str, drawdown_type: str, balance: Decimal, actor: str
+        self,
+        s: Session,
+        label: str,
+        stage: str,
+        drawdown_type: str,
+        balance: Decimal,
+        actor: str,
+        real_id: str | None = None,
     ) -> Account:
+        """real_id = Tradovate account → REAL account: orders only via the live broker + full live checklist."""
         sr = stage_rules(self.rules.rules, stage, drawdown_type)
-        ext = f"SIM-{label or 'acct'}-{int(self.clock.now().timestamp())}"
+        ext = real_id or f"SIM-{label or 'acct'}-{int(self.clock.now().timestamp())}"
         m = new_mll(sr, balance)
         a = Account(
             broker_account_id=ext,
             label=label,
             stage=stage,
             drawdown_type=drawdown_type,
-            is_sim=True,
+            is_sim=real_id is None,
             starting_balance=balance,
             mll=m.mll,
             mll_peak=m.peak,
@@ -117,8 +125,18 @@ class Controller:
         )
         s.add(a)
         s.flush()
-        self.adapter.add_account(ext, balance)
-        audit.record(s, self.clock, actor, "account.created", ext, {"stage": stage, "balance": str(balance)})
+        if real_id is None:
+            self.adapter.add_account(ext, balance)
+        else:
+            self.adapter.live_accounts.add(ext)
+        audit.record(
+            s,
+            self.clock,
+            actor,
+            "account.created",
+            ext,
+            {"stage": stage, "balance": str(balance), "real": bool(real_id)},
+        )
         return a
 
     def _mll_state(self, a: Account) -> MllState:
