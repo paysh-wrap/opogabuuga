@@ -30,15 +30,24 @@ def test_five_tier_map(raw, mapped, alert):
     assert map_rating(raw, RMAP) == (mapped, alert)
 
 
-def test_env_uses_catalog_defaults_per_provider():
-    cat = {"anthropic": {"quick": ["claude-sonnet-5"], "deep": ["claude-opus-x"]}}
+def test_env_uses_best_models_then_catalog_defaults():
+    cat = {
+        "anthropic": {"quick": ["claude-sonnet-5"], "deep": ["claude-opus-x"]},
+        "google": {"quick": ["g1"], "deep": ["g2"]},
+    }
     env = TradingAgentsAdapter.env_for({"llm_provider": "anthropic", "api_key": "k"}, cat)
     assert env == {
         "ANTHROPIC_API_KEY": "k",
         "TRADINGAGENTS_LLM_PROVIDER": "anthropic",
         "TRADINGAGENTS_QUICK_THINK_LLM": "claude-sonnet-5",
-        "TRADINGAGENTS_DEEP_THINK_LLM": "claude-opus-x",
+        "TRADINGAGENTS_DEEP_THINK_LLM": "claude-opus-5-5",
     }
+    k = TradingAgentsAdapter.env_for({"llm_provider": "kimi", "api_key": "k"}, None)
+    assert k["MOONSHOT_API_KEY"] == "k" and k["TRADINGAGENTS_DEEP_THINK_LLM"] == "kimi-k3"
+    q = TradingAgentsAdapter.env_for({"llm_provider": "qwen", "api_key": "k"}, None)
+    assert q["DASHSCOPE_API_KEY"] == "k" and q["TRADINGAGENTS_QUICK_THINK_LLM"] == "qwen3.8-flash"
+    g = TradingAgentsAdapter.env_for({"llm_provider": "google", "api_key": "k"}, cat)
+    assert g["TRADINGAGENTS_DEEP_THINK_LLM"] == "g2"  # no best-model entry → catalog default
     env = TradingAgentsAdapter.env_for({"llm_provider": "openai", "api_key": "k", "quick_think_llm": "m1"}, cat)
     assert env["TRADINGAGENTS_QUICK_THINK_LLM"] == "m1" and "TRADINGAGENTS_DEEP_THINK_LLM" not in env
 

@@ -101,6 +101,13 @@ LLM_PROVIDERS: dict[str, dict[str, str]] = {  # order = UI order; Claude (anthro
     },
 }
 
+# Best models per provider (from TradingAgents v0.7.1's own model catalog) — used when the model fields are blank.
+BEST_MODELS: dict[str, dict[str, str]] = {
+    "anthropic": {"deep": "claude-opus-5-5", "quick": "claude-sonnet-5"},
+    "kimi": {"deep": "kimi-k3", "quick": "kimi-k2.6"},
+    "qwen": {"deep": "qwen3.8-max", "quick": "qwen3.8-flash"},
+}
+
 LLM_NAMES = {"anthropic": "Claude (Anthropic) — default", "kimi": "Kimi (Moonshot)", "qwen": "Qwen (Alibaba)"}
 
 LUNQFX_NAME = "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]"
@@ -155,9 +162,15 @@ PROVIDERS: tuple[Provider, ...] = (
                 "Quick model",
                 "text",
                 required=False,
-                help="Leave blank for TradingAgents' default. Cheaper model = lower daily cost.",
+                help="Blank = best model: Claude Sonnet 5 · Kimi K2.6 · Qwen 3.8 Flash. Cheaper model = lower cost.",
             ),
-            FieldSpec("deep_think_llm", "Deep model", "text", required=False),
+            FieldSpec(
+                "deep_think_llm",
+                "Deep model",
+                "text",
+                required=False,
+                help="Blank = best model: Claude Opus 5.5 · Kimi K3 · Qwen 3.8 Max.",
+            ),
         ),
         steps=(
             "Pick an LLM provider and get its API key from the matching link below (log in there).",

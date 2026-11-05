@@ -17,7 +17,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
-from app.connections.registry import LLM_PROVIDERS
+from app.connections.registry import BEST_MODELS, LLM_PROVIDERS
 
 Mapped = Literal["LONG_ONLY", "SHORT_ONLY", "NEUTRAL", "NO_TRADE"]
 RUNNER = Path(__file__).with_name("ta_runner.py")
@@ -93,8 +93,9 @@ class TradingAgentsAdapter:
         quick = creds.get("quick_think_llm") or ""
         deep = creds.get("deep_think_llm") or ""
         opts = (catalog or {}).get(provider, {})
-        quick = quick or (opts.get("quick") or [""])[0]
-        deep = deep or (opts.get("deep") or [""])[0]
+        best = BEST_MODELS.get(provider, {})
+        quick = quick or best.get("quick") or (opts.get("quick") or [""])[0]
+        deep = deep or best.get("deep") or (opts.get("deep") or [""])[0]
         env = {spec["env"]: creds["api_key"], "TRADINGAGENTS_LLM_PROVIDER": provider}
         if quick:
             env["TRADINGAGENTS_QUICK_THINK_LLM"] = quick
