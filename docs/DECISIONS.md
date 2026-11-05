@@ -240,3 +240,10 @@ instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid
   Live via CrossTrade: closing a single bracket isn't built yet (API not verified) → reported, nothing sent.
 - Note: spec early exits (C3 close / CHoCH against before +1R → full exit) exist in code but were never wired.
   Left unwired pending your choice (full exit vs this half-off rule).
+
+## D32 — Lucid rules: never broken (user, 2026-11-05)
+Enforced: flat 16:40/16:44 (Lucid 16:45); EOD/intraday MLL + kill switch; DLL; consistency (plan-specific); max
+contracts + Flex scaling; microscalp (≥ 6 s app exits, ≤ 5 s profit share tracked); no hedging (hedge lock, 1
+position per account); news per plan; payouts per plan rules. Added now: household limits for real accounts (10 total,
+5 funded, 5 live — 11404617) and inactivity warning (Lucid deletes after 30 days with no $1 P&L — 11404632).
+Only intraday trading (scalps + day trades, flat before the close); nothing overnight.

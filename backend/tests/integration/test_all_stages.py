@@ -199,3 +199,16 @@ def test_scalp_mode_time_stop(authed, clock, proven):
     hb(authed, clock, MS, close="20006")
     t = authed.get("/api/trades").json()["trades"][0]
     assert t["exit_reason"] == "SCALP_TIME", t
+
+
+def test_lucid_account_limits(authed):
+    for i in range(5):
+        r = authed.post("/api/accounts", json={"label": f"F{i}", "stage": "FUNDED", "tradovate_account": f"LT{i}"})
+        assert r.status_code == 200, r.text
+    r = authed.post("/api/accounts", json={"label": "F6", "stage": "FUNDED", "tradovate_account": "LT6"})
+    assert r.status_code == 409 and "5 funded" in r.text
+    for i in range(5):
+        authed.post("/api/accounts", json={"label": f"E{i}", "stage": "EVAL", "tradovate_account": f"LE{i}"})
+    r = authed.post("/api/accounts", json={"label": "E9", "stage": "EVAL", "tradovate_account": "LE9"})
+    assert r.status_code == 409 and "at most 10" in r.text
+    assert authed.post("/api/accounts", json={"label": "paper", "stage": "EVAL"}).status_code == 200  # paper unlimited

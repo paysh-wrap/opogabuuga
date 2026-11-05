@@ -7,7 +7,7 @@ interface Acct {
   id: number; label: string; stage: string; paper: boolean; armed: boolean; paused: string | null; error?: string;
   balance?: string; open_pnl?: string; mll?: string | null; to_mll?: string | null; kill_at?: string; today_pnl?: string;
   trades_today?: number; dll_left?: string | null; consistency_cap?: string | null; consistency_stop?: string | null;
-  target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number;
+  target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number; idle_days?: number; idle_alert_days?: number; idle_delete_days?: number;
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
 
@@ -45,6 +45,9 @@ export default function Dashboard() {
             <section key={a.id} data-testid={`dash-${a.id}`} className="rounded-xl border border-border bg-card p-4">
               <h2 className="font-semibold text-gold">{a.label} <span className="text-sm font-normal text-blue">{a.stage} · {a.paper ? "APP PAPER" : a.stage === "LIVE" ? "LUCID LIVE $" : "LUCID SIM"} · {a.armed ? "armed" : "disarmed"}</span></h2>
               {a.paused && <p className="text-sm text-goldLight">⚠ paused: {a.paused}</p>}
+              {a.idle_days != null && a.idle_alert_days != null && a.idle_days >= a.idle_alert_days && (
+                <p className="text-sm text-goldLight">⚠ No trade for {a.idle_days} days — Lucid deletes accounts with no $1 P&amp;L in {a.idle_delete_days} days.</p>
+              )}
               {a.error ? <p className="text-sm text-goldLight">⚠ {a.error}</p> : (
                 <div className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                   <Stat k="Balance" v={money(a.balance)} />

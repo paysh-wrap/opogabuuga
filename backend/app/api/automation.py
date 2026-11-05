@@ -157,6 +157,15 @@ def create_account(
 ) -> dict[str, Any]:
     if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in (None, "eod", "intraday"):
         raise HTTPException(422, "stage EVAL/FUNDED/LIVE and drawdown eod/intraday")
+    beh = request.app.state.rules.rules.behavior
+    real = [a for a in db.execute(select(Account).where(Account.is_sim.is_(False))).scalars()]
+    if body.tradovate_account:  # Lucid household limits apply to real Lucid accounts (11404617)
+        if len(real) >= beh.max_total_accounts:
+            raise HTTPException(409, f"Lucid allows at most {beh.max_total_accounts} evaluation + funded accounts")
+        if body.stage == "FUNDED" and sum(a.stage == "FUNDED" for a in real) >= beh.max_funded_per_household:
+            raise HTTPException(409, f"Lucid allows at most {beh.max_funded_per_household} funded accounts")
+        if body.stage == "LIVE" and sum(a.stage == "LIVE" for a in real) >= 5:
+            raise HTTPException(409, "Lucid allows at most 5 live accounts")
     dd = body.drawdown_type or stage_rules(request.app.state.rules.rules, body.stage).drawdown_type
     c = _ctl(request)
     if body.tradovate_account:
