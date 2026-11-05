@@ -30,12 +30,34 @@ function PayoutLine({ p }: { p: Payout }) {
   if (p.eligible && Number(p.eligible) > 0) parts.push(`$${p.eligible} available`);
   if (p.needed && Number(p.needed) > 0) parts.push(`$${p.needed} more to first payout`);
   if (p.live_trigger_left != null) parts.push(Number(p.live_trigger_left) > 0 ? `go-live trigger: $${p.live_trigger_left} more today` : "go-live trigger REACHED today");
-  if (p.payouts_to_live !== null) {
-    const r = p.payouts_live_review;
-    parts.push(`payouts ${p.payouts_done}` + (r ? ` (${r}th = live review pool)` : ""));
-    if (p.live_ready) parts.push(r && p.payouts_done >= r ? "in live review pool" : "qualifies for live — Lucid risk team decides");
-  }
-  return <span data-testid="payout" className="w-full text-xs text-gold">{parts.join(" · ")}</span>;
+  return (
+    <div className="w-full text-xs">
+      <span data-testid="payout" className="text-gold">{parts.join(" · ")}</span>
+      {p.payouts_to_live !== null && <LivePath p={p} />}
+    </div>
+  );
+}
+
+function Step({ done, title, note }: { done: boolean; title: string; note: string }) {
+  return (
+    <div className={`flex-1 rounded-md border p-2 ${done ? "border-gold" : "border-border"}`}>
+      <div className={done ? "font-semibold text-gold" : "font-semibold text-blue"}>{done ? "✓ " : "○ "}{title}</div>
+      <div className="opacity-80">{note}</div>
+    </div>
+  );
+}
+
+function LivePath({ p }: { p: Payout }) {
+  const q = p.payouts_to_live ?? 1, r = p.payouts_live_review ?? 5, n = p.payouts_done;
+  return (
+    <div data-testid="live-path" className="mt-2">
+      <div className="mb-1">Path to live · payouts processed: <b className="text-gold">{n}</b></div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Step done={n >= q} title={`Qualifies for live (${q} payout)`} note="Required. Lucid's risk team decides if/when you move." />
+        <Step done={n >= r} title={`Live review pool (${r}th payout)`} note={`Not required. Automatically reviewed for live. ${n >= r ? "" : `${r - n} to go.`}`} />
+      </div>
+    </div>
+  );
 }
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
