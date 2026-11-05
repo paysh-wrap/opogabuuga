@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from decimal import Decimal
@@ -24,6 +25,7 @@ from app.clock import Clock, SystemClock
 from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
+from app.execution.adapters.router import RoutingAdapter
 from app.execution.adapters.sim import SimAdapter, SimInstrument
 from app.execution.order_manager import OrderManager
 from app.risk.holder import RulesHolder
@@ -42,6 +44,56 @@ SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:; "
     "style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
 }
+
+
+def _start_live(app: FastAPI) -> list[asyncio.Task[None]]:
+    """PAYTIENCE_ALLOW_LIVE=true only: attach CrossTrade for non-paper accounts. Orders still need the full
+    Live-Readiness Checklist (re-checked every 30 s; any failure → live orders refused)."""
+    import types
+
+    from sqlalchemy import select
+
+    from app.api.live import live_inputs
+    from app.crypto import Vault
+    from app.execution.adapters.crosstrade import CrossTradeAdapter
+    from app.models import Account, ApiCredential
+    from app.risk.live_gate import live_allowed
+
+    st = app.state
+    with st.sessionmaker() as s:
+        cred = s.execute(select(ApiCredential).where(ApiCredential.provider == "crosstrade")).scalar_one_or_none()
+        accts = {a.broker_account_id for a in s.execute(select(Account).where(Account.is_sim.is_(False))).scalars()}
+    if cred is None:
+        log.warning("live.no_crosstrade")
+        return []
+    token = Vault(st.settings.master_key.get_secret_value()).open(cred.ciphertext).get("token", "")
+    tv = {k: v.tv_symbol for k, v in st.rules.rules.instruments.items()}
+    ct = CrossTradeAdapter(token, st.http, tv)
+    flag = {"ok": False}
+    st.controller.adapter.set_live(ct, accts, lambda: flag["ok"])
+    st.controller.adapter.start()
+
+    async def gate_loop() -> None:
+        req = types.SimpleNamespace(app=app)
+        while True:
+            try:
+                with st.sessionmaker() as s:
+                    flag["ok"] = live_allowed(await live_inputs(req, s))  # type: ignore[arg-type]
+            except Exception as e:  # never silent; fail closed
+                flag["ok"] = False
+                log.error("live.gate_error", error=type(e).__name__)
+            await asyncio.sleep(30)
+
+    async def fills_loop() -> None:
+        while True:
+            try:
+                await st.controller.process_live_fills()
+            except Exception as e:
+                log.error("live.fills_error", error=type(e).__name__)
+                st.controller.notify("error", "Live fill processing failed", type(e).__name__)
+            await asyncio.sleep(2)
+
+    return [asyncio.create_task(gate_loop()), asyncio.create_task(fills_loop())]
 
 
 def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
@@ -76,7 +128,11 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         log.info("market_state.rebuilt", events=rebuild(app.state.market, rows))
         app.state.http = http_client(settings.http_timeout_s)
         log.info("paytience.start", mode="LIVE" if settings.allow_live else "PAPER")
+        bg = _start_live(app) if settings.allow_live else []
         yield
+        for t in bg:
+            t.cancel()
+        app.state.controller.adapter.stop()
         await app.state.http.aclose()
         engine.dispose()
 
@@ -100,13 +156,14 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         {k: SimInstrument(v.tick, v.tick_value, v.fee_rt) for k, v in rules.rules.instruments.items()},
         rules.rules.trade_plan.slippage_ticks,
     )
+    broker = RoutingAdapter(sim)
     app.state.controller = Controller(
         app.state.sessionmaker,
         app.state.clock,
         app.state.rules,
-        sim,
+        broker,
         OrderManager(
-            sim,
+            broker,
             rules.rules.drawdown_guard.runner_trail_r,
             rules.rules.behavior.min_hold_seconds,
             rules.rules.drawdown_guard.early_exits_until_r,

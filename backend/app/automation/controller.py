@@ -23,7 +23,7 @@ from app.automation.preflight import allowed_mode
 from app.clock import Clock, parse_hhmm, to_et
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution.adapters.base import BrokerError, conservative_mode
-from app.execution.adapters.sim import SimAdapter
+from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
 from app.models import Account, Order, Signal, Trade, TradePlanRow
@@ -62,7 +62,7 @@ class Controller:
     sessionmaker: sessionmaker[Session]
     clock: Clock
     rules: RulesHolder
-    adapter: SimAdapter
+    adapter: RoutingAdapter
     om: OrderManager
     mode: str = "OFF"  # §13: the app always starts OFF
     approvals: dict[int, Approval] = field(default_factory=dict)
@@ -421,6 +421,18 @@ class Controller:
                 await self._monitor(s)
                 s.commit()
 
+    async def process_live_fills(self) -> None:
+        """Live (CrossTrade) fills arrive from a background poller; apply them promptly (stop→BE moves etc.)."""
+        fills = self.adapter.drain_live()
+        if not fills:
+            return
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for f in fills:
+                    await self._handle_events(s, await self.om.on_fill(f))
+                await self._monitor(s)
+                s.commit()
+
     async def _handle_events(self, s: Session, events: list[Event]) -> None:
         for e in events:
             if e.kind == "CLOSED":
@@ -476,7 +488,13 @@ class Controller:
         for a in s.execute(select(Account)).scalars():
             if a.broker_account_id not in self.adapter.accounts:
                 continue
-            bal, opnl = await self._equity(a)
+            try:
+                bal, opnl = await self._equity(a)
+            except BrokerError as e:  # no P&L → cannot watch MLL/DLL → block entries on this account (§1.8)
+                if a.paused_reason is None:
+                    self._pause(s, a.broker_account_id, "NO_LIVE_PNL")
+                self.notify("error", "No live P&L", f"{a.label}: {e}")
+                continue
             equity = bal + opnl
             m = self._mll_state(a)
             update_mll(m, equity)  # trails intraday accounts only; EOD accounts move at the EOD update
