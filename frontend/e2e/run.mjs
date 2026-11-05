@@ -89,10 +89,10 @@ await step("every service card has a login/key link that opens in a new tab", as
   }
 });
 
-await step("selecting an LLM provider shows its 'get API key' link before saving", async () => {
+await step("TradingAgents card links every LLM provider's API-key page", async () => {
   const card = page.getByTestId("conn-tradingagents");
   await card.getByLabel("LLM provider").selectOption("anthropic");
-  const l = card.getByRole("link", { name: "Get anthropic API key" });
+  const l = card.getByRole("link", { name: "anthropic key" });
   expect((await l.getAttribute("href")) === "https://console.anthropic.com/settings/keys", "llm link");
 });
 

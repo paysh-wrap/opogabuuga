@@ -202,3 +202,9 @@ live review pool (not required). Config: funded.payouts_to_live 1, funded.payout
 06:10 ET Mon–Fri: TauricResearch/TradingAgents v0.7.1 runs once per enabled instrument's proxy ETF (QQQ for MNQ) in
 its isolated venv. Rating → five-tier map. Missing key / failure / timeout / unknown → NO_TRADE + alert (that
 instrument doesn't trade). Failures can be retried ("Run now" on Today); a valid bias is never re-run that session.
+
+## D28 — Review fixes (2026-11-05)
+- News flatten was missing: now on every heartbeat, open trades are flattened `news_flatten_before_min` (2) /
+  firm `news_breach_min_before` (1) before a USD high-impact event; hard-breach stages (FUNDED/LIVE, and EVAL since
+  LucidDaily disallows news) stay flat until `news_breach_min_after` (1) after. Tested.
+- Simulator fills from on_bar were also left queued (harmless, but could be applied twice): now delivered once.

@@ -85,3 +85,11 @@ def entry_deadline_ms(confirm_ms: int, c3_close_ms: int, tf_min: int, max_wait_b
     """Expire after max_wait_bars LTF bars or half of C3, whichever comes first (§6)."""
     half_c3 = confirm_ms + (c3_close_ms - confirm_ms) // 2
     return min(confirm_ms + max_wait_bars * tf_min * 60_000, half_c3)
+
+
+def news_flatten_due(now: datetime, events: list[NewsEvent], before_min: int, after_min: int) -> NewsEvent | None:
+    """Open positions must be flat from `before_min` before a high-impact event until `after_min` after it."""
+    for e in events:
+        if e.at - timedelta(minutes=before_min) <= now <= e.at + timedelta(minutes=after_min):
+            return e
+    return None

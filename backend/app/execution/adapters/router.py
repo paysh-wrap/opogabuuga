@@ -160,7 +160,13 @@ class RoutingAdapter:
         return out
 
     def on_bar(self, symbol: str, o: Decimal, h: Decimal, low: Decimal, c: Decimal, at: datetime) -> list[Fill]:
-        return list(self.sim.on_bar(symbol, o, h, low, c, at)) + self.drain_live()
+        fills = list(self.sim.on_bar(symbol, o, h, low, c, at))
+        # the simulator also queues these fills; drop them from the queue so each is applied exactly once
+        queued = self.sim.drain_fills()
+        for f in queued:
+            if f not in fills:
+                self.sim._fills.put_nowait(f)
+        return fills + self.drain_live()
 
     def drain_live(self) -> list[Fill]:
         out, self._live_fills = self._live_fills, []

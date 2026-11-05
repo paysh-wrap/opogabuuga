@@ -146,3 +146,23 @@ def test_strategy_overview(authed, clock):
     assert [g["id"] for g in r["gates"]] == [f"G{i}" for i in range(1, 9)]
     assert r["last_signal"]["status"] == "PASS" and r["gates"][1]["last"] is True
     assert "LunqFX" in r["indicators"][0] and "BigBeluga" in r["indicators"][1]
+
+
+@pytest.mark.parametrize(
+    ("stage", "offset_min", "flat"),
+    [("EVAL", -2, True), ("LIVE", 1, True), ("EVAL", 1, True), ("EVAL", 3, False), ("EVAL", -5, False)],
+)
+def test_news_flatten(authed, clock, stage, offset_min, flat):
+    """Flat 2 min before high-impact news (offset −2 = event 2 min ahead). Hard-breach stages stay flat until 1 min
+    after (LIVE here; FUNDED behaves the same but its guard needs 2 contracts on this small paper account)."""
+    import asyncio
+    from datetime import timedelta
+
+    from app.engine.filters import NewsEvent
+
+    _, res = run(authed, clock, stage)
+    assert res[0]["ok"], res
+    ev = NewsEvent(at=clock.now() - timedelta(minutes=offset_min), title="CPI")
+    got = asyncio.run(authed.app.state.controller.news_check([ev]))
+    assert (got == "NEWS") is flat
+    assert (authed.get("/api/positions").json()["accounts"][0]["positions"] == []) is flat

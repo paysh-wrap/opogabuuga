@@ -21,6 +21,7 @@ from app.automation.account_selector import Candidate
 from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
 from app.clock import Clock, parse_hhmm, to_et
+from app.engine.filters import news_flatten_due
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
@@ -615,6 +616,31 @@ class Controller:
             await self.flatten_all("automation", "FLAT_TIME")
             return "FLAT_TIME"
         return None
+
+    async def news_check(self, events: list[Any] | None) -> str | None:
+        """Flatten open trades before high-impact news (§15): every account news_flatten_before_min ahead; accounts
+        whose firm treats news as a hard breach (funded/live, eval when not allowed) stay flat until
+        breach_min_after."""
+        if not events or not self.om.trades:
+            return None
+        r, now = self.rules.rules, self.clock.now()
+        hit = None
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for a in s.execute(select(Account)).scalars():
+                    if not any(t.account == a.broker_account_id for t in self.om.trades.values()):
+                        continue
+                    sr = stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled)
+                    stage_cfg = r.funded if a.stage != "EVAL" else r.eval
+                    before = max(r.internal.news_flatten_before_min, stage_cfg.news_breach_min_before)
+                    after = stage_cfg.news_breach_min_after if sr.news_hard_breach else 0
+                    ev = news_flatten_due(now, events, before, after)
+                    if ev is not None:
+                        await self._flatten_account(s, a, "NEWS")
+                        self.notify("warn", "Flattened for news", f"{a.label}: {ev.title}")
+                        hit = "NEWS"
+                s.commit()
+        return hit
 
     def entries_blocked_by_time(self) -> bool:
         r = self.rules.rules

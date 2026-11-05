@@ -68,6 +68,9 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
     if p.event == "HEARTBEAT" and p.price is not None:
         await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
         await ctl.flat_time_check()
+        from app.clock import session_date
+
+        await ctl.news_check(st.calendar(session_date(st.clock.now())))
     for u in updates:
         if u.status == "PASS":
             what = ctl.on_signal_pass(u.signal_id)
