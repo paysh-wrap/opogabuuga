@@ -8,7 +8,7 @@ export default function Login() {
   usePageTitle("Login");
   const nav = useNavigate();
   const qc = useQueryClient();
-  const [username, setU] = useState("admin");
+  const [username, setU] = useState("PayDay");
   const [password, setP] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);

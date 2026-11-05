@@ -1,4 +1,4 @@
-"""Admin CLI: `python -m app.cli keys | create-admin | set-password`."""
+"""Admin CLI: `python -m app.cli keys | create-admin [user] | set-password [user] | rename-user OLD NEW`."""
 
 from __future__ import annotations
 
@@ -12,6 +12,8 @@ from app.clock import SystemClock
 from app.crypto import new_master_key
 from app.db import Base, make_engine, make_sessionmaker
 from app.settings import get_settings
+
+DEFAULT_ADMIN = "PayDay"
 
 
 def _password() -> str:
@@ -40,7 +42,7 @@ def main(argv: list[str]) -> int:
             Path(st.database_url.removeprefix("sqlite:///")).parent.mkdir(parents=True, exist_ok=True)
         engine = make_engine(st.database_url)
         Base.metadata.create_all(engine)
-        username = (argv[1] if len(argv) > 1 else "") or st.admin_user or "admin"
+        username = (argv[1] if len(argv) > 1 else "") or st.admin_user or DEFAULT_ADMIN
         pw = _password()
         with make_sessionmaker(engine)() as s:
             existing = s.execute(select(User).where(User.username == username)).scalar_one_or_none()
@@ -57,6 +59,27 @@ def main(argv: list[str]) -> int:
             audit.record(s, SystemClock(), "cli", f"auth.{cmd}", username, {})
             s.commit()
         print(f"{cmd}: ok for user {username!r}")
+        return 0
+    if cmd == "rename-user" and len(argv) == 3:
+        from sqlalchemy import select
+
+        from app import audit
+        from app.models import User
+
+        st = get_settings()
+        engine = make_engine(st.database_url)
+        with make_sessionmaker(engine)() as s:
+            u = s.execute(select(User).where(User.username == argv[1])).scalar_one_or_none()
+            if u is None:
+                print(f"no user {argv[1]!r}")
+                return 1
+            if s.execute(select(User).where(User.username == argv[2])).scalar_one_or_none():
+                print(f"user {argv[2]!r} already exists")
+                return 1
+            u.username = argv[2]
+            audit.record(s, SystemClock(), "cli", "auth.rename-user", argv[2], {"from": argv[1]})
+            s.commit()
+        print(f"renamed {argv[1]!r} → {argv[2]!r}")
         return 0
     print(__doc__)
     return 2

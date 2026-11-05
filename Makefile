@@ -24,7 +24,7 @@ keys: ## Print a new master key + webhook secret (paste into .env)
 	cd backend && ../$(PY) -m app.cli keys
 
 create-admin: ## Create the dashboard login (prompts for password; stored as Argon2 hash only)
-	cd backend && ../$(PY) -m app.cli create-admin admin
+	cd backend && ../$(PY) -m app.cli create-admin PayDay
 
 migrate: ## Apply database migrations
 	mkdir -p data && cd backend && ../$(PY) -m alembic upgrade head

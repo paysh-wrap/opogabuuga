@@ -31,7 +31,7 @@ make build
 make dev
 ```
 
-Open http://127.0.0.1:8000, sign in as `admin`, and go to **Connections**. Every service shows where to log in or get
+Open http://127.0.0.1:8000, sign in as `PayDay`, and go to **Connections**. Every service shows where to log in or get
 a key. Paste a key, press **Save & Test**, and the card turns gold when the live test passes.
 
 Docker instead: `cp .env.example .env`, fill keys (`make keys`), then `make up` and run `make create-admin` once.

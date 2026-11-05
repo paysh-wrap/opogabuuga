@@ -37,6 +37,7 @@
 
 ## D5 — 2026-11-05 — Dashboard login
 - Admin login created via `make create-admin` (Argon2 hash in DB only; plaintext never stored or committed).
+- Username: PayDay (user request, 2026-11-05). Existing installs: `python -m app.cli rename-user admin PayDay`.
 
 ## D6 — 2026-11-05 — TradingAgents install
 - Pinned tag v0.7.1 (commit 3e44faafa042daf953f6ec2422ae36bb1fd4f50f), Apache-2.0.
