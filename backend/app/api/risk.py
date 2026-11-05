@@ -274,3 +274,88 @@ def list_accounts(
             for a in rows
         ]
     }
+
+
+@router.get("/plans")
+def list_plans(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    """Lucid plans available as rule files (config/rules/*.yaml) and the one in use."""
+    from app.risk.holder import RULES_DIR
+
+    out = []
+    for f in sorted(RULES_DIR.glob("*.yaml")):
+        first = f.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
+        out.append({"id": f.stem, "title": first})
+    return {"current": request.app.state.rules.plan, "plans": out}
+
+
+class PlanIn(BaseModel):
+    plan: str
+
+
+@router.put("/plans")
+async def set_plan(
+    body: PlanIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    from app import audit
+    from app.automation import state as stt
+    from app.risk.holder import RULES_DIR
+
+    st = request.app.state
+    if not (RULES_DIR / f"{body.plan}.yaml").is_file() or "/" in body.plan:
+        raise HTTPException(404, "no such plan")
+    if st.controller.om.trades:
+        raise HTTPException(409, "close open trades before switching plan")
+    stt.set_setting(db, "rules.plan", body.plan, st.clock.now())
+    audit.record(db, st.clock, p.user.username, "rules.plan", body.plan, {"from": st.rules.plan})
+    db.commit()
+    st.rules.refresh(db)
+    if st.rules.error:
+        raise HTTPException(422, st.rules.error)
+    await st.hub.broadcast("risk.settings_changed", {"plan": body.plan})
+    return list_plans(request, p)
+
+
+MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq", "MYM": "US30", "MES": "S&P 500"}
+
+
+@router.get("/markets")
+def markets(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    r = request.app.state.rules.rules
+    return {
+        "markets": [
+            {
+                "symbol": k,
+                "name": n,
+                "enabled": r.instruments[k].enabled,
+                "tick_value": str(r.instruments[k].tick_value),
+            }
+            for k, n in MARKETS.items()
+            if k in r.instruments
+        ]
+    }
+
+
+class MarketIn(BaseModel):
+    symbol: str
+    enabled: bool
+
+
+@router.put("/markets")
+async def set_market(
+    body: MarketIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    from app import audit
+    from app.automation import state as stt
+
+    st = request.app.state
+    if body.symbol not in MARKETS or body.symbol not in st.rules.rules.instruments:
+        raise HTTPException(404, "unknown market")
+    cur = stt.get_setting(db, "instruments.enabled")
+    tog = dict(cur) if isinstance(cur, dict) else {}
+    tog[body.symbol] = body.enabled
+    stt.set_setting(db, "instruments.enabled", tog, st.clock.now())
+    audit.record(db, st.clock, p.user.username, "market.toggle", body.symbol, {"enabled": body.enabled})
+    db.commit()
+    st.rules.refresh(db)
+    await st.hub.broadcast("risk.settings_changed", {"market": body.symbol})
+    return markets(request, p)

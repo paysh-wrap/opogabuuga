@@ -188,3 +188,37 @@ def test_invalid_stored_settings_block_and_report(authed):
     h = authed.app.state.rules
     assert h.error and "day lock-in" in h.error and authed.get("/api/rules").json()["error"] == h.error
     assert h.source_text.startswith("# Paytience rule profile")
+
+
+def test_market_buttons_toggle_instruments(authed):
+    m = {x["symbol"]: x["enabled"] for x in authed.get("/api/markets").json()["markets"]}
+    assert m == {"MGC": False, "MNQ": True, "MYM": False, "MES": False}
+    r = authed.put("/api/markets", json={"symbol": "MGC", "enabled": True}).json()
+    assert {x["symbol"]: x["enabled"] for x in r["markets"]}["MGC"] is True
+    assert authed.app.state.rules.rules.instruments["MGC"].enabled
+    authed.put("/api/risk/settings", json={"changes": {"one_to_one_mode.enabled": True}})  # survives other saves
+    assert authed.app.state.rules.rules.instruments["MGC"].enabled
+    assert authed.put("/api/markets", json={"symbol": "XYZ", "enabled": True}).status_code == 404
+
+
+def test_plan_switch(authed):
+    from app.risk.holder import RULES_DIR
+
+    r = authed.get("/api/plans").json()
+    assert r["current"] == "lucid_daily_25k" and any(p["id"] == "lucid_daily_25k" for p in r["plans"])
+    assert authed.put("/api/plans", json={"plan": "nope"}).status_code == 404
+    alt = RULES_DIR / "zz_test_plan.yaml"
+    alt.write_text((RULES_DIR / "lucid_daily_25k.yaml").read_text())
+    try:
+        assert authed.put("/api/plans", json={"plan": "zz_test_plan"}).json()["current"] == "zz_test_plan"
+        alt.unlink()
+        h = authed.app.state.rules
+        with authed.app.state.sessionmaker() as s:
+            from app.automation.state import set_setting
+
+            set_setting(s, "rules.plan", "zz_missing", authed.app.state.clock.now())
+            s.commit()
+            h.refresh(s)
+        assert h.error and "not found" in h.error
+    finally:
+        alt.unlink(missing_ok=True)

@@ -234,7 +234,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app = FastAPI(title="Paytience", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.settings = settings
     app.state.clock = clock or SystemClock()
-    app.state.rules = RulesHolder(rules)
+    app.state.rules = RulesHolder(rules, plan=settings.rules_path.stem)
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
     app.state.hub = Hub()

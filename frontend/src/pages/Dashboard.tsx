@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import Markets from "../components/Markets";
 
 interface Acct {
   id: number; label: string; stage: string; paper: boolean; armed: boolean; paused: string | null; error?: string;
@@ -32,6 +33,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
+      <Markets />
       <p className="text-sm">Session {d.session} · Automation <b className="text-gold">{d.mode}</b> · Bias:{" "}
         {Object.entries(d.bias).map(([s, b]) => <span key={s} className="mr-2">{s} <b className="text-gold">{b}</b></span>)}
       </p>

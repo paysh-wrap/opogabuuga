@@ -47,11 +47,44 @@ def metrics(trades: list[dict[str, Any]], rules: Any, stage: str) -> dict[str, A
     mc = monte_carlo(list(by_day.values()), target, rules.eval.max_loss_limit)
     cons_ok = s.best_day_share is None or s.best_day_share <= rules.eval.consistency_max_day_pct / 100
     return {
+        "breakdown": breakdown(trades),
         "stats": _j(asdict(s)),
         "monte_carlo_eval": _j(asdict(mc)),
         "consistency_ok": cons_ok,
         "day_pnls": {k: str(v) for k, v in by_day.items()},
     }
+
+
+def breakdown(trades: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
+    """Where the edge is: P&L, trades and win rate by ET hour, weekday, direction, profile, exit reason."""
+    from datetime import datetime
+
+    from app.clock import to_et
+
+    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    out: dict[str, dict[str, dict[str, Any]]] = {k: {} for k in ("hour_et", "weekday", "direction", "profile", "exit")}
+    for t in trades:
+        if t["pnl"] is None:
+            continue
+        et = to_et(datetime.fromisoformat(t["opened_at"]))
+        keys = {
+            "hour_et": f"{et.hour:02d}",
+            "weekday": days[et.weekday()],
+            "direction": t["direction"],
+            "profile": t.get("profile") or "?",
+            "exit": t.get("exit_reason") or "?",
+        }
+        pnl = Decimal(t["pnl"])
+        for dim, k in keys.items():
+            b = out[dim].setdefault(k, {"trades": 0, "wins": 0, "pnl": Decimal(0)})
+            b["trades"] += 1
+            b["wins"] += pnl > 0
+            b["pnl"] += pnl
+    for buckets in out.values():
+        for b in buckets.values():
+            b["win_rate"] = str(round(b["wins"] / b["trades"], 4))
+            b["pnl"] = str(b["pnl"])
+    return out
 
 
 def _d(x: str | None) -> Decimal | None:

@@ -35,11 +35,15 @@ def test_metrics_from_trades(authed):
     from app.api.backtest import metrics
 
     tr = [
-        {"opened_at": "2026-01-05T15:00:00+00:00", "pnl": "300", "net_r": "2"},
-        {"opened_at": "2026-01-06T15:00:00+00:00", "pnl": "-100", "net_r": "-1"},
-        {"opened_at": "2026-01-07T15:00:00+00:00", "pnl": "250", "net_r": "2"},
-        {"opened_at": "2026-01-07T16:00:00+00:00", "pnl": None, "net_r": None},
+        {"opened_at": "2026-01-05T15:00:00+00:00", "pnl": "300", "net_r": "2", "direction": "LONG"},
+        {"opened_at": "2026-01-06T15:00:00+00:00", "pnl": "-100", "net_r": "-1", "direction": "SHORT"},
+        {"opened_at": "2026-01-07T15:00:00+00:00", "pnl": "250", "net_r": "2", "direction": "LONG"},
+        {"opened_at": "2026-01-07T16:00:00+00:00", "pnl": "250", "net_r": "2", "direction": "LONG"},
     ]
     m = metrics(tr, authed.app.state.rules.rules, "EVAL")
-    assert m["stats"]["trades"] == 3 and m["stats"]["net"] == "450" and m["consistency_ok"] is False  # 300/450 > 40%
+    assert m["stats"]["trades"] == 4 and m["stats"]["net"] == "700" and m["consistency_ok"] is False  # 500/700 > 40%
+    b = m["breakdown"]
+    assert b["weekday"]["Mon"] == {"trades": 1, "wins": 1, "pnl": "300", "win_rate": "1.0"}
+    assert b["hour_et"]["10"]["trades"] == 3 and b["hour_et"]["11"]["pnl"] == "250"
+    assert b["direction"]["LONG"]["trades"] == 3 and b["direction"]["SHORT"]["win_rate"] == "0.0"
     assert float(m["monte_carlo_eval"]["pass_rate"]) > 0.5 and m["day_pnls"]["2026-01-05"] == "300"
