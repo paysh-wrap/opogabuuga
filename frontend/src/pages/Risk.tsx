@@ -20,7 +20,6 @@ export default function Risk() {
   usePageTitle("Risk");
   const qc = useQueryClient();
   const [err, setErr] = useState("");
-  const [evalPhrase, setEvalPhrase] = useState("");
   const [livePhrase, setLivePhrase] = useState("");
   const [edit, setEdit] = useState<Record<string, string>>({});
   const st = useQuery({ queryKey: ["risk"], queryFn: () => api<Settings>("/api/risk/settings") });
@@ -54,15 +53,12 @@ export default function Risk() {
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">Evaluation Mode {em.data?.enabled ? "· ON" : "· OFF"}</h2>
         <p className="text-xs">EVAL accounts only. Raises risk tiers to 10/12/14% (max $140). Never changes rules or stops.</p>
-        {em.data?.enabled ? (
-          <button className={`${btn} mt-2 border-blue text-blue`} onClick={() => run.mutate(() => api("/api/risk/eval-mode", { method: "PUT", body: JSON.stringify({ enabled: false }) }))}>Turn off</button>
-        ) : (
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input aria-label="Evaluation Mode phrase" placeholder={em.data?.confirm_phrase} value={evalPhrase} onChange={(e) => setEvalPhrase(e.target.value)} />
-            <button disabled={evalPhrase !== em.data?.confirm_phrase} className={`${btn} border-gold text-gold`}
-              onClick={() => run.mutate(() => api("/api/risk/eval-mode", { method: "PUT", body: JSON.stringify({ enabled: true, confirm: evalPhrase }) }))}>Enable</button>
-          </div>
-        )}
+        <button data-testid="eval-mode" className={`${btn} mt-2 ${em.data?.enabled ? "border-gold text-gold" : "border-blue text-blue"}`}
+          onClick={() => {
+            const on = !em.data?.enabled;
+            if (on && !window.confirm("Turn ON Evaluation Mode? EVAL accounts risk 10/12/14% (max $140) per trade.")) return;
+            run.mutate(() => api("/api/risk/eval-mode", { method: "PUT", body: JSON.stringify({ enabled: on, confirm: on ? em.data?.confirm_phrase : "" }) }));
+          }}>{em.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
       </section>
 
       <section className="rounded-xl border border-gold bg-card p-4">

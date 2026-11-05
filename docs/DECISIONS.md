@@ -164,3 +164,7 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   oscillator pivots (5/5). LunqFX: one model at a time; HTF candle closes on the next period's first bar; CISD not
   reset by deeper sweeps; failure beyond the sweep even after T1; raw midpoint T1; pre-tick = C2 close beyond T1.
 - Python + Pine bridge rewritten to match; LIVE still gated on ≥ 20-session three-way parity.
+
+## D22 — Evaluation Mode one-button toggle (user request, 2026-11-05)
+Typed phrase replaced in the UI by one ON/OFF button + a confirm dialog. Backend still requires the phrase (UI sends it
+after confirm). Still EVAL-only, capped $140, all other rules unchanged.
