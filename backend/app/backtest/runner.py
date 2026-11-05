@@ -48,6 +48,7 @@ class BacktestResult:
     assumptions: list[str]
     final_balance: str
     mll: str | None
+    rejects: dict[str, int] = field(default_factory=dict)  # webhook payloads the app refused (diagnostics)
 
 
 def aggregate(bars: list[Bar], minutes: int) -> list[Bar]:
@@ -138,6 +139,10 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         assumptions.append(f"bias fixed to {cfg.bias} every session (not the live TradingAgents decision)")
     with TestClient(app) as c:
         st = app.state
+        from app.webhook.service import SlidingWindow
+
+        # Replay pushes a whole day in seconds: the live per-minute webhook rate limit (wall-clock) must not apply.
+        st.webhook_limiter = SlidingWindow(10**9, 60)
         st.calendar = lambda d: []
         changes: dict[str, Any] = {"one_to_one_mode.enabled": cfg.one_to_one, "scalp_mode.enabled": cfg.scalp}
         with st.sessionmaker() as s:
@@ -158,6 +163,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         c.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True})
         st.controller.mode = "FULL"  # backtest only: FULL-AUTO without the 5-session ramp (no real orders)
         seen: set[date] = set()
+        rejects: dict[str, int] = {}
         for p in payloads:
             now = datetime.fromtimestamp(p["bar_time_ms"] / 1000 + 1, tz=UTC)
             clock.set(now)
@@ -177,11 +183,14 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
                 r = c.post("/api/auth/login", json={"username": "bt", "password": secret})
                 c.headers["x-csrf-token"] = r.json()["csrf"]
                 c.post("/api/attestation", json={"confirm": True})
-            c.post(
+            resp = c.post(
                 "/api/webhook/tradingview",
                 content=json.dumps({**p, "secret": secret}),
                 headers={"content-type": "text/plain"},
             )
+            if resp.status_code != 200:
+                k = f"{p['event']}:{resp.status_code}:{str(resp.json().get('detail', resp.json().get('code', '')))[:40]}"
+                rejects[k] = rejects.get(k, 0) + 1
         with st.sessionmaker() as s:
             trades = [
                 {
@@ -210,4 +219,4 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         c.headers["x-csrf-token"] = r.json()["csrf"]
         bal = c.get("/api/positions").json()["accounts"][0].get("balance", "0")
     tmp.cleanup()
-    return BacktestResult(trades, sig, skips, len(seen), assumptions, bal, mll)
+    return BacktestResult(trades, sig, skips, len(seen), assumptions, bal, mll, rejects)

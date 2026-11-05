@@ -26,3 +26,9 @@ def test_replay_runs_the_live_pipeline():
     r = run_backtest(bars, BacktestConfig(bias="LONG_ONLY", profiles=("TIGHT",)))
     assert r.sessions == 1 and sum(r.signals.values()) >= 1, r
     assert any("bias fixed" in a for a in r.assumptions) and r.final_balance
+
+
+def test_replay_is_not_rate_limited():
+    bars = [mk(i, 100, 101, 99, 100) for i in range(400)]  # > 300 payloads in a few seconds of wall time
+    r = run_backtest(bars, BacktestConfig(bias="NEUTRAL", profiles=("TIGHT",)))
+    assert r.rejects == {}, r.rejects
