@@ -16,7 +16,22 @@ interface Status {
 }
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
 interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; eval_mode_effective: boolean; paper: boolean; drawdown_type: string; drawdown_check: string | null }
-interface Pos { account_id: number; label: string; balance: string; open_pnl: string; mll: string; positions: { symbol: string; qty: number; avg: string }[] }
+interface Payout { next_check: string | null; seconds_left: number | null; eligible: string | null; needed: string | null; live_trigger_left: string | null; pending: boolean }
+interface Pos { account_id: number; label: string; balance: string; open_pnl: string; mll: string; positions: { symbol: string; qty: number; avg: string }[]; payout?: Payout | null; error?: string }
+
+function left(s: number) {
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+}
+
+function PayoutLine({ p }: { p: Payout }) {
+  const due = p.pending ? "submitted, trading paused until processed" : p.seconds_left != null ? `in ${left(p.seconds_left)}` : "on demand";
+  const parts = [`Payout ${due}`];
+  if (p.eligible && Number(p.eligible) > 0) parts.push(`$${p.eligible} available`);
+  if (p.needed && Number(p.needed) > 0) parts.push(`$${p.needed} more to first payout`);
+  if (p.live_trigger_left != null) parts.push(Number(p.live_trigger_left) > 0 ? `go-live trigger: $${p.live_trigger_left} more today` : "go-live trigger REACHED today");
+  return <span data-testid="payout" className="w-full text-xs text-gold">{parts.join(" · ")}</span>;
+}
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
 
@@ -116,6 +131,8 @@ export default function Automation() {
                 {a.drawdown_check && <span data-testid={`dd-check-${a.id}`} className="text-goldLight">⚠ {a.drawdown_check}</span>}
                 {p && <span>bal {p.balance} · open {p.open_pnl} · MLL {p.mll} {p.positions.map((x) => `· ${x.symbol} ${x.qty}`).join(" ")}</span>}
                 {a.paused_reason && <span className="text-goldLight">paused: {a.paused_reason}</span>}
+                {p?.error && <span className="text-goldLight">⚠ {p.error}</span>}
+                {p?.payout && <PayoutLine p={p.payout} />}
                 <label className="ml-auto flex items-center gap-1"><input type="checkbox" checked={a.selected}
                   onChange={(e) => run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ selected: e.target.checked }) }))} />selected</label>
                 <label className="flex items-center gap-1"><input type="checkbox" checked={a.armed}

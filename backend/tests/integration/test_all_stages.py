@@ -114,3 +114,14 @@ def test_real_account_never_trades_without_live(authed):
     ad = authed.app.state.controller.adapter
     assert "LT25K1" not in ad.sim.accounts and ad.live is None  # no live broker attached → unreachable
     assert not authed.app.state.controller.adapter.live_ok()
+
+
+def test_payout_countdown_on_funded_and_live(authed, clock):
+    clock.set(AT)
+    for st in ("EVAL", "FUNDED", "LIVE"):
+        authed.post("/api/accounts", json={"label": st, "stage": st})
+    p = {x["label"]: x["payout"] for x in authed.get("/api/positions").json()["accounts"]}
+    assert p["EVAL"] is None
+    f = p["FUNDED"]
+    assert f["seconds_left"] > 0 and f["needed"] == "1600" and f["live_trigger_left"] == "6000" and not f["pending"]
+    assert p["LIVE"]["needed"] is None and p["LIVE"]["live_trigger_left"] is None

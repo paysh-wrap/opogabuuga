@@ -16,8 +16,9 @@ from app.automation import state as stt
 from app.automation.preflight import PreflightInput
 from app.automation.preflight import run as run_preflight
 from app.clock import session_date
-from app.execution.adapters.base import conservative_mode
+from app.execution.adapters.base import BrokerError, conservative_mode
 from app.models import Account, Attestation, Trade
+from app.phases.payout_clock import payout_clock
 from app.phases.phase_engine import stage_rules
 
 router = APIRouter(prefix="/api")
@@ -308,6 +309,35 @@ async def kill(body: ConfirmIn, request: Request, p: Principal = Depends(current
     return {"killed": True}
 
 
+def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decimal) -> dict[str, Any] | None:
+    """FUNDED: payout countdown + amount needed + go-live trigger left today. LIVE: next payout time only."""
+    if a.stage not in ("FUNDED", "LIVE"):
+        return None
+    r = request.app.state.rules.rules
+    now = request.app.state.clock.now()
+    pr = r.funded.payout
+    c = payout_clock(
+        stage=a.stage,
+        balance=bal,
+        today_pnl=stt.day_stats(db, a, now).day_profit + opnl,
+        now=now,
+        frequency=r.payouts.frequency,
+        check_time=r.payouts.check_time,
+        buffer=pr.buffer,
+        min_request=pr.min_request,
+        live_trigger=r.funded.max_daily_profit_live_trigger,
+    )
+    funded = a.stage == "FUNDED"
+    return {
+        "next_check": c.next_check.isoformat() if c.next_check else None,
+        "seconds_left": c.seconds_left,
+        "eligible": str(c.eligible) if funded else None,
+        "needed": str(c.needed) if funded else None,
+        "live_trigger_left": str(c.live_trigger_left) if c.live_trigger_left is not None else None,
+        "pending": stt.payout_pending(db, a),
+    }
+
+
 @router.get("/positions")
 async def positions(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
@@ -317,16 +347,22 @@ async def positions(
     for a in db.execute(select(Account)).scalars():
         if a.broker_account_id not in c.adapter.accounts:
             continue
-        bal = await c.adapter.get_balance(a.broker_account_id)
-        pos = await c.adapter.get_positions(a.broker_account_id)
+        try:
+            bal = await c.adapter.get_balance(a.broker_account_id)
+            pos = await c.adapter.get_positions(a.broker_account_id)
+            opnl = c.adapter.open_pnl(a.broker_account_id)
+        except BrokerError as e:
+            out.append({"account_id": a.id, "label": a.label, "error": str(e), "positions": []})
+            continue
         out.append(
             {
                 "account_id": a.id,
                 "label": a.label,
                 "balance": str(bal),
-                "open_pnl": str(c.adapter.open_pnl(a.broker_account_id)),
+                "open_pnl": str(opnl),
                 "mll": str(a.mll),
                 "positions": [{"symbol": x.symbol, "qty": x.qty, "avg": str(x.avg_price)} for x in pos],
+                "payout": _payout(request, db, a, bal, opnl),
             }
         )
     return {"accounts": out}
