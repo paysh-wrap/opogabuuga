@@ -6,7 +6,12 @@ from app.backtest.data import DataError, load_csv
 
 
 def test_iso_and_dedupe_and_sort():
-    csv = "ts_event,open,high,low,close,volume,symbol\n2026-01-05T14:31:00Z,2,3,1,2.5,7,MNQH6\n2026-01-05T14:30:00Z,1,2,1,2,5,MNQH6\n2026-01-05T14:30:00Z,1,2,1,2,5,MNQH6\n"
+    csv = (
+        "ts_event,open,high,low,close,volume,symbol\n"
+        "2026-01-05T14:31:00Z,2,3,1,2.5,7,MNQH6\n"
+        "2026-01-05T14:30:00Z,1,2,1,2,5,MNQH6\n"
+        "2026-01-05T14:30:00Z,1,2,1,2,5,MNQH6\n"
+    )
     b = load_csv(csv)
     assert [x.c for x in b] == [D(2), D("2.5")] and b[0].close_ms - b[0].open_ms == 60_000 and b[1].v == D(7)
 
