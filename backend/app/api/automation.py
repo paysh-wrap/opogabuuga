@@ -60,7 +60,7 @@ async def put_automation(
 ) -> dict[str, Any]:
     c = _ctl(request)
     if body.mode != "OFF":
-        pf = _preflight(request, db)
+        pf = await _preflight(request, db)
         if not pf["ok"]:
             raise HTTPException(409, {"errors": [f"pre-flight failed: {', '.join(pf['failures'])}"], "preflight": pf})
     try:
@@ -74,7 +74,7 @@ async def put_automation(
     return out
 
 
-def _preflight(request: Request, db: Session) -> dict[str, Any]:
+async def _preflight(request: Request, db: Session) -> dict[str, Any]:
     st = request.app.state
     c = st.controller
     now = st.clock.now()
@@ -88,6 +88,7 @@ def _preflight(request: Request, db: Session) -> dict[str, Any]:
             feeds_ok &= feed_status(ss.last_heartbeat_ms, tf, now, 2) in ("FRESH", "CLOSED")
     if not st.market.states:
         feeds_ok = False
+    reconciled = not await c.reconcile(db)
     sess = session_date(now)
     proxy = st.rules.rules.instrument("MNQ").bias_proxy
     res = run_preflight(
@@ -99,7 +100,7 @@ def _preflight(request: Request, db: Session) -> dict[str, Any]:
             bias_loaded=today_bias(db, sess, proxy) != "NO_TRADE",
             live=any(a.stage == "LIVE" and not a.is_sim for a in db.execute(select(Account)).scalars()),
             unconfirmed_verify=len(st.rules.verify_paths),
-            reconciled=True,
+            reconciled=reconciled,
             orphan_orders=0,
             attested_today=stt.attested_today(db, now),
             clock_drift_s=0.0,
@@ -111,8 +112,10 @@ def _preflight(request: Request, db: Session) -> dict[str, Any]:
 
 
 @router.post("/automation/preflight")
-def preflight(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
-    return _preflight(request, db)
+async def preflight(
+    request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    return await _preflight(request, db)
 
 
 class AttestIn(BaseModel):

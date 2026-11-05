@@ -483,6 +483,24 @@ class Controller:
                 await self._flatten_account(s, a, "DLL_LIMIT")
                 st.day_stats(s, a, self.clock.now()).stopped_reason = "DLL_LIMIT"
 
+    async def reconcile(self, s: Session) -> list[Any]:
+        """Broker vs our open trades; mismatching accounts are paused (§13)."""
+        from app.monitor.reconcile import reconcile
+
+        exp: dict[tuple[str, str], int] = {}
+        for t in self.om.trades.values():
+            q = sum(x.qty for x in t.legs if not x.closed and x.entry is not None)
+            exp[(t.account, t.symbol)] = exp.get((t.account, t.symbol), 0) + q * t.d.sign
+        act: dict[tuple[str, str], int] = {}
+        for a in s.execute(select(Account)).scalars():
+            if a.broker_account_id in self.adapter.accounts:
+                for p in await self.adapter.get_positions(a.broker_account_id):
+                    act[(a.broker_account_id, p.symbol)] = p.qty
+        bad = reconcile(exp, act)
+        for m in bad:
+            self._pause(s, m.account, "POSITION_MISMATCH")
+        return bad
+
     def eod_update(self, s: Session, a: Account, settled_balance: Decimal) -> None:
         m = self._mll_state(a)
         update_mll(m, settled_balance, eod=True)
