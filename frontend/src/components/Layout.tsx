@@ -6,6 +6,7 @@ const NAV = [
   { to: "/today", label: "Today" },
   { to: "/automation", label: "Automation" },
   { to: "/risk", label: "Risk" },
+  { to: "/payouts", label: "Payouts" },
   { to: "/connections", label: "Connections" },
 ];
 

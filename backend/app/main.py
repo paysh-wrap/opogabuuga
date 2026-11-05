@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.automation import router as automation_router
 from app.api.dashboard import router as dashboard_router
 from app.api.live import router as live_router
+from app.api.payouts import router as payouts_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
@@ -45,6 +46,27 @@ SECURITY_HEADERS = {
     "Content-Security-Policy": "default-src 'self'; connect-src 'self' ws: wss:; img-src 'self' data:; "
     "style-src 'self' 'unsafe-inline'; frame-ancestors 'none'",
 }
+
+
+async def _scheduler(app: FastAPI) -> None:
+    """In-process jobs (one app process). Each job runs once per period; failures never silent."""
+    from app.automation import state as stt
+    from app.payouts.service import due, week_key, weekly_check
+
+    st = app.state
+    while True:
+        try:
+            now = st.clock.now()
+            pc = st.rules.rules.payouts
+            with st.sessionmaker() as s:
+                if pc.frequency == "weekly" and due(now, pc.check_time, stt.get_setting(s, "job.payouts.week")):  # type: ignore[arg-type]
+                    await weekly_check(s, st.controller, st.rules.rules, now)
+                    stt.set_setting(s, "job.payouts.week", week_key(now), now)
+                    s.commit()
+        except Exception as e:  # never silent (§1.8)
+            log.error("scheduler.error", error=type(e).__name__)
+            st.controller.notify("error", "Scheduled job failed", type(e).__name__)
+        await asyncio.sleep(30)
 
 
 def _start_live(app: FastAPI) -> list[asyncio.Task[None]]:
@@ -130,6 +152,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         app.state.http = http_client(settings.http_timeout_s)
         log.info("paytience.start", mode="LIVE" if settings.allow_live else "PAPER")
         bg = _start_live(app) if settings.allow_live else []
+        bg.append(asyncio.create_task(_scheduler(app)))
         yield
         for t in bg:
             t.cancel()
@@ -193,6 +216,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(automation_router)
     app.include_router(live_router)
     app.include_router(dashboard_router)
+    app.include_router(payouts_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:

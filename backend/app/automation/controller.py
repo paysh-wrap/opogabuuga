@@ -26,7 +26,7 @@ from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
-from app.models import Account, Order, Signal, Trade, TradePlanRow
+from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
@@ -85,7 +85,16 @@ class Controller:
                     ),
                     Decimal(0),
                 )
-                self.adapter.add_account(a.broker_account_id, (a.starting_balance or Decimal(0)) + closed)
+                paid = sum(
+                    (
+                        p.amount
+                        for p in s.execute(
+                            select(Payout).where(Payout.account_id == a.id, Payout.status == "processed")
+                        ).scalars()
+                    ),
+                    Decimal(0),
+                )
+                self.adapter.add_account(a.broker_account_id, (a.starting_balance or Decimal(0)) + closed - paid)
                 for t in s.execute(select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_(None))).scalars():
                     t.closed_at, t.exit_reason, t.pnl_usd = self.clock.now(), "SIM_RESTART", Decimal(0)
             s.commit()
