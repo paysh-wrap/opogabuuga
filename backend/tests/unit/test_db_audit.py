@@ -15,7 +15,8 @@ from app.models import Account, AuditLog, Trade
 def sm(tmp_path):
     eng = make_engine(f"sqlite:///{tmp_path / 'a.db'}")
     Base.metadata.create_all(eng)
-    return make_sessionmaker(eng)
+    yield make_sessionmaker(eng)
+    eng.dispose()
 
 
 CLK = FixedClock(datetime(2026, 11, 5, 15, tzinfo=UTC))

@@ -129,3 +129,12 @@ Still open: Q7 apply the 40% consistency cap on FUNDED too (firm has none there)
   evaluated in SHADOW, never traded). Scheduled: A1/A2/A8 Phase 8 (backtest), A3/A6/A7 Phase 9 (Lab).
 - Fix found while building: bias lookup ignored the proxy ETF (gold would have used the Nasdaq bias); bias is now
   read per instrument proxy (QQQ/SPY/DIA/GLD).
+
+## D17 — 2026-11-05 — Phase 4 interpretations (confirm or correct)
+- DLL remaining = DLL + min(0, today's P&L incl. open): profits today do not add room (conservative).
+- Worst-case check: contracts × (stop + fees + slippage) + $40 margin ≤ min(DLL remaining, MLL distance − $100 kill
+  distance), so the kill switch never has to fire because of a planned stop.
+- Funded consistency (D16): cap 40% / day stop 35% of max($1,250, payout-cycle profit so far).
+- 1:1 partial on an odd contract count closes ceil(n/2) (same split as the drawdown guard's leg A).
+- Effective rules = YAML ⊕ Firm Rules versions ⊕ My Settings versions; if a stored version stops validating, the
+  app reports it and must not trade (Phase 5 automation checks `rules.error`).

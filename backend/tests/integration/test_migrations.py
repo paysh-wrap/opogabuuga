@@ -38,6 +38,8 @@ def test_alembic_upgrade_creates_schema_and_append_only_audit(tmp_path):
         raise AssertionError("delete should be blocked")
     except sqlite3.DatabaseError as e:
         assert "append-only" in str(e)
+    finally:
+        con.close()
     r = subprocess.run(
         [sys.executable, "-m", "alembic", "check"], cwd=BACKEND, env=env, capture_output=True, text=True, check=False
     )

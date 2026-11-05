@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
 from app.api.webhook import router as webhook_router
@@ -20,6 +21,7 @@ from app.clock import Clock, SystemClock
 from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
+from app.risk.holder import RulesHolder
 from app.settings import Settings, get_settings
 from app.signals.service import no_calendar
 from app.signals.stats import StatsCache
@@ -58,6 +60,10 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         from app.engine.market_state import rebuild
         from app.models import Event
 
+        with app.state.sessionmaker() as s:
+            app.state.rules.refresh(s)
+        if app.state.rules.error:
+            log.error("rules.invalid", error=app.state.rules.error)
         since = app.state.clock.now() - timedelta(days=2)
         with app.state.sessionmaker() as s:
             rows = [(e.symbol, e.payload) for e in s.execute(select(Event).where(Event.bar_time >= since)).scalars()]
@@ -71,7 +77,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app = FastAPI(title="Paytience", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.settings = settings
     app.state.clock = clock or SystemClock()
-    app.state.rules = rules
+    app.state.rules = RulesHolder(rules)
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
     app.state.hub = Hub()
@@ -102,6 +108,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(router)
     app.include_router(webhook_router)
     app.include_router(signals_router)
+    app.include_router(risk_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:

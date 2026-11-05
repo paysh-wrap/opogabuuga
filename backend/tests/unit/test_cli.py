@@ -19,6 +19,7 @@ def test_create_and_rename_admin(tmp_path, monkeypatch):
         with make_sessionmaker(eng)() as s:
             assert authenticate(s, "Other", "long-enough-password") is not None
             assert authenticate(s, "PayDay", "long-enough-password") is None
+        eng.dispose()
         assert cli.DEFAULT_ADMIN == "PayDay"
     finally:
         get_settings.cache_clear()

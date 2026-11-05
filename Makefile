@@ -40,8 +40,8 @@ build: ## Build the UI into frontend/dist
 
 test: test-backend test-frontend ## All unit + integration tests
 
-test-backend:
-	cd backend && ../$(PY) -m pytest -q
+test-backend: ## Backend tests; risk/management/phases must stay at 100% coverage (§9)
+	cd backend && ../$(PY) -m pytest -q --cov=app/risk --cov=app/management --cov=app/phases --cov-report=term-missing:skip-covered --cov-fail-under=100
 
 test-frontend:
 	cd frontend && npx vitest run

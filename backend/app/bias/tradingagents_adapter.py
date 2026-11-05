@@ -8,8 +8,10 @@ hang is bounded by a hard timeout.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
+import signal
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -60,14 +62,17 @@ class TradingAgentsAdapter:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=env,
+            start_new_session=True,  # own process group, so a timeout kills every child it started
         )
         try:
             out, _err = await asyncio.wait_for(
                 proc.communicate(json.dumps(req).encode()), timeout=timeout_s or self.timeout_s
             )
         except TimeoutError:
-            proc.kill()
-            await proc.wait()
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(proc.pid, signal.SIGKILL)
+            with contextlib.suppress(Exception):
+                await asyncio.wait_for(proc.communicate(), timeout=5)  # drain + close the pipes after kill
             return RunnerResult(False, {"error": "timeout"})
         try:
             data = json.loads(out.decode() or "{}")

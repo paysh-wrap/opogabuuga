@@ -30,6 +30,8 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 19. Always give a download of the conversation; keep it as a project.
 20. Admin name PayDay; "keep going" (TradingView access coming).
 21. Yes: 1:1 mode on LIVE; 40% consistency on funded; approve win-rate filters + self-learning proposals.
+22. "Can I get you TradingView through my phone?" — yes: phone browser → claude.ai/code → environment → Edit →
+    Network access → allow tradingview domains (or send screenshots of the source). "Go Phase 4".
 
 ### What was decided / built
 - Phase 0: CLAUDE.md, file tree, broker/data analysis (docs/PHASE0.md).
@@ -58,6 +60,15 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 
 ### After Phase 3 (built)
 - D16: 1:1 filters E1–E7, regime tags (A4), shadow evaluation for MES/MYM/MGC (A5), per-proxy bias fix.
+
+### Phase 4 (built)
+- Risk engine (risk base, tiers, ceiling/floor rules, day lock-in, streak floor, sizing, DLL/MLL/worst-case checks,
+  pause floor, kill distance), Evaluation Mode (EVAL-only, enforced in pure code), consistency (EVAL + funded),
+  hedge lock, drawdown guard + runner, 1:1 management, exits + 6 s hold, MLL tracker (EOD/intraday + lock), phase
+  engine, stage transitions, §11 validation + DLL test, versioned My Settings / Firm Rules / Evaluation Mode APIs.
+- 100% coverage on risk/management/phases (now a hard gate), property tests from §21.
+- Found and fixed: TradingAgents timeout left child processes holding pipes (now kills the whole process group);
+  admin CLI leaked a database connection on error paths.
 
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read

@@ -96,4 +96,8 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D10–D15: 09:30–09:35 excluded; indicators spec-derived (LIVE gated on parity); alert id ends -DIRECTION;
   heartbeat carries mso snapshot; HARD vs TRANSIENT gates, expiry 6 bars / half C3, cooldown resets on T1.
 - Code map: indicators/ (pure, Decimal) · engine/{trade_plan,scoring,filters,confluence,state_machine,market_state}
-  (pure) · signals/service.py (I/O orchestration) · webhook/ · api/{routes,webhook,signals}.
+  (pure) · risk/{risk_base,tiers,eval_mode,sizing,consistency,hedge_lock,checks,validation} (pure, 100% cov) ·
+  management/{drawdown_guard,exits} · phases/{mll_tracker,phase_engine,transitions} (pure, 100% cov) ·
+  risk/{settings_store,holder} (versioned settings; app.state.rules = RulesHolder) · signals/{service,stats} ·
+  webhook/ · api/{routes,webhook,signals,risk}.
+- `make test` fails below 100% coverage on risk/, management/, phases/ (§9). Never lower the bar to pass.

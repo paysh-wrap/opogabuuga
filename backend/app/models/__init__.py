@@ -70,10 +70,22 @@ class AccountStageHistory(_Row, Base):
 class RuleProfile(_Row, Base):
     __tablename__ = "rule_profiles"
     version: Mapped[int] = mapped_column(Integer, unique=True)
-    body: Mapped[str] = mapped_column(Text)  # YAML snapshot
+    body: Mapped[str] = mapped_column(Text)  # JSON object of firm-rule overrides (dotted key → value)
     verified_paths: Mapped[list[str]] = mapped_column(JSON, default=list)
     author: Mapped[str] = mapped_column(String(64))
     note: Mapped[str] = mapped_column(Text)
+
+    def body_overrides(self) -> dict[str, Any]:
+        import json
+
+        data = json.loads(self.body or "{}")
+        return data if isinstance(data, dict) else {}
+
+    @staticmethod
+    def encode_overrides(d: dict[str, Any]) -> str:
+        import json
+
+        return json.dumps(d, sort_keys=True)
 
 
 class RiskProfile(_Row, Base):

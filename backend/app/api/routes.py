@@ -80,8 +80,15 @@ def me(p: Principal = Depends(current_user)) -> dict[str, Any]:
 # ---------- rules ----------
 @router.get("/rules")
 def rules(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
-    loaded = request.app.state.rules
-    return {"rules": loaded.rules.model_dump(mode="json"), "verify_paths": loaded.verify_paths}
+    h = request.app.state.rules
+    return {
+        "rules": h.rules.model_dump(mode="json"),
+        "verify_paths": h.verify_paths,
+        "verified_paths": h.verified_paths,
+        "firm_version": h.firm_version,
+        "standard_version": h.standard_version,
+        "error": h.error,
+    }
 
 
 # ---------- connections (D3) ----------
