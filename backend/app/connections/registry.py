@@ -44,30 +44,36 @@ class Provider:
 
 
 # LLM providers supported by TauricResearch/TradingAgents v0.7.x (tradingagents/llm_clients/api_key_env.py)
-LLM_PROVIDERS: dict[str, dict[str, str]] = {
-    "openai": {
-        "env": "OPENAI_API_KEY",
-        "keys_url": "https://platform.openai.com/api-keys",
-        "models_url": "https://api.openai.com/v1/models",
-        "auth": "bearer",
-    },
+LLM_PROVIDERS: dict[str, dict[str, str]] = {  # order = UI order; Claude (anthropic) is the default power source
     "anthropic": {
         "env": "ANTHROPIC_API_KEY",
         "keys_url": "https://console.anthropic.com/settings/keys",
         "models_url": "https://api.anthropic.com/v1/models",
         "auth": "anthropic",
     },
+    "kimi": {  # Moonshot AI (TradingAgents: MOONSHOT_API_KEY, base https://api.moonshot.ai/v1)
+        "env": "MOONSHOT_API_KEY",
+        "keys_url": "https://platform.moonshot.ai/console/api-keys",
+        "models_url": "https://api.moonshot.ai/v1/models",
+        "auth": "bearer",
+    },
+    "qwen": {  # Alibaba Model Studio / DashScope intl (TradingAgents: DASHSCOPE_API_KEY)
+        "env": "DASHSCOPE_API_KEY",
+        "keys_url": "https://www.alibabacloud.com/help/en/model-studio/get-api-key",
+        "models_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models",
+        "auth": "bearer",
+    },
+    "openai": {
+        "env": "OPENAI_API_KEY",
+        "keys_url": "https://platform.openai.com/api-keys",
+        "models_url": "https://api.openai.com/v1/models",
+        "auth": "bearer",
+    },
     "google": {
         "env": "GOOGLE_API_KEY",
         "keys_url": "https://aistudio.google.com/app/apikey",
         "models_url": "https://generativelanguage.googleapis.com/v1beta/models",
         "auth": "google",
-    },
-    "openrouter": {
-        "env": "OPENROUTER_API_KEY",
-        "keys_url": "https://openrouter.ai/keys",
-        "models_url": "https://openrouter.ai/api/v1/key",
-        "auth": "bearer",
     },
     "deepseek": {
         "env": "DEEPSEEK_API_KEY",
@@ -94,6 +100,8 @@ LLM_PROVIDERS: dict[str, dict[str, str]] = {
         "auth": "bearer",
     },
 }
+
+LLM_NAMES = {"anthropic": "Claude (Anthropic) — default", "kimi": "Kimi (Moonshot)", "qwen": "Qwen (Alibaba)"}
 
 LUNQFX_NAME = "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]"
 BIGBELUGA_NAME = "Market Structure Oscillator [BigBeluga]"
@@ -137,7 +145,7 @@ PROVIDERS: tuple[Provider, ...] = (
         links=(
             Link("GitHub repository", TA_REPO),
             Link("Releases", f"{TA_REPO}/releases"),
-            *(Link(f"{k} key", v["keys_url"]) for k, v in LLM_PROVIDERS.items()),
+            *(Link(f"{LLM_NAMES.get(k, k)} key", v["keys_url"]) for k, v in LLM_PROVIDERS.items()),
         ),
         fields=(
             FieldSpec("llm_provider", "LLM provider", "select", options=tuple(LLM_PROVIDERS)),

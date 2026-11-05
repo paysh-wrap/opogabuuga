@@ -27,7 +27,7 @@ function ExtLink({ href, children }: { href: string; children: string }) {
 function ConnectionCard({ c }: { c: Connection }) {
   const qc = useQueryClient();
   const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(c.fields.filter((f) => f.kind !== "secret").map((f) => [f.name, c.hints[f.name] ?? ""])),
+    Object.fromEntries(c.fields.filter((f) => f.kind !== "secret").map((f) => [f.name, c.hints[f.name] ?? (f.kind === "select" ? f.options[0] ?? "" : "")])),
   );
   const [error, setError] = useState("");
   const refresh = () => qc.invalidateQueries({ queryKey: ["connections"] });
