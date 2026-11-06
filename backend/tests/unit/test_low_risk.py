@@ -16,7 +16,8 @@ def test_low_risk_halves_risk_and_doubles_loss_allowance():
         assert lo.internal.risk_pct_by_score[60] == base.internal.risk_pct_by_score[60] / 2
         assert lo.eval_mode.max_risk_usd == base.eval_mode.max_risk_usd / 2
         assert lo.internal.max_consecutive_losses_per_day == base.internal.max_consecutive_losses_per_day * 2
-        assert lo.internal.max_trades_per_day == min(base.internal.max_trades_per_day * 2, 7)  # D36 cap
+        cap = base.internal.low_risk_max_trades_per_day  # D36 cap 7; Pro/Flex 3 (D50: max 3 trades/day)
+        assert lo.internal.max_trades_per_day == min(base.internal.max_trades_per_day * 2, cap)
         assert lo.eval.max_loss_limit == base.eval.max_loss_limit  # firm rules untouched
         if base.internal.max_risk_usd is not None:
             assert lo.internal.max_risk_usd == base.internal.max_risk_usd * D("0.5")

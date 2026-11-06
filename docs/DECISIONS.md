@@ -420,3 +420,15 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   55–60%-accurate daily bias adds ~+1–2 pts win rate but halves the trades and lowers profit. Option for the user
   (not applied): block only on strong ratings (BUY/SELL), map OVERWEIGHT/UNDERWEIGHT to NEUTRAL.
 - MNQ + MES share the EQUITY_INDEX hedge lock (never opposite directions household-wide); 1 position per account.
+
+## D50 — MGC + MNQ only, max 3 trades/day, TradingAgents blocks only on strong calls (user 2026-11-06)
+- User: "MGC & MNQ", "at least 2 trades a day, maximum three", "Yes apply it" (bias), "only regular Pro and Flex".
+- All Pro/Flex plans: MES off again; internal.max_trades_per_day 3 and low_risk_max_trades_per_day 3; bias.rating_map
+  BUY → LONG_ONLY, SELL → SHORT_ONLY, OVERWEIGHT/HOLD/UNDERWEIGHT → NEUTRAL (both sides; neutral score ≥ 60).
+  Plan picker/API offer only lucid_pro_* / lucid_flex_* (legacy Daily file kept for the test suite only).
+- Strategy unchanged from D49 (1.5–2.5R, UT Bot 5m + EMA200 5m). Highest R:R: offline on 7 years MGC the result per
+  trade is flat from 1.5R to 3R (1.5–3.0 marginally best, −0.01R offline ≈ +0.1R engine); above 3R too few setups.
+- Trades/day reality (engine, Nov 2025 – Feb 2026, max 3/day): EVERY setup = MGC 0.80 + MNQ 0.72 ≈ 1.5/day,
+  ≈ break-even (MGC −$215, MNQ +$210); D49-filtered 0.23/day and −$386 in this weak stretch. 2–3 profitable trades/day
+  is not available from this setup type. Lucid audit (sub-agent): no rule broken; Flex DLL null and Pro DLL $600 are
+  VERIFY — confirm with Lucid.

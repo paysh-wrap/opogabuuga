@@ -68,9 +68,13 @@ def test_main_strategy_d49(plan):
     assert p.filters.no_break_rr_cap is None  # no 1R targets
     t = p.filters.trend
     assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
-    for sym in ("MGC", "MNQ", "MES"):
+    for sym in ("MGC", "MNQ"):  # D50 (user): MGC + MNQ only
         assert p.instruments[sym].enabled and p.instruments[sym].intraday_windows is None, sym
-    assert not p.instruments["MYM"].enabled
+    assert not p.instruments["MES"].enabled and not p.instruments["MYM"].enabled
+    assert p.internal.max_trades_per_day == 3 and p.internal.low_risk_max_trades_per_day == 3  # max 3/day
+    rm = p.bias.rating_map  # D50: TradingAgents blocks a side only on strong calls
+    assert rm["BUY"] == "LONG_ONLY" and rm["SELL"] == "SHORT_ONLY"
+    assert rm["OVERWEIGHT"] == rm["HOLD"] == rm["UNDERWEIGHT"] == "NEUTRAL"
 
 
 def test_no_plan_can_aim_below_15r():
