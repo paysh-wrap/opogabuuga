@@ -26,6 +26,7 @@ from app.api.replay import router as replay_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
+from app.api.logs import router as logs_router
 from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
 from app.automation.controller import Controller
@@ -378,6 +379,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(router)
     app.include_router(webhook_router)
     app.include_router(signals_router)
+    app.include_router(logs_router)
     app.include_router(risk_router)
     app.include_router(automation_router)
     app.include_router(live_router)
