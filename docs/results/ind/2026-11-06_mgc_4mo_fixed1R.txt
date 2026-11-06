@@ -1,0 +1,86 @@
+parity vwap      vs engine eng_vwap      : 100.0% agree over 343 setups
+parity ema200_5  vs engine eng_ema200_5m : 100.0% agree over 343 setups
+parity ut_5      vs engine eng_utbot_5m  : 100.0% agree over 343 setups
+MGC fixed target 1.0R · 343 filled setups · 81 sessions (train 48)
+ALL                    train  197 tr  40% -0.24R | test  146 tr  36% -0.34R
+ut_5                   train   51 tr  51% +0.00R | test   42 tr  50% -0.03R
+eng_utbot_5m           train   51 tr  51% +0.00R | test   42 tr  50% -0.03R
+wt_cross_5             train   69 tr  49% -0.04R | test   41 tr  46% -0.10R
+sqz_rising_5           train   83 tr  48% -0.06R | test   68 tr  44% -0.16R
+adx25_5                train   78 tr  47% -0.09R | test   57 tr  26% -0.53R
+wt_ext_15              train   32 tr  47% -0.10R | test   27 tr  37% -0.30R
+rvol>1_60              train   88 tr  47% -0.09R | test   58 tr  31% -0.43R
+sqz_off_15             train  146 tr  45% -0.15R | test   98 tr  33% -0.41R
+wt_ext_5               train   23 tr  43% -0.18R | test   16 tr  25% -0.55R
+adx20_5                train  115 tr  43% -0.19R | test   89 tr  37% -0.31R
+rvol>1_15              train   54 tr  43% -0.19R | test   48 tr  38% -0.29R
+wt_ext_60              train   33 tr  42% -0.19R | test   22 tr  32% -0.41R
+sqz_off_60             train  165 tr  42% -0.20R | test  118 tr  36% -0.33R
+rsi_side_5             train   55 tr  42% -0.21R | test   35 tr  49% -0.07R
+adx20_15               train  139 tr  42% -0.21R | test   95 tr  36% -0.33R
+adx25_15               train   97 tr  41% -0.23R | test   69 tr  41% -0.25R
+adx20_60               train  159 tr  41% -0.22R | test  100 tr  35% -0.36R
+sqz_off_5              train  120 tr  41% -0.22R | test   89 tr  38% -0.29R
+dmi_5                  train   57 tr  40% -0.24R | test   34 tr  44% -0.16R
+wt_notext_5            train  194 tr  40% -0.24R | test  144 tr  36% -0.33R
+rsi_notext_5           train  196 tr  40% -0.25R | test  146 tr  36% -0.34R
+rsi_notext_15          train  192 tr  40% -0.25R | test  145 tr  35% -0.35R
+wt_notext_60           train  180 tr  39% -0.25R | test  137 tr  35% -0.35R
+wt_notext_15           train  183 tr  39% -0.26R | test  137 tr  36% -0.34R
+wt_cross_60            train   87 tr  39% -0.27R | test   60 tr  33% -0.40R
+rsi_notext_60          train  187 tr  39% -0.26R | test  140 tr  34% -0.37R
+sqz_mom_60             train   95 tr  39% -0.28R | test   67 tr  43% -0.19R
+sqz_rising_60          train   80 tr  39% -0.27R | test   58 tr  40% -0.25R
+ema200_60              train   96 tr  39% -0.27R | test   66 tr  39% -0.27R
+rvol>1_5               train   58 tr  38% -0.28R | test   42 tr  43% -0.19R
+dmi_15                 train   74 tr  38% -0.29R | test   43 tr  37% -0.32R
+st_15                  train   90 tr  38% -0.29R | test   60 tr  40% -0.26R
+ce_60                  train   98 tr  38% -0.30R | test   76 tr  42% -0.22R
+st_60                  train   93 tr  38% -0.29R | test   69 tr  41% -0.25R
+ce_15                  train   80 tr  38% -0.30R | test   60 tr  38% -0.30R
+vwap                   train   78 tr  37% -0.30R | test   46 tr  46% -0.15R
+eng_vwap               train   78 tr  37% -0.30R | test   46 tr  46% -0.15R
+rsi_side_60            train   89 tr  37% -0.31R | test   62 tr  42% -0.22R
+sqz_rising_15          train   73 tr  37% -0.32R | test   57 tr  42% -0.21R
+adx25_60               train  111 tr  37% -0.30R | test   62 tr  34% -0.38R
+adx<20_60              train   38 tr  37% -0.32R | test   46 tr  37% -0.31R
+adx<20_5               train   82 tr  37% -0.31R | test   57 tr  33% -0.39R
+eng_ema200_5m          train   80 tr  36% -0.32R | test   51 tr  47% -0.12R
+ema200_5               train   80 tr  36% -0.32R | test   51 tr  47% -0.12R
+rsi_side_15            train   69 tr  36% -0.32R | test   42 tr  40% -0.25R
+adx<20_15              train   58 tr  36% -0.31R | test   51 tr  35% -0.36R
+ema50_5                train   59 tr  36% -0.34R | test   43 tr  42% -0.23R
+ema50_60               train   93 tr  35% -0.34R | test   67 tr  42% -0.23R
+ema50_15               train   79 tr  35% -0.34R | test   47 tr  43% -0.21R
+ema200_15              train   91 tr  35% -0.34R | test   64 tr  44% -0.19R
+dmi_60                 train   99 tr  34% -0.37R | test   67 tr  39% -0.29R
+ut_60                  train   86 tr  34% -0.38R | test   60 tr  35% -0.36R
+ut_15                  train   57 tr  33% -0.38R | test   42 tr  50% -0.06R
+sqz_mom_5              train   54 tr  33% -0.39R | test   37 tr  43% -0.20R
+wt_cross_15            train   56 tr  32% -0.41R | test   43 tr  49% -0.08R
+ce_5                   train   54 tr  31% -0.42R | test   48 tr  42% -0.24R
+st_5                   train   66 tr  30% -0.44R | test   58 tr  38% -0.30R
+sqz_mom_15             train   88 tr  30% -0.46R | test   57 tr  33% -0.40R
+brk                    train   10 tr  10% -0.86R | test    7 tr  43% -0.19R
+
+best pairs (train win, ≥10% of setups):
+st_15 & wt_cross_5                       train   21 tr  62% +0.23R | test   12 tr  50% -0.05R
+ce_60 & wt_cross_5                       train   26 tr  62% +0.18R | test   17 tr  59% +0.14R
+rsi_side_5 & wt_cross_5                  train   20 tr  60% +0.19R | test   10 tr  60% +0.22R
+wt_cross_5 & wt_cross_60                 train   22 tr  59% +0.17R | test   12 tr  42% -0.22R
+sqz_rising_15 & wt_cross_5               train   22 tr  59% +0.15R | test   15 tr  53% +0.06R
+dmi_60 & wt_cross_5                      train   24 tr  58% +0.12R | test   10 tr  70% +0.35R
+eng_ema200_5m & wt_cross_5               train   19 tr  58% +0.15R | test    9 tr  67% +0.28R
+ema50_15 & wt_cross_5                    train   19 tr  58% +0.15R | test   10 tr  60% +0.15R
+ema200_5 & wt_cross_5                    train   19 tr  58% +0.15R | test    9 tr  67% +0.28R
+adx<20_5 & ut_5                          train   26 tr  58% +0.13R | test   12 tr  33% -0.35R
+adx<20_5 & eng_utbot_5m                  train   26 tr  58% +0.13R | test   12 tr  33% -0.35R
+ema50_60 & wt_cross_5                    train   23 tr  57% +0.12R | test   13 tr  62% +0.19R
+ema200_15 & wt_cross_5                   train   23 tr  57% +0.12R | test   13 tr  62% +0.19R
+ut_5 & wt_cross_60                       train   23 tr  57% +0.11R | test   18 tr  44% -0.17R
+eng_utbot_5m & wt_cross_60               train   23 tr  57% +0.11R | test   18 tr  44% -0.17R
+sqz_off_60 & ut_5                        train   41 tr  56% +0.10R | test   29 tr  59% +0.12R
+eng_utbot_5m & sqz_off_60                train   41 tr  56% +0.10R | test   29 tr  59% +0.12R
+adx<20_5 & wt_cross_5                    train   25 tr  56% +0.10R | test   10 tr  20% -0.60R
+sqz_mom_60 & wt_cross_5                  train   25 tr  56% +0.07R | test   15 tr  60% +0.15R
+ut_5 & wt_cross_5                        train   40 tr  55% +0.09R | test   25 tr  52% +0.02R

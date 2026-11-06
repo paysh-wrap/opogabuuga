@@ -132,3 +132,23 @@ the serial months barely trade (2026-06-02: 13 one-minute bars vs ~1,380 in the 
 only a few sessions per month. Use `MGC.v.0` (highest volume). docs/results/tools/dbget.py fixed. Any earlier MGC
 result built on MGC.c.0 Databento data (session 5/6 MGC Lab on long data) should be re-checked. MNQ (quarterly
 H/M/U/Z, always the front) is far less affected.
+
+## N. TradingView indicators on 4 months of REAL MGC data (Databento MGC.v.0, Jul–Oct 2026, session 7)
+Tool: research_par.sh (research_rr1.yaml = loose plan, R:R floor 1.0, every PASS setup) → indscreen.py. 2,892 signals →
+343 filled setups, 81 sessions; train = older 48 sessions, test = newest 33. Fixed target 1.75R (breakeven ≈ 38%).
+Full output: docs/results/ind/. PARITY: the engine's live D44 switches (VWAP / EMA200 5m / UT Bot 5m) agree with the
+screener's own math on 100% of 343 setups → the live code computes exactly what was researched.
+| Filter (trade only in its direction) | Train (48 sessions) | Test (33 sessions) |
+|---|---|---|
+| none | 197 tr 26% −0.34R | 146 tr 27% −0.31R |
+| Session VWAP | 78 tr 22% −0.45R | 46 tr 30% −0.25R |
+| EMA 200 5m | 80 tr 22% −0.43R | 51 tr 33% −0.17R |
+| UT Bot 5m | 51 tr 31% −0.15R | 42 tr 43% +0.12R |
+| Squeeze Momentum [LazyBear] rising 5m | 83 tr 35% −0.09R | 68 tr 35% −0.09R |
+| **Squeeze rising 5m AND 15m** | **21 tr 43% +0.07R** | **24 tr 54% +0.46R** |
+| Squeeze rising 5m + squeeze OFF 60m | 67 tr 39% +0.02R | 50 tr 40% +0.03R |
+- The 22-session VWAP/EMA200 result (section L) did NOT hold on 4 months → small samples mislead.
+- Best and consistent in both halves: Squeeze Momentum momentum rising in the trade direction on BOTH 5m and 15m.
+  45 trades in 4 months (~0.5/day) and it is the best of ~1,800 pairs → must be confirmed on the 7-year data before use.
+- At a 1R target: none 40%/36% (−0.24R/−0.34R); UT Bot 5m 51%/50% (≈0R). Offline sim has no early exits; the
+  engine usually does better (section I) → engine confirm running (base, UT Bot) on the same 4 months.
