@@ -33,6 +33,12 @@ export default function Backtest() {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["backtests"] }),
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Upload failed"),
   });
+  const del = useMutation({
+    mutationFn: (id: number) => api(`/api/backtest/${id}`, { method: "DELETE" }),
+    onMutate: () => setErr(""),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ["backtests"] }),
+    onError: (e) => setErr(e instanceof ApiError ? e.message : "Delete failed"),
+  });
 
   return (
     <div className="space-y-5">
@@ -60,6 +66,10 @@ export default function Backtest() {
         return (
           <section key={r.id} data-testid={`bt-${r.id}`} className="rounded-xl border border-border bg-card p-4 text-sm">
             <h2 className="font-semibold text-gold">#{r.id} · {r.params.symbol} · {r.params.stage} · bias {r.params.bias}{r.params.one_to_one ? " · 1:1" : ""}{r.params.scalp ? " · scalp" : ""}{r.params.low_risk ? " · lower risk" : ""}{r.params.eval_mode ? " · Eval Mode" : ""} — {r.status}</h2>
+            {r.status !== "running" && r.status !== "queued" && (
+              <button data-testid={`bt-delete-${r.id}`} className={`${btn} mt-1 border-border text-blue`} disabled={del.isPending}
+                onClick={() => { if (window.confirm(`Delete backtest #${r.id} and its trades? This cannot be undone.`)) del.mutate(r.id); }}>Delete</button>
+            )}
             {r.error && <p className="text-goldLight">⚠ {r.error}</p>}
             {s && (
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">

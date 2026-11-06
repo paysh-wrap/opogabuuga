@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etDateTime } from "../lib/time";
+import TradeJournal from "../components/TradeJournal";
 
 interface Row { id: number; at: string; actor: string; action: string; entity: string; payload: Record<string, unknown> }
 interface Resp { logs: Row[]; actions: string[]; chain_ok: boolean; chain_first_bad_id: number | null }
@@ -39,6 +40,8 @@ export default function Journal() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gold">Journal &amp; Logs</h1>
+      <TradeJournal />
+      <h2 className="text-lg font-semibold text-gold">Audit log</h2>
       <p className="text-sm">Append-only audit log of everything the app and you did. Hash chain:{" "}
         {res.data ? (res.data.chain_ok ? <b className="text-gold" data-testid="chain">intact</b>
           : <b className="text-goldLight" data-testid="chain">BROKEN at entry {res.data.chain_first_bad_id}</b>) : "…"}</p>

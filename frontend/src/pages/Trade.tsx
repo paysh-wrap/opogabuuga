@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
+import ManualTicket from "../components/ManualTicket";
 
 interface Status {
   mode: string;
@@ -75,8 +76,10 @@ export default function Trade() {
               onClick={() => run.mutate(() => api(`/api/signals/${a.signal_id}/skip`, { method: "POST" }))}>Skip</button>
           </div>
         ))}
-        <p className="mt-2 text-xs">Executing re-runs every check on the server. Manual order ticket: not available yet (no manual-order endpoint).</p>
+        <p className="mt-2 text-xs">Executing re-runs every check on the server.</p>
       </section>
+
+      <ManualTicket accounts={accts.data?.accounts ?? []} />
 
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">Positions</h2>
