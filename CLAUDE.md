@@ -2,7 +2,7 @@
 
 Automated confluence trading app for 1–5 Lucid Trading LucidDaily 25K accounts.
 Purchase profile: EOD drawdown | DLL ON | Consistency 40% | Weekly payouts.
-Full spec: `docs/MASTER_PROMPT_v9.2.md` (binding; user to add verbatim). This file is the condensed contract.
+Full spec: `docs/MASTER_PROMPT_v9.2.md` (binding; added 2026-11-06 from the user's text + screenshots; §24.7+ missing). This file is the condensed contract.
 
 ## How we work
 - Priorities: firm-rule compliance > capital safety > correctness > working UI > readability.
