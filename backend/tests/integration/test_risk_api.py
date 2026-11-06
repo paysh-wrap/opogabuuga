@@ -229,3 +229,10 @@ def test_low_risk_button(authed):
     r = authed.put("/api/risk/low-risk", json={"enabled": True}).json()
     assert r["enabled"] is True and r["risk_pct"]["60"] == "0.035" and r["max_losses_per_day"] == 4
     assert authed.put("/api/risk/low-risk", json={"enabled": False}).json()["max_losses_per_day"] == 2
+
+
+def test_trend_filter_switches_save_d44(authed):
+    r = authed.put("/api/risk/settings", json={"changes": {"filters.trend.vwap": True}})
+    assert r.status_code == 200, r.text
+    assert authed.app.state.rules.rules.filters.trend.vwap is True
+    assert authed.get("/api/risk/settings").json()["settings"]["filters.trend.vwap"] is True

@@ -71,6 +71,23 @@ export default function Risk() {
           {low.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
       </section>
 
+      <section className="rounded-xl border border-border bg-card p-4" data-testid="trend-filters">
+        <h2 className="font-semibold text-gold">Trend filters (TradingView indicators)</h2>
+        <p className="text-xs">Only take a setup on the side of the trend. Computed from the same TradingView bars — no chart change. Off until backtests prove them.</p>
+        <div className="mt-2 flex flex-wrap gap-4 text-sm">
+          {([
+            ["filters.trend.vwap", "Session VWAP"],
+            ["filters.trend.ema200_5m", "EMA 200 (5 min)"],
+            ["filters.trend.utbot_5m", "UT Bot (5 min)"],
+          ] as const).map(([k, label]) => (
+            <label key={k} className="flex items-center gap-2">
+              <input type="checkbox" data-testid={k} checked={s.settings[k] === true} onChange={(e) => save({ [k]: e.target.checked })} />
+              {label}
+            </label>
+          ))}
+        </div>
+      </section>
+
       <EvalModePanel />
 
       <section className="rounded-xl border border-gold bg-card p-4">
