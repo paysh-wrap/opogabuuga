@@ -157,7 +157,6 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
         # Replay pushes a whole day in seconds: the live per-minute webhook rate limit (wall-clock) must not apply.
         st.webhook_limiter = SlidingWindow(10**9, 60)
         st.calendar = lambda d: []
-        changes: dict[str, Any] = {"one_to_one_mode.enabled": cfg.one_to_one, "scalp_mode.enabled": cfg.scalp}
         with st.sessionmaker() as s:
             from app.auth import create_user
 
@@ -165,7 +164,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
             s.commit()
         r = c.post("/api/auth/login", json={"username": "bt", "password": secret})
         c.headers["x-csrf-token"] = r.json()["csrf"]
-        c.put("/api/risk/settings", json={"changes": changes})
+        # D43: Scalp / 1:1 are retired (forced OFF by the rules holder); cfg.one_to_one / cfg.scalp are ignored.
         c.put("/api/markets", json={"symbol": cfg.symbol, "enabled": True})  # backtest the chosen market
         if cfg.low_risk:
             c.put("/api/risk/low-risk", json={"enabled": True})

@@ -103,6 +103,11 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - `make test` fails below 100% coverage on risk/, management/, phases/ (§9). Never lower the bar to pass.
 - User prefs: all subagents on Sonnet. Focus MGC + MNQ futures only (no spot). Intraday > scalping. UI modes: Scalping,
   Intraday, Low risk, 1:1. Target 3–5 trades/day total (MGC 2–4). Never break Lucid rules.
+- D42 (user 2026-11-06): MNQ OFF in all Pro/Flex plans — MGC only. D43: Scalp + 1:1 RETIRED (lost money after D39);
+  risk/low_risk.retire_short_modes forces them off; UI options removed. Kept: Intraday + Lower risk.
+- D44: trend switches filters.trend {vwap, ema200_5m, utbot_5m} (indicators/trend.py, from heartbeat bars; default OFF;
+  Risk page). User wants R:R ≥ 1.75 with a higher win rate — test any change at 1.75R before proposing it.
+- Data: Databento MGC must be MGC.v.0 (volume roll). MGC.c.0 follows illiquid serial months → broken backtests.
 - SAVE RULE (user, binding): nothing may ever be lost. After EVERY commit or finished backtest: write results to
   docs/results/, commit, rebuild the bundle and republish the handoff artifact
   (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + paytience.bundle.b64.txt). Push to GitHub
