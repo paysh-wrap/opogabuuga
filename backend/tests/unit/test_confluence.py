@@ -354,3 +354,16 @@ def test_no_break_target_cap_d36():
     assert nobreak.plan.rr == 1 and nobreak.features["rr_max"] == "1"
     withbreak = evaluate(good(), cfg)
     assert withbreak.plan.rr == 3 and withbreak.features["rr_max"] == "3.0"
+
+
+def test_trend_filter_d44():
+    """D44: switched-on trend filters block the wrong side (WAIT) and wait while warming up; off = no effect."""
+    trend = CFG.filters.trend.model_copy(update={"vwap": True, "utbot_5m": True})
+    on = CFG.model_copy(update={"filters": CFG.filters.model_copy(update={"trend": trend})})
+    assert evaluate(good(), CFG).outcome == "PASS"  # default off
+    assert evaluate(good(trend={"vwap": 1, "utbot_5m": 1}), on).outcome == "PASS"
+    d = evaluate(good(trend={"vwap": -1, "utbot_5m": 1}), on)
+    assert d.outcome == "WAIT" and d.skip_reason == "TREND_AGAINST"
+    d = evaluate(good(trend={"vwap": 1}), on)
+    assert d.outcome == "WAIT" and d.skip_reason == "TREND_WARMUP"
+    assert d.features["trend"] == {"vwap": 1}

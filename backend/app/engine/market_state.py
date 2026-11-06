@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
+from app.indicators.trend import TrendState
 from app.webhook.schemas import FRACTAL_EVENTS, MSO_EVENTS, WebhookPayload
 
 
@@ -28,6 +29,20 @@ class SymbolState:
     mso: dict[str, Any] | None = None
     mso_events: list[tuple[str, str, int]] = field(default_factory=list)  # (event, direction, confirm_ms)
     models: dict[str, ModelState] = field(default_factory=dict)
+    trend: TrendState = field(default_factory=TrendState)  # D44 VWAP / EMA200 5m / UT Bot 5m
+
+
+def _feed_trend(tr: TrendState, p: WebhookPayload) -> None:
+    from datetime import UTC, datetime
+
+    from app.clock import session_date
+    from app.indicators.bars import tf_minutes
+
+    assert p.price is not None
+    tf_ms = tf_minutes(p.tf) * 60_000
+    sess = session_date(datetime.fromtimestamp(p.bar_time_ms / 1000 - 1, tz=UTC)).toordinal()
+    pr = p.price
+    tr.update(p.bar_time_ms - tf_ms, tf_ms, sess, pr.o, pr.h, pr.l, pr.c, pr.v)  # bar_time_ms = bar CLOSE
 
 
 def model_key(symbol: str, profile: str, c1_time_ms: int) -> str:
@@ -50,6 +65,7 @@ class MarketStateStore:
         if p.event == "HEARTBEAT" and p.price is not None and newer:
             st.last_heartbeat_ms = p.bar_time_ms
             st.last_price = p.price.model_dump()
+            _feed_trend(st.trend, p)
         if p.mso is not None and (st.mso is None or p.mso.confirm_time_ms >= st.mso.get("confirm_time_ms", 0)):
             st.mso = p.mso.model_dump()
         if p.event in MSO_EVENTS:

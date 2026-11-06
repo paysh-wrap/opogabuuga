@@ -71,6 +71,7 @@ class EvalInput:
     one_to_one: bool = False
     t1_rate: tuple[Decimal | None, int] = (None, 0)  # (rate, resolved samples) for this symbol+profile
     atr_pct: tuple[Decimal | None, int] = (None, 0)  # (percentile 0–100 of this model's HTF ATR, samples)
+    trend: dict[str, int | None] = field(default_factory=dict)  # D44: +1 / −1 / None (warming up)
 
 
 @dataclass(frozen=True)
@@ -192,6 +193,19 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
     div = any(e == "MSO_DIV" and dd == opp and since <= t <= at_ms for e, dd, t in x.mso_events)
     gates.append(Gate("G6", not div, "OPPOSING_DIVERGENCE" if div else "OK"))
 
+    # ---- TREND (D44): only on the side of the switched-on trend indicators. Unknown (warming up) → WAIT.
+    sign = 1 if d is Direction.LONG else -1
+    tf = cfg.filters.trend
+    active = [k for k, on in (("vwap", tf.vwap), ("ema200_5m", tf.ema200_5m), ("utbot_5m", tf.utbot_5m)) if on]
+    for name in active:
+        side = x.trend.get(name)
+        if side is None:
+            gates.append(Gate("TREND", False, "TREND_WARMUP", detail=name))
+        elif side != sign:
+            gates.append(Gate("TREND", False, "TREND_AGAINST", detail=name))
+    if active and not any(g.gate == "TREND" for g in gates):
+        gates.append(Gate("TREND", True, "OK"))
+
     # ---- G7: valid trade plan at this bar's close
     tp_cfg = cfg.trade_plan
     buf = inst.stop_buffer_ticks or tp_cfg.stop_buffer_ticks
@@ -293,6 +307,7 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         {
             "choch": choch,
             "bos": bos,
+            "trend": dict(x.trend),
             "entry_price": str(entry),
             "entry_mode": cfg.entry.mode,
             "tags": tags,

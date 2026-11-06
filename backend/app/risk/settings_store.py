@@ -61,6 +61,9 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "drawdown_guard.mode",
         "drawdown_guard.runner_trail_r",
         "filters.model_fail_cooldown",
+        "filters.trend.vwap",
+        "filters.trend.ema200_5m",
+        "filters.trend.utbot_5m",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(

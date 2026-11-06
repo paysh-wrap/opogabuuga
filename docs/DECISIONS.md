@@ -356,3 +356,13 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   mode cards, the "How Scalp and 1:1 exit" panel, the Eval-Mode 1:1 checkbox and the Backtest mode picker are gone.
 - The dormant engine code (1:1 plan builder, scalp runner) stays for now so old trades/replays still read; it can be
   deleted in a later clean-up.
+
+## D44 — Trend-side filters (built, all OFF until proven) — 2026-11-06
+- Research Results L: on MGC setups at a fixed 1.75R target, trading only on the trend side roughly doubled the win
+  rate (VWAP, EMA 200 5m, UT Bot 5m). Samples too small (7–15 trades) → built as switches, default OFF.
+- indicators/trend.py (pure, Decimal, incremental, closed bars only): session VWAP (resets 18:00 ET), EMA 200 on
+  5-minute bars, UT Bot (key 1, ATR 10; QuantNomad's open-source formula) on 5-minute bars. Fed from the heartbeat
+  bars TradingView already sends (1m bars are bucketed into 5m) → no Pine/TradingView change.
+- Engine gate TREND (only when a switch is on): wrong side → WAIT "TREND_AGAINST"; not warmed up → WAIT "TREND_WARMUP".
+  Every signal records features.trend for research. Plans: filters.trend {vwap, ema200_5m, utbot_5m}: false;
+  editable in My Settings.

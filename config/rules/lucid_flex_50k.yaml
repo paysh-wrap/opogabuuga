@@ -85,6 +85,7 @@ filters:
   require_structure_break: false      # D36: G5 score-only
   t1_through_ok_with_limit: true      # D36: limit entry needs a full retrace, so T1 touched is fine
   no_break_rr_cap: 1.0                # D36: no CHoCH/BoS after the sweep → 1R target (win rate 48→61% MGC, 32→43% MNQ)
+  trend: {vwap: false, ema200_5m: false, utbot_5m: false}   # D44: trade only on the trend side (VWAP / EMA 200 5m / UT Bot 5m); off until proven
 
 score:
   weights: {cisd_before_c2_close: 25, choch_after_sweep: 20, bos_only: 10, osc_strength: 15, own_tp_rate: 15, bias_aligned: 15, htf_mso_agrees: 10}

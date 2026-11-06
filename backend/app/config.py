@@ -200,6 +200,14 @@ class Cooldown(_M):
     in_scalp: bool = True  # D38 (user): false = the model-fail cooldown does not pause Scalp mode
 
 
+class TrendFilter(_M):
+    """D44: trade only on the side of these trend indicators (all OFF by default; switch on after research)."""
+
+    vwap: bool = False  # session VWAP (resets 18:00 ET)
+    ema200_5m: bool = False  # EMA 200 on 5-minute bars
+    utbot_5m: bool = False  # UT Bot (key 1, ATR 10) on 5-minute bars
+
+
 class Filters(_M):
     c1_min_range_atr: D
     htf_atr_period: int
@@ -213,6 +221,7 @@ class Filters(_M):
     # D36 blend: a setup WITHOUT a CHoCH/BoS after the sweep may trade, but its target is capped at this R
     # (closer target → higher hit rate). None = no cap. Setups with a structure break keep the normal R:R window.
     no_break_rr_cap: D | None = None
+    trend: TrendFilter = TrendFilter()
 
 
 class ScoreCfg(_M):

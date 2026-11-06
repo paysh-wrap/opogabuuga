@@ -259,6 +259,7 @@ def process(
                 one_to_one=one_to_one,
                 t1_rate=t1_rate(hist, mv.c1_time_ms),
                 atr_pct=atr_percentile(hist, mv.htf_atr14),
+                trend=st.trend.direction(),
             ),
             eval_rules,
         )
