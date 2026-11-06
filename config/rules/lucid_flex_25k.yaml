@@ -91,7 +91,7 @@ score:
   min_score: 60
   neutral_min_score: 60
   exclude_unknown: true               # D36: unknown bias / unproven T2 rate leave the max
-  osc_strength_min: 15
+  osc_strength_min: 20
   tp_rate_min: 0.45
   tp_rate_min_samples: 30
   div_lookback_bars: 6
