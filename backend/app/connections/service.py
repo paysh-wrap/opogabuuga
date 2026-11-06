@@ -193,7 +193,8 @@ async def save_and_test(
     if p.testable:
         result = await run_test(p, clean, http, ta)
     else:
-        result = TestResult(True, "Saved (not testable without sending an order)")
+        why = "not testable without sending an order" if p.category == "broker" else "no live test available"
+        result = TestResult(True, f"Saved ({why})")
     status = ("connected" if result.ok else "failed") if p.testable else "saved"
     if row is None:
         row = ApiCredential(provider=pid, ciphertext="", hints={})

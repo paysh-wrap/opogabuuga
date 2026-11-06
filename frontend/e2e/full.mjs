@@ -291,6 +291,33 @@ await step("connections test alert is a dry run", async () => {
   await page.getByTestId("test-alert-result").waitFor();
 });
 
+await step("every API-key card: Save & Test a fake key → clear status, key never shown, Remove works", async () => {
+  const list = (await api("GET", "/api/connections")).connections;
+  const cards = list.filter((c) => (c.fields ?? []).length > 0);
+  expect(cards.length >= 8, "only " + cards.length + " key cards");
+  const bad = [];
+  for (const c of cards) {
+    const fake = "e2e-FAKE-" + randomBytes(6).toString("hex");
+    const values = {};
+    for (const f of c.fields) values[f.key ?? f.name] = f.kind === "select" || f.type === "select" ? f.options[0] : (f.kind === "secret" || f.type === "secret" || /key|token|secret|password/i.test(f.key ?? f.name) ? fake : "e2e");
+    const csrf = (await ctx.cookies()).find((k) => k.name === "pt_csrf")?.value ?? "";
+    const r = await page.request.fetch(`${BASE}/api/connections/${c.id}`, { method: "PUT", data: { values }, headers: { "x-csrf-token": csrf } });
+    const body = await r.text();
+    if (r.status() >= 500) { bad.push(`${c.id}: HTTP ${r.status()}`); continue; }
+    if (body.includes(fake)) bad.push(`${c.id}: key echoed back`);
+    if (r.ok()) {
+      const v = JSON.parse(body);
+      if (!["failed", "saved", "connected"].includes(v.status)) bad.push(`${c.id}: status ${v.status}`);
+    }
+    await goto("/connections", "Connections & API keys");
+    if ((await page.content()).includes(fake)) bad.push(`${c.id}: key visible on page`);
+    const d = await page.request.fetch(`${BASE}/api/connections/${c.id}`, { method: "DELETE", headers: { "x-csrf-token": csrf } });
+    if (!d.ok()) bad.push(`${c.id}: remove ${d.status()}`);
+    console.log(`    · ${c.id}: ${r.status()} ${r.ok() ? JSON.parse(body).status + " — " + String(JSON.parse(body).detail).slice(0, 70) : body.slice(0, 80)}`);
+  }
+  expect(bad.length === 0, bad.join("; "));
+});
+
 await step("kill switch: typed KILL → automation OFF, accounts disarmed", async () => {
   await beat();
   await api("PUT", "/api/automation", { mode: "SEMI" });

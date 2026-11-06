@@ -137,7 +137,7 @@ PROVIDERS: tuple[Provider, ...] = (
         ),
         steps=(
             "Use a paid plan with webhooks and turn on 2FA.",
-            "Add both indicators and Paytience_Bridge to an MNQ chart.",
+            "Add both indicators and Paytience_Bridge to an MGC chart (MGC1!, Micro Gold — MNQ is off, D42).",
             "Create an alert → 'Any alert() function call' → Webhook URL below.",
             "This card turns gold when the first heartbeat arrives (Phase 2).",
         ),

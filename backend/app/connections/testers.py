@@ -50,8 +50,8 @@ async def _alpha_vantage(v: dict[str, str], http: httpx.AsyncClient) -> TestResu
     if r.status_code != 200:
         return TestResult(False, f"HTTP {r.status_code}")
     body = r.json()
-    if body.get("Global Quote"):
-        return TestResult(True, "Key accepted (QQQ quote received)")
+    if body.get("Global Quote"):  # Alpha Vantage answers this call for ANY key, so a typo cannot be detected here
+        return TestResult(True, "Data request works (Alpha Vantage does not verify keys — double-check it)")
     msg = body.get("Error Message") or body.get("Information") or body.get("Note") or "No data returned"
     return TestResult(False, str(msg)[:200])
 
@@ -68,6 +68,8 @@ async def _databento(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     r = await http.get("https://hist.databento.com/v0/metadata.list_datasets", auth=(v["api_key"], ""))
     if r.status_code == 200 and "GLBX.MDP3" in r.text:
         return TestResult(True, "Key accepted (CME Globex GLBX.MDP3 available)")
+    if r.status_code == 400 and "auth" in r.text:  # Databento: bad key → 400 auth_* (key = username, no password)
+        return TestResult(False, "Key rejected (use the db-… API key)")
     return _status_msg(r, "Key accepted")
 
 

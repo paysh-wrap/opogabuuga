@@ -74,6 +74,10 @@ def test_save_test_connected_then_failed_is_write_only(authed, mock_http):
     mock_http["https://hist.databento.com/"] = lambda req: httpx.Response(401)
     v = authed.post("/api/connections/databento/test").json()
     assert v["status"] == "failed" and "rejected" in v["detail"]
+    bad = '{"detail":{"case":"auth_invalid"}}'
+    mock_http["https://hist.databento.com/"] = lambda req: httpx.Response(400, text=bad)
+    v = authed.post("/api/connections/databento/test").json()
+    assert v["status"] == "failed" and "db-" in v["detail"]
     # blank secret on re-save keeps the stored key
     mock_http["https://hist.databento.com/"] = databento
     v = authed.put("/api/connections/databento", json={"values": {"api_key": ""}}).json()

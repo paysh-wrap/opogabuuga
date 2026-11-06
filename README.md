@@ -57,7 +57,7 @@ licenses mean this project is for personal use only.
 
 ## TradingView alert setup (step by step)
 1. Connections page → **TradingView setup** → download `Paytience_Bridge.pine`.
-2. TradingView → open an **MNQ1!** chart: **1-minute** for profile TIGHT, **5-minute** for STD (one chart per profile).
+2. TradingView → open an **MGC1!** (Micro Gold) chart: **1-minute** for profile TIGHT, **5-minute** for STD (one chart per profile).
 3. Pine Editor → paste the script → **Add to chart**.
 4. Indicator settings → paste the **Webhook secret** (Connections page → Reveal) → choose the profile.
 5. Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
