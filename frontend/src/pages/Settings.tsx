@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { browserNotifyEnabled, disableBrowserNotify, enableBrowserNotify, notifySupported } from "../lib/notify";
 import { Link } from "react-router-dom";
 import { api, type Health } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
@@ -38,6 +40,34 @@ function Section({ title, children, loading, error }: { title: string; children:
   );
 }
 
+function BrowserNotifications() {
+  const [on, setOn] = useState(browserNotifyEnabled);
+  const [msg, setMsg] = useState("");
+  async function toggle() {
+    if (on) {
+      disableBrowserNotify();
+      setOn(false);
+      setMsg("Browser notifications off.");
+      return;
+    }
+    const p = await enableBrowserNotify();
+    setOn(p === "granted");
+    setMsg(p === "granted" ? "Browser notifications on." : p === "unsupported" ? "This browser has no notifications." : "Permission not granted by the browser.");
+  }
+  return (
+    <section className={card}>
+      <h2 className="font-semibold text-gold">Notifications</h2>
+      <p className="mt-1 text-sm">Alerts (kill switch, pauses, risk alerts, payout ready, pre-flight failures, inactivity) are always listed under the 🔔 in the header.
+        Optionally also show them as browser notifications while Paytience is open — nothing is sent to any outside service.</p>
+      <button data-testid="browser-notify" onClick={() => void toggle()} disabled={!notifySupported()}
+        className="mt-2 rounded-md border border-blue px-3 py-1.5 text-sm font-semibold text-blue disabled:opacity-50">
+        {on ? "Turn off browser notifications" : "Turn on browser notifications"}
+      </button>
+      {msg && <p role="status" className="mt-1 text-xs">{msg}</p>}
+    </section>
+  );
+}
+
 export default function Settings() {
   usePageTitle("Settings");
   const health = useQuery({ queryKey: ["health"], queryFn: () => api<Health>("/api/health") });
@@ -70,6 +100,8 @@ export default function Settings() {
             attestation {r.automation.require_external_attestation ? "required" : "not required"} · up to {r.automation.accounts_to_trade} accounts.</p>
         )}
       </Section>
+
+      <BrowserNotifications />
 
       <Section title="Notification &amp; data connections" loading={conns.isLoading} error={!!conns.error}>
         <ul data-testid="settings-connections" className="mt-2 grid gap-1 text-sm sm:grid-cols-2">

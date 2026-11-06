@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api, type ConnectionsResponse, type Health } from "../lib/api";
 import { useLive } from "../app/live";
 import HeaderStatus from "./HeaderStatus";
+import { AlertsBell, JobsIndicator } from "./HeaderAlerts";
 
 function useEtClock(): string {
   const fmt = () =>
@@ -60,6 +61,8 @@ export default function Header() {
         )}
         <HeaderStatus />
         <span className="ml-auto font-mono text-sm text-goldLight" aria-label="Eastern time">{clock} ET</span>
+        <JobsIndicator />
+        <AlertsBell />
         <span className="text-xs text-blueLight" title="Live updates">
           <span aria-hidden className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: up ? "#22C55E" : "#EF4444" }} />
           {up ? "live" : "reconnecting"}
