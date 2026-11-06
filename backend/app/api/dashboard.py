@@ -15,7 +15,9 @@ from app.automation import state as stt
 from app.clock import session_date
 from app.execution.adapters.base import BrokerError
 from app.models import Account, Signal, Trade
+from app.management.drawdown_guard import GuardCfgView, guard_active
 from app.phases.phase_engine import stage_rules
+from app.risk.eval_mode import eval_mode_effective
 from app.risk.checks import dll_remaining
 from app.signals.service import today_bias
 
@@ -75,6 +77,11 @@ async def dashboard(
             "consistency_stop": _s(cons.day_stop) if cons else None,
             "target_left": str(max(start + r.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
             "mll_locked": a.mll_locked,
+            "guard_on": guard_active(a.drawdown_type, bool(a.mll_locked), GuardCfgView(r.drawdown_guard.mode)),
+            "eval_mode_on": eval_mode_effective(a.stage, a.eval_mode, st.rules.eval_mode_on),
+            "day_net_r": str(stt.day_stats(db, a, now).day_net_r),
+            "day_lockin_r": str(r.internal.day_lockin_r),
+            "day_lockin": stt.day_stats(db, a, now).day_net_r >= r.internal.day_lockin_r,
             "fast_profit_pct": str(_fast_share(db, a, r)),
             "idle_days": (now - (a.last_trade_at or a.stage_started_at or now)).days,
             "idle_alert_days": r.behavior.inactivity_alert_days,
