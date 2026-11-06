@@ -98,7 +98,9 @@ def simulate_payouts(day_pnls: list[Decimal], c: FundedSim) -> PayoutSim:
             bal -= pp.amount
             gross += pp.amount
             net += pp.net
-            weeks.append(Week(i // SESSIONS_PER_WEEK, week_profit, bal + pp.amount, pp.kind, pp.amount, pp.net, pp.reason))
+            weeks.append(
+                Week(i // SESSIONS_PER_WEEK, week_profit, bal + pp.amount, pp.kind, pp.amount, pp.net, pp.reason)
+            )
             week_profit = ZERO
     return PayoutSim(weeks, gross, net, False)
 

@@ -236,7 +236,9 @@ async def patch_account(
     if body.armed and c.mode == "FULL":  # §13: an account in its first sessions of a stage may only run OFF/SEMI
         db.flush()
         if c.set_mode(db, "FULL", "automation") != "FULL":
-            c.notify("warn", "Automation now SEMI-AUTO", f"{a.label} is in its first sessions of {a.stage}", "automation")
+            c.notify(
+                "warn", "Automation now SEMI-AUTO", f"{a.label} is in its first sessions of {a.stage}", "automation"
+            )
             c.publish("automation.changed", {"mode": c.mode})
     db.commit()
     await request.app.state.hub.broadcast("account.updated", {"id": a.id})

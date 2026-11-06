@@ -14,11 +14,11 @@ from app.api.deps import Principal, current_user, get_db
 from app.automation import state as stt
 from app.clock import session_date
 from app.execution.adapters.base import BrokerError
-from app.models import Account, Signal, Trade
 from app.management.drawdown_guard import GuardCfgView, guard_active
+from app.models import Account, Signal, Trade
 from app.phases.phase_engine import stage_rules
-from app.risk.eval_mode import eval_mode_effective
 from app.risk.checks import dll_remaining
+from app.risk.eval_mode import eval_mode_effective
 from app.signals.service import today_bias
 
 router = APIRouter(prefix="/api")
