@@ -18,9 +18,18 @@ function Pnl({ v }: { v?: string }) {
 }
 function Stat({ k, v, warn }: { k: string; v: React.ReactNode; warn?: boolean }) {
   return (
-    <div className={`rounded-lg border p-2 ${warn ? "border-gold" : "border-border"}`}>
-      <div className="text-xs opacity-75">{k}</div>
-      <div className={warn ? "text-goldLight" : ""}>{v}</div>
+    <div className={`stat-tile ${warn ? "stat-warn" : ""}`}>
+      <div className="text-[11px] uppercase tracking-wider opacity-70">{k}</div>
+      <div className={`mt-0.5 text-base tabular-nums ${warn ? "text-goldLight" : ""}`}>{v}</div>
+    </div>
+  );
+}
+
+function Kpi({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div className="kpi">
+      <div className="text-[11px] uppercase tracking-[.18em] opacity-70">{k}</div>
+      <div className="mt-1 font-serif text-2xl text-gold tabular-nums">{v}</div>
     </div>
   );
 }
@@ -33,6 +42,13 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
+      <div className="hero-strip" data-testid="dash-hero">
+        <Kpi k="Total balance" v={money(String(d.accounts.reduce((x, a) => x + Number(a.balance ?? 0), 0)))} />
+        <Kpi k="Today" v={<Pnl v={String(d.accounts.reduce((x, a) => x + Number(a.today_pnl ?? 0), 0))} />} />
+        <Kpi k="Trades today" v={d.accounts.reduce((x, a) => x + (a.trades_today ?? 0), 0)} />
+        <Kpi k="Armed" v={`${d.accounts.filter((a) => a.armed).length} / ${d.accounts.length}`} />
+        <Kpi k="Automation" v={<span className="inline-flex items-center gap-2"><span className={`live-dot ${d.mode === "OFF" ? "live-off" : ""}`} />{d.mode}</span>} />
+      </div>
       <Markets />
       <p className="text-sm">Session {d.session} · Automation <b className="text-gold">{d.mode}</b> · Bias:{" "}
         {Object.entries(d.bias).map(([s, b]) => <span key={s} className="mr-2">{s} <b className="text-gold">{b}</b></span>)}

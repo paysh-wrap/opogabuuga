@@ -5,7 +5,7 @@ import { api, ApiError } from "../lib/api";
 
 interface Run {
   id: number; status: string; error: string | null;
-  params: { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; eval_mode: boolean };
+  params: { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean };
   metrics: {
     stats?: { trades: number; win_rate: string | null; net: string; avg_r: string | null; profit_factor: string | null; max_drawdown: string; best_day_share: string | null; days: number };
     monte_carlo_eval?: { pass_rate: string; fail_rate: string; median_trades_to_pass: number | null };
@@ -21,12 +21,12 @@ export default function Backtest() {
   usePageTitle("Backtest");
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", one_to_one: false, scalp: false, eval_mode: false });
+  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", one_to_one: false, scalp: false, low_risk: false, eval_mode: false });
   const [err, setErr] = useState("");
   const runs = useQuery({ queryKey: ["backtests"], queryFn: () => api<{ runs: Run[] }>("/api/backtest"), refetchInterval: 3000 });
   const start = useMutation({
     mutationFn: async () => {
-      const q = new URLSearchParams({ symbol: opt.symbol, stage: opt.stage, bias: opt.bias, one_to_one: String(opt.one_to_one), scalp: String(opt.scalp), eval_mode: String(opt.eval_mode) });
+      const q = new URLSearchParams({ symbol: opt.symbol, stage: opt.stage, bias: opt.bias, one_to_one: String(opt.one_to_one), scalp: String(opt.scalp), low_risk: String(opt.low_risk), eval_mode: String(opt.eval_mode) });
       return api(`/api/backtest?${q}`, { method: "POST", body: await file!.text(), headers: { "content-type": "text/csv" } });
     },
     onMutate: () => setErr(""),
@@ -49,6 +49,7 @@ export default function Backtest() {
           <option value="recorded">Recorded TradingAgents only</option><option>NEUTRAL</option><option>LONG_ONLY</option><option>SHORT_ONLY</option></select></label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.one_to_one} onChange={(e) => setOpt({ ...opt, one_to_one: e.target.checked })} />1:1 mode</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.scalp} onChange={(e) => setOpt({ ...opt, scalp: e.target.checked })} />Scalp mode</label>
+        <label className="flex items-center gap-1"><input type="checkbox" checked={opt.low_risk} onChange={(e) => setOpt({ ...opt, low_risk: e.target.checked })} />Lower risk</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.eval_mode} onChange={(e) => setOpt({ ...opt, eval_mode: e.target.checked })} />Evaluation Mode</label>
         <button className={`${btn} border-gold text-gold`} disabled={!file || start.isPending} onClick={() => start.mutate()}>{start.isPending ? "Uploading…" : "Run backtest"}</button>
       </section>
@@ -57,7 +58,7 @@ export default function Backtest() {
         const s = r.metrics.stats, mc = r.metrics.monte_carlo_eval;
         return (
           <section key={r.id} data-testid={`bt-${r.id}`} className="rounded-xl border border-border bg-card p-4 text-sm">
-            <h2 className="font-semibold text-gold">#{r.id} · {r.params.symbol} · {r.params.stage} · bias {r.params.bias}{r.params.one_to_one ? " · 1:1" : ""}{r.params.scalp ? " · scalp" : ""}{r.params.eval_mode ? " · Eval Mode" : ""} — {r.status}</h2>
+            <h2 className="font-semibold text-gold">#{r.id} · {r.params.symbol} · {r.params.stage} · bias {r.params.bias}{r.params.one_to_one ? " · 1:1" : ""}{r.params.scalp ? " · scalp" : ""}{r.params.low_risk ? " · lower risk" : ""}{r.params.eval_mode ? " · Eval Mode" : ""} — {r.status}</h2>
             {r.error && <p className="text-goldLight">⚠ {r.error}</p>}
             {s && (
               <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">

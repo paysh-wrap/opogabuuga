@@ -57,22 +57,26 @@ export default function Risk() {
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
         <h2 className="font-semibold text-gold">Trading mode</h2>
         <p className="text-xs">Intraday is the default (targets 1–3R, holds minutes to hours, always flat before 4:40 PM ET). Scalp and 1:1 are quicker trades on the same signals. Lower risk can be added to any mode.</p>
-        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Trading mode">
+        <div className="mt-3 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Trading mode">
           {([
-            ["intraday", "Intraday", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": false }],
-            ["scalp", "Scalp", { "scalp_mode.enabled": true, "one_to_one_mode.enabled": false }],
-            ["one-to-one", "1:1", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": true }],
-          ] as const).map(([id, label, changes]) => {
+            ["intraday", "Intraday", "◆", "Best-hours only (H1) · 1–3R targets · highest win rate", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": false }],
+            ["scalp", "Scalp", "⚡", "Quick exits on the same signals · full trading hours", { "scalp_mode.enabled": true, "one_to_one_mode.enabled": false }],
+            ["one-to-one", "1:1", "⚖", "1R target · 50% off at 0.75R then breakeven · full hours", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": true }],
+          ] as const).map(([id, label, icon, desc, changes]) => {
             const scalpOn = s.settings["scalp_mode.enabled"] === true;
             const active = id === "scalp" ? scalpOn : id === "one-to-one" ? oneToOne && !scalpOn : !scalpOn && !oneToOne;
             return (
               <button key={id} role="radio" aria-checked={active} data-testid={`mode-${id}`}
-                className={`${btn} ${active ? "border-gold bg-gold/15 text-gold" : "border-blue text-blue"}`}
-                onClick={() => save({ ...changes })}>{label}{active ? " ✓" : ""}</button>
+                className={`mode-card ${active ? "mode-card-on" : ""}`}
+                onClick={() => save({ ...changes })}>
+                <span className="mode-icon" aria-hidden>{icon}</span>
+                <span className="block text-lg font-semibold text-gold">{label}{active ? " ✓" : ""}</span>
+                <span className="block text-xs">{desc}</span>
+              </button>
             );
           })}
-          <span className="self-center text-xs opacity-75">{low.data?.enabled ? "+ Lower risk ON" : ""}</span>
         </div>
+        <p className="mt-2 text-xs opacity-75">{low.data?.enabled ? "+ Lower risk ON (full trading hours, same trade count)" : "Lower risk can be added to any mode."}</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">

@@ -117,6 +117,7 @@ async def start(
     bias: Literal["recorded", "LONG_ONLY", "SHORT_ONLY", "NEUTRAL"] = Query("recorded"),
     one_to_one: bool = Query(False),
     scalp: bool = Query(False),
+    low_risk: bool = Query(False),
     eval_mode: bool = Query(False),
     data_source: str = Query("futures", pattern="^(futures|spot)$"),
     p: Principal = Depends(current_user),
@@ -141,6 +142,7 @@ async def start(
         "bias": bias,
         "one_to_one": one_to_one,
         "scalp": scalp,
+        "low_risk": low_risk,
         "eval_mode": eval_mode,
         "data_source": data_source,
     }
@@ -156,6 +158,7 @@ async def start(
         recorded_bias=rec,
         one_to_one=one_to_one,
         scalp=scalp,
+        low_risk=low_risk,
         eval_mode=eval_mode,
         data_source=data_source,
     )
