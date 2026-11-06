@@ -27,7 +27,9 @@ save it as the main strategy — we are missing the main component, TradingAgent
 - 103,256 filter combinations were searched; the ones that looked best on 2019–2023 (47–48%) fell to 25–38% on
   2024–2026 → over-fitting. The main strategy was chosen for holding up on the unseen years, not for its best number.
 - **70% at 1.75R is not reachable with these setups.** Break-even at 1.75R (after fees) is ≈ 38–39% wins.
-- Old plan (D36 1R/2–3R mix + D37 hours) in the engine, Nov 2024 – Oct 2026: 391 tr, 43% win, −$1,201.
+- **Engine check, Nov 2024 – Oct 2026 (years not used to choose it), no bias: 65 trades, 40% win, PF 1.34, +$594,
+  +0.13R/trade** (2025: 28 tr 32% −$227 · 2026: 32 tr 44% +$619). Old plan, same engine/period: 391 tr, 43%, −$1,201.
+- Fewer trades: ~2.7 per month on one account (quality over quantity); the TradingAgents bias will cut some more.
 
 ## What TradingAgents can add (upper limit measured on the same 7 years)
 | Bias source | trades | win | R/trade |

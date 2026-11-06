@@ -234,7 +234,8 @@ NEXT (in order):
   - Hold-out search on all MGC data (best175.py): nothing ≥ 50% at 1.75R on unseen 2024–26; 70% not reachable.
     Perfect daily bias ceiling 49%.
   - D47 saved in all Pro/Flex plans: rr 1.75–1.8, no 1R targets, UT Bot 5m + EMA200 5m ON, MGC 03:00–15:30.
-    Offline 43% / 39% at 1.75R (≈ break-even before bias). test_main_strategy_d47 locks it. 542 + 52 tests pass.
+    Offline 43% / 39% at 1.75R; ENGINE Nov 2024–Oct 2026: 65 tr 40% PF 1.34 +$594 (old plan −$1,201).
+    test_main_strategy_d47 locks it. 542 backend + 52 UI tests pass.
 - Data NOT in git (re-create): data/futures/mgc_databento_v_full_1m.csv (dbchunks.py), data/research7y
   (research_par.sh + research_rr1.yaml), data/plan7y (live plan, 24 months), data/main2y (D47 engine run).
 - NEXT: connect TradingAgents (user key) → paper-trade D47 ≥ 30 trades with the bias; options awaiting approval:

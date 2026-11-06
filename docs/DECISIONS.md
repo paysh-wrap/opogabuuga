@@ -398,4 +398,5 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   both agree with the direction), MGC intraday_windows removed (D37 hours hurt on unseen years: 38% → 30%), MGC
   window 03:00–15:30 ET. Unchanged: every gate, score ≥ 60, C1 ≥ 0.4 ATR, risk tiers, Lucid rules, TradingAgents G2.
 - Offline at 1.75R: 2019–2023 60 tr 43% −0.01R · 2024–2026 44 tr 39% −0.01R (≈ break-even before bias).
+- ENGINE, Nov 2024 – Oct 2026 (not used to choose): 65 tr, 40% win, PF 1.34, +$594, +0.13R/trade (old plan −$1,201).
 - Revert: git revert of the D47 commit (or switch the two trend filters off + rr 1.0/3.0 + no_break_rr_cap 1.0).

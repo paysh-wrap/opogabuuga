@@ -1,0 +1,22 @@
+ALL                  65 tr  40% win  PF 1.34  $     +594  +0.13R/tr
+target ~1R             0 tr
+target 1.75R+         65 tr  40% win  PF 1.34  $     +594  +0.13R/tr
+excl. RR_INVALID      62 tr  42% win  PF 1.38  $     +646  +0.16R/tr
+2024                  5 tr  60% win  PF 3.72  $     +202  +0.72R/tr
+2025                 28 tr  32% win  PF 0.77  $     -227  -0.17R/tr
+2026                 32 tr  44% win  PF 1.90  $     +619  +0.30R/tr
+by hour ET:
+  03                 6 tr  50% win  PF 1.69  $     +117  +0.31R/tr
+  04                 2 tr   0% win  PF 0.00  $      -90  -1.00R/tr
+  05                 4 tr  50% win  PF 1.25  $      +29  +0.33R/tr
+  06                 5 tr  60% win  PF 3.57  $     +217  +0.76R/tr
+  07                 6 tr  17% win  PF 0.36  $     -175  -0.62R/tr
+  08                 8 tr  50% win  PF 2.02  $     +175  +0.39R/tr
+  09                10 tr  50% win  PF 2.11  $     +234  +0.39R/tr
+  10                 8 tr  12% win  PF 0.29  $     -223  -0.52R/tr
+  11                 7 tr  29% win  PF 1.07  $      +12  -0.06R/tr
+  12                 2 tr 100% win  PF  inf  $     +207  +1.74R/tr
+  13                 1 tr 100% win  PF  inf  $     +105  +1.75R/tr
+  14                 2 tr  50% win  PF 2.39  $      +44  +0.41R/tr
+  15                 4 tr  25% win  PF 0.59  $      -58  -0.38R/tr
+exits: {'STOP': 36, 'TP': 26, 'RR_INVALID_AFTER_FILL': 3}

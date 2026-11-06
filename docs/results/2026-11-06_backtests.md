@@ -198,4 +198,11 @@ No combination reaches 50% on the unseen years; 70% at 1.75R is not reachable wi
 3) Bias ceiling on the D47 setups (all 7 years): none 104 tr 41% −0.01R · PERFECT daily direction 73 tr 49% +0.18R ·
 20-day trend at open 55 tr 47% +0.15R (2019–23 51%, 2024–26 40% +0.08R, 20 tr) · previous day 67 tr 37% −0.12R.
 → TradingAgents can add ~+0.1–0.2R/trade at best; it cannot lift these setups to 70%.
-4) D47 main strategy in the ENGINE, Nov 2024 – Oct 2026 (main175.yaml = the saved plan): see the line below.
+4) D47 main strategy in the ENGINE, Nov 2024 – Oct 2026 (main175.yaml = the saved plan; ind7y/main_d47_2y_engine.txt):
+| Engine, Nov 2024 – Oct 2026, NEUTRAL bias | trades | win | PF | $ | R/trade |
+|---|---|---|---|---|---|
+| old live plan (D36/D37 mix) | 391 | 43% | 0.87 | −1,201 | −0.05 |
+| **D47 main (all targets 1.75–1.8R)** | **65** | **40%** | **1.34** | **+594** | **+0.13** |
+| D47 by year: 2024 (Nov–Dec) 5 tr 60% +$202 · 2025 28 tr 32% −$227 · 2026 32 tr 44% +$619 | | | | | |
+Exits: TP 26 · STOP 36 · RR_INVALID_AFTER_FILL 3. These 2 years were NOT used to choose D47 (chosen on 2019–2023).
+Engine beats the offline estimate (39%, −0.01R) as in section I (early exits). ~2.7 trades/month — small sample.
