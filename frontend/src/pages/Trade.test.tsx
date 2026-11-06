@@ -16,7 +16,7 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/automation/preflight") return j({ ok: false, checks: [{ check: "attested", ok: false, detail: "not attested" }] });
     if (u === "/api/positions") return j({ accounts: [{ account_id: 1, label: "E1", balance: "25000", open_pnl: "-12.5", mll: "24000", positions: [{ symbol: "MNQ", qty: -2, avg: "20000" }] }] });
     if (u === "/api/accounts") return j({ accounts: [
-      { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null },
+      { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null, mode_override: "inherit", consistency_pct: "40" },
       { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null }] });
     if (u === "/api/orders?limit=25") return j({ orders: [{ id: 7, created_at: "2026-11-06T15:00:00+00:00", account: "E1", symbol: "MGC", kind: "bracket", side: "SELL", qty: 2, price: "4100.5", status: "FILLED", source: "MANUAL", filled_qty: 2, avg_fill: "4100.40" }] });
     if (u === "/api/dashboard") return j({ accounts: [{ id: 1, idle_days: 25, idle_alert_days: 21 }] });
@@ -82,6 +82,11 @@ test("Accounts: selector, priority, drawdown, eval override (EVAL only), inactiv
   await waitFor(() => expect(screen.getByTestId("eval-1")).toBeEnabled());
   fireEvent.change(screen.getByTestId("eval-1"), { target: { value: "off" } });
   await waitFor(() => expect(calls).toContain('PATCH /api/accounts/1/eval-mode {"override":"off"}'));
+  expect(screen.getByTestId("cons-1")).toHaveTextContent("Consistency 40% max day");
+  expect(screen.getByTestId("cons-2")).toHaveTextContent("Consistency none");
+  await waitFor(() => expect(screen.getByTestId("override-1")).toBeEnabled());
+  fireEvent.change(screen.getByTestId("override-1"), { target: { value: "SEMI" } });
+  await waitFor(() => expect(calls).toContain('PATCH /api/accounts/1 {"mode_override":"SEMI"}'));
   expect(document.title).toBe("Paytience · Accounts");
 });
 

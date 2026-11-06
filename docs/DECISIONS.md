@@ -375,3 +375,11 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   direction()["squeeze_5m_15m"] = +1/−1 when 5m and 15m agree, 0 = disagree/flat (blocks), None = warming up.
   Switch filters.trend.squeeze_5m_15m (plans: false; My Settings; Risk page checkbox). Unit test vs an independent
   float reference on a random walk + gate test. Full test suite NOT yet re-run after this change (next session).
+
+## D46 — Per-account automation override (master prompt §13 / line 267: "only more restrictive") — 2026-11-06
+- Accounts page → Mode: inherit (global) | SEMI (approve each) | OFF (no automation). Never looser than the global mode
+  (FULL is not an option; the API refuses it).
+- OFF: automation and approvals never place trades on that account. SEMI: never auto-executed; in global FULL the
+  other accounts still auto-execute and an approval is queued for the SEMI account(s) only.
+- The manual ticket is the user's own explicit order for one account, so the override does not block it (all risk
+  checks still apply). Code: automation/controller.py override_allows (unit-tested truth table) + 2 flow tests.

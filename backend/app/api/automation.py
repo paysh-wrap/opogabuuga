@@ -194,6 +194,7 @@ class AccountPatch(BaseModel):
     label: str | None = None
     clear_pause: str | None = None  # typed "RESUME" to clear a pause that never auto-resumes
     drawdown_type: Literal["eod", "intraday"] | None = None  # must match the account at Lucid
+    mode_override: Literal["inherit", "SEMI", "OFF"] | None = None  # §13: only more restrictive than global
 
 
 @router.patch("/accounts/{acct_id}")
@@ -220,6 +221,8 @@ async def patch_account(
         if any(t.account == a.broker_account_id for t in _ctl(request).om.trades.values()):
             raise HTTPException(409, "close the open trade before changing drawdown type")
         a.drawdown_type = body.drawdown_type
+    if body.mode_override is not None:
+        a.mode_override = None if body.mode_override == "inherit" else body.mode_override
     for k in ("armed", "selected", "priority", "label"):
         v = getattr(body, k)
         if v is not None:
@@ -242,7 +245,14 @@ async def patch_account(
             c.publish("automation.changed", {"mode": c.mode})
     db.commit()
     await request.app.state.hub.broadcast("account.updated", {"id": a.id})
-    return {"id": a.id, "armed": a.armed, "selected": a.selected, "priority": a.priority, "paused": a.paused_reason}
+    return {
+        "id": a.id,
+        "armed": a.armed,
+        "selected": a.selected,
+        "priority": a.priority,
+        "paused": a.paused_reason,
+        "mode_override": a.mode_override or "inherit",
+    }
 
 
 class SelectionIn(BaseModel):

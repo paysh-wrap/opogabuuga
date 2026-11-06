@@ -19,6 +19,8 @@ interface Acct {
   priority: number;
   mll_locked: boolean;
   paused_reason: string | null;
+  mode_override?: "inherit" | "SEMI" | "OFF";
+  consistency_pct?: string | null;
 }
 interface Dash { accounts: { id: number; idle_days?: number; idle_alert_days?: number }[] }
 
@@ -103,6 +105,15 @@ export default function Accounts() {
                   ))}
                 </span>
                 <span>DLL {a.dll_enabled ? "ON" : "OFF"}</span>
+                <span data-testid={`cons-${a.id}`} title="Largest single day as % of total profit (Lucid consistency rule for this stage)">
+                  Consistency {a.consistency_pct ? `${Number(a.consistency_pct)}% max day` : "none"}
+                </span>
+                <label className="flex items-center gap-1" title="Per-account automation: can only be stricter than the global mode">Mode
+                  <select data-testid={`override-${a.id}`} value={a.mode_override ?? "inherit"} disabled={run.isPending}
+                    onChange={(e) => patch(a.id, { mode_override: e.target.value })}>
+                    <option value="inherit">inherit (global)</option><option value="SEMI">SEMI (approve each)</option><option value="OFF">OFF (no automation)</option>
+                  </select>
+                </label>
                 {a.stage === "EVAL" && (
                   <label className="flex items-center gap-1">Eval Mode
                     <select data-testid={`eval-${a.id}`} value={a.eval_mode} disabled={run.isPending}

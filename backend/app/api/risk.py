@@ -242,6 +242,17 @@ async def put_rules(
     return {"firm_version": h.firm_version, "verify_paths": h.verify_paths, "verified_paths": h.verified_paths}
 
 
+def _consistency_pct(r: Any, stage: str) -> str | None:
+    """The largest-day % rule that applies to this account's stage under the current plan (None = no rule)."""
+    if stage == "EVAL":
+        pct = r.eval.consistency_max_day_pct
+    elif stage == "FUNDED":
+        pct = r.internal.funded_consistency_pct if r.internal.consistency_on_funded else None
+    else:
+        pct = None
+    return str(pct) if pct is not None else None
+
+
 @router.get("/accounts")
 def list_accounts(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
@@ -270,6 +281,8 @@ def list_accounts(
                 "priority": a.priority,
                 "mll_locked": a.mll_locked,
                 "paused_reason": a.paused_reason,
+                "mode_override": a.mode_override or "inherit",
+                "consistency_pct": _consistency_pct(request.app.state.rules.rules, a.stage),
             }
             for a in rows
         ]

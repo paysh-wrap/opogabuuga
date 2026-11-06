@@ -91,3 +91,41 @@ def test_flat_time_blocks_entries(authed, clock):
     clock.set(datetime(2026, 11, 5, 21, 41, tzinfo=UTC))  # 16:41 ET
     assert authed.app.state.controller.entries_blocked_by_time()
     assert authed.post("/api/signals/1/execute", json={}).status_code == 409
+
+
+def test_mode_override_semi_needs_approval_even_in_full(authed, clock):
+    """§13 per-account override (only more restrictive): SEMI → never auto-executed, waits for approval."""
+    aid = setup(authed, clock)
+    assert authed.patch(f"/api/accounts/{aid}", json={"mode_override": "SEMI"}).json()["mode_override"] == "SEMI"
+    assert authed.get("/api/accounts").json()["accounts"][0]["mode_override"] == "SEMI"
+    ctl = authed.app.state.controller
+    ctl.mode = "FULL"
+    choch(authed, clock)
+    hb(authed, clock, MS - 2 * MIN, close="20005")
+    confirm(authed, clock)
+    assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []  # not auto-executed
+    with authed.app.state.sessionmaker() as s:
+        sig = s.query(Signal).one()
+    assert sig.id in ctl.approvals
+    r = authed.post(f"/api/signals/{sig.id}/execute", json={}).json()["results"]
+    assert r[0]["ok"], r
+    assert authed.get("/api/positions").json()["accounts"][0]["positions"]
+
+
+def test_mode_override_off_never_trades_but_inherit_restores(authed, clock):
+    aid = setup(authed, clock)
+    assert authed.patch(f"/api/accounts/{aid}", json={"mode_override": "OFF"}).status_code == 200
+    assert authed.patch(f"/api/accounts/{aid}", json={"mode_override": "FULL"}).status_code == 422  # never looser
+    ctl = authed.app.state.controller
+    ctl.mode = "SEMI"
+    choch(authed, clock)
+    hb(authed, clock, MS - 2 * MIN, close="20005")
+    confirm(authed, clock)
+    with authed.app.state.sessionmaker() as s:
+        sid = s.query(Signal).one().id
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"] == []  # OFF account excluded
+    assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []
+    authed.patch(f"/api/accounts/{aid}", json={"mode_override": "inherit"})
+    with authed.app.state.sessionmaker() as s:
+        assert s.get(Account, aid).mode_override is None
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["ok"]

@@ -60,6 +60,24 @@ class AccountResult:
     checks: list[dict[str, Any]] = field(default_factory=list)
 
 
+def _manual(sig: Signal) -> bool:
+    return bool((sig.features or {}).get("manual"))
+
+
+def override_allows(override: str | None, actor: str, mode: str, manual: bool) -> bool:
+    """§13 per-account mode override — only ever MORE restrictive than the global mode.
+    OFF: never traded by automation or approvals. SEMI: only via a human approval (never auto-executed).
+    In global FULL, a human approval is for the SEMI accounts only (the others were already auto-executed).
+    The manual ticket is the user's explicit order for one account, so the override does not apply to it."""
+    if manual:
+        return True
+    if override == "OFF":
+        return False
+    if actor == "automation":
+        return override != "SEMI"
+    return override == "SEMI" if mode == "FULL" else True
+
+
 @dataclass
 class Controller:
     sessionmaker: sessionmaker[Session]
@@ -204,10 +222,17 @@ class Controller:
         """Called when a signal passes G1–G7. Returns what happened."""
         if self.mode == "OFF":
             return "OFF"
+        now = self.clock.now()
         if self.mode == "SEMI":
-            now = self.clock.now()
             self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS))
             return "APPROVAL"
+        # §13 per-account override (only more restrictive): in FULL, armed+selected SEMI accounts still need approval.
+        with self.sessionmaker() as s:
+            semi = s.execute(
+                select(Account.id).where(Account.mode_override == "SEMI", Account.armed, Account.selected)
+            ).first()
+        if semi is not None:
+            self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS))
         return "EXECUTE"
 
     def expire_approvals(self) -> list[int]:
@@ -254,9 +279,11 @@ class Controller:
             plan0 = self._plan(s, sig)
             if plan0 is None:
                 return [AccountResult(0, False, "NO_PLAN")]
-            self.approvals.pop(signal_id, None)
-            accts = list(s.execute(select(Account)).scalars())
-            any_live = any(a.stage == "LIVE" and not a.is_sim for a in accts)
+            if actor != "automation":  # the FULL auto-run must keep the approval queued for SEMI-override accounts
+                self.approvals.pop(signal_id, None)
+            all_accts = list(s.execute(select(Account)).scalars())
+            any_live = any(a.stage == "LIVE" and not a.is_sim for a in all_accts)
+            accts = [a for a in all_accts if override_allows(a.mode_override, actor, self.mode, _manual(sig))]
             cands = [
                 Candidate(a.id, a.priority, a.selected, a.armed, a.paused_reason is not None, a.stage, a.is_sim)
                 for a in accts

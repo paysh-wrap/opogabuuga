@@ -28,7 +28,7 @@
 | Accounts | mapping, stage, drawdown type, DLL, arm, Eval Mode inherit/on/off, 1–5 selector + priority | done | done |
 | Accounts | Lucid link, inactivity | done | done (E2E) |
 | Accounts | history | missing | done (audit log per account) |
-| Accounts | consistency %, profile, per-account mode override | missing | missing |
+| Accounts | consistency %, profile, per-account mode override | missing | done (consistency % per stage, purchase profile = drawdown + DLL + consistency, Mode override inherit/SEMI/OFF — D46) |
 | Risk | My Settings + versions | partial (no versions list) | done |
 | Risk | Impact Preview before save | missing | done (save disabled until a valid preview) |
 | Risk | What-If | missing | done (floor/middle/ceiling, nothing saved) |
