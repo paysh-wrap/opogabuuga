@@ -69,6 +69,19 @@ def write_rules(raw: dict[str, Any], diff: dict[str, D], folder: Path, name: str
     return p
 
 
+def valid_rules_file(path: Path) -> bool:
+    """The candidate's whole rule set must load and pass the same validation as a manual settings change."""
+    from pydantic import ValidationError
+
+    from app.config import load_rules
+    from app.risk.validation import validate
+
+    try:
+        return validate(load_rules(path).rules).ok
+    except (ValidationError, ValueError):
+        return False
+
+
 Runner = Callable[[list[Bar], str, Path], list[dict[str, Any]]]
 
 
@@ -88,6 +101,8 @@ def evaluate(
     tried: list[Candidate] = []
     for i, d in enumerate(neighbours(current_values(cfg), si.max_param_step_pct)):
         p = write_rules(raw, d, folder, f"c{i}")
+        if not valid_rules_file(p):
+            continue  # e.g. min_score above the 1:1 filter minimum: the whole rule set must stay valid
         tried.append(Candidate(d, perf(run(train, symbol, p))))
     best = best_on_train(champ_tr, tried)
     if best is None:

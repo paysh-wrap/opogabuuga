@@ -311,3 +311,21 @@ def test_nightly_runs_shadow_and_rollback(authed, monkeypatch):
 
         rep = stt.get_setting(s, "lab.last_nightly")
     assert calls == ["bt"] and rep["shadow"] == [] and rep["rollback"] is None
+
+
+def test_invalid_candidates_are_skipped_not_crashing(tmp_path, loaded_rules):
+    from app.lab.cycle import valid_rules_file
+
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    assert valid_rules_file(write_rules(raw, {}, tmp_path, "ok"))
+    one = raw["one_to_one_mode"]["filters"]["min_score"]
+    bad = write_rules(raw, {"score.min_score": D(str(one)) + 3}, tmp_path, "bad")  # above the 1:1 minimum
+    assert not valid_rules_file(bad)
+    seen = []
+
+    def run(bars, symbol, path):
+        seen.append(path.name)
+        return [{"pnl": "1", "net_r": "1"}]
+
+    evaluate(raw, loaded_rules.rules, "MNQ", _bars(8), run, tmp_path)
+    assert seen and all(n.startswith(("champion", "c")) for n in seen)
