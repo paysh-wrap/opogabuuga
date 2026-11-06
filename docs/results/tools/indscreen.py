@@ -299,4 +299,14 @@ print("\nbest pairs (train win, ≥10% of setups):")
 for w, e, k1, k2, a, b in pairs[:20]:
     print(f"{k1 + ' & ' + k2:40s} train {fmt(a)} | test {fmt(b)}")
 out["pairs"] = [{"k": [k1, k2], "train": a, "test": b} for _, _, k1, k2, a, b in pairs[:40]]
+# Per-year view (session 8): long data spans regimes (2019 MGC: ~$1,300 gold, thin volume) → check each year.
+YK = ["sqz_5_15", "sqz_rising_5", "ut_5", "vwap", "ema200_5"]
+years = sorted({str(r["sess"])[:4] for r in rows})
+out["by_year"] = {}
+print(f"\nby year (fixed {K}R): {'none':>20s} " + " ".join(f"{k:>20s}" for k in YK))
+for y in years:
+    ry = [r for r in rows if str(r["sess"])[:4] == y]
+    cells = {"none": st(ry), **{k: st([r for r in ry if r.get(k)]) for k in YK}}
+    out["by_year"][y] = cells
+    print(f"{y:12s} " + " ".join(f"{fmt(cells[k]):>20s}" for k in ["none", *YK]))
 json.dump(out, open(sys.argv[1].replace(".json", f"_ind{K}.json"), "w"), default=float)
