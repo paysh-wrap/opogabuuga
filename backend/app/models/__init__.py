@@ -375,3 +375,5 @@ class Notification(_Row, Base):
     body: Mapped[str] = mapped_column(Text, default="")
     channels: Mapped[list[str]] = mapped_column(JSON, default=list)
     delivered: Mapped[bool] = mapped_column(Boolean, default=False)
+    kind: Mapped[str] = mapped_column(String(32), default="general", server_default="general")
+    read_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True, index=True)

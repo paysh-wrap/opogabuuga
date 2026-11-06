@@ -48,6 +48,11 @@ class RulesHolder:
             return
         self.rules, self.eval_mode_on = eff.rules, eff.eval_mode_on
         self._apply_instrument_toggles(s)
+        try:
+            self._apply_payout_settings(s)
+        except ValueError as e:  # pydantic ValidationError: stored payout settings invalid → block trading
+            self.error = f"stored payout settings are invalid: {e}"
+            return
         from app.automation.state import get_setting
         from app.risk.low_risk import apply_intraday_windows, apply_low_risk
 
@@ -75,6 +80,19 @@ class RulesHolder:
             for k, v in self.rules.instruments.items()
         }
         self.rules = self.rules.model_copy(update={"instruments": inst})
+
+    def _apply_payout_settings(self, s: Session) -> None:
+        """Payouts page (§14): AppSetting "payouts.settings" = {skim_mode, frequency}. Re-validated by the pydantic
+        model on every load; amounts, buffer and caps stay rule values (never editable here)."""
+        from app.automation.state import get_setting
+        from app.config import PayoutsCfg
+
+        ov = get_setting(s, "payouts.settings")
+        if not isinstance(ov, dict):
+            return
+        keys = {k: ov[k] for k in ("skim_mode", "frequency") if k in ov}
+        pc = PayoutsCfg.model_validate({**self.rules.payouts.model_dump(), **keys})
+        self.rules = self.rules.model_copy(update={"payouts": pc})
 
     def _load_plan(self, s: Session) -> bool:
         """The selected Lucid plan (AppSetting "rules.plan" = file stem in config/rules/) becomes the base rules."""

@@ -60,6 +60,7 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
                 "risk.alert",
                 {"level": "error", "title": "Signal processing failed", "detail": f"{key}: {type(e).__name__}"},
             )
+            st.controller.notify("error", "Signal processing failed", f"{key}: {type(e).__name__}", "risk")
             updates = []
     now = time.monotonic()
     if p.event != "HEARTBEAT" or now - st.ws_throttle.get(key, 0.0) > 15:

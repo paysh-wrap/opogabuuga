@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app import audit
@@ -163,6 +163,10 @@ async def start(
         data_source=data_source,
     )
 
+    bus = st.bus
+    jid, label = f"backtest-{rid}", f"Backtest #{rid} {symbol} {stage}"
+    bus.job(jid, "backtest", label, "running", 0)
+
     async def work() -> None:
         try:
             res = await asyncio.to_thread(run_backtest, bars, cfg, st.settings.rules_path)
@@ -174,12 +178,15 @@ async def start(
                 r.status, r.metrics, r.progress = "done", m, 100
                 s.add_all(BacktestTrade(run_id=rid, data=t) for t in res.trades)
                 s.commit()
+            bus.job(jid, "backtest", label, "done", 100)
         except Exception as e:  # never silent
             with st.sessionmaker() as s:
                 r = s.get(BacktestRun, rid)
                 if r is not None:
                     r.status, r.error = "failed", f"{type(e).__name__}: {e}"[:2000]
                     s.commit()
+            bus.job(jid, "backtest", label, "failed", 100)
+            bus.notify("error", "Backtest failed", f"#{rid}: {type(e).__name__}", "job")
 
     st.bg_backtests = getattr(st, "bg_backtests", set())
     task = asyncio.create_task(work())
@@ -202,3 +209,21 @@ def list_runs(_: Principal = Depends(current_user), db: Session = Depends(get_db
 def run_trades(rid: int, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
     rows = db.execute(select(BacktestTrade).where(BacktestTrade.run_id == rid).order_by(BacktestTrade.id)).scalars()
     return {"trades": [t.data for t in rows]}
+
+
+@router.delete("/backtest/{rid}")
+async def delete_run(
+    rid: int, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    st = request.app.state
+    run = db.get(BacktestRun, rid)
+    if run is None:
+        raise HTTPException(404, "no such backtest")
+    if run.status in ("running", "queued"):
+        raise HTTPException(409, "backtest is still running")
+    n = db.execute(delete(BacktestTrade).where(BacktestTrade.run_id == rid)).rowcount  # type: ignore[attr-defined]
+    db.delete(run)
+    audit.record(db, st.clock, p.user.username, "backtest.delete", str(rid), {"trades": n, "kind": run.kind})
+    db.commit()
+    st.bus.publish("job.progress", {"id": f"backtest-{rid}", "kind": "backtest", "status": "deleted"})
+    return {"deleted": rid}

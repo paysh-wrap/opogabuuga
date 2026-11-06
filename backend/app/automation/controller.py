@@ -74,6 +74,7 @@ class Controller:
     _flatten_reason: str | None = None
     _flatten_alerted: set[str] = field(default_factory=set)  # accounts whose failed flatten already raised the banner
     _bar_feeds: dict[str, dict[int, datetime]] = field(default_factory=dict)  # symbol → {tf minutes: last bar seen}
+    bus: Any = None  # app.events.EventBus: stored notifications + WS events (§19)
 
     # ---------- setup ----------
     def load_accounts(self) -> None:
@@ -104,9 +105,15 @@ class Controller:
                     t.closed_at, t.exit_reason, t.pnl_usd = self.clock.now(), "SIM_RESTART", Decimal(0)
             s.commit()
 
-    def notify(self, level: str, title: str, detail: str = "") -> None:
+    def notify(self, level: str, title: str, detail: str = "", kind: str = "general") -> None:
         self.notices.append({"level": level, "title": title, "detail": detail, "at": self.clock.now().isoformat()})
         del self.notices[:-50]
+        if self.bus is not None:
+            self.bus.notify(level, title, detail, kind)
+
+    def publish(self, event: str, data: dict[str, Any]) -> None:
+        if self.bus is not None:
+            self.bus.publish(event, data)
 
     # ---------- accounts ----------
     def create_paper_account(
@@ -492,7 +499,7 @@ class Controller:
                     qty=leg.qty,
                     price=plan.entry,
                     status="WORKING",
-                    source="AUTO" if actor == "automation" else "SEMI",
+                    source="MANUAL" if sig.profile == "MANUAL" else "AUTO" if actor == "automation" else "SEMI",
                 )
             )
 
@@ -627,7 +634,12 @@ class Controller:
             ds.win_streak += 1
         if self.om.trades.get(t.trade_id):
             del self.om.trades[t.trade_id]
-        self.notify("info", "Trade closed", f"{a.label}: {pnl} ({row.net_r}R)")
+        self.notify("info", "Trade closed", f"{a.label}: {pnl} ({row.net_r}R)", "trade")
+        self.publish("position.updated", {"account": a.id})
+        self.publish("account.updated", {"id": a.id})
+        lock_r = self.rules.rules.internal.day_lockin_r
+        if ds.day_net_r >= lock_r and ds.day_net_r - row.net_r < lock_r:  # crossed the lock-in this trade
+            self.publish("risk.day_lockin", {"account": a.id, "day_net_r": str(ds.day_net_r), "lockin_r": str(lock_r)})
 
     def _pause(self, s: Session, ext: str, reason: str) -> None:
         a = self._acct(s, ext)
@@ -635,7 +647,9 @@ class Controller:
             return
         a.paused_reason, a.armed = reason, False
         audit.record(s, self.clock, "automation", "account.paused", ext, {"reason": reason})
-        self.notify("error", "Account paused", f"{a.label}: {reason}")
+        self.notify("error", "Account paused", f"{a.label}: {reason}", "pause")
+        self.publish("risk.alert", {"account": a.id, "reason": reason})
+        self.publish("account.updated", {"id": a.id})
 
     async def _monitor(self, s: Session) -> None:
         """Every price update: intraday MLL, kill distance, DLL breach (§9)."""
@@ -800,7 +814,9 @@ class Controller:
             st.set_setting(s, "automation.mode", "OFF", self.clock.now())
             audit.record(s, self.clock, actor, "kill_switch", "", {})
             s.commit()
-        self.notify("error", "KILL SWITCH", f"by {actor}: all flat, all disarmed, automation OFF")
+        self.notify("error", "KILL SWITCH", f"by {actor}: all flat, all disarmed, automation OFF", "kill_switch")
+        self.publish("risk.alert", {"kill_switch": True, "by": actor})
+        self.publish("automation.changed", {"mode": "OFF", "kill_switch": True})
 
     async def flat_time_check(self) -> str | None:
         """16:40 auto-flatten, then the 16:44 hard flat (ET) until the reopen. Based on BROKER positions as well as

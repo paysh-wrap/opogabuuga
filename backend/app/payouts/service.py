@@ -105,7 +105,10 @@ async def weekly_check(s: Session, ctl: Any, rules: Any, now: datetime) -> list[
         audit.record(
             s, ctl.clock, "payouts", "payout.planned", a.broker_account_id, {"kind": p.kind, "amount": str(p.amount)}
         )
-        ctl.notify("info", "Payout ready", f"{a.label}: request ${p.amount} ({p.kind}) in your Lucid dashboard")
+        ctl.notify(
+            "info", "Payout ready", f"{a.label}: request ${p.amount} ({p.kind}) in your Lucid dashboard", "payout"
+        )
+        ctl.publish("payout.ready", {"account": a.id, "kind": p.kind, "amount": str(p.amount), "week": wk})
         out.append(row)
     return out
 

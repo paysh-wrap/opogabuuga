@@ -111,6 +111,12 @@ async def _preflight(request: Request, db: Session) -> dict[str, Any]:
         )
     )
     out = {"ok": res.ok, "checks": res.checks, "failures": res.failures}
+    prev = getattr(st, "last_preflight", None)
+    if not res.ok and (prev is None or prev.get("ok")):  # notify on the transition only (UI polls every 30 s)
+        c.notify("error", "Pre-flight failed", ", ".join(res.failures)[:500], "preflight")
+        c.publish("system.status", {"preflight_ok": False, "failures": res.failures})
+    elif res.ok and prev is not None and not prev.get("ok"):
+        c.publish("system.status", {"preflight_ok": True})
     st.last_preflight = {**out, "at": now.isoformat()}  # shown on the Today page
     return out
 
@@ -311,7 +317,6 @@ async def kill(body: ConfirmIn, request: Request, p: Principal = Depends(current
     if body.confirm != KILL_PHRASE:
         raise HTTPException(422, f'type "{KILL_PHRASE}" to confirm')
     await _ctl(request).kill_switch(p.user.username)
-    await request.app.state.hub.broadcast("automation.changed", {"mode": "OFF", "kill_switch": True})
     return {"killed": True}
 
 

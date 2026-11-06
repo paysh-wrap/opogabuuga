@@ -19,11 +19,15 @@ from app.api.backtest import router as backtest_router
 from app.api.dashboard import router as dashboard_router
 from app.api.gate import router as gate_router
 from app.api.insights import router as insights_router
+from app.api.journal import router as journal_router
 from app.api.lab import router as lab_router
 from app.api.live import router as live_router
 from app.api.logs import router as logs_router
 from app.api.market import router as market_router
+from app.api.notifications import router as notifications_router
+from app.api.orders import router as orders_router
 from app.api.payouts import router as payouts_router
+from app.api.plan import router as plan_router
 from app.api.replay import router as replay_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
@@ -36,6 +40,7 @@ from app.clock import Clock, SystemClock
 from app.config import load_rules
 from app.db import Base, make_engine, make_sessionmaker
 from app.engine.market_state import MarketStateStore
+from app.events import EventBus
 from app.execution.adapters.router import RoutingAdapter
 from app.execution.adapters.sim import SimAdapter, SimInstrument
 from app.execution.order_manager import OrderManager
@@ -73,10 +78,14 @@ async def _nightly(app: FastAPI, s: Session, now: datetime) -> None:
         return
     stt.set_setting(s, "job.nightly.session", sess.isoformat(), now)  # mark first: one attempt per session
     s.commit()
-    await nightly(app, s, now)
-    from app.lab.cycle import auto_rollback, shadow_check
+    st.bus.job("nightly", "scheduled", "Nightly self-review backtest", "running", 0)
+    try:
+        await nightly(app, s, now)
+        from app.lab.cycle import auto_rollback, shadow_check
 
-    report = {"shadow": await shadow_check(app, s, now), "rollback": auto_rollback(app, s, now)}
+        report = {"shadow": await shadow_check(app, s, now), "rollback": auto_rollback(app, s, now)}
+    finally:
+        st.bus.job("nightly", "scheduled", "Nightly self-review backtest", "done", 100)
     stt.set_setting(s, "lab.last_nightly", {"at": now.isoformat(), **report}, now)
     s.commit()
 
@@ -102,7 +111,11 @@ async def _lab(app: FastAPI, s: Session, now: datetime) -> None:
     if due(now, sched.lab_cycle, stt.get_setting(s, "job.lab_cycle.week")):  # type: ignore[arg-type]
         stt.set_setting(s, "job.lab_cycle.week", week_key(now), now)  # mark first: one attempt per week
         s.commit()
-        report = await run_cycle(app, s, now)
+        st.bus.job("lab-cycle", "lab", "Strategy Lab weekly search", "running", 0)
+        try:
+            report = await run_cycle(app, s, now)
+        finally:
+            st.bus.job("lab-cycle", "lab", "Strategy Lab weekly search", "done", 100)
         stt.set_setting(s, "lab.last_cycle", {"at": now.isoformat(), "report": report}, now)
         s.commit()
 
@@ -123,6 +136,28 @@ async def _eod(app: FastAPI, s: Session, now: datetime) -> None:
     await st.controller.eod_all()
     stt.set_setting(s, "job.eod.session", sess.isoformat(), now)
     s.commit()
+
+
+async def _inactivity(app: FastAPI, s: Session, now: datetime) -> None:
+    """Once per session: alert accounts with no trade for behavior.inactivity_alert_days (§10)."""
+    from sqlalchemy import select
+
+    from app.automation import state as stt
+    from app.clock import session_date
+    from app.models import Account
+    from app.phases.phase_engine import inactivity_alert
+
+    sess = session_date(now).isoformat()
+    if stt.get_setting(s, "job.inactivity.session") == sess:
+        return
+    stt.set_setting(s, "job.inactivity.session", sess, now)
+    s.commit()
+    days = app.state.rules.rules.behavior.inactivity_alert_days
+    for a in s.execute(select(Account).where(Account.closed_by_firm.is_(False))).scalars():
+        if inactivity_alert(a.last_trade_at or a.stage_started_at, now, days):
+            app.state.controller.notify(
+                "warn", "Inactivity alert", f"{a.label or a.id}: no trade for {days}+ days", "inactivity"
+            )
 
 
 async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
@@ -180,6 +215,7 @@ async def _scheduler(app: FastAPI) -> None:
                     stt.set_setting(s, "job.payouts.week", week_key(now), now)
                     s.commit()
                 await _refresh_calendar(app, s, now)
+                await _inactivity(app, s, now)
                 await _daily_bias(app, s, now)
                 await _eod(app, s, now)
                 await _nightly(app, s, now)
@@ -303,6 +339,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             app.state.rules.refresh(s)
         if app.state.rules.error:
             log.error("rules.invalid", error=app.state.rules.error)
+        app.state.bus.bind(asyncio.get_running_loop())
         app.state.controller.load_accounts()
         since = app.state.clock.now() - timedelta(days=2)
         with app.state.sessionmaker() as s:
@@ -335,6 +372,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.engine = engine
     app.state.sessionmaker = make_sessionmaker(engine)
     app.state.hub = Hub()
+    app.state.bus = EventBus(app.state.hub, app.state.sessionmaker, app.state.clock.now)
     app.state.login_limiter = RateLimiter(5, 60)
     app.state.webhook_limiter = SlidingWindow(rules.rules.webhook.rate_limit_per_min, 60)
     app.state.webhook_stats = WebhookStats()
@@ -361,6 +399,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             rules.rules.drawdown_guard.early_exits_until_r,
         ),
     )
+    app.state.controller.bus = app.state.bus
     app.state.ta = TradingAgentsAdapter(
         settings.ta_python, rules.rules.bias.pinned_version, timeout_s=rules.rules.bias.timeout_min * 60
     )
@@ -385,7 +424,11 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(automation_router)
     app.include_router(live_router)
     app.include_router(dashboard_router)
+    app.include_router(plan_router)  # before payouts: /payouts/settings must not hit /payouts/{pid}
     app.include_router(payouts_router)
+    app.include_router(journal_router)
+    app.include_router(orders_router)
+    app.include_router(notifications_router)
     app.include_router(insights_router)
     app.include_router(backtest_router)
     app.include_router(gate_router)
@@ -393,6 +436,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(market_router)
     app.include_router(replay_router)
 
+    @app.websocket("/api/ws")
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:
         with app.state.sessionmaker() as s:
