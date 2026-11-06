@@ -98,13 +98,15 @@ def _set(raw: dict[str, Any], dotted: str, value: Any) -> None:
     parts = dotted.split(".")
     cur = raw
     for p in parts[:-1]:
-        cur = cur[p]
+        cur = cur.setdefault(p, {})  # optional sections (e.g. filters.trend) may be absent from older plan files
     cur[parts[-1]] = value
 
 
 def _get(raw: dict[str, Any], dotted: str) -> Any:
     cur: Any = raw
     for p in dotted.split("."):
+        if not isinstance(cur, dict) or p not in cur:
+            return None  # optional section absent from the plan file (model default applies)
         cur = cur[p]
     return cur
 
