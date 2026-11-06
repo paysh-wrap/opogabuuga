@@ -4,7 +4,7 @@ PY := .venv/bin/python
 TA_TAG := v0.7.1
 TA_COMMIT := 3e44faafa042daf953f6ec2422ae36bb1fd4f50f
 
-.PHONY: help install tradingagents keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e build up down check
+.PHONY: help install tradingagents keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -54,7 +54,10 @@ typecheck:
 	cd backend && ../.venv/bin/mypy app
 	cd frontend && npx tsc -b --noEmit
 
-e2e: build ## Browser tests against a real running server
+e2e: build ## §21 browser E2E: real server on a throwaway scratch DB + temp test admin (never data/paytience.db)
+	node frontend/e2e/full.mjs
+
+e2e-live: build ## Smoke E2E against an already running server (E2E_PASSWORD=…)
 	node frontend/e2e/run.mjs
 
 check: lint typecheck test e2e ## Everything
