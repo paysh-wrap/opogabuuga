@@ -223,6 +223,8 @@ for c in res["signals"]:
     ms, d = o["t0ms"], o["d"]
     f = c["features"]; x = {"sess": session_date(ts(c["entry_bar_time"] or c["bar_time"])).isoformat(), **o,
                             "brk": bool(f.get("choch")) or bool(f.get("bos")), "profile": c["profile"]}
+    for k, v in (f.get("trend") or {}).items():  # D44: what the ENGINE's own trend switches saw (live code path)
+        x[f"eng_{k}"] = (v == d) if v is not None else None
     i1 = bisect.bisect_left(opens, ms) - 1  # newest 1m bar closed before the entry bar
     x["vwap"] = d * (C[i1] - VW[i1]) > 0
     for m in (5, 15, 60):
@@ -251,6 +253,11 @@ for c in res["signals"]:
         x[f"rvol>1_{m}"] = g["rvol"][k] > 1
     rows.append(x)
 
+for own, eng in (("vwap", "eng_vwap"), ("ema200_5", "eng_ema200_5m"), ("ut_5", "eng_utbot_5m")):
+    both = [r for r in rows if r.get(eng) is not None and own in r]
+    if both:
+        agree = sum(r[own] == r[eng] for r in both) / len(both)
+        print(f"parity {own:9s} vs engine {eng:14s}: {agree:5.1%} agree over {len(both)} setups")
 days = sorted({r["sess"] for r in rows}); cut = days[int(len(days) * TRAIN)]
 tr_, te_ = [r for r in rows if r["sess"] < cut], [r for r in rows if r["sess"] >= cut]
 
