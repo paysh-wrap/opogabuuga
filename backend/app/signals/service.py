@@ -219,11 +219,14 @@ def process(
         hist = load_history(s, st.symbol, st.profile, now)
         if cache:
             cache.put((st.symbol, st.profile), hist, now)
-    for m in list(st.models.values()):
-        mv = model_view(m)
-        if mv is None:
-            continue
-        sig = s.execute(select(Signal).where(Signal.model_key == m.model_key)).scalar_one_or_none()
+    views = [(m, mv) for m in list(st.models.values()) if (mv := model_view(m)) is not None]
+    # One lookup for every live model's signal (was one query per model per bar; model_key is unique).
+    existing = {
+        x.model_key: x
+        for x in s.execute(select(Signal).where(Signal.model_key.in_([m.model_key for m, _ in views]))).scalars()
+    }
+    for m, mv in views:
+        sig = existing.get(m.model_key)
         if sig is not None and sig.status in FINAL:
             continue
         if sig is None:
@@ -238,7 +241,7 @@ def process(
             )
             s.add(sig)
             s.flush()
-        traded = s.execute(select(Signal.id).where(Signal.model_key == m.model_key, Signal.passed)).first() is not None
+        traded = bool(sig.passed)  # same row the old per-model "passed" query found (model_key is unique)
         dec = evaluate(
             EvalInput(
                 symbol=st.symbol,
