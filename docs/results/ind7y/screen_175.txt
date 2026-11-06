@@ -1,0 +1,99 @@
+parity vwap      vs engine eng_vwap      : 99.9% agree over 5768 setups
+parity ema200_5  vs engine eng_ema200_5m : 99.8% agree over 5768 setups
+parity ut_5      vs engine eng_utbot_5m  : 99.9% agree over 5768 setups
+parity sqz_5_15  vs engine eng_squeeze_5m_15m: 99.7% agree over 5768 setups
+MGC fixed target 1.75R · 5768 filled setups · 1672 sessions (train 836)
+ALL                    train 2531 tr  30% -0.33R | test 3237 tr  28% -0.32R
+ut_5                   train  766 tr  37% -0.14R | test  891 tr  33% -0.20R
+eng_utbot_5m           train  767 tr  37% -0.14R | test  890 tr  33% -0.20R
+vwap                   train  751 tr  35% -0.17R | test 1068 tr  30% -0.27R
+eng_vwap               train  750 tr  35% -0.17R | test 1067 tr  30% -0.27R
+brk                    train  120 tr  35% -0.15R | test  142 tr  27% -0.34R
+ema50_5                train  630 tr  35% -0.17R | test  846 tr  30% -0.28R
+rsi_side_15            train  721 tr  35% -0.18R | test  985 tr  29% -0.30R
+rsi_side_5             train  558 tr  35% -0.18R | test  771 tr  31% -0.23R
+rsi_side_60            train 1004 tr  34% -0.19R | test 1331 tr  29% -0.29R
+ema200_15              train 1001 tr  34% -0.20R | test 1303 tr  29% -0.29R
+wt_cross_5             train  905 tr  34% -0.22R | test 1073 tr  32% -0.23R
+ema200_5               train  829 tr  34% -0.20R | test 1130 tr  31% -0.26R
+ema50_15               train  809 tr  34% -0.20R | test 1093 tr  30% -0.27R
+eng_ema200_5m          train  830 tr  34% -0.20R | test 1132 tr  31% -0.26R
+ema50_60               train 1063 tr  34% -0.20R | test 1366 tr  30% -0.29R
+st_60                  train 1142 tr  33% -0.23R | test 1518 tr  30% -0.28R
+sqz_mom_15             train  874 tr  33% -0.22R | test 1218 tr  27% -0.34R
+dmi_60                 train 1100 tr  33% -0.23R | test 1465 tr  29% -0.30R
+dmi_15                 train  798 tr  33% -0.23R | test 1066 tr  29% -0.30R
+st_15                  train  952 tr  33% -0.24R | test 1312 tr  29% -0.30R
+ema200_60              train 1162 tr  32% -0.25R | test 1453 tr  30% -0.28R
+dmi_5                  train  601 tr  32% -0.24R | test  835 tr  31% -0.25R
+ut_60                  train  914 tr  32% -0.25R | test 1238 tr  28% -0.32R
+ce_60                  train 1166 tr  32% -0.25R | test 1472 tr  29% -0.29R
+sqz_mom_5              train  589 tr  32% -0.25R | test  837 tr  28% -0.34R
+sqz_rising_5           train 1182 tr  32% -0.28R | test 1486 tr  31% -0.25R
+ce_15                  train  858 tr  31% -0.27R | test 1233 tr  28% -0.32R
+sqz_mom_60             train 1205 tr  31% -0.29R | test 1503 tr  30% -0.28R
+st_5                   train  676 tr  31% -0.28R | test 1006 tr  29% -0.28R
+sqz_rising_60          train  982 tr  31% -0.27R | test 1322 tr  29% -0.29R
+wt_cross_60            train  945 tr  31% -0.28R | test 1304 tr  28% -0.32R
+adx20_5                train 1807 tr  31% -0.30R | test 2089 tr  28% -0.31R
+ce_5                   train  566 tr  31% -0.28R | test  851 tr  28% -0.31R
+adx25_60               train 1291 tr  30% -0.30R | test 1703 tr  29% -0.29R
+sqz_off_15             train 1920 tr  30% -0.31R | test 2385 tr  28% -0.32R
+sqz_off_60             train 1773 tr  30% -0.31R | test 2456 tr  29% -0.31R
+rvol>1_60              train 1666 tr  30% -0.30R | test 1712 tr  30% -0.28R
+sqz_5_15               train  325 tr  30% -0.30R | test  435 tr  33% -0.18R
+sqz_rising_15          train  742 tr  30% -0.30R | test 1061 tr  29% -0.29R
+adx25_5                train 1284 tr  30% -0.31R | test 1427 tr  28% -0.31R
+ut_15                  train  613 tr  30% -0.32R | test  887 tr  28% -0.32R
+adx20_15               train 1855 tr  30% -0.32R | test 2277 tr  29% -0.31R
+sqz_off_5              train 1891 tr  30% -0.32R | test 2184 tr  29% -0.31R
+adx20_60               train 1807 tr  30% -0.33R | test 2362 tr  29% -0.31R
+eng_squeeze_5m_15m     train  317 tr  30% -0.32R | test  434 tr  33% -0.18R
+rsi_notext_5           train 2530 tr  30% -0.33R | test 3233 tr  28% -0.32R
+rsi_notext_15          train 2499 tr  29% -0.33R | test 3191 tr  28% -0.32R
+wt_notext_5            train 2510 tr  29% -0.33R | test 3206 tr  28% -0.32R
+adx25_15               train 1323 tr  29% -0.33R | test 1604 tr  28% -0.31R
+wt_ext_5               train  460 tr  29% -0.32R | test  459 tr  26% -0.38R
+adx<20_60              train  723 tr  29% -0.33R | test  875 tr  27% -0.35R
+rsi_notext_60          train 2421 tr  29% -0.33R | test 3089 tr  28% -0.33R
+wt_notext_15           train 2418 tr  29% -0.33R | test 3064 tr  28% -0.33R
+adx<20_15              train  676 tr  29% -0.34R | test  960 tr  27% -0.35R
+wt_notext_60           train 2296 tr  29% -0.34R | test 2931 tr  28% -0.34R
+wt_ext_15              train  506 tr  29% -0.35R | test  596 tr  26% -0.37R
+rvol>1_15              train 1310 tr  29% -0.33R | test 1271 tr  29% -0.29R
+wt_cross_15            train  643 tr  29% -0.35R | test  899 tr  28% -0.32R
+wt_ext_60              train  299 tr  28% -0.39R | test  467 tr  27% -0.34R
+adx<20_5               train  724 tr  27% -0.38R | test 1148 tr  28% -0.33R
+rvol>1_5               train  818 tr  26% -0.40R | test  971 tr  24% -0.41R
+
+best pairs (train win, ≥10% of setups):
+eng_utbot_5m & st_15                     train  258 tr  43% +0.02R | test  332 tr  35% -0.16R
+ema50_15 & eng_utbot_5m                  train  259 tr  43% +0.03R | test  302 tr  36% -0.15R
+st_15 & ut_5                             train  257 tr  43% +0.02R | test  332 tr  35% -0.16R
+ema50_15 & ut_5                          train  258 tr  43% +0.02R | test  302 tr  36% -0.15R
+ema200_15 & eng_utbot_5m                 train  331 tr  42% -0.01R | test  364 tr  37% -0.12R
+ema200_15 & ut_5                         train  331 tr  42% -0.01R | test  364 tr  37% -0.12R
+eng_utbot_5m & rsi_side_60               train  304 tr  42% -0.01R | test  356 tr  35% -0.17R
+rsi_side_60 & ut_5                       train  303 tr  42% -0.01R | test  356 tr  35% -0.17R
+ema50_60 & eng_utbot_5m                  train  334 tr  42% -0.02R | test  370 tr  37% -0.12R
+ema200_5 & eng_utbot_5m                  train  277 tr  42% -0.02R | test  323 tr  37% -0.12R
+dmi_60 & eng_utbot_5m                    train  311 tr  41% -0.03R | test  374 tr  36% -0.15R
+ema50_60 & ut_5                          train  333 tr  41% -0.02R | test  370 tr  37% -0.12R
+dmi_60 & ut_5                            train  309 tr  41% -0.03R | test  374 tr  36% -0.15R
+eng_ema200_5m & eng_utbot_5m             train  276 tr  41% -0.02R | test  325 tr  38% -0.12R
+ema200_5 & ut_5                          train  276 tr  41% -0.02R | test  323 tr  37% -0.12R
+eng_ema200_5m & ut_5                     train  275 tr  41% -0.03R | test  325 tr  38% -0.12R
+eng_utbot_5m & st_60                     train  374 tr  41% -0.05R | test  410 tr  34% -0.20R
+st_60 & ut_5                             train  373 tr  41% -0.05R | test  410 tr  34% -0.20R
+ce_60 & eng_utbot_5m                     train  384 tr  41% -0.05R | test  398 tr  36% -0.14R
+ema200_60 & eng_utbot_5m                 train  357 tr  41% -0.04R | test  397 tr  37% -0.09R
+
+by year (fixed 1.75R):                 none             sqz_5_15         sqz_rising_5                 ut_5                 vwap             ema200_5
+2019           233 tr  36% -0.20R    33 tr  39% -0.14R   115 tr  38% -0.14R    75 tr  47% +0.04R    76 tr  43% +0.01R    82 tr  37% -0.18R
+2020           836 tr  30% -0.30R   112 tr  28% -0.33R   382 tr  31% -0.28R   263 tr  37% -0.13R   267 tr  36% -0.15R   287 tr  36% -0.14R
+2021           660 tr  30% -0.33R    78 tr  24% -0.42R   321 tr  29% -0.37R   200 tr  36% -0.20R   176 tr  40% -0.07R   185 tr  41% -0.06R
+2022           732 tr  27% -0.39R    92 tr  33% -0.27R   336 tr  32% -0.29R   211 tr  36% -0.16R   208 tr  28% -0.34R   248 tr  27% -0.37R
+2023           539 tr  29% -0.34R    84 tr  27% -0.37R   262 tr  29% -0.35R   175 tr  35% -0.21R   147 tr  34% -0.25R   165 tr  33% -0.27R
+2024           791 tr  29% -0.30R   109 tr  34% -0.20R   384 tr  35% -0.16R   202 tr  38% -0.07R   242 tr  31% -0.22R   268 tr  32% -0.24R
+2025          1091 tr  27% -0.35R   131 tr  30% -0.29R   461 tr  28% -0.35R   287 tr  27% -0.36R   372 tr  30% -0.28R   389 tr  31% -0.28R
+2026           886 tr  28% -0.29R   121 tr  42% +0.10R   407 tr  33% -0.14R   244 tr  35% -0.09R   331 tr  27% -0.30R   335 tr  28% -0.28R

@@ -213,3 +213,16 @@ NEXT (in order):
     parity line "sqz_5_15 vs engine eng_squeeze_5m_15m" must be ~100%.
  4. If it holds: engine backtests before/after (plan r175osc + trend {squeeze_5m_15m: true}) on held-out years →
     win rate + $ for the user to decide. Engine 4-month baseline (Jul–Oct 2026, r175osc) was running at save time.
+
+## Session 8 (2026-11-06) — branch ccr-42644967-7tvu35 (all pushed)
+- Restored 43452bd from GitHub; make test 522 → now 534 backend (100% cov) + 52 UI; E2E 20/20 (3/3 runs, CPUs idle).
+- Backtest speed-up 2.7x (signals/service.py: one batched Signal lookup per bar; identical output).
+- 7-year MGC.v.0 export (data/research7y, NOT in git; re-create with research_par.sh, ≈3.5 h) → Results O:
+  Squeeze 5m+15m FAILS (30% / 33% at 1.75R). User rule: keep the plan that reached 58% → plan unchanged, D45 OFF.
+- UI (all §18 audit gaps closed): Trade Orders list (GET /api/orders), Accounts consistency % + D46 per-account
+  mode override (inherit/SEMI/OFF, only stricter), Risk rule gauges, Signals per-account results, Settings weights.
+- E2E: title race fixed; payout/cooldown steps print diagnostics; earlier flakes = CPU load.
+- NEXT: (1) re-measure the live plan (r175osc) on 7 years with the engine; (2) RR_INVALID_AFTER_FILL = 19% of fills
+  → study an R:R buffer at entry; (3) approval E2E with live webhooks (clock-dependent, not built).
+- USER: add Anthropic key (Connections → TradingAgents) or bias = NO_TRADE; rotate the Databento key pasted in
+  session 7; confirm VERIFY values in the Lucid dashboard (Flex DLL, Pro funded DLL, MGC fees, CrossTrade symbol).

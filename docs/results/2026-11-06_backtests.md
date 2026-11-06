@@ -152,3 +152,26 @@ screener's own math on 100% of 343 setups → the live code computes exactly wha
   45 trades in 4 months (~0.5/day) and it is the best of ~1,800 pairs → must be confirmed on the 7-year data before use.
 - At a 1R target: none 40%/36% (−0.24R/−0.34R); UT Bot 5m 51%/50% (≈0R). Offline sim has no early exits; the
   engine usually does better (section I) → engine confirm running (base, UT Bot) on the same 4 months.
+
+## O. 7 years of REAL MGC data: does the Squeeze 5m+15m filter hold? (session 8, 2026-11-06)
+Data: Databento MGC.v.0 1m, May 2019 – Nov 5 2026 (2.56M bars). research_par.sh (research_rr1.yaml: every PASS setup,
+R:R floor 1.0) → indscreen.py at a FIXED 1.75R target. 57,944 signals → 5,768 filled setups, 1,672 sessions.
+Halves = older 836 / newer 836 sessions. Parity engine switches vs research math: 99.7–99.9% (5,768 setups).
+| Filter | Older half | Newer half |
+|---|---|---|
+| none | 2,531 tr 30% −0.33R | 3,237 tr 28% −0.32R |
+| **Squeeze rising 5m + 15m (D45)** | **325 tr 30% −0.30R** | **435 tr 33% −0.18R** |
+| UT Bot 5m | 766 tr 37% −0.14R | 891 tr 33% −0.20R |
+| VWAP | 751 tr 35% −0.17R | 1,068 tr 30% −0.27R |
+| EMA 200 5m | 829 tr 34% −0.20R | 1,130 tr 31% −0.26R |
+| best pair (EMA200 5m & UT Bot 5m) | 276 tr 41% −0.02R | 323 tr 37% −0.12R |
+By year, Squeeze 5m+15m: 2019 39% · 2020 28% · 2021 24% · 2022 33% · 2023 27% · 2024 34% · 2025 30% · 2026 42% (+0.10R).
+- VERDICT: the 4-month result (Results N, 54% win) was a small-sample fluke; only 2026 is positive. Squeeze does NOT
+  beat 58% at 1.75R → per the user's rule ("if it doesn't beat 58% at 1.75R keep what achieved that") the live plan is
+  unchanged and the D45 switch stays OFF. Engine before/after (step 4) skipped: the condition "if it holds" failed.
+- No TradingView filter or pair reaches even 50% at a fixed 1.75R in any half; best single year is UT Bot 2019 (47%).
+- Engine side note: 116 of 612 research trades (19%) were flattened right after the fill as RR_INVALID_AFTER_FILL
+  (1-tick slippage pushes R:R under the minimum) → candidate for a fill-rate/R:R-buffer study.
+- Caveat on the live plan's 58% (Results H): 22 sessions only, and 15 of its 24 trades aimed at 1R (D36b), not 1.75R.
+  It has NOT been re-measured on 7 years (engine run ≈ 3 h on 4 CPUs) — recommended next.
+Full output: docs/results/ind7y/screen_175.txt.
