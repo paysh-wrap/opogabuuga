@@ -53,7 +53,7 @@ def entry_windows(rules: RulesConfig) -> list[dict[str, Any]]:
         if not i.enabled:
             continue
         out.append({"symbol": sym, "label": "Entry hours now", "windows": i.windows or rules.internal.windows})
-        if i.intraday_windows:
+        if i.intraday_windows and i.intraday_windows != i.windows:  # other modes: show the best hours too
             out.append({"symbol": sym, "label": "Intraday mode (best hours)", "windows": i.intraday_windows})
     return out
 
