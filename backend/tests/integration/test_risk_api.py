@@ -196,7 +196,7 @@ def test_market_buttons_toggle_instruments(authed):
     r = authed.put("/api/markets", json={"symbol": "MGC", "enabled": True}).json()
     assert {x["symbol"]: x["enabled"] for x in r["markets"]}["MGC"] is True
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
-    authed.put("/api/risk/settings", json={"changes": {"one_to_one_mode.enabled": True}})  # survives other saves
+    authed.put("/api/risk/settings", json={"changes": {"behavior.min_hold_seconds": 8}})  # survives other saves
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
     assert authed.put("/api/markets", json={"symbol": "XYZ", "enabled": True}).status_code == 404
 

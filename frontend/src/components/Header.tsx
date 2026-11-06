@@ -29,7 +29,7 @@ export default function Header() {
   const risk = useQuery({ queryKey: ["risk"], queryFn: () => api<{ settings: Record<string, unknown> }>("/api/risk/settings") });
   const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean }>("/api/risk/low-risk") });
   const rs = risk.data?.settings;
-  const tradeMode = !rs ? null : rs["scalp_mode.enabled"] === true ? "Scalp" : rs["one_to_one_mode.enabled"] === true ? "1:1" : "Intraday";
+  const tradeMode = !rs ? null : "Intraday";
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });

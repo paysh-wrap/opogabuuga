@@ -151,11 +151,9 @@ def _d(x: str | None) -> Decimal | None:
 @router.post("/backtest")
 async def start(
     request: Request,
-    symbol: str = Query("MNQ"),
+    symbol: str = Query("MGC"),
     stage: Literal["EVAL", "FUNDED", "LIVE"] = Query("EVAL"),
     bias: Literal["recorded", "LONG_ONLY", "SHORT_ONLY", "NEUTRAL"] = Query("recorded"),
-    one_to_one: bool = Query(False),
-    scalp: bool = Query(False),
     low_risk: bool = Query(False),
     eval_mode: bool = Query(False),
     drawdown_type: Literal["eod", "intraday"] | None = Query(None),  # guard ON/OFF compare (§8 auto → intraday = ON)
@@ -180,8 +178,6 @@ async def start(
         "symbol": symbol,
         "stage": stage,
         "bias": bias,
-        "one_to_one": one_to_one,
-        "scalp": scalp,
         "low_risk": low_risk,
         "eval_mode": eval_mode,
         "drawdown_type": drawdown_type,
@@ -197,8 +193,6 @@ async def start(
         stage=stage,
         bias=bias,
         recorded_bias=rec,
-        one_to_one=one_to_one,
-        scalp=scalp,
         low_risk=low_risk,
         eval_mode=eval_mode,
         drawdown_type=drawdown_type,

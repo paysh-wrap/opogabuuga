@@ -40,7 +40,6 @@ export default function Risk() {
   const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean; max_losses_per_day: number; max_trades_per_day: number }>("/api/risk/low-risk") });
   const s = st.data;
   if (!s) return <p role="status">Loading…</p>;
-  const oneToOne = s.settings["one_to_one_mode.enabled"] === true;
   const save = (changes: Record<string, unknown>) =>
     run.mutate(() => api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes }) }));
 
@@ -60,28 +59,8 @@ export default function Risk() {
       </section>
 
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
-        <h2 className="font-semibold text-gold">Trading mode</h2>
-        <p className="text-xs">Intraday is the default (targets 1–3R, holds minutes to hours, always flat before 4:40 PM ET). Scalp and 1:1 are quicker trades on the same signals. Lower risk can be added to any mode.</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Trading mode">
-          {([
-            ["intraday", "Intraday", "◆", "Best-hours only (H1) · 1–3R targets · highest win rate", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": false }],
-            ["scalp", "Scalp", "⚡", "Quick exits on the same signals · full trading hours", { "scalp_mode.enabled": true, "one_to_one_mode.enabled": false }],
-            ["one-to-one", "1:1", "⚖", "1R target · 50% off at 0.75R then breakeven · full hours", { "scalp_mode.enabled": false, "one_to_one_mode.enabled": true }],
-          ] as const).map(([id, label, icon, desc, changes]) => {
-            const scalpOn = s.settings["scalp_mode.enabled"] === true;
-            const active = id === "scalp" ? scalpOn : id === "one-to-one" ? oneToOne && !scalpOn : !scalpOn && !oneToOne;
-            return (
-              <button key={id} role="radio" aria-checked={active} data-testid={`mode-${id}`}
-                className={`mode-card ${active ? "mode-card-on" : ""}`}
-                onClick={() => save({ ...changes })}>
-                <span className="mode-icon" aria-hidden>{icon}</span>
-                <span className="block text-lg font-semibold text-gold">{label}{active ? " ✓" : ""}</span>
-                <span className="block text-xs">{desc}</span>
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-xs opacity-75">{low.data?.enabled ? "+ Lower risk ON (full trading hours, same trade count)" : "Lower risk can be added to any mode."}</p>
+        <h2 className="font-semibold text-gold">Trading mode · Intraday ✓</h2>
+        <p className="text-xs">Intraday only: MGC, best hours, holds minutes to hours, always flat before 4:40 PM ET. Scalp and 1:1 were retired (they lost money in backtests). Lower risk can be added below.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
@@ -92,13 +71,7 @@ export default function Risk() {
           {low.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 text-xs">
-        <h2 className="text-sm font-semibold text-gold">How Scalp and 1:1 exit</h2>
-        <p className="mt-1"><b className="text-gold">Scalp</b> — same signals as Intraday, full hours. With 2+ micros half banks {String(s.settings["scalp_mode.target_r"] ?? "0.5")}R fast, the rest moves to breakeven and trails {String(s.settings["scalp_mode.trail_r"] ?? "0.5")}R behind (aims for {String(s.settings["scalp_mode.runner_r"] ?? "2")}R). Closed if nothing is hit within ~{String(s.settings["scalp_mode.max_hold_s"] ?? 60)} s. The stop is never widened.</p>
-        <p className="mt-1"><b className="text-gold">1:1</b> — same signals, full hours. Target 1R · 50% off at 0.75R then breakeven · max 3 losses/day · never over consistency.</p>
-      </section>
-
-      <EvalModePanel oneToOne={s.settings["eval_mode.one_to_one"] === true} onOneToOne={(v) => save({ "eval_mode.one_to_one": v })} />
+      <EvalModePanel />
 
       <section className="rounded-xl border border-gold bg-card p-4">
         <h2 className="font-semibold text-gold">Live trading {lv.data?.live ? "· LIVE" : "· PAPER"}</h2>

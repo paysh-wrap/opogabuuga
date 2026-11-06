@@ -1,4 +1,4 @@
-"""Same signal → full paper trade on EVAL, FUNDED and LIVE stage accounts (standard, 1:1, Evaluation Mode)."""
+"""Same signal → full paper trade on EVAL, FUNDED and LIVE stage accounts (standard + Evaluation Mode; D43)."""
 
 from decimal import Decimal as D
 
@@ -53,44 +53,28 @@ def test_standard_trade_every_stage(authed, clock, stage):
     assert t["exit_reason"] == "TP" and float(t["pnl"]) > 0, (stage, t)
 
 
-@pytest.mark.parametrize("stage", ["EVAL", "FUNDED", "LIVE"])
-def test_one_to_one_every_stage(authed, clock, stage, proven):
-    _, res = run(authed, clock, stage, {"one_to_one_mode.enabled": True})
-    assert res[0]["ok"], (stage, res)
-    hb(authed, clock, MS - MIN, close="20031")
-    t = authed.get("/api/trades").json()["trades"][0]
-    assert t["exit_reason"] == "TP" and 0 < float(t["net_r"]) <= 1.05, (stage, t)  # 1:1 caps at ~1R
+@pytest.mark.parametrize("key", ["one_to_one_mode.enabled", "scalp_mode.enabled", "eval_mode.one_to_one"])
+def test_scalp_and_1to1_retired(authed, key):
+    """D43: Scalp and 1:1 can no longer be switched on from the settings API."""
+    r = authed.put("/api/risk/settings", json={"changes": {key: True}})
+    assert r.status_code >= 400 and "not editable" in r.text, r.text
 
 
-def test_eval_mode_with_1to1_option_only_on_eval(authed, clock, proven):
-    _, res = run(authed, clock, "EVAL", {"eval_mode.one_to_one": True}, eval_on=True)
-    assert res[0]["ok"], res
-    hb(authed, clock, MS - MIN, close="20031")
-    t = authed.get("/api/trades").json()["trades"][0]
-    assert float(t["net_r"]) <= 1.05, t
+def test_retired_modes_forced_off_even_if_stored(authed):
+    """D43: an older stored setting (or a plan file) with Scalp/1:1 ON is ignored — the holder forces them OFF."""
+    from app.risk.low_risk import retire_short_modes
 
-
-def test_eval_1to1_option_ignored_off_eval(authed, clock):
-    _, res = run(authed, clock, "LIVE", {"eval_mode.one_to_one": True})
-    assert res[0]["ok"], res
-    hb(authed, clock, MS - MIN, close="20071")
-    t = authed.get("/api/trades").json()["trades"][0]
-    assert float(t["net_r"]) > 1.5, t  # standard 2R plan
-
-
-def test_one_to_one_refuses_unproven_history(authed, clock):
-    """Safety: without 30 resolved models proving T1 ≥ 65%, 1:1 does not trade (E2)."""
-    authed.app.state.calendar = lambda d: []
-    clock.set(AT)
-    authed.put("/api/risk/settings", json={"changes": {"one_to_one_mode.enabled": True}})
-    with authed.app.state.sessionmaker() as s:
-        s.add(BiasDecision(session_date=AT.date(), proxy="QQQ", raw_rating="Buy", mapped="LONG_ONLY", version="x"))
-        s.commit()
-    choch(authed, clock)
-    hb(authed, clock, MS - 2 * MIN, close="20005")
-    confirm(authed, clock)
-    with authed.app.state.sessionmaker() as s:
-        assert s.query(Signal).one().skip_reason == "1TO1_T1_RATE_UNPROVEN"
+    h = authed.app.state.rules
+    on = h.rules.model_copy(
+        update={
+            "one_to_one_mode": h.rules.one_to_one_mode.model_copy(update={"enabled": True}),
+            "scalp_mode": h.rules.scalp_mode.model_copy(update={"enabled": True}),
+            "eval_mode": h.rules.eval_mode.model_copy(update={"one_to_one": True}),
+        }
+    )
+    off = retire_short_modes(on)
+    assert not off.one_to_one_mode.enabled and not off.scalp_mode.enabled and not off.eval_mode.one_to_one
+    assert not h.rules.one_to_one_mode.enabled and not h.rules.scalp_mode.enabled
 
 
 def test_drawdown_toggle(authed):
@@ -185,23 +169,6 @@ def test_eod_update_trails_mll_on_eod_accounts_only(authed, clock):
     assert asyncio.run(authed.app.state.controller.eod_all()) == 1
     acc = {a["id"]: a for a in authed.get("/api/dashboard").json()["accounts"]}
     assert acc[e]["mll"] == "24400" and acc[i]["mll"] == "24000"
-
-
-def test_scalp_mode_small_target(authed, clock, proven):
-    _, res = run(authed, clock, "EVAL", {"scalp_mode.enabled": True})
-    assert res[0]["ok"], res
-    hb(authed, clock, MS - MIN, close="20018")
-    t = authed.get("/api/trades").json()["trades"][0]
-    assert t["exit_reason"] == "TP" and 0 < float(t["net_r"]) <= 0.55, t
-
-
-def test_scalp_mode_time_stop(authed, clock, proven):
-    _, res = run(authed, clock, "EVAL", {"scalp_mode.enabled": True, "scalp_mode.max_hold_s": 60})
-    assert res[0]["ok"], res
-    hb(authed, clock, MS - MIN, close="20006")  # no target, no stop, ~1 min later
-    hb(authed, clock, MS, close="20006")
-    t = authed.get("/api/trades").json()["trades"][0]
-    assert t["exit_reason"] == "SCALP_TIME", t
 
 
 def test_lucid_account_limits(authed):

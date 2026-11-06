@@ -62,13 +62,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "drawdown_guard.runner_trail_r",
         "filters.model_fail_cooldown",
         "trade_plan.min_stop_ticks",
-        "one_to_one_mode.enabled",
         "behavior.min_hold_seconds",
-        "scalp_mode.enabled",
-        "scalp_mode.target_r",
-        "scalp_mode.max_hold_s",
-        "scalp_mode.runner_r",
-        "scalp_mode.trail_r",
         *(
             f"eval_mode.{k}"
             for k in (
@@ -78,7 +72,6 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
                 "risk_pct_ceiling",
                 "max_risk_usd",
                 "warmup_trades",
-                "one_to_one",
             )
         ),
         "payouts.frequency",

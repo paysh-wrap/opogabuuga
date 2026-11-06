@@ -49,3 +49,15 @@ def apply_intraday_windows(r: RulesConfig) -> RulesConfig:
         for k, v in r.instruments.items()
     }
     return r.model_copy(update={"instruments": inst})
+
+
+def retire_short_modes(r: RulesConfig) -> RulesConfig:
+    """D43 (user): Scalp and 1:1 strategies are retired — both lost money after the realistic-fill fix (D39).
+    Forced OFF whatever a plan file or an older stored setting says, so only Intraday (+ Lower risk) can trade."""
+    return r.model_copy(
+        update={
+            "one_to_one_mode": r.one_to_one_mode.model_copy(update={"enabled": False}),
+            "scalp_mode": r.scalp_mode.model_copy(update={"enabled": False}),
+            "eval_mode": r.eval_mode.model_copy(update={"one_to_one": False}),
+        }
+    )

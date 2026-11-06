@@ -346,3 +346,13 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - Why: MNQ not profitable after the D39 realistic-fill fix (22 Yahoo sessions) and MNQ Scalp lost in every period of
   35 months of Databento data (Results K). Re-enable from the Risk page market toggle or the plan file once proven.
 - Legacy lucid_daily_25k.yaml (test fixture) unchanged.
+
+## D43 — Scalp and 1:1 strategies retired (user, 2026-11-06)
+- User: "only keep what was profitable … get rid of scalping strategy and 1:1". After D39 (realistic fills) both lost
+  on MGC (1:1 PF 0.61, Scalp PF 0.45) and MNQ Scalp lost in every period of 35 months (Results K).
+- Kept: Intraday (best hours, MGC) + the Lower-risk sizing toggle.
+- risk/low_risk.retire_short_modes forces one_to_one_mode / scalp_mode / eval_mode.one_to_one OFF in the rules holder,
+  whatever a plan file or an older stored setting says. The keys are no longer editable in My Settings; the Risk page
+  mode cards, the "How Scalp and 1:1 exit" panel, the Eval-Mode 1:1 checkbox and the Backtest mode picker are gone.
+- The dormant engine code (1:1 plan builder, scalp runner) stays for now so old trades/replays still read; it can be
+  deleted in a later clean-up.

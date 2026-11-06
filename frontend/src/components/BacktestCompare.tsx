@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export interface RunParams { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean; drawdown_type?: string | null }
+export interface RunParams { symbol: string; stage: string; bias: string; one_to_one?: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean; drawdown_type?: string | null }
 export interface Week { week: number; profit: string; balance: string; kind: string | null; amount: string; net: string; reason: string }
 export interface RunMetrics {
   stats?: { trades: number; win_rate: string | null; net: string; avg_r: string | null; profit_factor: string | null; max_drawdown: string; best_day_share: string | null; days: number };

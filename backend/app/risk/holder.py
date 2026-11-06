@@ -46,7 +46,9 @@ class RulesHolder:
         except SettingsError as e:
             self.error = f"stored settings are invalid: {e}"
             return
-        self.rules, self.eval_mode_on = eff.rules, eff.eval_mode_on
+        from app.risk.low_risk import retire_short_modes
+
+        self.rules, self.eval_mode_on = retire_short_modes(eff.rules), eff.eval_mode_on
         self._apply_instrument_toggles(s)
         try:
             self._apply_payout_settings(s)

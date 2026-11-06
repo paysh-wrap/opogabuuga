@@ -6,7 +6,7 @@ import { ComparePanel, guardLabel, PayoutAndIncome, type CmpRun } from "../compo
 
 interface Run {
   id: number; status: string; error: string | null;
-  params: { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean; drawdown_type?: string | null };
+  params: { symbol: string; stage: string; bias: string; one_to_one?: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean; drawdown_type?: string | null };
   metrics: {
     stats?: { trades: number; win_rate: string | null; net: string; avg_r: string | null; profit_factor: string | null; max_drawdown: string; best_day_share: string | null; days: number };
     monte_carlo_eval?: { pass_rate: string; fail_rate: string; median_trades_to_pass: number | null };
@@ -23,11 +23,11 @@ export default function Backtest() {
   usePageTitle("Backtest");
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", one_to_one: false, scalp: false, low_risk: false, eval_mode: false, drawdown_type: "" });
+  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", low_risk: false, eval_mode: false, drawdown_type: "" });
   const [err, setErr] = useState("");
   const runs = useQuery({ queryKey: ["backtests"], queryFn: () => api<{ runs: Run[] }>("/api/backtest"), refetchInterval: 3000 });
   const launch = async (o: typeof opt, body: string) => {
-    const q = new URLSearchParams({ symbol: o.symbol, stage: o.stage, bias: o.bias, one_to_one: String(o.one_to_one), scalp: String(o.scalp), low_risk: String(o.low_risk), eval_mode: String(o.eval_mode) });
+    const q = new URLSearchParams({ symbol: o.symbol, stage: o.stage, bias: o.bias, low_risk: String(o.low_risk), eval_mode: String(o.eval_mode) });
     if (o.drawdown_type) q.set("drawdown_type", o.drawdown_type);
     return api(`/api/backtest?${q}`, { method: "POST", body, headers: { "content-type": "text/csv" } });
   };
@@ -67,9 +67,6 @@ export default function Backtest() {
         <label className="flex flex-col">Stage<select value={opt.stage} onChange={(e) => setOpt({ ...opt, stage: e.target.value })}><option>EVAL</option><option>FUNDED</option><option>LIVE</option></select></label>
         <label className="flex flex-col">Bias<select value={opt.bias} onChange={(e) => setOpt({ ...opt, bias: e.target.value })}>
           <option value="recorded">Recorded TradingAgents only</option><option>NEUTRAL</option><option>LONG_ONLY</option><option>SHORT_ONLY</option></select></label>
-        <label className="flex flex-col">Trading mode<select aria-label="Trading mode" value={opt.scalp ? "scalp" : opt.one_to_one ? "1to1" : "intraday"}
-          onChange={(e) => setOpt({ ...opt, scalp: e.target.value === "scalp", one_to_one: e.target.value === "1to1" })}>
-          <option value="intraday">Intraday (best hours)</option><option value="scalp">Scalp</option><option value="1to1">1:1</option></select></label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.low_risk} onChange={(e) => setOpt({ ...opt, low_risk: e.target.checked })} />Lower risk</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.eval_mode} onChange={(e) => setOpt({ ...opt, eval_mode: e.target.checked })} />Evaluation Mode</label>
         <label className="flex flex-col">Drawdown (guard)<select aria-label="Drawdown type" value={opt.drawdown_type} onChange={(e) => setOpt({ ...opt, drawdown_type: e.target.value })}>

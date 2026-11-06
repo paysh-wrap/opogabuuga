@@ -36,7 +36,7 @@ export function ImpactTable({ p, testid }: { p: Impact; testid: string }) {
 // ---------- Evaluation Mode: Impact Preview → typed phrase → ON; OFF in one click (§11C) ----------
 interface EvalMode { enabled: boolean; has_eval_accounts: boolean; confirm_phrase: string; accounts?: { id: number; label: string; override: string; effective: boolean }[] }
 
-export function EvalModePanel({ oneToOne, onOneToOne }: { oneToOne: boolean; onOneToOne: (v: boolean) => void }) {
+export function EvalModePanel() {
   const qc = useQueryClient();
   const em = useQuery({ queryKey: ["evalmode"], queryFn: () => api<EvalMode>("/api/risk/eval-mode") });
   const [preview, setPreview] = useState<{ on: Impact; off: Impact } | null>(null);
@@ -84,10 +84,6 @@ export function EvalModePanel({ oneToOne, onOneToOne }: { oneToOne: boolean; onO
       {d?.accounts && d.accounts.length > 0 && (
         <p className="mt-2 text-xs">EVAL accounts: {d.accounts.map((a) => `${a.label} (${a.override}${a.effective ? ", active" : ""})`).join(" · ")}</p>
       )}
-      <label className="mt-3 flex items-center gap-2 text-sm">
-        <input type="checkbox" data-testid="eval-1to1" checked={oneToOne} onChange={(e) => onOneToOne(e.target.checked)} />
-        Use 1:1 mode on EVAL accounts while Evaluation Mode is on
-      </label>
     </section>
   );
 }
