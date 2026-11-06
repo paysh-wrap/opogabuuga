@@ -206,6 +206,7 @@ class TrendFilter(_M):
     vwap: bool = False  # session VWAP (resets 18:00 ET)
     ema200_5m: bool = False  # EMA 200 on 5-minute bars
     utbot_5m: bool = False  # UT Bot (key 1, ATR 10) on 5-minute bars
+    squeeze_5m_15m: bool = False  # D45: Squeeze Momentum [LazyBear] rising in the trade direction on 5m AND 15m
 
 
 class Filters(_M):

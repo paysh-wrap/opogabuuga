@@ -196,7 +196,13 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
     # ---- TREND (D44): only on the side of the switched-on trend indicators. Unknown (warming up) → WAIT.
     sign = 1 if d is Direction.LONG else -1
     tf = cfg.filters.trend
-    active = [k for k, on in (("vwap", tf.vwap), ("ema200_5m", tf.ema200_5m), ("utbot_5m", tf.utbot_5m)) if on]
+    switches = (
+        ("vwap", tf.vwap),
+        ("ema200_5m", tf.ema200_5m),
+        ("utbot_5m", tf.utbot_5m),
+        ("squeeze_5m_15m", tf.squeeze_5m_15m),
+    )
+    active = [k for k, on in switches if on]
     for name in active:
         side = x.trend.get(name)
         if side is None:

@@ -64,6 +64,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "filters.trend.vwap",
         "filters.trend.ema200_5m",
         "filters.trend.utbot_5m",
+        "filters.trend.squeeze_5m_15m",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(

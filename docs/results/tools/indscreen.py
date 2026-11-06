@@ -251,9 +251,12 @@ for c in res["signals"]:
         x[f"wt_ext_{m}"] = (g["wt1"][k] < -53) if d == 1 else (g["wt1"][k] > 53)
         x[f"wt_notext_{m}"] = (g["wt1"][k] < 53) if d == 1 else (g["wt1"][k] > -53)
         x[f"rvol>1_{m}"] = g["rvol"][k] > 1
+    if "sqz_rising_5" in x and "sqz_rising_15" in x:
+        x["sqz_5_15"] = bool(x["sqz_rising_5"] and x["sqz_rising_15"])  # = engine switch squeeze_5m_15m (D45)
     rows.append(x)
 
-for own, eng in (("vwap", "eng_vwap"), ("ema200_5", "eng_ema200_5m"), ("ut_5", "eng_utbot_5m")):
+for own, eng in (("vwap", "eng_vwap"), ("ema200_5", "eng_ema200_5m"), ("ut_5", "eng_utbot_5m"),
+                 ("sqz_5_15", "eng_squeeze_5m_15m")):
     both = [r for r in rows if r.get(eng) is not None and own in r]
     if both:
         agree = sum(r[own] == r[eng] for r in both) / len(both)

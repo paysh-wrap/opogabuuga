@@ -366,3 +366,12 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - Engine gate TREND (only when a switch is on): wrong side → WAIT "TREND_AGAINST"; not warmed up → WAIT "TREND_WARMUP".
   Every signal records features.trend for research. Plans: filters.trend {vwap, ema200_5m, utbot_5m}: false;
   editable in My Settings.
+
+## D45 — Squeeze Momentum switch (built, OFF) — 2026-11-06
+- Results N (4 months real MGC, fixed 1.75R): Squeeze Momentum [LazyBear] rising in the trade direction on BOTH 5m
+  and 15m: 43% / 54% win, +0.07R / +0.46R (45 trades) vs no filter 26% / 27% (−0.3R). Best of ~1,800 pairs → must be
+  confirmed on the 7-year MGC.v.0 data before use.
+- indicators/trend.py: _Squeeze (Decimal; momentum = linreg(close − avg(avg(hh20, ll20), sma20), 20, 0)), 15m bucket;
+  direction()["squeeze_5m_15m"] = +1/−1 when 5m and 15m agree, 0 = disagree/flat (blocks), None = warming up.
+  Switch filters.trend.squeeze_5m_15m (plans: false; My Settings; Risk page checkbox). Unit test vs an independent
+  float reference on a random walk + gate test. Full test suite NOT yet re-run after this change (next session).

@@ -367,3 +367,13 @@ def test_trend_filter_d44():
     d = evaluate(good(trend={"vwap": 1}), on)
     assert d.outcome == "WAIT" and d.skip_reason == "TREND_WARMUP"
     assert d.features["trend"] == {"vwap": 1}
+
+
+def test_squeeze_switch_d45():
+    trend = CFG.filters.trend.model_copy(update={"squeeze_5m_15m": True})
+    on = CFG.model_copy(update={"filters": CFG.filters.model_copy(update={"trend": trend})})
+    assert evaluate(good(trend={"squeeze_5m_15m": 1}), on).outcome == "PASS"  # long setup, momentum rising up
+    d = evaluate(good(trend={"squeeze_5m_15m": 0}), on)  # 5m and 15m disagree → no side → wait
+    assert d.outcome == "WAIT" and d.skip_reason == "TREND_AGAINST"
+    d = evaluate(good(trend={}), on)
+    assert d.outcome == "WAIT" and d.skip_reason == "TREND_WARMUP"

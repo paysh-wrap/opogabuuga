@@ -79,6 +79,7 @@ export default function Risk() {
             ["filters.trend.vwap", "Session VWAP"],
             ["filters.trend.ema200_5m", "EMA 200 (5 min)"],
             ["filters.trend.utbot_5m", "UT Bot (5 min)"],
+            ["filters.trend.squeeze_5m_15m", "Squeeze Momentum rising (5 + 15 min)"],
           ] as const).map(([k, label]) => (
             <label key={k} className="flex items-center gap-2">
               <input type="checkbox" data-testid={k} checked={s.settings[k] === true} onChange={(e) => save({ [k]: e.target.checked })} />
