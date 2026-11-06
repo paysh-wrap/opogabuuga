@@ -1,4 +1,4 @@
-# The 58% plan — what it is, why it wins, how to repeat it
+# The 58% plan (D36/D37) — RETIRED as main by D47; kept for reference
 
 Live plan: `config/rules/lucid_flex_25k.yaml` (default; same rules in all Pro/Flex plans). MGC only (D42), Intraday mode
 only (Scalp/1:1 retired, D43). Measured: 22 sessions Oct–Nov 2026 → 24 trades, 58% win, PF 1.69, +$324 (Results H).
@@ -33,5 +33,10 @@ So the 58% is a blend: many ~1R trades at a high hit rate + fewer 1.75–3R trad
 - Any new idea (indicator, hour change, bias source) must first beat the plan on held-out data — Results O shows why:
   Squeeze looked like 54% on 4 months and was 30% on 7 years.
 
-## Re-measured on the last 2 years (Nov 2024 – Oct 2026, Databento MGC.v.0)
-(filled in below when the engine run finishes — Results P)
+## Re-measured on the last 2 years (Nov 2024 – Oct 2026, Databento MGC.v.0, engine, NEUTRAL bias) — Results P
+| | trades | win | PF | $ | R/trade |
+|---|---|---|---|---|---|
+| all | 391 | 43% | 0.87 | −1,201 | −0.05 |
+| ~1R targets | 320 | 45% | 0.86 | −934 | −0.07 |
+| 1.75R+ targets | 71 | 32% | 0.88 | −268 | +0.02 |
+The 58% came from 22 sessions and did NOT hold. Replaced as main strategy by D47 (docs/STRATEGY_MAIN.md).

@@ -58,3 +58,15 @@ def test_gold_market_settings():
     assert in_windows(datetime(2026, 11, 5, 8, 30, tzinfo=UTC), g.windows)  # 03:30 ET London open
     assert in_windows(datetime(2026, 11, 5, 17, 0, tzinfo=UTC), g.windows)  # 12:00 ET (D36: 03:00–15:30)
     assert not in_windows(datetime(2026, 11, 5, 21, 0, tzinfo=UTC), g.windows)  # 16:00 ET
+
+
+@pytest.mark.parametrize("plan", [f"lucid_{p}_{k}k" for p in ("pro", "flex") for k in (25, 50, 100, 150)])
+def test_main_strategy_d47(plan):
+    """D47 (user 2026-11-06): main strategy = trend-aligned 1.75R in every Pro/Flex plan."""
+    p = r(plan)
+    assert p.trade_plan.rr_min == D("1.75") and p.trade_plan.rr_max == D("1.8")  # every target 1.75–1.8R
+    assert p.filters.no_break_rr_cap is None  # no 1R targets
+    t = p.filters.trend
+    assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
+    assert p.instruments["MGC"].enabled and p.instruments["MGC"].intraday_windows is None
+    assert not p.instruments["MNQ"].enabled  # D42

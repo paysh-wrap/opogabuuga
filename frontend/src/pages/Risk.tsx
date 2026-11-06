@@ -77,7 +77,7 @@ export default function Risk() {
 
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
         <h2 className="font-semibold text-gold">Trading mode · Intraday ✓</h2>
-        <p className="text-xs">Intraday only: MGC, best hours, holds minutes to hours, always flat before 4:40 PM ET. Scalp and 1:1 were retired (they lost money in backtests). Lower risk can be added below.</p>
+        <p className="text-xs">Main strategy (D47): MGC intraday 3:00 AM–3:30 PM ET, every trade aims at 1.75R, only in the direction UT Bot 5m and EMA 200 5m agree on, plus the daily TradingAgents bias once connected. Always flat before 4:40 PM ET. Scalp and 1:1 were retired (they lost money in backtests). Lower risk can be added below.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">

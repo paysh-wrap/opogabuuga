@@ -14,8 +14,10 @@ def _r():
 
 def test_intraday_mode_uses_best_hours():
     r = apply_intraday_windows(_r())
-    assert r.instrument("MGC").windows == r.instrument("MGC").intraday_windows
     assert r.instrument("MNQ").windows == r.instrument("MNQ").intraday_windows
+    # D47: MGC's D37 best hours did not hold on 7 years of data → removed; MGC keeps its full 03:00–15:30 window
+    assert r.instrument("MGC").intraday_windows is None
+    assert r.instrument("MGC").windows == _r().instrument("MGC").windows
 
 
 def test_one_to_one_and_scalp_keep_full_hours():

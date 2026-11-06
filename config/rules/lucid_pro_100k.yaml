@@ -62,7 +62,7 @@ instruments:
   MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}, windows: [["06:45", "09:30"], ["09:35", "15:30"]], intraday_windows: [["08:00", "09:30"], ["09:35", "10:00"], ["11:00", "12:00"], ["14:00", "15:00"]]}    # D42 user: MNQ off (not profitable on 22 sessions + 35 months). VERIFY fees
   MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
   MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
-  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: true, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]], intraday_windows: [["05:00", "07:00"], ["09:00", "12:00"], ["13:00", "15:30"]]}      # VERIFY fees
+  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: true, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
@@ -74,7 +74,7 @@ super_groups:
   EQUITY_INDEX: [NQ, ES, YM, RTY]
   METALS: [GC]
 
-trade_plan: {rr_min: 1.0, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
+trade_plan: {rr_min: 1.75, rr_max: 1.8, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0
@@ -83,8 +83,8 @@ filters:
   require_mso_agree: false            # D36: G4 score-only (blend: confirmation lag killed entries)
   require_structure_break: false      # D36: G5 score-only
   t1_through_ok_with_limit: true      # D36: limit entry needs a full retrace, so T1 touched is fine
-  no_break_rr_cap: 1.0                # D36: no CHoCH/BoS after the sweep → 1R target (win rate 48→61% MGC, 32→43% MNQ)
-  trend: {vwap: false, ema200_5m: false, utbot_5m: false, squeeze_5m_15m: false}   # D44/D45: trade only on the trend side; off until proven
+  no_break_rr_cap: null               # D47: no 1R targets — every trade aims at 1.75–1.8R (was 1.0, D36)
+  trend: {vwap: false, ema200_5m: true, utbot_5m: true, squeeze_5m_15m: false}   # D47 main strategy: UT Bot 5m + EMA200 5m must agree
 
 score:
   weights: {cisd_before_c2_close: 25, choch_after_sweep: 20, bos_only: 10, osc_strength: 15, own_tp_rate: 15, bias_aligned: 15, htf_mso_agrees: 10}

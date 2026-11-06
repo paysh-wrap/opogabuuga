@@ -383,3 +383,19 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   other accounts still auto-execute and an approval is queued for the SEMI account(s) only.
 - The manual ticket is the user's own explicit order for one account, so the override does not block it (all risk
   checks still apply). Code: automation/controller.py override_allows (unit-tested truth table) + 2 flow tests.
+
+## D47 — Main strategy = trend-aligned 1.75R (user, 2026-11-06: "find the best intraday strategy … 1.75 R:R … still
+## save it as the main strategy — TradingAgents (the main component) is not connected yet")
+- Search: 7 years of real MGC (Databento MGC.v.0, May 2019 – Oct 2026), 5,768 filled setups, fixed 1.75R target,
+  ≤3-filter combinations (indicators, score, C1/ATR, T2 R:R, stop size, structure, hours, side, weekday): picked on
+  2019–2023 ONLY, judged on unseen 2024–2026 (docs/results/tools/best175.py, Results P).
+- No combination reaches 50% on the unseen years; 70% at 1.75R is not reachable with these setups. Even a PERFECT
+  daily bias (hindsight) lifts the chosen strategy only 41% → 49%.
+- Previous plan (D36 1R/2–3R mix + D37 best hours) re-measured with the engine on Nov 2024 – Oct 2026: 391 trades,
+  43% win, PF 0.87, −$1,201 (the 58% came from 22 sessions and did not hold).
+- New main (all Pro/Flex plans): trade_plan rr_min 1.75 / rr_max 1.8 (1.8 so tick rounding never drops a target
+  under 1.75R), filters.no_break_rr_cap null (no 1R targets), filters.trend utbot_5m + ema200_5m ON (trade only when
+  both agree with the direction), MGC intraday_windows removed (D37 hours hurt on unseen years: 38% → 30%), MGC
+  window 03:00–15:30 ET. Unchanged: every gate, score ≥ 60, C1 ≥ 0.4 ATR, risk tiers, Lucid rules, TradingAgents G2.
+- Offline at 1.75R: 2019–2023 60 tr 43% −0.01R · 2024–2026 44 tr 39% −0.01R (≈ break-even before bias).
+- Revert: git revert of the D47 commit (or switch the two trend filters off + rr 1.0/3.0 + no_break_rr_cap 1.0).
