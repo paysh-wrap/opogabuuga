@@ -917,9 +917,7 @@ class Controller:
                     t_mso, t_events = (by_profile or {}).get(t.profile, (mso, mso_events))
                     trend_against = (t_mso or {}).get("trend") == ("BEAR" if against == "SHORT" else "BULL")
                     opened_ms = int(t.opened_at.timestamp() * 1000)
-                    choch_against = any(
-                        e == "MSO_CHOCH" and d == against and ms >= opened_ms for e, d, ms in t_events
-                    )
+                    choch_against = any(e == "MSO_CHOCH" and d == against and ms >= opened_ms for e, d, ms in t_events)
                     worst = low if t.d is Direction.LONG else high
                     ev = await self.om.adverse_half(
                         t.trade_id, worst, r.internal.adverse_half_at, trend_against and choch_against, now

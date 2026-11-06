@@ -316,3 +316,8 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - User: model-fail cooldown does not apply in Scalp mode (`filters.model_fail_cooldown.in_scalp: false`).
 - Pro 25K, 18 sessions, neutral: 1:1 MGC 40 tr 65% PF1.56, MNQ 24 tr 50% PF2.06; Scalp MGC 22 tr 50% PF0.66
   (−$86), MNQ 16 tr 56% PF5.75. ~Half of placed limit orders don't fill (all modes).
+
+## D39 — fills/stops use only the finest live price feed (from session 4's "D37" WIP, merged + tested)
+- Controller.bar_feed_ok: 5-minute bars are ignored for fills/stops/management while 1-minute bars arrive (within
+  3 of their bars); falls back to the slower feed if the finer one goes silent. Half-off defence reads the trade's
+  own profile MSO. Test fixed (it checked after the 1-minute feed had gone silent).
