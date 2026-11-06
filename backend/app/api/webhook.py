@@ -176,6 +176,26 @@ def reveal_secret(request: Request, p: Principal = Depends(current_user)) -> dic
     return {"secret": secret}
 
 
+@router.post("/webhook/test-alert")
+async def test_alert(request: Request, p: Principal = Depends(current_user)) -> dict[str, Any]:
+    """Dry run of a pasted TradingView alert message: parse + secret check only. Nothing is stored, no signal or
+    heartbeat is recorded (a fake heartbeat would make a dead feed look fresh)."""
+    from app.webhook.parser_bridge import parse
+    from app.webhook.security import secret_ok
+
+    st = request.app.state
+    payload, rej = parse(await request.body(), st.rules.rules)
+    if rej is not None or payload is None:
+        return {"ok": False, "code": rej.code if rej else "BAD_JSON", "detail": rej.detail if rej else ""}
+    if not secret_ok(st.settings.webhook_secret.get_secret_value(), payload.secret.get_secret_value()):
+        return {"ok": False, "code": "BAD_SECRET", "detail": "secret does not match PAYTIENCE_WEBHOOK_SECRET"}
+    return {
+        "ok": True,
+        "code": "OK",
+        "detail": f"{payload.event} {payload.direction} {payload.symbol} {payload.profile} {payload.tf}",
+    }
+
+
 @router.get("/pine/{name}")
 def pine_file(name: str, _: Principal = Depends(current_user)) -> PlainTextResponse:
     fname = PINE_FILES.get(name)

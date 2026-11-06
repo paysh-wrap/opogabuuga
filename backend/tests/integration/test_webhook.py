@@ -124,6 +124,22 @@ def test_freshness_limits(wc, payload_fn, age, ok):
         assert r.json()["code"] == "STALE"
 
 
+def test_test_alert_is_a_dry_run(authed, clock):
+    clock.set(NOW)
+
+    def t(body):
+        return authed.post("/api/webhook/test-alert", content=body).json()
+
+    assert t(json.dumps(hb())) == {"ok": True, "code": "OK", "detail": "HEARTBEAT NONE MNQ1! TIGHT 1"}
+    assert t(json.dumps(hb(secret="wrong")))["code"] == "BAD_SECRET"
+    assert t("not json")["code"] == "BAD_JSON"
+    with authed.app.state.sessionmaker() as s:
+        assert s.query(Event).count() == 0  # nothing stored
+    assert authed.app.state.market.get("MNQ", "TIGHT") is None
+    authed.headers.pop("x-csrf-token")
+    assert authed.post("/api/webhook/test-alert", content="{}").status_code in (401, 403)
+
+
 def test_future_timestamp_rejected(wc):
     r = post(wc, hb(age_s=-60))
     assert r.status_code == 422 and r.json()["code"] == "FUTURE_TIMESTAMP"
