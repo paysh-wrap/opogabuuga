@@ -134,6 +134,7 @@ def test_dashboard_and_today(authed, clock):
     assert d["bias"]["MNQ"] == "LONG_ONLY" and a["trades_today"] == 1
     assert a["dll_left"] == "600.00" or float(a["dll_left"]) <= 600
     assert a["consistency_cap"] == "500.00" and a["target_left"] == "1250"
+    assert a["max_loss"] == "1000" and a["dll_limit"] == "600"
     t = authed.get("/api/today").json()
     assert t["signals"][0]["status"] == "PASS" and len(t["trades"]) == 1
 

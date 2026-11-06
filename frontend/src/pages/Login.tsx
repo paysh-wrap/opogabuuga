@@ -20,7 +20,7 @@ export default function Login() {
     try {
       await api("/api/auth/login", { method: "POST", body: JSON.stringify({ username, password }) });
       await qc.invalidateQueries();
-      nav("/dashboard");
+      nav("/today");
     } catch (x) {
       setErr(x instanceof ApiError ? x.message : "Cannot reach server");
     } finally {

@@ -110,7 +110,9 @@ async def _preflight(request: Request, db: Session) -> dict[str, Any]:
             conservative_mode=conservative_mode(c.adapter),
         )
     )
-    return {"ok": res.ok, "checks": res.checks, "failures": res.failures}
+    out = {"ok": res.ok, "checks": res.checks, "failures": res.failures}
+    st.last_preflight = {**out, "at": now.isoformat()}  # shown on the Today page
+    return out
 
 
 @router.post("/automation/preflight")
