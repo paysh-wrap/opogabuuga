@@ -22,7 +22,7 @@
 | Dashboard | next Friday payout estimate | missing | done (`/api/plan`) |
 | Dashboard | $50k / $70k progress | missing | done |
 | Signals | G1–G8, score, plan prices, C1 vs ATR, skip reason | done | done |
-| Signals | gross/net R, guard mode, risk profile, per-account result | partial | partial (unchanged) |
+| Signals | gross/net R, guard mode, risk profile, per-account result | partial | done (per-account results under each signal: contracts, risk profile, guard, gross/net R, P&L, exit) |
 | Trade | mode panel, approvals, manual ticket, positions, flatten, arm, pre-flight, attestation | done | done |
 | Trade | orders list | partial (positions only) | done (`GET /api/orders`: time, account, market, side/qty/kind, price, fills, status, source) |
 | Accounts | mapping, stage, drawdown type, DLL, arm, Eval Mode inherit/on/off, 1–5 selector + priority | done | done |

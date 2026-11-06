@@ -15,7 +15,7 @@ from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.clock import session_date
 from app.engine.filters import CooldownState
-from app.models import Cooldown, Signal, SignalGate, TradePlanRow
+from app.models import Account, Cooldown, Signal, SignalGate, Trade, TradePlanRow
 
 router = APIRouter(prefix="/api")
 CLEAR_PHRASE = "CLEAR COOLDOWN"
@@ -53,6 +53,24 @@ def _signal_json(s: Session, sig: Signal, full: bool = False) -> dict[str, Any]:
             "lock_price": str(p.lock_price) if p.lock_price is not None else None,
         }
         for p in plans
+    ]
+    trades = s.execute(
+        select(Trade, Account.label).join(Account, Account.id == Trade.account_id).where(Trade.signal_id == sig.id)
+    ).all()
+    out["results"] = [  # §18 per-account result: risk profile, guard mode, gross/net R, P&L
+        {
+            "account_id": tr.account_id,
+            "account": label,
+            "qty": tr.qty,
+            "risk_profile": tr.risk_profile_kind,
+            "guard_on": tr.guard_on,
+            "gross_r": str(tr.gross_r) if tr.gross_r is not None else None,
+            "net_r": str(tr.net_r) if tr.net_r is not None else None,
+            "pnl": str(tr.pnl_usd) if tr.pnl_usd is not None else None,
+            "exit_reason": tr.exit_reason,
+            "open": tr.closed_at is None,
+        }
+        for tr, label in trades
     ]
     if full:
         out["features"] = sig.features

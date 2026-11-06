@@ -35,6 +35,9 @@ def test_semi_auto_full_paper_lifecycle(authed, clock):
     hb(authed, clock, MS - MIN, close="20071")  # through the 2R target (20070)
     t = authed.get("/api/trades").json()["trades"][0]
     assert t["exit_reason"] == "TP" and float(t["pnl"]) > 0 and float(t["net_r"]) > 1.5
+    res = authed.get("/api/signals").json()["signals"][0]["results"]  # §18 per-account result on the signal
+    assert len(res) == 1 and res[0]["account"] == "E1" and res[0]["exit_reason"] == "TP" and not res[0]["open"]
+    assert float(res[0]["gross_r"]) >= float(res[0]["net_r"]) > 1.5 and res[0]["risk_profile"] and "guard_on" in res[0]
     assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []
 
 

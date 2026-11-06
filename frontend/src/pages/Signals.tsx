@@ -5,11 +5,17 @@ import { usePageTitle } from "../components/usePageTitle";
 import { etDateTime } from "../lib/time";
 
 interface Gate { gate: string; passed: boolean; code?: string; hard?: boolean; detail?: unknown }
+interface AcctResult { account_id: number; account: string; qty: number; risk_profile: string; guard_on: boolean; gross_r: string | null; net_r: string | null; pnl: string | null; exit_reason: string | null; open: boolean }
 interface Plan { mode: string; entry: string; stop: string; take_profit: string; rr: string }
 export interface Sig {
   id: number; symbol: string; profile: string; direction: string; status: string; skip_reason: string | null;
-  score: string | null; c1_range_atr: string | null; confirmed_at: string; gates: Gate[]; plans: Plan[];
+  score: string | null; c1_range_atr: string | null; confirmed_at: string; gates: Gate[]; plans: Plan[]; results?: AcctResult[];
 }
+const usd = (v: string | null) => {
+  if (v == null) return "–";
+  const n = Number(v);
+  return (n >= 0 ? "▲ +$" : "▼ −$") + Math.abs(n).toFixed(2);
+};
 const GATES = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"];
 
 function GateCell({ g }: { g?: Gate }) {
@@ -62,6 +68,16 @@ export default function Signals() {
                           <div key={p.mode}>{p.mode}: entry <b className="text-gold">{p.entry}</b> · stop <b className="text-gold">{p.stop}</b>{" "}
                             · target <b className="text-gold">{p.take_profit}</b> · R:R <b className="text-gold">{p.rr}</b></div>
                         ))}
+                        {(s.results ?? []).length > 0 && (
+                          <div className="mt-1" data-testid={`results-${s.id}`}>
+                            {(s.results ?? []).map((r) => (
+                              <div key={r.account_id}>
+                                <b className="text-gold">{r.account}</b> · {r.qty} ct · {r.risk_profile} risk · guard {r.guard_on ? "ON" : "OFF"} ·{" "}
+                                {r.open ? "open" : <>gross {r.gross_r ?? "–"}R · net <b className="text-gold">{r.net_r ?? "–"}R</b> · {usd(r.pnl)} · {r.exit_reason ?? ""}</>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   )}

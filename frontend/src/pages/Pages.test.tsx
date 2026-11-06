@@ -14,7 +14,8 @@ function mock(calls: string[]) {
     if (u.startsWith("/api/signals")) return j({ signals: [{ id: 7, symbol: "MNQ", profile: "TIGHT", direction: "LONG", status: "SKIP",
       skip_reason: "RR_BELOW_MIN", score: "72", c1_range_atr: "1.2", confirmed_at: "2026-11-05T15:00:00+00:00",
       gates: [{ gate: "G1", passed: true }, { gate: "G7", passed: false, code: "RR_BELOW_MIN" }],
-      plans: [{ mode: "OFF", entry: "20000", stop: "19981", take_profit: "20040", rr: "2.1" }] }] });
+      plans: [{ mode: "OFF", entry: "20000", stop: "19981", take_profit: "20040", rr: "2.1" }],
+      results: [{ account_id: 1, account: "E1", qty: 2, risk_profile: "standard", guard_on: true, gross_r: "2.05", net_r: "1.98", pnl: "-12.5", exit_reason: "TP", open: false }] }] });
     if (u.startsWith("/api/logs")) return j({ logs: [{ id: 1, at: "2026-11-05T15:00:00+00:00", actor: "admin", action: "cooldown.cleared", entity: "TIGHT", payload: { rows: 1 } }],
       actions: ["cooldown.cleared"], chain_ok: true, chain_first_bad_id: null });
     if (u === "/api/automation") return j({ mode: "SEMI-AUTO" });
@@ -37,6 +38,7 @@ test("Signals shows gates, reason and plan prices", async () => {
   expect(screen.getByTestId("signal-7")).toHaveTextContent("▲ LONG");
   await userEvent.click(screen.getByRole("button", { name: "Plan" }));
   expect(screen.getByTestId("plan-7")).toHaveTextContent("19981");
+  expect(screen.getByTestId("results-7")).toHaveTextContent("E1 · 2 ct · standard risk · guard ON · gross 2.05R · net 1.98R · ▼ −$12.50 · TP");
   expect(document.title).toBe("Paytience · Signals");
 });
 
