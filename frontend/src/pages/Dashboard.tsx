@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import Markets from "../components/Markets";
+import MarketPanel from "../components/MarketPanel";
 
 interface Acct {
   id: number; label: string; stage: string; paper: boolean; armed: boolean; paused: string | null; error?: string;
@@ -50,6 +51,7 @@ export default function Dashboard() {
         <Kpi k="Automation" v={<span className="inline-flex items-center gap-2"><span className={`live-dot ${d.mode === "OFF" ? "live-off" : ""}`} />{d.mode}</span>} />
       </div>
       <Markets />
+      <MarketPanel />
       <p className="text-sm">Session {d.session} · Automation <b className="text-gold">{d.mode}</b> · Bias:{" "}
         {Object.entries(d.bias).map(([s, b]) => <span key={s} className="mr-2">{s} <b className="text-gold">{b}</b></span>)}
       </p>

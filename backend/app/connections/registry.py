@@ -281,9 +281,16 @@ PROVIDERS: tuple[Provider, ...] = (
         name="OpenBB (market data — no key needed)",
         category="data",
         testable=False,
-        purpose="Free daily MGC/MNQ data (Yahoo Finance via OpenBB) for research. Information only; signals still "
-        "come from TradingView webhooks and bias from TradingAgents.",
-        links=(Link("OpenBB", "https://github.com/OpenBB-finance/OpenBB"),),
+        purpose="Free daily MGC/MNQ data (Yahoo Finance via OpenBB) — live on the Dashboard 'Markets · OpenBB' panel "
+        "(runs in its own uvx process, refreshed every 5 min). Information only; signals still come from TradingView "
+        "webhooks and bias from TradingAgents.",
+        links=(
+            Link("OpenBB", "https://github.com/OpenBB-finance/OpenBB"),
+            Link(
+                "OpenBB MCP server",
+                "https://github.com/OpenBB-finance/OpenBB/tree/develop/openbb_platform/extensions/mcp_server",
+            ),
+        ),
     ),
     Provider(
         id="forexfactory",
