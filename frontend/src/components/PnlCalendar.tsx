@@ -22,7 +22,7 @@ function Grid({ series, largest, cap }: { series: Series; largest?: string; cap?
             <tr key={w.start}>
               {w.days.map((c, i) => {
                 const n = Number(c?.pnl ?? 0);
-                const a = c ? 0.12 + 0.45 * (Math.abs(n) / max) : 0;
+                const a = c ? 0.06 + 0.19 * (Math.abs(n) / max) : 0; // ≤ 0.25 keeps gold text ≥ 4.5:1 (WCAG AA)
                 const bg = !c ? "transparent" : n >= 0 ? `rgba(212,175,55,${a})` : `rgba(59,130,246,${a})`;
                 const isLargest = c != null && c.date === largest;
                 return (

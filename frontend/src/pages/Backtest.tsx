@@ -75,7 +75,7 @@ export default function Backtest() {
         <label className="flex flex-col">Drawdown (guard)<select aria-label="Drawdown type" value={opt.drawdown_type} onChange={(e) => setOpt({ ...opt, drawdown_type: e.target.value })}>
           <option value="">Stage default (guard auto)</option><option value="intraday">Intraday trailing (guard ON)</option><option value="eod">EOD trailing (guard OFF)</option></select></label>
         <button className={`${btn} border-gold text-gold`} disabled={!file || start.isPending} onClick={() => start.mutate(null)}>{start.isPending ? "Uploading…" : "Run backtest"}</button>
-        <span className="flex items-end gap-1">
+        <span className="flex flex-wrap items-end gap-1">
           <select aria-label="Comparison pair" value={pair} onChange={(e) => setPair(e.target.value)}>
             <option value="guard">Guard ON vs OFF</option><option value="eval">Eval Mode ON vs OFF</option><option value="bias">Bias ablation (recorded vs NEUTRAL)</option></select>
           <button className={`${btn} border-blue text-blue`} disabled={!file || start.isPending} onClick={() => start.mutate(pair)}>Run comparison pair</button>
