@@ -226,3 +226,16 @@ NEXT (in order):
   → study an R:R buffer at entry; (3) approval E2E with live webhooks (clock-dependent, not built).
 - USER: add Anthropic key (Connections → TradingAgents) or bias = NO_TRADE; rotate the Databento key pasted in
   session 7; confirm VERIFY values in the Lucid dashboard (Flex DLL, Pro funded DLL, MGC fees, CrossTrade symbol).
+
+## Session 8 (cont.) — D47 MAIN STRATEGY (2026-11-06 evening) — read docs/STRATEGY_MAIN.md first
+- User: "find the best intraday strategy (70% at 1.75R), use all data; if unprofitable still save it as the main
+  strategy — TradingAgents (main component) not connected yet". Done:
+  - Live plan re-measured in the engine on Nov 2024 – Oct 2026: 391 tr 43% −$1,201 → the 58% did not hold.
+  - Hold-out search on all MGC data (best175.py): nothing ≥ 50% at 1.75R on unseen 2024–26; 70% not reachable.
+    Perfect daily bias ceiling 49%.
+  - D47 saved in all Pro/Flex plans: rr 1.75–1.8, no 1R targets, UT Bot 5m + EMA200 5m ON, MGC 03:00–15:30.
+    Offline 43% / 39% at 1.75R (≈ break-even before bias). test_main_strategy_d47 locks it. 542 + 52 tests pass.
+- Data NOT in git (re-create): data/futures/mgc_databento_v_full_1m.csv (dbchunks.py), data/research7y
+  (research_par.sh + research_rr1.yaml), data/plan7y (live plan, 24 months), data/main2y (D47 engine run).
+- NEXT: connect TradingAgents (user key) → paper-trade D47 ≥ 30 trades with the bias; options awaiting approval:
+  20-day-trend fallback bias; keep better-than-planned fills (pillar §7 recheck).
