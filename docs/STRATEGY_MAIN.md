@@ -1,4 +1,7 @@
-# Main strategy (D49) — trend-aligned 1.5–2.5R on Micro Gold, Nasdaq and S&P
+# Main strategy (D49 + D50) — trend-aligned 1.5–2.5R on Micro Gold and Micro Nasdaq
+
+**D50 (latest):** MGC + MNQ only (MES off), max 3 trades/day, TradingAgents blocks a side only on BUY/SELL
+(OVERWEIGHT/HOLD/UNDERWEIGHT allow both sides). See docs/DECISIONS.md D50 for the trades/day reality check.
 
 Live in every Pro/Flex plan (`config/rules/lucid_{pro,flex}_*.yaml`), locked by
 `backend/tests/unit/test_plans.py::test_main_strategy_d49`. History: D47 (1.75R, MGC only) → D49 (user: "it can even

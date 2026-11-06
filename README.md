@@ -1,7 +1,7 @@
 # Paytience
 
-Automated confluence trading app for 1–5 Lucid Trading (Pro/Flex) accounts on **Micro Gold (MGC), Micro Nasdaq
-(MNQ) and Micro S&P (MES)** futures. Signals come **only** from TradingView webhooks. Orders go **only** through the
+Automated confluence trading app for 1–5 Lucid Trading (Pro/Flex) accounts on **Micro Gold (MGC) and Micro Nasdaq
+(MNQ)** futures (max 3 trades/day per account). Signals come **only** from TradingView webhooks. Orders go **only** through the
 broker connection. The app never logs into, scrapes, or clicks around TradingView or Lucid.
 
 > **Status: complete and running in PAPER mode by default.** Strategy, risk engine (every Lucid rule checked before
@@ -61,8 +61,8 @@ licenses mean this project is for personal use only.
 
 ## TradingView alert setup (step by step)
 1. Connections page → **TradingView setup** → download `Paytience_Bridge.pine`.
-2. TradingView → open **MGC1!** (Micro Gold), **MNQ1!** (Micro Nasdaq) and **MES1!** (Micro S&P) charts: **1-minute**
-   for profile TIGHT, **5-minute** for STD (one chart + one alert per market per profile = 6 alerts).
+2. TradingView → open **MGC1!** (Micro Gold) and **MNQ1!** (Micro Nasdaq) charts: **1-minute** for profile
+   TIGHT, **5-minute** for STD (one chart + one alert per market per profile = 4 alerts).
 3. Pine Editor → paste the script → **Add to chart**.
 4. Indicator settings → paste the **Webhook secret** (Connections page → Reveal) → choose the profile.
 5. Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
