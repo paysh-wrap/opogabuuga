@@ -19,6 +19,7 @@ from app.api.backtest import router as backtest_router
 from app.api.dashboard import router as dashboard_router
 from app.api.lab import router as lab_router
 from app.api.live import router as live_router
+from app.api.insights import router as insights_router
 from app.api.payouts import router as payouts_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
@@ -348,6 +349,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(live_router)
     app.include_router(dashboard_router)
     app.include_router(payouts_router)
+    app.include_router(insights_router)
     app.include_router(backtest_router)
     app.include_router(lab_router)
 
