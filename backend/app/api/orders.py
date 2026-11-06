@@ -3,7 +3,8 @@
 No bypass: the ticket becomes a MANUAL signal with a §7 TradePlan (same R:R window, tick rounding, min stop) and is
 executed through Controller.execute — the exact path automated orders take (account ready/armed/attested, payout
 pending, one position, HEDGE_LOCK, pause floor, kill distance, DLL, day stops, consistency cap, sizing, Drawdown
-Guard, RR-after-fill, PAPER/LIVE routing + Live-Readiness gate). On top: entry hours (G1 windows), flatten time, news blackout, enabled market.
+Guard, RR-after-fill, PAPER/LIVE routing + Live-Readiness gate).
+On top: entry hours (G1 windows), flatten time, news blackout, enabled market.
 Orders are stored with source MANUAL (never disguised as automation and vice versa).
 """
 
