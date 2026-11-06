@@ -24,7 +24,7 @@
 | Signals | G1–G8, score, plan prices, C1 vs ATR, skip reason | done | done |
 | Signals | gross/net R, guard mode, risk profile, per-account result | partial | partial (unchanged) |
 | Trade | mode panel, approvals, manual ticket, positions, flatten, arm, pre-flight, attestation | done | done |
-| Trade | orders list | partial (positions only) | partial |
+| Trade | orders list | partial (positions only) | done (`GET /api/orders`: time, account, market, side/qty/kind, price, fills, status, source) |
 | Accounts | mapping, stage, drawdown type, DLL, arm, Eval Mode inherit/on/off, 1–5 selector + priority | done | done |
 | Accounts | Lucid link, inactivity | done | done (E2E) |
 | Accounts | history | missing | done (audit log per account) |

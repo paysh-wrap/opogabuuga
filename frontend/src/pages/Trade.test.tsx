@@ -18,6 +18,7 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/accounts") return j({ accounts: [
       { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null },
       { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null }] });
+    if (u === "/api/orders?limit=25") return j({ orders: [{ id: 7, created_at: "2026-11-06T15:00:00+00:00", account: "E1", symbol: "MGC", kind: "bracket", side: "SELL", qty: 2, price: "4100.5", status: "FILLED", source: "MANUAL", filled_qty: 2, avg_fill: "4100.40" }] });
     if (u === "/api/dashboard") return j({ accounts: [{ id: 1, idle_days: 25, idle_alert_days: 21 }] });
     if (u === "/api/health") return j({ mode: "PAPER" });
     if (u === "/api/rules") return j({ rules: { schedule: { preflight: "02:50", sync: ["18:00", "16:50"] }, automation: { default_mode: "OFF", accounts_to_trade: 5, selection_mode: "priority", semi_auto_sessions_per_stage: 5, require_external_attestation: true, auto_resume_after_recovery: { paper: true, live: false } } }, verify_paths: ["a.b"] });
@@ -38,6 +39,8 @@ test("Trade: approvals execute/skip, positions, arming gated on attestation, FLA
   expect(await screen.findByTestId("approval-9")).toBeInTheDocument();
   expect(await screen.findByTestId("position-1")).toHaveTextContent("▼ SHORT 2");
   expect(document.title).toBe("Paytience · Trade");
+  expect(await screen.findByTestId("order-7")).toHaveTextContent("▼ SELL 2 bracket");
+  expect(screen.getByTestId("order-7")).toHaveTextContent("2 @ 4100.40");
   expect(await screen.findByTestId("arm-1")).toBeDisabled(); // not attested
   await userEvent.click(screen.getByRole("button", { name: "Execute all selected" }));
   expect(calls).toContain("POST /api/signals/9/execute {}");

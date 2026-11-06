@@ -9,7 +9,7 @@ import pytest
 from starlette.websockets import WebSocketDisconnect
 
 from app.events import EVENTS, EventBus, UnknownEvent
-from app.models import Account, BacktestRun, BacktestTrade, DailyAccountStats, Notification, Order, Payout, Trade
+from app.models import Account, BacktestRun, BacktestTrade, DailyAccountStats, Fill, Notification, Order, Payout, Trade
 from tests.integration.test_automation_flow import setup
 
 
@@ -144,6 +144,12 @@ def test_manual_order_goes_through_full_risk_path(authed, clock):
     assert any(c["check"] == "hedge_lock" for c in j["result"]["checks"])  # same pretrade checks as automation
     with authed.app.state.sessionmaker() as s:
         assert {o.source for o in s.query(Order).all()} == {"MANUAL"}
+    orders = authed.get("/api/orders").json()["orders"]
+    assert len(orders) == 1 and orders[0]["source"] == "MANUAL" and orders[0]["account_id"] == aid
+    assert orders[0]["kind"] == "bracket" and orders[0]["symbol"] == "MNQ" and orders[0]["account"] == "E1"
+    assert orders[0]["status"] == "WORKING" and orders[0]["filled_qty"] == 0 and orders[0]["avg_fill"] is None
+    assert len(authed.get("/api/orders?limit=1").json()["orders"]) == 1
+    assert authed.get("/api/orders?limit=0").status_code == 422
     again = authed.post("/api/orders/manual", json=body).json()["result"]
     assert again["ok"] is False and again["reason"] == "POSITION_OPEN"  # max 1 position, no bypass
     logs = [x["action"] for x in authed.get("/api/logs").json()["logs"]]
@@ -329,3 +335,22 @@ def test_manual_order_outside_entry_hours(authed, clock, monkeypatch):
     body = {"account_id": aid, "symbol": "MNQ", "direction": "LONG", "stop": "19980", "take_profit": "20040"}
     r = authed.post("/api/orders/manual", json=body)
     assert r.status_code == 409 and r.json()["detail"].startswith("OUTSIDE_WINDOW")
+
+
+def test_orders_list_newest_first_with_fills(authed, clock):
+    aid = setup(authed, clock)
+    with authed.app.state.sessionmaker() as s:
+        a = Order(account_id=aid, kind="bracket", side="BUY", qty=2, price=D("100"), status="FILLED", source="AUTO")
+        b = Order(account_id=aid, kind="tp", side="SELL", qty=2, price=D("110"), status="WORKING", source="AUTO")
+        s.add_all([a, b])
+        s.flush()
+        s.add_all(
+            [
+                Fill(order_id=a.id, qty=1, price=D("100"), filled_at=clock.now()),
+                Fill(order_id=a.id, qty=1, price=D("100.5"), filled_at=clock.now()),
+            ]
+        )
+        s.commit()
+    o = authed.get("/api/orders").json()["orders"]
+    assert [x["kind"] for x in o] == ["tp", "bracket"] and o[0]["symbol"] is None
+    assert o[1]["filled_qty"] == 2 and o[1]["avg_fill"] == "100.25"

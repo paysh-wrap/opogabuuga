@@ -15,8 +15,9 @@ from decimal import Decimal
 from typing import Any, Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import audit
@@ -25,7 +26,7 @@ from app.api.insights import news_blackouts
 from app.clock import session_date
 from app.engine.filters import in_windows
 from app.engine.trade_plan import Direction, Skip, build_trade_plan
-from app.models import Account, Signal, TradePlanRow
+from app.models import Account, Fill, Order, Signal, TradePlanRow
 
 router = APIRouter(prefix="/api")
 
@@ -36,6 +37,48 @@ class ManualIn(BaseModel):
     direction: Literal["LONG", "SHORT"]
     stop: Decimal = Field(gt=0)
     take_profit: Decimal = Field(gt=0)
+
+
+@router.get("/orders")
+def list_orders(
+    limit: int = Query(50, ge=1, le=500), _: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    """Latest orders (all accounts), newest first, with account label and average fill price (§18 Trade page)."""
+    rows = db.execute(
+        select(Order, Account.label, Signal.symbol)
+        .join(Account, Account.id == Order.account_id)
+        .outerjoin(Signal, Signal.id == Order.signal_id)
+        .order_by(Order.id.desc())
+        .limit(limit)
+    ).all()
+    ids = [o.id for o, _, _ in rows]
+    fills: dict[int, list[Fill]] = {}
+    for f in db.execute(select(Fill).where(Fill.order_id.in_(ids))).scalars():
+        fills.setdefault(f.order_id, []).append(f)
+    out = []
+    for o, label, symbol in rows:
+        fs = fills.get(o.id, [])
+        qty = sum(f.qty for f in fs)
+        avg = sum((f.price * f.qty for f in fs), Decimal(0)) / qty if qty else None
+        out.append(
+            {
+                "id": o.id,
+                "created_at": o.created_at.isoformat(),
+                "account_id": o.account_id,
+                "account": label,
+                "signal_id": o.signal_id,
+                "symbol": symbol,
+                "kind": o.kind,
+                "side": o.side,
+                "qty": o.qty,
+                "price": str(o.price) if o.price is not None else None,
+                "status": o.status,
+                "source": o.source,
+                "filled_qty": qty,
+                "avg_fill": str(avg.quantize(Decimal("0.01"))) if avg is not None else None,
+            }
+        )
+    return {"orders": out}
 
 
 def _refuse(code: int, reason: str) -> HTTPException:

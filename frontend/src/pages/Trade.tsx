@@ -16,6 +16,7 @@ interface Status {
 }
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
 interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; paper: boolean }
+interface Ord { id: number; created_at: string; account: string; symbol: string | null; kind: string; side: string; qty: number; price: string | null; status: string; source: string; filled_qty: number; avg_fill: string | null }
 interface Pos { account_id: number; label: string; balance?: string; open_pnl?: string; mll?: string; positions: { symbol: string; qty: number; avg: string }[]; error?: string }
 
 const FLATTEN_PHRASE = "FLATTEN ALL"; // must match backend FLATTEN_PHRASE
@@ -35,7 +36,8 @@ export default function Trade() {
   const pf = useQuery({ queryKey: ["preflight"], queryFn: () => api<Preflight>("/api/automation/preflight", { method: "POST" }), refetchInterval: 30000 });
   const accts = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[] }>("/api/accounts"), refetchInterval: 10000 });
   const pos = useQuery({ queryKey: ["positions"], queryFn: () => api<{ accounts: Pos[] }>("/api/positions"), refetchInterval: 5000 });
-  const refresh = () => ["automation", "preflight", "accounts", "positions"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
+  const ords = useQuery({ queryKey: ["orders"], queryFn: () => api<{ orders: Ord[] }>("/api/orders?limit=25"), refetchInterval: 5000 });
+  const refresh = () => ["automation", "preflight", "accounts", "positions", "orders"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] }));
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
     onMutate: () => setErr(""),
@@ -96,7 +98,33 @@ export default function Trade() {
             ))}
           </tbody></table>
         )}
-        <p className="mt-2 text-xs">Working orders are not reported by the broker adapter yet; only positions are shown.</p>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4">
+        <h2 className="font-semibold text-gold">Orders</h2>
+        {ords.isLoading && <p role="status" className="text-sm">Loading…</p>}
+        {ords.error && <p role="alert" className="text-sm text-goldLight">⚠ Cannot load orders.</p>}
+        {ords.data && ords.data.orders.length === 0 && <p className="text-sm">No orders yet.</p>}
+        {ords.data && ords.data.orders.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="mt-2 w-full min-w-[34rem] text-sm">
+              <thead><tr className="text-left text-xs">
+                <th className="py-1">Time (ET)</th><th>Account</th><th>Market</th><th>Order</th><th>Price</th><th>Filled</th><th>Status</th><th>Source</th>
+              </tr></thead>
+              <tbody>
+                {ords.data.orders.map((o) => (
+                  <tr key={o.id} data-testid={`order-${o.id}`} className="border-t border-border">
+                    <td className="py-1">{etTime(o.created_at)}</td><td className="text-gold">{o.account}</td><td>{o.symbol ?? "—"}</td>
+                    <td>{o.side === "BUY" ? "▲ BUY" : "▼ SELL"} {o.qty} {o.kind}</td><td>{o.price ?? "MKT"}</td>
+                    <td>{o.filled_qty > 0 ? `${o.filled_qty} @ ${o.avg_fill}` : "—"}</td>
+                    <td>{o.status}</td><td>{o.source}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-2 text-xs">Latest 25 orders on all accounts. MANUAL = your ticket, AUTO/SEMI = automation.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
