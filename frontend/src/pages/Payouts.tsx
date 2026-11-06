@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import PnlCalendar from "../components/PnlCalendar";
 
 interface P { id: number; label: string; week: string; kind: string; amount: string; balance_before: string; status: string }
 const btn = "rounded-md border px-3 py-1 text-sm font-semibold disabled:opacity-50";
@@ -42,6 +43,7 @@ export default function Payouts() {
           ))}
         </tbody></table>
       </section>
+      <PnlCalendar />
     </div>
   );
 }

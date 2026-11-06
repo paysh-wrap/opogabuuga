@@ -37,7 +37,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route index element={<Navigate to="/today" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/today" element={<Today />} />
         <Route path="/payouts" element={<Payouts />} />

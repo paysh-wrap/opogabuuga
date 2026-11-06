@@ -41,12 +41,12 @@ await step("wrong password shows an error", async () => {
   expect((await page.getByRole("alert").textContent()).includes("invalid"), "no error text");
 });
 
-await step("correct password logs in and lands on Dashboard", async () => {
+await step("correct password logs in and lands on Today", async () => {
   await page.getByLabel("Password").fill(PW);
   await page.getByRole("button", { name: "Sign in" }).click();
-  await page.waitForURL("**/dashboard");
-  await page.getByRole("heading", { name: "Dashboard" }).waitFor();
-  expect((await page.title()) === "Paytience · Dashboard", "dashboard title");
+  await page.waitForURL("**/today");
+  await page.getByRole("heading", { name: "Today" }).waitFor();
+  expect((await page.title()) === "Paytience · Today", "today title");
   await page.goto(BASE + "/connections");
   await page.getByRole("heading", { name: "Connections & API keys" }).waitFor();
   expect((await page.title()) === "Paytience · Connections", "title");
