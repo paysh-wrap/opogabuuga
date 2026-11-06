@@ -50,7 +50,7 @@
 | Connections | test alert | missing | done (dry-run `POST /api/webhook/test-alert`, nothing stored) |
 | Journal & Logs | search, snapshots, CSV | done | done |
 | Settings | mode, notifications, schedule, auto-resume, checklist, purchase gate | done | done |
-| Settings | weights | partial | partial |
+| Settings | weights | partial | done (read-only score weights + share bars, min scores; Lab-only tuning 50–150% per §17.2) |
 | Today (§24.1) | eval pace from `/api/accounts/{id}/eval-pace` | partial | done |
 
 Safety fix found by the E2E: arming a first-sessions account while FULL-AUTO kept FULL; it now downgrades to

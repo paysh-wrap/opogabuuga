@@ -16,6 +16,7 @@ interface Rules {
       require_external_attestation: boolean;
       auto_resume_after_recovery: { paper: boolean; live: boolean };
     };
+    score?: { weights: Record<string, number | string>; min_score: number | string; neutral_min_score: number | string; osc_strength_min: number | string };
   };
   verify_paths: string[];
 }
@@ -99,6 +100,27 @@ export default function Settings() {
           <p className="mt-2 text-xs">Auto-resume after recovery: paper {r.automation.auto_resume_after_recovery.paper ? "yes" : "no"}, live {r.automation.auto_resume_after_recovery.live ? "yes" : "no"} ·
             attestation {r.automation.require_external_attestation ? "required" : "not required"} · up to {r.automation.accounts_to_trade} accounts.</p>
         )}
+      </Section>
+
+      <Section title="Score weights" loading={rules.isLoading} error={!!rules.error}>
+        {r?.score && (() => {
+          const w = Object.entries(r.score.weights).map(([k, v]) => [k, Number(v)] as const);
+          const total = w.reduce((s, [, v]) => s + v, 0) || 1;
+          return (
+            <>
+              <table data-testid="settings-weights" className="mt-2 w-full text-sm"><tbody>
+                {w.map(([k, v]) => (
+                  <tr key={k} className="border-t border-border">
+                    <td className="py-1">{k.replace(/_/g, " ")}</td><td className="text-right font-mono text-gold">{v}</td>
+                    <td className="w-1/3 pl-3"><div className="h-1.5 rounded bg-border"><div className="h-1.5 rounded bg-blue" style={{ width: `${Math.round((v / total) * 100)}%` }} /></div></td>
+                  </tr>
+                ))}
+              </tbody></table>
+              <p className="mt-2 text-xs">Score decides position size only (never whether a gate passes). Minimum score {String(r.score.min_score)} · neutral-bias minimum {String(r.score.neutral_min_score)} · oscillator strength ≥ {String(r.score.osc_strength_min)}.
+                Weights are tuned only by the Strategy Lab, within 50–150% each (§17.2).</p>
+            </>
+          );
+        })()}
       </Section>
 
       <BrowserNotifications />

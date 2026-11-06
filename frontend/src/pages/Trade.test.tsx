@@ -21,7 +21,7 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/orders?limit=25") return j({ orders: [{ id: 7, created_at: "2026-11-06T15:00:00+00:00", account: "E1", symbol: "MGC", kind: "bracket", side: "SELL", qty: 2, price: "4100.5", status: "FILLED", source: "MANUAL", filled_qty: 2, avg_fill: "4100.40" }] });
     if (u === "/api/dashboard") return j({ accounts: [{ id: 1, idle_days: 25, idle_alert_days: 21 }] });
     if (u === "/api/health") return j({ mode: "PAPER" });
-    if (u === "/api/rules") return j({ rules: { schedule: { preflight: "02:50", sync: ["18:00", "16:50"] }, automation: { default_mode: "OFF", accounts_to_trade: 5, selection_mode: "priority", semi_auto_sessions_per_stage: 5, require_external_attestation: true, auto_resume_after_recovery: { paper: true, live: false } } }, verify_paths: ["a.b"] });
+    if (u === "/api/rules") return j({ rules: { schedule: { preflight: "02:50", sync: ["18:00", "16:50"] }, automation: { default_mode: "OFF", accounts_to_trade: 5, selection_mode: "priority", semi_auto_sessions_per_stage: 5, require_external_attestation: true, auto_resume_after_recovery: { paper: true, live: false } }, score: { weights: { cisd_before_c2_close: 25, choch_after_sweep: 20 }, min_score: 60, neutral_min_score: 60, osc_strength_min: 20 } }, verify_paths: ["a.b"] });
     if (u === "/api/connections") return j({ connections: [{ id: "x", name: "Telegram", status: "not_set", required: false }] });
     if (u === "/api/gate/purchase") return j({ run_id: null, passed: false, unmeasured: ["violations"], checks: [{ key: "trades", label: "Backtest trades", need: ">= 100", value: null, ok: null }] });
     return j({});
@@ -99,4 +99,6 @@ test("Settings: mode, schedule, connections and purchase gate from the API", asy
   expect(await screen.findByTestId("gate-status")).toHaveTextContent("Not passed");
   expect(screen.getByTestId("gate-trades")).toHaveTextContent("not tracked");
   expect(document.title).toBe("Paytience · Settings");
+  expect(await screen.findByTestId("settings-weights")).toHaveTextContent("cisd before c2 close25");
+  expect(screen.getByText(/neutral-bias minimum 60/)).toBeInTheDocument();
 });
