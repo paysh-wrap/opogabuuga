@@ -47,8 +47,9 @@ export default function Backtest() {
         <label className="flex flex-col">Stage<select value={opt.stage} onChange={(e) => setOpt({ ...opt, stage: e.target.value })}><option>EVAL</option><option>FUNDED</option><option>LIVE</option></select></label>
         <label className="flex flex-col">Bias<select value={opt.bias} onChange={(e) => setOpt({ ...opt, bias: e.target.value })}>
           <option value="recorded">Recorded TradingAgents only</option><option>NEUTRAL</option><option>LONG_ONLY</option><option>SHORT_ONLY</option></select></label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={opt.one_to_one} onChange={(e) => setOpt({ ...opt, one_to_one: e.target.checked })} />1:1 mode</label>
-        <label className="flex items-center gap-1"><input type="checkbox" checked={opt.scalp} onChange={(e) => setOpt({ ...opt, scalp: e.target.checked })} />Scalp mode</label>
+        <label className="flex flex-col">Trading mode<select aria-label="Trading mode" value={opt.scalp ? "scalp" : opt.one_to_one ? "1to1" : "intraday"}
+          onChange={(e) => setOpt({ ...opt, scalp: e.target.value === "scalp", one_to_one: e.target.value === "1to1" })}>
+          <option value="intraday">Intraday (best hours)</option><option value="scalp">Scalp</option><option value="1to1">1:1</option></select></label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.low_risk} onChange={(e) => setOpt({ ...opt, low_risk: e.target.checked })} />Lower risk</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.eval_mode} onChange={(e) => setOpt({ ...opt, eval_mode: e.target.checked })} />Evaluation Mode</label>
         <button className={`${btn} border-gold text-gold`} disabled={!file || start.isPending} onClick={() => start.mutate()}>{start.isPending ? "Uploading…" : "Run backtest"}</button>

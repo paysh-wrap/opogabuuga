@@ -87,19 +87,10 @@ export default function Risk() {
           {low.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold text-gold">Scalp mode {s.settings["scalp_mode.enabled"] === true ? "· ON" : "· OFF"}</h2>
-        <p className="text-xs">Quick trades on the same signals, only when the high-win-rate 1:1 filters pass (proven T1 hit rate ≥ 65%, CHoCH, bias + HTF agree, normal volatility, after news).
-          With 2+ micros: half banks {String(s.settings["scalp_mode.target_r"] ?? "0.5")}R fast, then the other half runs: stop moves to breakeven and trails {String(s.settings["scalp_mode.trail_r"] ?? "0.5")}R behind (aims for {String(s.settings["scalp_mode.runner_r"] ?? "2")}R or the close of the day). If nothing is hit within ~{String(s.settings["scalp_mode.max_hold_s"] ?? 60)} s the trade is closed. The stop is never widened. Gold + Nasdaq micros. Must prove itself in Backtest first.</p>
-        <button data-testid="scalp" className={`${btn} mt-2 ${s.settings["scalp_mode.enabled"] === true ? "border-gold text-gold" : "border-blue text-blue"}`}
-          onClick={() => save({ "scalp_mode.enabled": s.settings["scalp_mode.enabled"] !== true })}>{s.settings["scalp_mode.enabled"] === true ? "ON — turn off" : "OFF — turn on"}</button>
-      </section>
-
-      <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold text-gold">1:1 mode</h2>
-        <p className="text-xs">Target 1R · 50% off at 0.75R then breakeven · max 3 losses/day · never over consistency.</p>
-        <button data-testid="one-to-one" className={`${btn} mt-2 ${oneToOne ? "border-gold text-gold" : "border-blue text-blue"}`}
-          onClick={() => save({ "one_to_one_mode.enabled": !oneToOne })}>{oneToOne ? "ON — turn off" : "OFF — turn on"}</button>
+      <section className="rounded-xl border border-border bg-card p-4 text-xs">
+        <h2 className="text-sm font-semibold text-gold">How Scalp and 1:1 exit</h2>
+        <p className="mt-1"><b className="text-gold">Scalp</b> — same signals as Intraday, full hours. With 2+ micros half banks {String(s.settings["scalp_mode.target_r"] ?? "0.5")}R fast, the rest moves to breakeven and trails {String(s.settings["scalp_mode.trail_r"] ?? "0.5")}R behind (aims for {String(s.settings["scalp_mode.runner_r"] ?? "2")}R). Closed if nothing is hit within ~{String(s.settings["scalp_mode.max_hold_s"] ?? 60)} s. The stop is never widened.</p>
+        <p className="mt-1"><b className="text-gold">1:1</b> — same signals, full hours. Target 1R · 50% off at 0.75R then breakeven · max 3 losses/day · never over consistency.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
@@ -142,14 +133,15 @@ export default function Risk() {
       <section className="rounded-xl border border-border bg-card p-4">
         <h2 className="font-semibold text-gold">My settings · v{s.version}</h2>
         {!s.validation.ok && <p className="text-sm text-goldLight">{s.validation.errors.join(" · ")}</p>}
+        <details className="mt-2"><summary className="cursor-pointer text-sm text-blue">Show all {Object.keys(s.settings).length} settings</summary>
         <table className="mt-2 w-full text-sm"><tbody>
-          {Object.entries(s.settings).map(([k, v]) => (
-            <tr key={k} className="border-t border-border">
-              <td className="py-1 pr-2">{k}</td>
+          {Object.entries(s.settings).map(([k, v], i, arr) => (
+            <tr key={k} className={`border-t border-border ${i === 0 || arr[i - 1]?.[0].split(".")[0] !== k.split(".")[0] ? "settings-group" : ""}`}>
+              <td className="py-1 pr-2" title={k}><span className="text-[10px] uppercase tracking-wider opacity-60">{(k.split(".")[0] ?? "").replace(/_/g, " ")}</span> {k.split(".").slice(1).join(".").replace(/_/g, " ")}</td>
               <td><input aria-label={k} className="w-full" value={edit[k] ?? show(v)} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} /></td>
             </tr>
           ))}
-        </tbody></table>
+        </tbody></table></details>
         <button disabled={!Object.keys(edit).length} className={`${btn} mt-3 border-gold text-gold`} onClick={() => {
           const changes: Record<string, unknown> = {};
           for (const [k, v] of Object.entries(edit)) { try { changes[k] = JSON.parse(v); } catch { changes[k] = v; } }
