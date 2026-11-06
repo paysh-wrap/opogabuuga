@@ -400,3 +400,9 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - Offline at 1.75R: 2019–2023 60 tr 43% −0.01R · 2024–2026 44 tr 39% −0.01R (≈ break-even before bias).
 - ENGINE, Nov 2024 – Oct 2026 (not used to choose): 65 tr, 40% win, PF 1.34, +$594, +0.13R/trade (old plan −$1,201).
 - Revert: git revert of the D47 commit (or switch the two trend filters off + rr 1.0/3.0 + no_break_rr_cap 1.0).
+
+## D48 — Lock: no plan may aim below 1.75R (user: "why did it take 1R trades when it was supposed to be 1.75–3R")
+- Root cause (Results Q): D36 lowered rr_min 1.75 → 1.0 in Pro/Flex 37 minutes after D35; D36b capped no-break
+  setups at 1R. 84% of the old plan's trades aimed below 1.75R.
+- app/config.py now refuses rr_min < 1.75 at load time; tests/unit/test_plans.py checks every shipped plan.
+  Changing this needs an explicit user decision AND a code change — it can't happen through a plan file again.

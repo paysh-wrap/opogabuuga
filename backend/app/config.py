@@ -514,8 +514,10 @@ class RulesConfig(_M):
     def _structural(self) -> RulesConfig:
         # Structural sanity only. Full user-setting validation lives in risk/validation.py (§11).
         tp = self.trade_plan
-        if not (D(1) <= tp.rr_min <= tp.rr_max):
-            raise ValueError("trade_plan: need 1 <= rr_min <= rr_max")
+        # D35/D47 (user, binding): every trade aims at least 1.75R. D36 had quietly lowered this to 1.0 in the
+        # Pro/Flex plans (84% of its trades then aimed below 1.75R) — a plan below 1.75R must never load again.
+        if not (D("1.75") <= tp.rr_min <= tp.rr_max):
+            raise ValueError("trade_plan: need 1.75 <= rr_min <= rr_max (user rule: R:R 1.75-3)")
         for name, c in (("internal", self.internal), ("eval_mode", self.eval_mode)):
             if not (c.risk_pct_floor <= c.risk_pct_middle <= c.risk_pct_ceiling):
                 raise ValueError(f"{name}: floor <= middle <= ceiling required")

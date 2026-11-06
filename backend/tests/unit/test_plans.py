@@ -70,3 +70,17 @@ def test_main_strategy_d47(plan):
     assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
     assert p.instruments["MGC"].enabled and p.instruments["MGC"].intraday_windows is None
     assert not p.instruments["MNQ"].enabled  # D42
+
+
+def test_no_plan_can_aim_below_175r():
+    """D35/D47: a plan with rr_min < 1.75 (like D36's 1.0) is refused at load time — no more 1R trades."""
+    import yaml
+
+    from app.config import RulesConfig
+
+    raw = yaml.safe_load((RULES / "lucid_flex_25k.yaml").read_text())
+    raw["trade_plan"]["rr_min"] = 1.0
+    with pytest.raises(ValueError, match=r"1\.75 <= rr_min"):
+        RulesConfig.model_validate(raw)
+    for f in sorted(RULES.glob("*.yaml")):  # every shipped plan, incl. the legacy Daily file
+        assert load_rules(f).rules.trade_plan.rr_min >= D("1.75"), f.name

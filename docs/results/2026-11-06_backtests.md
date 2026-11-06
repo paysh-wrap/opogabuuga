@@ -206,3 +206,23 @@ No combination reaches 50% on the unseen years; 70% at 1.75R is not reachable wi
 | D47 by year: 2024 (Nov–Dec) 5 tr 60% +$202 · 2025 28 tr 32% −$227 · 2026 32 tr 44% +$619 | | | | | |
 Exits: TP 26 · STOP 36 · RR_INVALID_AFTER_FILL 3. These 2 years were NOT used to choose D47 (chosen on 2019–2023).
 Engine beats the offline estimate (39%, −0.01R) as in section I (early exits). ~2.7 trades/month — small sample.
+
+## Q. Why the old plan took 1R trades when it was supposed to be 1.75–3R (session 8 root cause)
+Timeline (git): be531f9 Nov 5 22:58 **D35 rr_min 1.75** (user: "I'll settle with 1.75") → d9d29d3 Nov 5 23:35 **D36
+rr_min 1.0 in all Pro/Flex plans** (session-3 request recorded as "allow 1R–2R targets + wider hours … 2–5
+trades/day"; implemented as 1R–3R) → b08d049 Nov 5 23:53 **D36b no_break_rr_cap 1.0** (an AI win-rate tweak on 18
+sessions: setups without CHoCH/BoS target 1R; no separate user approval recorded). The legacy Daily plan kept 1.75.
+Code (engine/confluence.py): `rr_max = max(rr_min, min(rr_max, no_break_rr_cap))` → with rr_min 1.0 + cap 1.0 every
+no-break setup aimed at 1R. With rr_min 1.75 the cap could never go below 1.75 — BOTH changes were needed.
+Later answers ("58% / 62% at 1.75R") quoted win rates that came mostly from those 1R trades.
+Old plan, engine, Nov 2024 – Oct 2026 (391 trades) by cause:
+| Cause | trades | win | $ |
+|---|---|---|---|
+| A: target was ≥1.75R, cut to 1R by D36b | 159 (41%) | 50% | +133 |
+| B: no break, T2 < 1.75R — allowed only by D36 rr_min 1.0 | 113 (29%) | 41% | −503 |
+| C: break, T2 1.0–1.75R — allowed only by D36 rr_min 1.0 | 58 (15%) | 38% | −705 |
+| D: 1.75R+ target as intended | 61 (16%) | 33% | −126 |
+→ 84% of trades aimed below 1.75R. Fixed: D47 (rr_min 1.75, cap removed) + D48 lock: the config now REFUSES any plan
+with rr_min < 1.75 (app/config.py) and a test checks every shipped plan. Other paths verified closed: Daily plan 1.75,
+1:1 / Scalp / Eval-Mode 1:1 forced off (D43 retire_short_modes), Lab proposals on trade_plan.rr_min → "invalid",
+My Settings can't edit R:R, manual ticket uses rr_min. D47 engine run: 0 of 65 trades below 1.75R.
