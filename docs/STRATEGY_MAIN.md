@@ -1,51 +1,49 @@
-# Main strategy (D47) — trend-aligned 1.75R on MGC
+# Main strategy (D49) — trend-aligned 1.5–2.5R on Micro Gold, Nasdaq and S&P
 
-Saved as the main strategy on 2026-11-06 at the user's request: "find the best intraday strategy … 1.75 R:R … still
-save it as the main strategy — we are missing the main component, TradingAgents". Live in every Pro/Flex plan
-(`config/rules/lucid_{pro,flex}_*.yaml`), locked by `tests/unit/test_plans.py::test_main_strategy_d47`.
+Live in every Pro/Flex plan (`config/rules/lucid_{pro,flex}_*.yaml`), locked by
+`backend/tests/unit/test_plans.py::test_main_strategy_d49`. History: D47 (1.75R, MGC only) → D49 (user: "it can even
+be as low as 1.5 — do 1.5–2.5"; "profit first + test MNQ/MES with the same rules").
 
-## What it trades (every step is automatic — the engine repeats it on every bar)
-1. **Market / hours**: MGC (Micro Gold) only, entries 03:00–15:30 ET, flat by 16:40 ET (Lucid rules unchanged).
-2. **Setup**: LunqFX C1→C2→C3 fractal — C2 sweeps C1's high/low and closes back inside (pillar), CISD, limit entry at
-   the CISD level (4-bar timeout).
-3. **Target**: every trade aims at **1.75–1.8R** (`rr_min 1.75`, `rr_max 1.8`). Setups whose own T2 is closer than
-   1.75R are skipped. No 1R trades any more (`no_break_rr_cap: null`).
-4. **Trend agreement** (the edge): trade only when **UT Bot Alerts 5m** AND **EMA 200 5m** both point in the trade's
-   direction (`filters.trend.utbot_5m`, `filters.trend.ema200_5m`). Same math as TradingView (parity 99.8–99.9%).
-5. **Gates unchanged**: score ≥ 60 (sizing only), C1 ≥ 0.4 × ATR, MSO/structure as score items, news blackouts,
-   cooldowns, one entry per model, all Lucid checks (MLL/DLL/consistency/hedge/max contracts) before every order.
-6. **Daily bias (G2)**: TradingAgents on GLD at 02:40 ET decides LONG only / SHORT only / NEUTRAL / NO_TRADE. Not
-   connected yet → the app takes no trades until the Anthropic key is added (fail-safe).
+## What it trades (all automatic — the engine repeats it on every bar)
+1. **Markets / hours (ET)**: MGC 03:00–15:30 · MNQ and MES 06:45–09:30 + 09:35–15:30. Flat by 16:40.
+2. **Setup**: LunqFX C1→C2→C3 fractal — C2 sweeps C1's high/low and closes back inside (pillar), CISD, limit entry
+   at the CISD level (4-bar timeout). Both profiles: TIGHT (1m→15m) and STD (5m→1H).
+3. **Target**: the model's own T2, capped at **2.5R**; setups whose T2 is closer than **1.5R** are skipped.
+   Never a 1R trade (the config refuses any plan below 1.5R — D48/D49).
+4. **Trend agreement**: only when **UT Bot Alerts 5m** AND **EMA 200 5m** both point the trade's way.
+5. **Unchanged gates + Lucid rules**: score ≥ 60, C1 ≥ 0.4 × ATR, news blackouts, cooldowns, one entry per model per
+   account, MLL/DLL/consistency/max-contracts/hedge-lock (MNQ+MES never opposite) checked before every order,
+   1 position per account, risk 7/9/11% of risk base.
+6. **TradingAgents (G2)**: daily LONG-only / SHORT-only / NEUTRAL per proxy (GLD, QQQ, SPY). Not connected yet →
+   NO_TRADE (no API key = no trades).
 
-## Why this one (7 years of real MGC data, Results O + P)
-| | 2019–2023 (used to choose) | 2024–2026 (never seen when choosing) |
-|---|---|---|
-| All setups at 1.75R, no filter | 3,000 tr 30% −0.33R | 2,768 tr 28% −0.32R |
-| **Main: UT Bot 5m + EMA200 5m, T2 ≥ 1.75R, score 60, C1 0.4** | **60 tr 43% −0.01R** | **44 tr 39% −0.01R** |
-| Old plan's best hours (D37) added | 56 tr 41% −0.10R | 63 tr 30% −0.26R |
-| Squeeze 5m+15m (D45) | 325 tr 30% −0.30R (older half) | 435 tr 33% −0.18R (newer half) |
-- 103,256 filter combinations were searched; the ones that looked best on 2019–2023 (47–48%) fell to 25–38% on
-  2024–2026 → over-fitting. The main strategy was chosen for holding up on the unseen years, not for its best number.
-- **70% at 1.75R is not reachable with these setups.** Break-even at 1.75R (after fees) is ≈ 38–39% wins.
-- **Engine check, Nov 2024 – Oct 2026 (years not used to choose it), no bias: 65 trades, 40% win, PF 1.34, +$594,
-  +0.13R/trade** (2025: 28 tr 32% −$227 · 2026: 32 tr 44% +$619). Old plan, same engine/period: 391 tr, 43%, −$1,201.
-- Fewer trades: ~2.7 per month on one account (quality over quantity); the TradingAgents bias will cut some more.
+## Results — real engine, Databento futures, NEUTRAL bias (Results R)
+| Nov 2024 – Aug 2025 (first 10 months) | trades | win | PF | $ |
+|---|---|---|---|---|
+| MGC | 33 | 36% | 1.14 | +142 |
+| MNQ | 25 | 44% | 1.94 | +696 |
+| MES | 14 | 36% | 1.32 | +140 |
+| **combined** | **72** | **39%** | **1.45** | **+978** |
+Old plan (D36/D37 1R mix), MGC, Nov 2024 – Oct 2026: 391 tr, 43%, −$1,201. Break-even at ~1.8R average ≈ 36% wins.
+Full 2-year numbers are appended to Results R when the runs finish.
 
-## What TradingAgents can add (upper limit measured on the same 7 years)
-| Bias source | trades | win | R/trade |
+## Likely win rate WITH TradingAgents (docs/results/tools/bias_est.py)
+| Daily bias accuracy | trades | win | $ (same 10 months, 3 markets) |
 |---|---|---|---|
-| none (all backtests) | 104 | 41% | −0.01R |
-| **perfect** daily direction (hindsight — no real tool can do this) | 73 | 49% | +0.18R |
-| 20-day trend at the open (simple, no lookahead) | 55 | 47% | +0.15R (2024–26: 40%, +0.08R, 20 tr) |
-| previous day's direction | 67 | 37% | −0.12R |
-A good daily bias can turn the strategy profitable (+0.1 to +0.2R per trade) but cannot push it to 70%.
+| none (today's backtests) | 72 | 39% | +978 |
+| 55% (likely for an LLM daily call) | ~38 | ~40% | ~+597 |
+| 60% | ~41 | ~41% | ~+706 |
+| 100% (perfect, impossible) | 60 | ~46% | ~+1,575 |
+~85% of these trades already go with the day's direction (the trend filters see it intraday), so a daily bias
+mostly removes good trades on the days it is wrong. Recommended (needs your OK): let TradingAgents block only on
+strong ratings (BUY → long only, SELL → short only; OVERWEIGHT/HOLD/UNDERWEIGHT → both sides).
+
+## Trades per day
+≈ 0.33/day for one account across the three markets (≈ 1–2 per week). 2–4/day at 1.5–2.5R is not reachable
+profitably with these setups: every MGC setup with a ≥1.5R target is ~1.7/day and loses ~−0.3R/trade.
 
 ## How to keep it repeatable / improve it safely
-- Change nothing by hand in the plan files; switches live on the Risk page (My Settings, versioned + rollback).
-- Any new idea must beat this table on 2024–2026 after being chosen on 2019–2023 only
-  (`docs/results/tools/best175.py`), then be confirmed in the engine (`research.py` per month + `planmix.py`).
-- Re-measure every month with new Databento data; when TradingAgents is connected, compare paper results with and
-  without its bias for ≥ 30 trades before going live.
-- Open options for the user (not built): (a) 20-day-trend bias as a fallback when TradingAgents is unavailable (today:
-  no bias = no trade); (b) never flatten a trade that filled at a BETTER price than planned (the §7 recheck currently
-  flattens some gap-through fills as "stop too tight" — pillar rule, needs approval).
+- Settings live in the plan files; the Risk page switches are versioned with rollback. The Lab can't touch R:R.
+- A new idea must be chosen on 2019–2023, beat this on 2024–2026 (`best1525.py`), then be confirmed in the engine
+  (`research.py` per month + `combo_markets.py`).
+- When TradingAgents is connected: paper-trade ≥ 30 trades and compare with/without its bias before going live.

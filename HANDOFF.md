@@ -240,3 +240,13 @@ NEXT (in order):
   (research_par.sh + research_rr1.yaml), data/plan7y (live plan, 24 months), data/main2y (D47 engine run).
 - NEXT: connect TradingAgents (user key) → paper-trade D47 ≥ 30 trades with the bias; options awaiting approval:
   20-day-trend fallback bias; keep better-than-planned fills (pillar §7 recheck).
+
+## Session 8 (end) — D49 MAIN STRATEGY + delivery — read docs/STRATEGY_MAIN.md first
+- 1R root cause (Results Q / D48): D36 lowered rr_min 1.75 → 1.0, D36b capped no-break setups at 1R → 84% of the old
+  plan's trades aimed < 1.75R. Config now refuses rr_min < 1.5 (user: "1.5–2.5").
+- D49 in all Pro/Flex plans: rr 1.5–2.5, UT Bot 5m + EMA200 5m, MGC + MNQ + MES (full windows). Engine, first 10
+  months: combined 72 tr 39% PF 1.45 +$978 (~0.33 trades/day). Full 2-year runs: data/{mgc1525,mnq2y,mes2y}
+  (re-run missing months with the xargs line in Results R; combo_markets.py summarises).
+- Review fixes: approvals single-use + mode-aware, ALREADY_TRADED per account/signal, D46 approval broadcast.
+- Backtests 18% faster (inline DB work). UI: D49 text, MES button/backtest option, display fixes.
+- USER: Anthropic key (TradingAgents), broker connection, VERIFY values; decide the "strong ratings only" bias option.

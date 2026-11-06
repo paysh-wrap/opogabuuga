@@ -13,9 +13,11 @@ def _r():
 
 
 def test_intraday_mode_uses_best_hours():
-    r = apply_intraday_windows(_r())
-    assert r.instrument("MNQ").windows == r.instrument("MNQ").intraday_windows
-    # D47: MGC's D37 best hours did not hold on 7 years of data → removed; MGC keeps its full 03:00–15:30 window
+    # D47/D49: the D37 best hours did not hold on long data → removed from every plan; full windows are kept
+    base = _r().model_copy(deep=True)
+    mnq = base.instruments["MNQ"].model_copy(update={"intraday_windows": (("08:00", "09:30"),)})
+    r = apply_intraday_windows(base.model_copy(update={"instruments": {**base.instruments, "MNQ": mnq}}))
+    assert r.instrument("MNQ").windows == (("08:00", "09:30"),)  # the mechanism still works where configured
     assert r.instrument("MGC").intraday_windows is None
     assert r.instrument("MGC").windows == _r().instrument("MGC").windows
 

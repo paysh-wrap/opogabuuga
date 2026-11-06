@@ -112,10 +112,10 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   docs/results/, commit, rebuild the bundle and republish the handoff artifact
   (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + paytience.bundle.b64.txt). Push to GitHub
   paysh-wrap/beast once the user's GitHub account is linked. Focus: Intraday MGC (never lower its win rate).
-- WIN-RATE RULE (user, binding, 2026-11-06, updated by D47): the MAIN STRATEGY is D47 "trend-aligned 1.75R"
-  (rr 1.75–1.8, no 1R targets, UT Bot 5m + EMA200 5m must agree, MGC 03:00–15:30 ET). Never add anything that
-  lowers its measured win rate at 1.75R; only add a change after it is measured to RAISE the win rate on HELD-OUT
-  data (pick on 2019–2023, judge on 2024–2026 — docs/results/tools/best175.py). The old "58%" (D36/D37 mix) was 22
-  sessions only: 43% / −$1,201 on 2 years. TradingAgents (G2 bias) is the missing main component — user has not
-  connected it yet (Anthropic key); backtests run NEUTRAL; perfect-bias ceiling ≈ 49%. Vibe Trading: not in the repo
-  — ask the user what it is before building. Squeeze (D45) failed → stays OFF.
+- WIN-RATE RULE (user, binding, 2026-11-06, updated by D49): MAIN STRATEGY = D49 "trend-aligned 1.5–2.5R" on MGC +
+  MNQ + MES (rr 1.5–2.5, no 1R targets, UT Bot 5m + EMA200 5m must agree, full windows; config refuses rr_min < 1.5).
+  Never add anything that lowers its measured win rate/profit; only add a change measured to improve it on HELD-OUT
+  data (pick on 2019–2023, judge on 2024–2026; engine-confirm with research.py + combo_markets.py). Old "58%" plan
+  (D36/D37, 84% of trades < 1.75R — Results Q) lost $1,201 on 2 years. TradingAgents = G2 bias, user key not yet
+  connected; at realistic accuracy it adds ~1–2 pts win rate but halves trades (D49). Vibe Trading: not in the repo —
+  ask the user what it is before building. Squeeze (D45) failed → stays OFF. MNQ is ON again (D49 supersedes D42).

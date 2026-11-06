@@ -1,11 +1,15 @@
 # Paytience
 
-Automated confluence trading app for 1–5 Lucid Trading LucidDaily 25K accounts (MNQ core; MES / MYM / MGC gated).
-Signals come **only** from TradingView webhooks. Orders go **only** through the broker connection. The app never logs
-into, scrapes, or clicks around TradingView or Lucid.
+Automated confluence trading app for 1–5 Lucid Trading (Pro/Flex) accounts on **Micro Gold (MGC), Micro Nasdaq
+(MNQ) and Micro S&P (MES)** futures. Signals come **only** from TradingView webhooks. Orders go **only** through the
+broker connection. The app never logs into, scrapes, or clicks around TradingView or Lucid.
 
-> **Status: Phase 2 of 11** — webhook receiver, TradingView bridge script, Python indicators, parity checker
-> (+ Phase 1: config, database, audit log, login, Connections page, TradingAgents). **No trading decisions yet.** Default mode is PAPER. Do not connect funded accounts until the Live-Readiness Checklist passes.
+> **Status: complete and running in PAPER mode by default.** Strategy, risk engine (every Lucid rule checked before
+> each order), automation (OFF / SEMI / FULL), payouts, Strategy Lab, backtests and the full UI are built and tested
+> (545+ backend tests, 52 UI tests, browser E2E). **Main strategy:** trend-aligned 1.5–2.5R — see
+> [docs/STRATEGY_MAIN.md](docs/STRATEGY_MAIN.md). **Needs from you before it trades:** an Anthropic API key for
+> TradingAgents (Connections page; no key = no trades), your broker connection, and the `# VERIFY` values checked
+> against your Lucid dashboard. LIVE trading stays locked until the Live-Readiness Checklist passes.
 
 ## Quick start (your computer)
 
@@ -57,7 +61,8 @@ licenses mean this project is for personal use only.
 
 ## TradingView alert setup (step by step)
 1. Connections page → **TradingView setup** → download `Paytience_Bridge.pine`.
-2. TradingView → open an **MGC1!** (Micro Gold) chart: **1-minute** for profile TIGHT, **5-minute** for STD (one chart per profile).
+2. TradingView → open **MGC1!** (Micro Gold), **MNQ1!** (Micro Nasdaq) and **MES1!** (Micro S&P) charts: **1-minute**
+   for profile TIGHT, **5-minute** for STD (one chart + one alert per market per profile = 6 alerts).
 3. Pine Editor → paste the script → **Add to chart**.
 4. Indicator settings → paste the **Webhook secret** (Connections page → Reveal) → choose the profile.
 5. Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
@@ -76,7 +81,8 @@ does not make the app reachable. Recommended: protect the dashboard with Cloudfl
 ## Warnings
 - **Hedging:** positions at other firms/platforms are invisible to this app. Opposite correlated positions elsewhere
   can count as hedging under Lucid rules. You must attest each session that you hold none.
-- Every `# VERIFY` value in `config/rules/lucid_daily_25k.yaml` must be checked against your Lucid dashboard.
+- Every `# VERIFY` value in your plan file (`config/rules/lucid_{pro,flex}_<size>k.yaml`, picked on the Risk page)
+  must be checked against your Lucid dashboard.
 - Trading futures risks loss of capital. Paper-trade first.
 
 ## Development

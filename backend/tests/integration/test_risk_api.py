@@ -192,13 +192,15 @@ def test_invalid_stored_settings_block_and_report(authed):
 
 def test_market_buttons_toggle_instruments(authed):
     m = {x["symbol"]: x["enabled"] for x in authed.get("/api/markets").json()["markets"]}
-    assert m == {"MGC": False, "MNQ": True}
+    assert m == {"MGC": False, "MNQ": True, "MES": False}  # D49: S&P (MES) has a button too
     r = authed.put("/api/markets", json={"symbol": "MGC", "enabled": True}).json()
     assert {x["symbol"]: x["enabled"] for x in r["markets"]}["MGC"] is True
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
     authed.put("/api/risk/settings", json={"changes": {"behavior.min_hold_seconds": 8}})  # survives other saves
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
     assert authed.put("/api/markets", json={"symbol": "XYZ", "enabled": True}).status_code == 404
+    authed.put("/api/markets", json={"symbol": "MES", "enabled": True})
+    assert authed.app.state.rules.rules.instruments["MES"].enabled
 
 
 def test_plan_switch(authed):

@@ -406,3 +406,17 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   setups at 1R. 84% of the old plan's trades aimed below 1.75R.
 - app/config.py now refuses rr_min < 1.75 at load time; tests/unit/test_plans.py checks every shipped plan.
   Changing this needs an explicit user decision AND a code change — it can't happen through a plan file again.
+
+## D49 — Main strategy = trend-aligned 1.5–2.5R on MGC + MNQ + MES (user 2026-11-06: "it can even be as low as 1.5
+## — do 1.5–2.5"; "profit first + test MNQ/MES with the same rules, add a market only if profitable")
+- All Pro/Flex plans: trade_plan rr_min 1.5 / rr_max 2.5 (target = min(T2, 2.5R), skip if T2 < 1.5R), no 1R targets,
+  UT Bot 5m + EMA200 5m must agree (unchanged from D47). MNQ re-enabled (supersedes D42) and MES enabled (supersedes
+  the D1 gate) — both with full windows 06:45–09:30 + 09:35–15:30 ET; D37 best hours removed everywhere. MGC 03:00–15:30.
+- Config floor (D48) lowered to 1.5 at the user's request: no plan below 1.5R can load.
+- Engine, same rules, NEUTRAL bias, Nov 2024 – Aug 2025 (first 10 months; full 2-year runs → Results R):
+  MGC 33 tr 36% +$142 (D47 same months: 24 tr +$83) · MNQ 25 tr 44% +$696 · MES 14 tr 36% +$140 ·
+  combined 72 tr 39% PF 1.45 +$978, ≈0.33 trades/day (2–4/day is NOT reachable profitably with these setups).
+- TradingAgents (G2): ~85% of these trades already go with the day's direction (trend filters see it intraday); a
+  55–60%-accurate daily bias adds ~+1–2 pts win rate but halves the trades and lowers profit. Option for the user
+  (not applied): block only on strong ratings (BUY/SELL), map OVERWEIGHT/UNDERWEIGHT to NEUTRAL.
+- MNQ + MES share the EQUITY_INDEX hedge lock (never opposite directions household-wide); 1 position per account.

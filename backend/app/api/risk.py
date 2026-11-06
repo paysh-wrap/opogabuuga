@@ -328,7 +328,7 @@ async def set_plan(
     return list_plans(request, p)
 
 
-MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq"}  # focus: gold (main) + Nasdaq
+MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq", "MES": "S&P 500"}  # D49: gold + Nasdaq + S&P (micros)
 
 
 @router.get("/markets")

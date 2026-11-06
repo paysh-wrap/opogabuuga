@@ -61,15 +61,16 @@ def test_gold_market_settings():
 
 
 @pytest.mark.parametrize("plan", [f"lucid_{p}_{k}k" for p in ("pro", "flex") for k in (25, 50, 100, 150)])
-def test_main_strategy_d47(plan):
-    """D47 (user 2026-11-06): main strategy = trend-aligned 1.75R in every Pro/Flex plan."""
+def test_main_strategy_d49(plan):
+    """D49 (user 2026-11-06: "1.5-2.5"): trend-aligned 1.5–2.5R on MGC + MNQ + MES in every Pro/Flex plan."""
     p = r(plan)
-    assert p.trade_plan.rr_min == D("1.75") and p.trade_plan.rr_max == D("1.8")  # every target 1.75–1.8R
+    assert p.trade_plan.rr_min == D("1.5") and p.trade_plan.rr_max == D("2.5")  # targets 1.5–2.5R
     assert p.filters.no_break_rr_cap is None  # no 1R targets
     t = p.filters.trend
     assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
-    assert p.instruments["MGC"].enabled and p.instruments["MGC"].intraday_windows is None
-    assert not p.instruments["MNQ"].enabled  # D42
+    for sym in ("MGC", "MNQ", "MES"):
+        assert p.instruments[sym].enabled and p.instruments[sym].intraday_windows is None, sym
+    assert not p.instruments["MYM"].enabled
 
 
 def test_no_plan_can_aim_below_15r():

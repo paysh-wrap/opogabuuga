@@ -226,3 +226,18 @@ Old plan, engine, Nov 2024 – Oct 2026 (391 trades) by cause:
 with rr_min < 1.75 (app/config.py) and a test checks every shipped plan. Other paths verified closed: Daily plan 1.75,
 1:1 / Scalp / Eval-Mode 1:1 forced off (D43 retire_short_modes), Lab proposals on trade_plan.rr_min → "invalid",
 My Settings can't edit R:R, manual ticket uses rr_min. D47 engine run: 0 of 65 trades below 1.75R.
+
+## R. D49 main strategy (1.5–2.5R, UT Bot 5m + EMA200 5m) on MGC + MNQ + MES — real engine, NEUTRAL bias
+Plans: docs/results/tools/main1525.yaml (MES run: main1525_mes.yaml = same with MES enabled). Data: Databento
+<ROOT>.v.0 1m (MNQ/MES via dbget2y.py). Interim, Nov 2024 – Aug 2025 (10 months each; combo_markets.py):
+| Market | trades | /day | win | PF | $ | R/trade |
+|---|---|---|---|---|---|---|
+| MGC | 33 | 0.15 | 36% | 1.14 | +142 | +0.08 |
+| MNQ | 25 | 0.12 | 44% | 1.94 | +696 | +0.46 |
+| MES | 14 | 0.06 | 36% | 1.32 | +140 | +0.05 |
+| combined | 72 | 0.33 | 39% | 1.45 | +978 | +0.21 |
+MGC same 10 months at D47 (1.75–1.8R): 24 tr +$83 → 1.5–2.5R gives more trades and more profit.
+Offline (7 years MGC, best1525.py): no target rule in 1.5–2.5 + ≤2 filters holds on unseen 2024–26 offline; the engine's
+early exits add ≈ +0.1R/trade (D47: offline −0.01R vs engine +0.13R).
+TradingAgents estimate (bias_est.py, same trades): with-the-day share MGC 85% · MNQ 84% · MES 79%; "against" trades
+won 0/12. Bias right 55% → MGC 37% +$102 · MNQ 45% +$403 · MES 37% +$92 (≈ half the trades); 60% → 38%/46%/38%.
