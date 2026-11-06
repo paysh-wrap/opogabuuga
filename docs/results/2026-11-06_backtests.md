@@ -91,3 +91,12 @@ CISD, 4-bar timeout, stop-first, 1-tick stop slip, fees, flat 16:40). Verified a
   MNQ 1.0R 16%/24% … 1.75R 12%/24% … 3R 7%/12%. All negative.
 - Caveat: this set excluded setups whose model T2 is < 1.75R away (the plan required ≥1.75R) — those are the
   setups behind the current 58% (D36b: no-break setups aim for 1R). Re-run with the real R:R floor 1.0 pending.
+
+## I. Engine backtests, Intraday at R:R 1.75–3 (best hours H1, 22 sessions, risk base ≈ $1,000 = equity − MLL)
+r175 = rr_min 1.75 and no 1R cap for no-break setups; r175brk = + structure break required.
+| Variant | MGC | MNQ |
+|---|---|---|
+| r175 | 16 tr, 38% win, PF 1.32, +$151, +0.32R/trade | 5 tr, 20%, PF 0.69, −$54 |
+| r175brk | 6 tr, 50%, PF 2.27, +$173, +0.73R/trade | 1 tr, 0%, −$52 |
+Note: the engine beats the offline screener (section H) because of its early exits / half-off defence → judge
+strategy changes with full engine backtests, not the offline screener.
