@@ -136,6 +136,7 @@ export default function Today() {
               <td className="py-1">{etTime(t.opened_at)}</td><td>#{t.account_id}</td><td>{t.symbol} {t.direction} ×{t.qty}</td>
               <td>{t.entry} → {t.exit ?? "open"}</td><td>{t.exit_reason ?? ""}</td>
               <td className="text-gold">{t.pnl ? `${Number(t.pnl) >= 0 ? "▲ +" : "▼ −"}$${Math.abs(Number(t.pnl)).toFixed(2)}` : ""} {t.net_r ? `(${t.net_r}R)` : ""}</td>
+              <td><a href={`/replay?trade=${t.id}`}>Replay</a></td>
             </tr>
           ))}
         </tbody></table>

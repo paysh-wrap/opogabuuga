@@ -12,6 +12,7 @@ import Today from "../pages/Today";
 import Payouts from "../pages/Payouts";
 import Strategy from "../pages/Strategy";
 import Backtest from "../pages/Backtest";
+import Replay from "../pages/Replay";
 import LabPage from "../pages/Lab";
 import { LiveProvider } from "./live";
 
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/strategy" element={<Strategy />} />
         <Route path="/backtest" element={<Backtest />} />
+        <Route path="/replay" element={<Replay />} />
         <Route path="/lab" element={<LabPage />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />

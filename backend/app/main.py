@@ -22,6 +22,7 @@ from app.api.lab import router as lab_router
 from app.api.live import router as live_router
 from app.api.market import router as market_router
 from app.api.payouts import router as payouts_router
+from app.api.replay import router as replay_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
@@ -386,6 +387,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(backtest_router)
     app.include_router(lab_router)
     app.include_router(market_router)
+    app.include_router(replay_router)
 
     @app.websocket("/ws")
     async def ws_endpoint(ws: WebSocket) -> None:
