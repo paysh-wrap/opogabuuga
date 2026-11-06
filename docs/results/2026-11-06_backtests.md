@@ -125,3 +125,10 @@ forced to exactly 1.75R). 87 filled setups; train = older 12 sessions, test = ne
 | ADX ≥ 25, RVOL > 1, WaveTrend extreme | worse than none | worse |
 Trend-side filters (VWAP, EMA 200, UT Bot) roughly double win rate at 1.75R; momentum/strength filters don't help.
 Samples are 7–15 trades → NOT applied. Needs the long Databento history (research_par.sh, monthly chunks × 4 workers).
+
+## M. DATA WARNING — Databento MGC.c.0 is broken for gold (session 7)
+`MGC.c.0` (stype continuous, calendar roll) follows the nearest calendar month. Gold's liquid months are G/J/M/Q/V/Z;
+the serial months barely trade (2026-06-02: 13 one-minute bars vs ~1,380 in the active contract). Backtests on it see
+only a few sessions per month. Use `MGC.v.0` (highest volume). docs/results/tools/dbget.py fixed. Any earlier MGC
+result built on MGC.c.0 Databento data (session 5/6 MGC Lab on long data) should be re-checked. MNQ (quarterly
+H/M/U/Z, always the front) is far less affected.
