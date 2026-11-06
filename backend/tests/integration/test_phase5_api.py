@@ -318,3 +318,14 @@ def test_inactivity_job_notifies_once_per_session(authed, clock):
     assert [n["title"] for n in ctl.notices].count("Inactivity alert") == 1
     r = _wait_notifications(authed)
     assert r["notifications"][0]["kind"] == "inactivity"
+
+
+def test_manual_order_outside_entry_hours(authed, clock, monkeypatch):
+    aid = setup(authed, clock)
+    _price(authed)
+    import app.api.orders as orders
+
+    monkeypatch.setattr(orders, "in_windows", lambda at, w: False)
+    body = {"account_id": aid, "symbol": "MNQ", "direction": "LONG", "stop": "19980", "take_profit": "20040"}
+    r = authed.post("/api/orders/manual", json=body)
+    assert r.status_code == 409 and r.json()["detail"].startswith("OUTSIDE_WINDOW")
