@@ -20,13 +20,13 @@ from app.api.dashboard import router as dashboard_router
 from app.api.insights import router as insights_router
 from app.api.lab import router as lab_router
 from app.api.live import router as live_router
+from app.api.logs import router as logs_router
 from app.api.market import router as market_router
 from app.api.payouts import router as payouts_router
 from app.api.replay import router as replay_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
-from app.api.logs import router as logs_router
 from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
 from app.automation.controller import Controller

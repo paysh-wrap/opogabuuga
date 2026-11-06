@@ -49,7 +49,14 @@ def logs(
     ok, bad = audit.verify_chain(db)
     return {
         "logs": [
-            {"id": r.id, "at": r.at.isoformat(), "actor": r.actor, "action": r.action, "entity": r.entity, "payload": r.payload}
+            {
+                "id": r.id,
+                "at": r.at.isoformat(),
+                "actor": r.actor,
+                "action": r.action,
+                "entity": r.entity,
+                "payload": r.payload,
+            }
             for r in rows
         ],
         "actions": list(actions),
