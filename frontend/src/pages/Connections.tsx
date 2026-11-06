@@ -5,6 +5,7 @@ import { api, ApiError, type Connection, type ConnectionsResponse, type Indicato
 import StatusBadge from "../components/StatusBadge";
 import { usePageTitle } from "../components/usePageTitle";
 import TradingViewSetup from "../components/TradingViewSetup";
+import TestAlert from "../components/TestAlert";
 import { etDateTime } from "../lib/time";
 
 const GROUPS: [string, string][] = [
@@ -230,6 +231,7 @@ export default function Connections() {
       </section>
 
       <TradingViewSetup publicBase={base} />
+      <TestAlert />
 
       <section>
         <h2 className="mb-2 text-lg font-semibold text-gold">TradingView indicators</h2>

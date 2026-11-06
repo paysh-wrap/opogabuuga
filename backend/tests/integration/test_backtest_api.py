@@ -47,6 +47,10 @@ def test_metrics_from_trades(authed):
     assert b["hour_et"]["10"]["trades"] == 3 and b["hour_et"]["11"]["pnl"] == "250"
     assert b["direction"]["LONG"]["trades"] == 3 and b["direction"]["SHORT"]["win_rate"] == "0.0"
     assert float(m["monte_carlo_eval"]["pass_rate"]) > 0.5 and m["day_pnls"]["2026-01-05"] == "300"
+    assert m["payout_sim"]["breached"] is False and m["payout_sim"]["weeks"] == []  # 3 sessions < 1 week
+    inc = m["income_mc"]
+    assert set(inc["by_accounts"]) == {"1", "2", "3", "4", "5"} and inc["floor"] and inc["target"]
+    assert all(0 <= float(v["p_target"]) <= float(v["p_floor"]) <= 1 for v in inc["by_accounts"].values())
 
 
 def test_suggestions_flag_losing_buckets():

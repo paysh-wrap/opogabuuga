@@ -4,7 +4,7 @@ import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
 import WhyNoTrade from "../components/WhyNoTrade";
-import { signedUsd } from "../lib/insights";
+import { EvalPaceCard } from "../components/DashboardExtras";
 import { ApiError } from "../lib/api";
 
 interface Sig { id: number; symbol: string; profile: string; direction: string; status: string; skip_reason: string | null; score: string | null; at: string }
@@ -86,9 +86,7 @@ function PlanPanel({ plan }: { plan: Plan }) {
       {plan.eval_pace.length > 0 && (
         <section className="rounded-xl border border-border bg-card p-4" data-testid="pace">
           <h2 className="font-semibold text-gold">Evaluation pace</h2>
-          {plan.eval_pace.map((p) => (
-            <p key={p.id} className="text-sm"><b>{p.label}</b>: profit {signedUsd(Number(p.profit))} of ${Number(p.target).toFixed(0)} target · profitable days {p.profitable_days}/{p.min_profitable_days} min · sessions {p.sessions_used} (target {p.target_sessions}, max {p.max_sessions})</p>
-          ))}
+          {plan.eval_pace.map((p) => <div key={p.id}><b className="text-sm">{p.label}</b><EvalPaceCard id={p.id} /></div>)}
         </section>
       )}
     </>

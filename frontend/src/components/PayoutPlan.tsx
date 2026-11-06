@@ -34,13 +34,13 @@ export function PayoutSettings() {
       {err && <p role="alert" className="text-sm text-goldLight">⚠ {err}</p>}
       {s && (
         <div className="mt-2 flex flex-wrap items-end gap-4 text-sm">
-          <label className="flex flex-col">Mode
+          <label className="flex min-w-0 max-w-full flex-col">Mode
             <select aria-label="Payout mode" value={s.skim_mode} disabled={save.isPending}
               onChange={(e) => save.mutate({ skim_mode: e.target.value as Settings["skim_mode"], frequency: s.frequency })}>
               <option value="half">Sweep + skim (half of week profit once MLL is locked)</option>
               <option value="off">Sweep only</option>
             </select></label>
-          <label className="flex flex-col">Frequency
+          <label className="flex min-w-0 max-w-full flex-col">Frequency
             <select aria-label="Payout frequency" value={s.frequency} disabled={save.isPending}
               onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: e.target.value as Settings["frequency"] })}>
               <option value="weekly">Weekly ({s.check_time} ET)</option>

@@ -72,6 +72,20 @@ def test_full_auto_requires_preflight(authed, clock):
     assert r.status_code == 409 and "pre-flight failed" in r.json()["detail"]["errors"][0]
 
 
+def test_arming_a_new_stage_account_downgrades_full_to_semi(authed, clock):
+    """§13: first N sessions of each stage run OFF/SEMI only — also when the account is armed AFTER FULL was set."""
+    clock.set(AT)
+    ctl = authed.app.state.controller
+    ctl.mode = "FULL"  # e.g. set while no account was armed (allowed_mode had nothing to check)
+    aid = authed.post("/api/accounts", json={"label": "E9", "stage": "EVAL"}).json()["id"]
+    assert authed.patch(f"/api/accounts/{aid}", json={"armed": True}).status_code == 200
+    assert ctl.mode == "SEMI" and authed.get("/api/automation").json()["mode"] == "SEMI"
+    with authed.app.state.sessionmaker() as s:
+        from app.models import AuditLog
+
+        assert s.query(AuditLog).filter(AuditLog.action == "automation.mode", AuditLog.entity == "SEMI").count() == 1
+
+
 def test_flat_time_blocks_entries(authed, clock):
     setup(authed, clock)
     clock.set(datetime(2026, 11, 5, 21, 41, tzinfo=UTC))  # 16:41 ET

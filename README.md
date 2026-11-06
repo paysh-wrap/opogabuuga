@@ -80,5 +80,5 @@ does not make the app reachable. Recommended: protect the dashboard with Cloudfl
 - Trading futures risks loss of capital. Paper-trade first.
 
 ## Development
-`make test` · `make lint` · `make typecheck` · `E2E_PASSWORD=… make e2e` · `make check`
+`make test` · `make lint` · `make typecheck` · `make e2e` (scratch DB) · `E2E_PASSWORD=… make e2e-live` · `make check`
 Spec: CLAUDE.md (condensed) · docs/DECISIONS.md (your changes) · docs/IMPROVEMENTS.md (proposals awaiting approval).

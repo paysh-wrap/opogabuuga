@@ -135,6 +135,8 @@ def test_dashboard_and_today(authed, clock):
     assert a["dll_left"] == "600.00" or float(a["dll_left"]) <= 600
     assert a["consistency_cap"] == "500.00" and a["target_left"] == "1250"
     assert a["max_loss"] == "1000" and a["dll_limit"] == "600"
+    assert a["guard_on"] is False and a["eval_mode_on"] is False  # EVAL is EOD → guard OFF (§8)
+    assert a["day_lockin"] is (float(a["day_net_r"]) >= float(a["day_lockin_r"]))
     t = authed.get("/api/today").json()
     assert t["signals"][0]["status"] == "PASS" and len(t["trades"]) == 1
 

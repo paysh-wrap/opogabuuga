@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import { EvalModePanel, FirmAndSafety, ImpactTable, type PreviewResp, Versions, WhatIf } from "../components/RiskPanels";
 
 interface Settings {
   version: number;
@@ -10,10 +11,14 @@ interface Settings {
   eval_mode_on: boolean;
   error: string | null;
 }
-interface EvalMode { enabled: boolean; has_eval_accounts: boolean; confirm_phrase: string }
 interface Live { live: boolean; toggle_on: boolean; phrase: string; checklist: { check: string; ok: boolean; detail: string }[] }
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
+function parsed(edit: Record<string, string>): Record<string, unknown> {
+  const changes: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(edit)) { try { changes[k] = JSON.parse(v); } catch { changes[k] = v; } }
+  return changes;
+}
 const show = (v: unknown) => (typeof v === "object" ? JSON.stringify(v) : String(v));
 
 export default function Risk() {
@@ -23,12 +28,12 @@ export default function Risk() {
   const [livePhrase, setLivePhrase] = useState("");
   const [edit, setEdit] = useState<Record<string, string>>({});
   const st = useQuery({ queryKey: ["risk"], queryFn: () => api<Settings>("/api/risk/settings") });
-  const em = useQuery({ queryKey: ["evalmode"], queryFn: () => api<EvalMode>("/api/risk/eval-mode") });
+  const [impact, setImpact] = useState<PreviewResp | null>(null);
   const lv = useQuery({ queryKey: ["live"], queryFn: () => api<Live>("/api/live"), refetchInterval: 30000 });
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
     onMutate: () => setErr(""),
-    onSuccess: () => { ["risk", "evalmode", "live"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] })); setEdit({}); },
+    onSuccess: () => { ["risk", "evalmode", "live", "risk-versions"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] })); setEdit({}); setImpact(null); },
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
   const plans = useQuery({ queryKey: ["plans"], queryFn: () => api<{ current: string; plans: { id: string; title: string }[] }>("/api/plans") });
@@ -93,21 +98,7 @@ export default function Risk() {
         <p className="mt-1"><b className="text-gold">1:1</b> — same signals, full hours. Target 1R · 50% off at 0.75R then breakeven · max 3 losses/day · never over consistency.</p>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4">
-        <h2 className="font-semibold text-gold">Evaluation Mode {em.data?.enabled ? "· ON" : "· OFF"}</h2>
-        <p className="text-xs">EVAL accounts only. Raises risk tiers to 10/12/14% (max $140). Never changes rules or stops.</p>
-        <button data-testid="eval-mode" className={`${btn} mt-2 ${em.data?.enabled ? "border-gold text-gold" : "border-blue text-blue"}`}
-          onClick={() => {
-            const on = !em.data?.enabled;
-            if (on && !window.confirm("Turn ON Evaluation Mode? EVAL accounts risk 10/12/14% (max $140) per trade.")) return;
-            run.mutate(() => api("/api/risk/eval-mode", { method: "PUT", body: JSON.stringify({ enabled: on, confirm: on ? em.data?.confirm_phrase : "" }) }));
-          }}>{em.data?.enabled ? "ON — turn off" : "OFF — turn on"}</button>
-        <label className="mt-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" data-testid="eval-1to1" checked={s.settings["eval_mode.one_to_one"] === true}
-            onChange={(e) => save({ "eval_mode.one_to_one": e.target.checked })} />
-          Use 1:1 mode on EVAL accounts while Evaluation Mode is on
-        </label>
-      </section>
+      <EvalModePanel oneToOne={s.settings["eval_mode.one_to_one"] === true} onOneToOne={(v) => save({ "eval_mode.one_to_one": v })} />
 
       <section className="rounded-xl border border-gold bg-card p-4">
         <h2 className="font-semibold text-gold">Live trading {lv.data?.live ? "· LIVE" : "· PAPER"}</h2>
@@ -138,16 +129,23 @@ export default function Risk() {
           {Object.entries(s.settings).map(([k, v], i, arr) => (
             <tr key={k} className={`border-t border-border ${i === 0 || arr[i - 1]?.[0].split(".")[0] !== k.split(".")[0] ? "settings-group" : ""}`}>
               <td className="py-1 pr-2" title={k}><span className="text-[10px] uppercase tracking-wider opacity-60">{(k.split(".")[0] ?? "").replace(/_/g, " ")}</span> {k.split(".").slice(1).join(".").replace(/_/g, " ")}</td>
-              <td><input aria-label={k} className="w-full" value={edit[k] ?? show(v)} onChange={(e) => setEdit({ ...edit, [k]: e.target.value })} /></td>
+              <td><input aria-label={k} className="w-full" value={edit[k] ?? show(v)} onChange={(e) => { setEdit({ ...edit, [k]: e.target.value }); setImpact(null); }} /></td>
             </tr>
           ))}
         </tbody></table></details>
-        <button disabled={!Object.keys(edit).length} className={`${btn} mt-3 border-gold text-gold`} onClick={() => {
-          const changes: Record<string, unknown> = {};
-          for (const [k, v] of Object.entries(edit)) { try { changes[k] = JSON.parse(v); } catch { changes[k] = v; } }
-          save(changes);
-        }}>Save (validated)</button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button disabled={!Object.keys(edit).length} data-testid="risk-preview" className={`${btn} border-blue text-blue`}
+            onClick={() => { setErr(""); api<PreviewResp>("/api/risk/preview", { method: "POST", body: JSON.stringify({ changes: parsed(edit) }) }).then(setImpact, (e) => setErr(e instanceof ApiError ? e.message : "Preview failed")); }}>Preview impact</button>
+          <button disabled={!impact?.valid} data-testid="risk-save" className={`${btn} border-gold text-gold`} onClick={() => save(parsed(edit))}>Save (validated)</button>
+          {Object.keys(edit).length > 0 && <button className={`${btn} border-border text-blue`} onClick={() => { setEdit({}); setImpact(null); }}>Discard</button>}
+        </div>
+        {impact && !impact.valid && <p role="alert" className="mt-2 text-sm text-goldLight">⚠ {impact.errors.map((e) => (typeof e === "string" ? e : JSON.stringify(e))).join(" · ")}</p>}
+        {impact?.preview && <><p className="mt-2 text-sm font-semibold text-gold">Impact Preview (not saved yet)</p><ImpactTable p={impact.preview} testid="risk-impact" /></>}
+        {impact?.warnings.map((w) => <p key={w} className="text-xs text-goldLight">{w}</p>)}
       </section>
+      <Versions />
+      <WhatIf settings={s.settings} />
+      <FirmAndSafety />
     </div>
   );
 }

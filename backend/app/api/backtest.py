@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.backtest.data import DataError, load_csv
+from app.backtest.payout_sim import FundedSim, income_monte_carlo, simulate_payouts
 from app.backtest.runner import BacktestConfig, run_backtest
 from app.backtest.stats import monte_carlo, stats
 from app.clock import session_date
@@ -48,7 +49,26 @@ def metrics(trades: list[dict[str, Any]], rules: Any, stage: str) -> dict[str, A
     pct = rules.eval.consistency_max_day_pct
     cons_ok = s.best_day_share is None or pct is None or s.best_day_share <= pct / 100
     bd = breakdown(trades)
+    days_sorted = [by_day[k] for k in sorted(by_day)]
+    fc = funded_sim_cfg(rules)
+    sim = simulate_payouts(days_sorted, fc)
+    inc = income_monte_carlo(days_sorted, fc, rules.plan.annual_floor_net, rules.plan.annual_target_net)
     return {
+        "payout_sim": _j(
+            {
+                "weeks": [asdict(w) for w in sim.weeks],
+                "total_gross": sim.total_gross,
+                "total_net": sim.total_net,
+                "breached": sim.breached,
+            }
+        ),
+        "income_mc": {
+            "runs": inc.runs,
+            "sessions": inc.sessions,
+            "floor": str(rules.plan.annual_floor_net),
+            "target": str(rules.plan.annual_target_net),
+            "by_accounts": {str(n): _j(v) for n, v in inc.by_accounts.items()},
+        },
         "suggestions": suggestions(bd),
         "breakdown": bd,
         "stats": _j(asdict(s)),
@@ -56,6 +76,25 @@ def metrics(trades: list[dict[str, Any]], rules: Any, stage: str) -> dict[str, A
         "consistency_ok": cons_ok,
         "day_pnls": {k: str(v) for k, v in by_day.items()},
     }
+
+
+def funded_sim_cfg(rules: Any) -> FundedSim:
+    f, pr, pc = rules.funded, rules.funded.payout, rules.payouts
+    start = Decimal(rules.account_size)
+    return FundedSim(
+        start_balance=start,
+        max_loss=f.max_loss_limit,
+        lock_trigger=f.lock_trigger,
+        lock_level=f.lock_level,
+        sweep_above=pc.sweep_above,
+        skim_mode=pc.skim_mode,
+        buffer=pr.buffer,
+        min_request=pr.min_request,
+        split=pr.split,
+        max_first=pr.max_first,
+        max_next=pr.max_next,
+        max_pct_of_profit=pr.max_pct_of_profit,
+    )
 
 
 def breakdown(trades: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
@@ -119,6 +158,7 @@ async def start(
     scalp: bool = Query(False),
     low_risk: bool = Query(False),
     eval_mode: bool = Query(False),
+    drawdown_type: Literal["eod", "intraday"] | None = Query(None),  # guard ON/OFF compare (§8 auto → intraday = ON)
     data_source: str = Query("futures", pattern="^(futures|spot)$"),
     p: Principal = Depends(current_user),
     db: Session = Depends(get_db),
@@ -144,6 +184,7 @@ async def start(
         "scalp": scalp,
         "low_risk": low_risk,
         "eval_mode": eval_mode,
+        "drawdown_type": drawdown_type,
         "data_source": data_source,
     }
     run = BacktestRun(kind="ON_DEMAND", status="running", cache_key=f"{symbol}-{len(bars)}", params=params)
@@ -160,6 +201,7 @@ async def start(
         scalp=scalp,
         low_risk=low_risk,
         eval_mode=eval_mode,
+        drawdown_type=drawdown_type,
         data_source=data_source,
     )
 
