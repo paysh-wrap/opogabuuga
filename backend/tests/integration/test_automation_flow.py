@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from app.models import Account, BiasDecision, Signal, Trade
+from app.models import Account, BiasDecision, Order, Signal, Trade
 from tests.integration.test_signals_flow import AT, MIN, MS, choch, confirm, hb
 
 
@@ -113,6 +113,54 @@ def test_mode_override_semi_needs_approval_even_in_full(authed, clock):
     r = authed.post(f"/api/signals/{sig.id}/execute", json={}).json()["results"]
     assert r[0]["ok"], r
     assert authed.get("/api/positions").json()["accounts"][0]["positions"]
+    again = authed.post(f"/api/signals/{sig.id}/execute", json={}).json()["results"]  # double click
+    assert again == [
+        {"account_id": 0, "ok": False, "reason": "APPROVAL_EXPIRED", "contracts": 0, "trade_ref": None, "checks": []}
+    ]
+
+
+def test_full_mode_approval_never_retrades_auto_executed_accounts(authed, clock):
+    """Review fix: FULL auto-executes 'inherit' accounts and queues an approval for SEMI-override ones; approving it
+    later — even after the global mode changed to SEMI — trades ONLY the SEMI account, never the first one again."""
+    a1 = setup(authed, clock)
+    a2 = authed.post("/api/accounts", json={"label": "E2", "stage": "EVAL"}).json()["id"]
+    r2 = authed.patch(f"/api/accounts/{a2}", json={"armed": True, "selected": True, "mode_override": "SEMI"})
+    assert r2.status_code == 200, r2.text
+    ctl = authed.app.state.controller
+    ctl.mode = "FULL"
+    choch(authed, clock)
+    hb(authed, clock, MS - 2 * MIN, close="20005")
+    confirm(authed, clock)
+    with authed.app.state.sessionmaker() as s:
+        sig = s.query(Signal).one()
+        assert {o.account_id for o in s.query(Order)} == {a1}  # only the 'inherit' account was auto-executed
+    assert ctl.approvals[sig.id].mode == "FULL"
+    ctl.mode = "SEMI"  # user switches the global mode before approving
+    r = authed.post(f"/api/signals/{sig.id}/execute", json={}).json()["results"]
+    assert [x["account_id"] for x in r if x["ok"]] == [a2], r
+    with authed.app.state.sessionmaker() as s:
+        assert sorted(o.account_id for o in s.query(Order)) == [a1, a2]  # one entry each, no re-entry for a1
+
+
+def test_expired_approval_and_already_traded_are_refused(authed, clock):
+    from app.automation.controller import Approval
+
+    setup(authed, clock)
+    ctl = authed.app.state.controller
+    ctl.mode = "SEMI"
+    choch(authed, clock)
+    hb(authed, clock, MS - 2 * MIN, close="20005")
+    confirm(authed, clock)
+    with authed.app.state.sessionmaker() as s:
+        sid = s.query(Signal).one().id
+    ap = ctl.approvals[sid]
+    clock.set(ap.expires)  # too late
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["reason"] == "APPROVAL_EXPIRED"
+    clock.set(ap.created)
+    ctl.approvals[sid] = ap
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["ok"]
+    ctl.approvals[sid] = Approval(sid, ap.created, ap.expires)  # even with a fresh approval: one entry per model
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["reason"] == "ALREADY_TRADED"
 
 
 def test_mode_override_off_never_trades_but_inherit_restores(authed, clock):
@@ -126,9 +174,12 @@ def test_mode_override_off_never_trades_but_inherit_restores(authed, clock):
     confirm(authed, clock)
     with authed.app.state.sessionmaker() as s:
         sid = s.query(Signal).one().id
+    ap = ctl.approvals[sid]
     assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"] == []  # OFF account excluded
     assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []
     authed.patch(f"/api/accounts/{aid}", json={"mode_override": "inherit"})
     with authed.app.state.sessionmaker() as s:
         assert s.get(Account, aid).mode_override is None
+    assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["reason"] == "APPROVAL_EXPIRED"
+    ctl.approvals[sid] = ap  # the next approval for this account trades again
     assert authed.post(f"/api/signals/{sid}/execute", json={}).json()["results"][0]["ok"]

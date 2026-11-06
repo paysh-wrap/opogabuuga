@@ -94,9 +94,9 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
     for u in updates:
         if u.status == "PASS":
             what = ctl.on_signal_pass(u.signal_id)
-            if what == "APPROVAL":
+            if what in ("APPROVAL", "EXECUTE_AND_APPROVAL"):  # FULL + SEMI-override accounts → approval for those
                 await st.hub.broadcast("approval.created", {"signal": u.signal_id})
-            elif what == "EXECUTE" and not ctl.entries_blocked_by_time():
+            if what in ("EXECUTE", "EXECUTE_AND_APPROVAL") and not ctl.entries_blocked_by_time():
                 res = await ctl.execute(u.signal_id, "automation")
                 await st.hub.broadcast("order.updated", {"signal": u.signal_id, "results": len(res)})
 

@@ -15,7 +15,7 @@ export default function RuleMeters({ a }: { a: MeterAcct & { id: number } }) {
               <span className={b === "safe" ? "text-blueLight" : "text-goldLight"}>{Math.round(m.used * 100)}% used · {m.detail}</span>
             </div>
             <div className="mt-1 h-1.5 rounded bg-border" role="meter" aria-label={m.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(m.used * 100)}>
-              <div className={`h-1.5 rounded ${b === "safe" ? "bg-blue" : "bg-gold"}`} style={{ width: `${Math.round(m.used * 100)}%` }} />
+              <div className={`h-1.5 rounded ${b === "safe" ? "bg-blue" : "bg-gold"}`} style={{ width: `${Math.min(100, Math.max(0, Math.round(m.used * 100)))}%` }} />
             </div>
           </div>
         );

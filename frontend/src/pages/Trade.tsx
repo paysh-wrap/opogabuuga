@@ -116,7 +116,7 @@ export default function Trade() {
                   <tr key={o.id} data-testid={`order-${o.id}`} className="border-t border-border">
                     <td className="py-1">{etTime(o.created_at)}</td><td className="text-gold">{o.account}</td><td>{o.symbol ?? "—"}</td>
                     <td>{o.side === "BUY" ? "▲ BUY" : "▼ SELL"} {o.qty} {o.kind}</td><td>{o.price ?? "MKT"}</td>
-                    <td>{o.filled_qty > 0 ? `${o.filled_qty} @ ${o.avg_fill}` : "—"}</td>
+                    <td>{o.filled_qty > 0 ? `${o.filled_qty} @ ${o.avg_fill ?? "—"}` : "—"}</td>
                     <td>{o.status}</td><td>{o.source}</td>
                   </tr>
                 ))}

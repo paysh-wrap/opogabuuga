@@ -10,7 +10,6 @@ interface S {
   instruments: { symbol: string; enabled: boolean; proxy: string; bias: string; feeds: Feed[] }[];
   gates: { id: string; text: string; last: boolean | null }[];
   last_signal: { id: number; status: string; skip_reason: string | null } | null;
-  one_to_one: boolean;
 }
 const dot = (ok: boolean | null) => <span aria-hidden style={{ color: ok == null ? "#64748B" : ok ? "#22C55E" : "#EF4444" }}>●</span>;
 const card = "rounded-xl border border-border bg-card p-4";
@@ -26,7 +25,7 @@ export default function Strategy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
-      <p className="text-sm">No single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.{s.one_to_one && " 1:1 mode is ON."}</p>
+      <p className="text-sm">No single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className={card} data-testid="ta-card">

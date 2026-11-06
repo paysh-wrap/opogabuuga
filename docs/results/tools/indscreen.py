@@ -213,6 +213,41 @@ def simulate(c):
     return None
 
 
+def path(c):
+    """Full path after the fill (session 8): max favourable excursion in R on bars AFTER the fill bar and BEFORE the
+    stop bar (stop-first, same as simulate), whether the stop was hit before 16:40, R at the 16:40 flat otherwise.
+    Lets any target K (or min(T2, cap)) be scored without re-simulating: win if mfe >= K."""
+    p = next((x for x in c["plans"] if x["mode"] == "STANDARD"), None)
+    if p is None:
+        return None
+    d = 1 if p["direction"] == "LONG" else -1
+    entry, stop, risk = D(p["entry"]), D(p["stop"]), D(p["risk_pts"])
+    t0 = ts(c["entry_bar_time"] or c["bar_time"]); t0ms = int(t0.timestamp() * 1000)
+    tf = 5 if c["profile"] == "STD" else 1
+    i = bisect.bisect_left(opens, t0ms); deadline = t0ms + 4 * tf * 60_000; fill = None
+    while i < len(bars) and bars[i].open_ms < deadline:
+        if (d == 1 and bars[i].l <= entry) or (d == -1 and bars[i].h >= entry):
+            fill = i
+            break
+        i += 1
+    if fill is None:
+        return None
+    t2 = (c.get("features") or {}).get("t2")
+    out = {"fee_r": float(FEE / (risk / TICK * TV)), "slip_r": float(TICK / risk), "mfe": 0.0, "stopped": False,
+           "flat_r": None, "t2rr": float((D(str(t2)) - entry) * d / risk) if t2 is not None else None}
+    for j in range(fill, len(bars)):
+        b = bars[j]
+        if j > fill and datetime.fromtimestamp(b.open_ms / 1000, tz=UTC).astimezone(ET).time() >= FLAT:
+            out["flat_r"] = float((b.o - entry) * d / risk)
+            return out
+        if (d == 1 and b.l <= stop) or (d == -1 and b.h >= stop):
+            out["stopped"] = True
+            return out
+        if j > fill:
+            out["mfe"] = max(out["mfe"], float(((b.h if d == 1 else b.l) - entry) * d / risk))
+    return out
+
+
 rows = []
 for c in res["signals"]:
     if c["status"] != "PASS" or not c["plans"]:
@@ -220,6 +255,9 @@ for c in res["signals"]:
     o = simulate(c)
     if not o:
         continue
+    pth = path(c)
+    if pth:
+        o = {**o, **pth}
     ms, d = o["t0ms"], o["d"]
     f = c["features"]; x = {"sess": session_date(ts(c["entry_bar_time"] or c["bar_time"])).isoformat(), **o,
                             "brk": bool(f.get("choch")) or bool(f.get("bos")), "profile": c["profile"]}

@@ -48,6 +48,7 @@ class Approval:
     signal_id: int
     created: datetime
     expires: datetime
+    mode: str = "SEMI"  # global mode when it was queued: a FULL-mode approval is for the SEMI-override accounts only
 
 
 @dataclass
@@ -224,7 +225,7 @@ class Controller:
             return "OFF"
         now = self.clock.now()
         if self.mode == "SEMI":
-            self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS))
+            self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS), "SEMI")
             return "APPROVAL"
         # §13 per-account override (only more restrictive): in FULL, armed+selected SEMI accounts still need approval.
         with self.sessionmaker() as s:
@@ -232,7 +233,8 @@ class Controller:
                 select(Account.id).where(Account.mode_override == "SEMI", Account.armed, Account.selected)
             ).first()
         if semi is not None:
-            self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS))
+            self.approvals[signal_id] = Approval(signal_id, now, now + timedelta(seconds=APPROVAL_SECONDS), "FULL")
+            return "EXECUTE_AND_APPROVAL"
         return "EXECUTE"
 
     def expire_approvals(self) -> list[int]:
@@ -279,15 +281,29 @@ class Controller:
             plan0 = self._plan(s, sig)
             if plan0 is None:
                 return [AccountResult(0, False, "NO_PLAN")]
-            if actor != "automation":  # the FULL auto-run must keep the approval queued for SEMI-override accounts
-                self.approvals.pop(signal_id, None)
+            manual, mode = _manual(sig), self.mode
+            if actor != "automation" and not manual:
+                # §13: a human executes only a LIVE approval, and consumes it (no double click / late execute). The
+                # FULL auto-run keeps it queued for SEMI-override accounts. Use the mode it was queued under, so a
+                # FULL-mode approval never re-trades the accounts that were already auto-executed.
+                ap = self.approvals.pop(signal_id, None)
+                if ap is None or ap.expires <= self.clock.now():
+                    return [AccountResult(0, False, "APPROVAL_EXPIRED")]
+                mode = ap.mode
             all_accts = list(s.execute(select(Account)).scalars())
             any_live = any(a.stage == "LIVE" and not a.is_sim for a in all_accts)
-            accts = [a for a in all_accts if override_allows(a.mode_override, actor, self.mode, _manual(sig))]
+            # one entry per model per account: an account that already has an order for this signal never re-enters
+            done = set(s.execute(select(Order.account_id).where(Order.signal_id == sig.id)).scalars())
+            accts = [a for a in all_accts if override_allows(a.mode_override, actor, mode, manual)]
+            out += [
+                AccountResult(a.id, False, "ALREADY_TRADED")
+                for a in accts
+                if a.id in done and a.selected and (only is None or a.id in only)
+            ]
             cands = [
                 Candidate(a.id, a.priority, a.selected, a.armed, a.paused_reason is not None, a.stage, a.is_sim)
                 for a in accts
-                if only is None or a.id in only
+                if (only is None or a.id in only) and a.id not in done
             ]
             chosen = select_accounts(cands, r.automation.accounts_to_trade, any_live)
             inst = r.instrument(sig.symbol)

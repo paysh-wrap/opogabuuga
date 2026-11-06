@@ -14,7 +14,9 @@ export interface Sig {
 const usd = (v: string | null) => {
   if (v == null) return "–";
   const n = Number(v);
-  return (n >= 0 ? "▲ +$" : "▼ −$") + Math.abs(n).toFixed(2);
+  if (!Number.isFinite(n)) return "–";
+  const c = Math.round(n * 100) / 100; // −0.004 → 0.00, shown as ▲ +$0.00 (never "▼ −$0.00")
+  return (c >= 0 ? "▲ +$" : "▼ −$") + Math.abs(c).toFixed(2);
 };
 const GATES = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"];
 
