@@ -181,6 +181,16 @@ GATES = [
 ]
 
 
+def gate_texts(r: Any) -> list[tuple[str, str]]:
+    """Gate descriptions from the LOADED plan (never hardcoded rule numbers)."""
+    tp, f = r.trade_plan, r.filters
+    out = dict(GATES)
+    out["G4"] += "" if f.require_mso_agree else " (score only in this plan)"
+    out["G5"] += "" if f.require_structure_break else " (score only; no break → closer target)"
+    out["G7"] = f"Valid trade plan (stop + target, R:R {tp.rr_min:g}–{tp.rr_max:g})"
+    return list(out.items())
+
+
 @router.get("/strategy")
 async def strategy(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """How the three parts fit together, live: TradingAgents (which side) · LunqFX fractal (where/what) ·
@@ -241,7 +251,9 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
             "Market Structure Oscillator [BigBeluga]",
         ],
         "instruments": instruments,
-        "gates": [{"id": g, "text": t, "last": last_gates.get(g)} for g, t in GATES],
+        "gates": [
+            {"id": g, "text": t, "last": last_gates.get(g)} for g, t in gate_texts(request.app.state.rules.rules)
+        ],
         "last_signal": {"id": last.id, "status": last.status, "skip_reason": last.skip_reason} if last else None,
         "one_to_one": r.one_to_one_mode.enabled,
     }
