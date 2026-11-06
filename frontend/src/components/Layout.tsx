@@ -4,6 +4,7 @@ import Header from "./Header";
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/today", label: "Today" },
+  { to: "/signals", label: "Signals" },
   { to: "/strategy", label: "Strategy" },
   { to: "/backtest", label: "Backtest" },
   { to: "/lab", label: "Lab" },
@@ -12,6 +13,7 @@ const NAV = [
   { to: "/risk", label: "Risk" },
   { to: "/payouts", label: "Payouts" },
   { to: "/connections", label: "Connections" },
+  { to: "/journal", label: "Journal & Logs" },
 ];
 
 export default function Layout() {

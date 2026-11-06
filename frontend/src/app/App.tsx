@@ -14,6 +14,8 @@ import Strategy from "../pages/Strategy";
 import Backtest from "../pages/Backtest";
 import Replay from "../pages/Replay";
 import LabPage from "../pages/Lab";
+import Signals from "../pages/Signals";
+import Journal from "../pages/Journal";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -41,6 +43,8 @@ export default function App() {
         <Route index element={<Navigate to="/today" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/today" element={<Today />} />
+        <Route path="/signals" element={<Signals />} />
+        <Route path="/journal" element={<Journal />} />
         <Route path="/payouts" element={<Payouts />} />
         <Route path="/strategy" element={<Strategy />} />
         <Route path="/backtest" element={<Backtest />} />

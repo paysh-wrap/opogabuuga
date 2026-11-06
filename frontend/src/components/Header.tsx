@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api, type ConnectionsResponse, type Health } from "../lib/api";
 import { useLive } from "../app/live";
+import HeaderStatus from "./HeaderStatus";
 
 function useEtClock(): string {
   const fmt = () =>
@@ -57,6 +58,7 @@ export default function Header() {
             {s.required_ready ? " · ready" : " · required missing"}
           </span>
         )}
+        <HeaderStatus />
         <span className="ml-auto font-mono text-sm text-goldLight" aria-label="Eastern time">{clock} ET</span>
         <span className="text-xs text-blueLight" title="Live updates">
           <span aria-hidden className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: up ? "#22C55E" : "#EF4444" }} />
