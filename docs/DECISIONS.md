@@ -432,3 +432,8 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   ≈ break-even (MGC −$215, MNQ +$210); D49-filtered 0.23/day and −$386 in this weak stretch. 2–3 profitable trades/day
   is not available from this setup type. Lucid audit (sub-agent): no rule broken; Flex DLL null and Pro DLL $600 are
   VERIFY — confirm with Lucid.
+
+## D51 — MES eliminated; Lower risk mode 7 trades/day (user 2026-11-06: "Eliminate MES", "for low risk mode do 7")
+- MES removed from every Pro/Flex plan (instrument, ES correlation group entry, SMT pair). Legacy Daily file (tests only)
+  untouched. Normal mode max 3/day; Lower risk mode = its own limit, 7/day (risk/low_risk.py now uses
+  max(normal, low_risk_max_trades_per_day) instead of min(2×normal, cap)).

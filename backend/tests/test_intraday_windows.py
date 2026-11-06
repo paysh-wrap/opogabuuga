@@ -31,4 +31,4 @@ def test_one_to_one_and_scalp_keep_full_hours():
 
 def test_market_without_intraday_windows_unchanged():
     r = apply_intraday_windows(_r())
-    assert r.instrument("MES").windows == _r().instrument("MES").windows
+    assert r.instrument("MYM").windows == _r().instrument("MYM").windows

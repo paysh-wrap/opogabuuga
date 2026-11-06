@@ -70,8 +70,8 @@ def test_main_strategy_d49(plan):
     assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
     for sym in ("MGC", "MNQ"):  # D50 (user): MGC + MNQ only
         assert p.instruments[sym].enabled and p.instruments[sym].intraday_windows is None, sym
-    assert not p.instruments["MES"].enabled and not p.instruments["MYM"].enabled
-    assert p.internal.max_trades_per_day == 3 and p.internal.low_risk_max_trades_per_day == 3  # max 3/day
+    assert "MES" not in p.instruments and not p.instruments["MYM"].enabled  # D51: MES eliminated
+    assert p.internal.max_trades_per_day == 3 and p.internal.low_risk_max_trades_per_day == 7  # normal 3, low risk 7
     rm = p.bias.rating_map  # D50: TradingAgents blocks a side only on strong calls
     assert rm["BUY"] == "LONG_ONLY" and rm["SELL"] == "SHORT_ONLY"
     assert rm["OVERWEIGHT"] == rm["HOLD"] == rm["UNDERWEIGHT"] == "NEUTRAL"

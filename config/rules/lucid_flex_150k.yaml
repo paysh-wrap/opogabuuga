@@ -57,17 +57,16 @@ behavior:
 
 # D1: MYM (Micro E-mini Dow / "US30", CBOT) and MGC (Micro Gold, COMEX) added — both on Lucid's
 # "Approved Products and Commissions" list. Disabled until the §16.6 addition gate passes.
-# fee_rt = Lucid commission per side × 2 (MNQ/MES/MYM $0.50/side, MGC $0.80/side) — VERIFY in your dashboard.
+# fee_rt = Lucid commission per side × 2 (MNQ/MYM $0.50/side, MGC $0.80/side) — VERIFY in your dashboard.
 # Per-instrument trade-plan overrides fall back to trade_plan.* when absent.
 instruments:
   MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}, windows: [["06:45", "09:30"], ["09:35", "15:30"]]}    # D49: MNQ back on (profitable with the D49 rules on Nov 2024+). VERIFY fees
-  MES: {tick: 0.25, tick_value: 1.25, fee_rt: 1.00, enabled: false, group: ES, super_group: EQUITY_INDEX, bias_proxy: SPY, exchange: CME, tv_symbol: "MES1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}, windows: [["06:45", "09:30"], ["09:35", "15:30"]]}   # VERIFY fees
   MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
   MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: true, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
-  ES: [ES, MES]
+  ES: [ES]
   YM: [YM, MYM]
   RTY: [RTY, M2K]
   GC: [GC, MGC]
@@ -124,7 +123,7 @@ internal:
   pause_below_risk_base: 3000
   dll_safety_margin: 40
   max_trades_per_day: 3                # D50 (user): at least 2, MAX 3 trades/day per account
-  low_risk_max_trades_per_day: 3       # D50: Lower risk never above 3/day either
+  low_risk_max_trades_per_day: 7       # D51 (user): Lower risk mode up to 7/day; normal mode max 3
   max_consecutive_losses_per_day: 2
   internal_max_micros: 60
   kill_switch_mll_distance: 100
@@ -198,7 +197,7 @@ bias:
   unknown: NO_TRADE
   backtest_source: recorded_only
 
-smt: {enabled: false, pair: [MNQ, MES]}
+smt: {enabled: false, pair: []}   # D51: Micro S&P removed, so no NQ/ES SMT pair
 
 indicators:                            # docs/INDICATOR_SPEC.md (spec-derived; VERIFY vs original source, D11)
   require_c2_close_inside_c1: true     # pillar — must stay true
