@@ -99,3 +99,6 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 - TradingAgents: a PERFECT daily direction (hindsight oracle) adds ~nothing on this data, and §15 forbids running
   TradingAgents on past dates (hindsight leak), so its value can only be measured live (A7 bias scorecard).
 - Uploaded bundles (paytience*.bundle) were older copies — nothing new.
+- Later in session 5: §24 UI (Today, Why-no-trade, meters, P&L calendar, PWA, Trade Replay), self-looping Lab
+  (D40/D40b: walk-forward, shadow, 18:00 apply, auto-rollback), master prompt saved, phase-0..4 restored, research
+  tools; R:R 1.75–3 study (docs/results section H–J). GitHub paysh-wrap/beast still blocked (account not linked).

@@ -100,3 +100,14 @@ r175 = rr_min 1.75 and no 1R cap for no-break setups; r175brk = + structure brea
 | r175brk | 6 tr, 50%, PF 2.27, +$173, +0.73R/trade | 1 tr, 0%, −$52 |
 Note: the engine beats the offline screener (section H) because of its early exits / half-off defence → judge
 strategy changes with full engine backtests, not the offline screener.
+
+## J. Final results this session (engine, Intraday best hours, 22 sessions, risk base ≈ $1,000)
+| Variant | MGC | MNQ |
+|---|---|---|
+| Current plan (baseline) | 24 tr, 58%, PF 1.69, +$324 | 9 tr, 44%, PF 0.93, −$16 |
+| osc_strength_min 20 (current plan) | 21 tr, 57%, PF 1.76, +$318, +0.38R | 8 tr, 63%, PF 1.52, +$76 |
+| R:R ≥1.75 + osc 20 | 14 tr, 43%, PF 1.62, +$236, +0.52R | 4 tr, 50%, +$38 |
+| R:R ≥1.75 + structure break | 6 tr, 50%, PF 2.27, +$173 | 1 tr, −$52 |
+| R:R ≥1.75 plain | 16 tr, 38%, PF 1.32, +$151 | 5 tr, 20%, −$54 |
+Engine's 24 baseline MGC trades: 13 TP, 9 STOP; 15 of 24 aim for 1R (D36b) → that is why win rate is 58%.
+60%+ at R:R 1.75–3 not reached on this data. Nothing applied to the live plan (user decides).
