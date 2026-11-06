@@ -223,6 +223,16 @@ for c in res["signals"]:
     ms, d = o["t0ms"], o["d"]
     f = c["features"]; x = {"sess": session_date(ts(c["entry_bar_time"] or c["bar_time"])).isoformat(), **o,
                             "brk": bool(f.get("choch")) or bool(f.get("bos")), "profile": c["profile"]}
+    # engine-side fields (session 8): what the live plan's settings can filter on directly
+    p0 = next(p for p in c["plans"] if p["mode"] == "STANDARD")
+    si, tg = f.get("score_items") or {}, f.get("tags") or {}
+    g4 = (c.get("gates") or {}).get("G4") or {}
+    x.update({"sid": c["id"], "score": float(c["score"] or 0), "c1atr": float(c["c1_range_atr"] or 0),
+              "plan_rr": float(p0["rr"]), "risk_ticks": float(D(p0["risk_pts"]) / TICK),
+              "choch": bool(f.get("choch")), "bos": bool(f.get("bos")),
+              "cisd": float(si.get("cisd_before_c2_close") or 0) > 0, "osc": float(si.get("osc_strength") or 0) > 0,
+              "htf": float(si.get("htf_mso_agrees") or 0) > 0, "mso": "disagrees" not in str(g4.get("detail", "")),
+              "weekday": tg.get("weekday"), "slice": tg.get("slice"), "atr_pct": float(tg.get("atr_pct") or -1)})
     for k, v in (f.get("trend") or {}).items():  # D44: what the ENGINE's own trend switches saw (live code path)
         x[f"eng_{k}"] = (v == d) if v is not None else None
     i1 = bisect.bisect_left(opens, ms) - 1  # newest 1m bar closed before the entry bar
