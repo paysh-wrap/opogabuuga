@@ -24,6 +24,10 @@ export default function Header() {
   const health = useQuery({ queryKey: ["health"], queryFn: () => api<Health>("/api/health"), refetchInterval: 15_000 });
   const conns = useQuery({ queryKey: ["connections"], queryFn: () => api<ConnectionsResponse>("/api/connections") });
   const s = conns.data?.summary;
+  const risk = useQuery({ queryKey: ["risk"], queryFn: () => api<{ settings: Record<string, unknown> }>("/api/risk/settings") });
+  const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean }>("/api/risk/low-risk") });
+  const rs = risk.data?.settings;
+  const tradeMode = !rs ? null : rs["scalp_mode.enabled"] === true ? "Scalp" : rs["one_to_one_mode.enabled"] === true ? "1:1" : "Intraday";
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -41,6 +45,12 @@ export default function Header() {
         <span data-testid="mode" className="rounded border border-border px-2 py-0.5 text-xs font-semibold text-goldLight">
           {health.data?.mode ?? "…"}
         </span>
+        {tradeMode && (
+          <a href="/risk" data-testid="trade-mode" title="Trading mode (change on the Risk page)"
+            className="rounded-full border border-gold/50 bg-gold/10 px-2.5 py-0.5 text-xs font-semibold text-gold hover:text-goldLight">
+            {tradeMode}{low.data?.enabled ? " · Lower risk" : ""}
+          </a>
+        )}
         {s && (
           <span data-testid="conn-summary" className="text-xs text-blueLight">
             Connections <b className="text-gold">{s.connected}/{s.total}</b>
