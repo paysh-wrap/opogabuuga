@@ -175,3 +175,27 @@ By year, Squeeze 5m+15m: 2019 39% · 2020 28% · 2021 24% · 2022 33% · 2023 27
 - Caveat on the live plan's 58% (Results H): 22 sessions only, and 15 of its 24 trades aimed at 1R (D36b), not 1.75R.
   It has NOT been re-measured on 7 years (engine run ≈ 3 h on 4 CPUs) — recommended next.
 Full output: docs/results/ind7y/screen_175.txt.
+
+## P. Best strategy at 1.75R on ALL MGC data + live plan re-measured (session 8, 2026-11-06) → D47 main strategy
+Data: every MGC 1-minute bar since the contract launched (Databento MGC.v.0, May 2019 – Oct 2026).
+1) Live plan (D36 1R/2–3R mix + D37 hours), ENGINE, Nov 2024 – Oct 2026, NEUTRAL bias (ind7y/live_plan_2y_engine.txt):
+| | trades | win | PF | $ | R/trade |
+|---|---|---|---|---|---|
+| all | 391 | 43% | 0.87 | −1,201 | −0.05 |
+| ~1R targets | 320 | 45% | 0.86 | −934 | −0.07 |
+| 1.75R+ targets | 71 | 32% | 0.88 | −268 | +0.02 |
+| exits | TP 145 · STOP 191 · RR_INVALID_AFTER_FILL 50 · FLAT 5 | | | | |
+→ the 58% (22 sessions) does not hold on 2 years.
+2) Hold-out search at a fixed 1.75R (best175.py; 5,768 setups; 103,256 combos of ≤3 filters with ≥100 picks):
+chosen on 2019–2023 only, judged on 2024–2026. Top picks 47–48% on 2019–23 → 25–38% on 2024–26 (over-fit).
+No combination reaches 50% on the unseen years; 70% at 1.75R is not reachable with these setups.
+| Candidate (engine settings only) | 2019–2023 | 2024–2026 (unseen) |
+|---|---|---|
+| live gates, T2 ≥ 1.75R | 283 tr 34% −0.19R | 307 tr 29% −0.30R |
+| **UT Bot 5m + EMA200 5m + T2 ≥ 1.75R + score 60 + C1 0.4 (D47 main)** | **60 tr 43% −0.01R** | **44 tr 39% −0.01R** |
+| same without score/C1 (not allowed: score < 60 has no risk tier) | 99 tr 48% +0.11R | 104 tr 38% −0.02R |
+| + D37 best hours | 56 tr 41% −0.10R | 63 tr 30% −0.26R |
+3) Bias ceiling on the D47 setups (all 7 years): none 104 tr 41% −0.01R · PERFECT daily direction 73 tr 49% +0.18R ·
+20-day trend at open 55 tr 47% +0.15R (2019–23 51%, 2024–26 40% +0.08R, 20 tr) · previous day 67 tr 37% −0.12R.
+→ TradingAgents can add ~+0.1–0.2R/trade at best; it cannot lift these setups to 70%.
+4) D47 main strategy in the ENGINE, Nov 2024 – Oct 2026 (main175.yaml = the saved plan): see the line below.

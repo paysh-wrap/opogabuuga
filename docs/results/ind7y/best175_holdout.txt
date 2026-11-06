@@ -1,0 +1,35 @@
+5768 setups · 99 filters · 103256 combos with ≥100 train trades · train < 2024-01-01 (4.7 y) · test ≥ 2024-01-01 (2.8 y) · fixed 1.75R
+no filter                                                  train  3000  30% -0.33R | test  2768  28% -0.32R
+TOP 25 picked on TRAIN only (test = unseen years):
+eng_utbot_5m & rsi_side_15 & not_mon_fri                   train   158  48% +0.13R | test   135  35% -0.15R (0.9/wk)
+rsi_side_15 & ut_5 & not_mon_fri                           train   157  48% +0.12R | test   135  35% -0.15R (0.9/wk)
+eng_utbot_5m & sqz_mom_15 & not_mon_fri                    train   147  48% +0.08R | test   147  31% -0.27R (1.0/wk)
+eng_utbot_5m & eng_vwap & not_mon_fri                      train   164  48% +0.10R | test   148  34% -0.18R (1.0/wk)
+sqz_mom_15 & ut_5 & not_mon_fri                            train   146  47% +0.07R | test   147  31% -0.27R (1.0/wk)
+eng_vwap & ut_5 & not_mon_fri                              train   163  47% +0.09R | test   148  34% -0.18R (1.0/wk)
+adx25_5 & vwap & T2rr>=1.75                                train   108  47% +0.14R | test   145  27% -0.33R (1.0/wk)
+eng_utbot_5m & st_15 & not_mon_fri                         train   178  47% +0.09R | test   169  36% -0.14R (1.1/wk)
+eng_utbot_5m & vwap & not_mon_fri                          train   164  47% +0.08R | test   148  34% -0.18R (1.0/wk)
+adx20_5 & mso & st_60                                      train   130  47% +0.10R | test   131  25% -0.38R (0.9/wk)
+st_15 & ut_5 & not_mon_fri                                 train   177  47% +0.08R | test   169  36% -0.14R (1.1/wk)
+ema50_15 & eng_utbot_5m & not_mon_fri                      train   173  47% +0.09R | test   149  36% -0.13R (1.0/wk)
+adx25_5 & eng_vwap & T2rr>=1.75                            train   107  47% +0.13R | test   145  27% -0.33R (1.0/wk)
+ce_15 & eng_utbot_5m & score>=70                           train   107  47% +0.08R | test    94  32% -0.24R (0.6/wk)
+rsi_side_5 & st_60 & T2rr>=1.75                            train   107  47% +0.11R | test   154  31% -0.24R (1.0/wk)
+ut_5 & vwap & not_mon_fri                                  train   163  47% +0.07R | test   148  34% -0.18R (1.0/wk)
+ema200_5 & eng_utbot_5m & not_mon_fri                      train   187  47% +0.07R | test   157  37% -0.12R (1.1/wk)
+ema50_15 & ut_5 & not_mon_fri                              train   172  47% +0.08R | test   149  36% -0.13R (1.0/wk)
+ema200_15 & eng_utbot_5m & T2rr>=1.75                      train   125  46% +0.08R | test   112  38% -0.01R (0.8/wk)
+ema200_15 & ut_5 & T2rr>=1.75                              train   125  46% +0.07R | test   112  38% -0.01R (0.8/wk)
+ce_60 & eng_utbot_5m & T2rr>=1.75                          train   136  46% +0.09R | test   129  35% -0.14R (0.9/wk)
+adx20_5 & mso & st_5                                       train   108  46% +0.16R | test   127  28% -0.28R (0.9/wk)
+ce_60 & rsi_side_5 & T2rr>=1.75                            train   108  46% +0.10R | test   149  32% -0.21R (1.0/wk)
+adx25_5 & mso & score>=50                                  train   121  46% +0.11R | test   106  33% -0.16R (0.7/wk)
+dmi_5 & ema200_15 & T2rr>=1.75                             train   121  46% +0.10R | test   181  30% -0.24R (1.2/wk)
+
+highest win rate seen on TEST among combos with ≥40 test trades (optimistic: picked on test):
+rvol>1_15 & sqz_5_15 & short                               train   102  27% -0.32R | test    54  50% +0.24R
+eng_squeeze_5m_15m & rvol>1_15 & short                     train   103  27% -0.33R | test    54  50% +0.24R
+rvol>1_15 & sqz_5_15 & STD                                 train   104  30% -0.27R | test    55  49% +0.22R
+eng_squeeze_5m_15m & rvol>1_15 & STD                       train   103  29% -0.29R | test    55  49% +0.22R
+rsi_side_5 & st_15 & STD                                   train   111  41% -0.07R | test    86  49% +0.21R
