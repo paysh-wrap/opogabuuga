@@ -255,6 +255,10 @@ for c in res["signals"]:
         x["sqz_5_15"] = bool(x["sqz_rising_5"] and x["sqz_rising_15"])  # = engine switch squeeze_5m_15m (D45)
     rows.append(x)
 
+import os
+if os.environ.get("DUMP_ROWS"):  # per-setup rows for deeper combo searches (session 8)
+    json.dump([{k: (bool(v) if isinstance(v, (bool, np.bool_)) else v) for k, v in r.items()} for r in rows],
+              open(os.environ["DUMP_ROWS"], "w"), default=str)
 for own, eng in (("vwap", "eng_vwap"), ("ema200_5", "eng_ema200_5m"), ("ut_5", "eng_utbot_5m"),
                  ("sqz_5_15", "eng_squeeze_5m_15m")):
     both = [r for r in rows if r.get(eng) is not None and own in r]
