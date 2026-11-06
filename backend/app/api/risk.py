@@ -289,6 +289,9 @@ def list_accounts(
     }
 
 
+PLAN_PREFIXES = ("lucid_pro_", "lucid_flex_")  # only regular Lucid Pro/Flex plans are offered
+
+
 @router.get("/plans")
 def list_plans(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
     """Lucid plans available as rule files (config/rules/*.yaml) and the one in use."""
@@ -296,6 +299,8 @@ def list_plans(request: Request, _: Principal = Depends(current_user)) -> dict[s
 
     out = []
     for f in sorted(RULES_DIR.glob("*.yaml")):
+        if not f.stem.startswith(PLAN_PREFIXES):
+            continue
         first = f.read_text(encoding="utf-8").splitlines()[0].lstrip("# ").strip()
         out.append({"id": f.stem, "title": first})
     return {"current": request.app.state.rules.plan, "plans": out}
@@ -314,7 +319,7 @@ async def set_plan(
     from app.risk.holder import RULES_DIR
 
     st = request.app.state
-    if not (RULES_DIR / f"{body.plan}.yaml").is_file() or "/" in body.plan:
+    if not body.plan.startswith(PLAN_PREFIXES) or "/" in body.plan or not (RULES_DIR / f"{body.plan}.yaml").is_file():
         raise HTTPException(404, "no such plan")
     if st.controller.om.trades:
         raise HTTPException(409, "close open trades before switching plan")
@@ -328,7 +333,7 @@ async def set_plan(
     return list_plans(request, p)
 
 
-MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq", "MES": "S&P 500"}  # D49: gold + Nasdaq + S&P (micros)
+MARKETS = {"MGC": "Gold", "MNQ": "Nasdaq"}  # user: gold + Nasdaq micros only
 
 
 @router.get("/markets")

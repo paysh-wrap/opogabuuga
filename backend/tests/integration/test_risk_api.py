@@ -192,27 +192,30 @@ def test_invalid_stored_settings_block_and_report(authed):
 
 def test_market_buttons_toggle_instruments(authed):
     m = {x["symbol"]: x["enabled"] for x in authed.get("/api/markets").json()["markets"]}
-    assert m == {"MGC": False, "MNQ": True, "MES": False}  # D49: S&P (MES) has a button too
+    assert m == {"MGC": False, "MNQ": True}  # user: Gold + Nasdaq only
     r = authed.put("/api/markets", json={"symbol": "MGC", "enabled": True}).json()
     assert {x["symbol"]: x["enabled"] for x in r["markets"]}["MGC"] is True
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
     authed.put("/api/risk/settings", json={"changes": {"behavior.min_hold_seconds": 8}})  # survives other saves
     assert authed.app.state.rules.rules.instruments["MGC"].enabled
     assert authed.put("/api/markets", json={"symbol": "XYZ", "enabled": True}).status_code == 404
-    authed.put("/api/markets", json={"symbol": "MES", "enabled": True})
-    assert authed.app.state.rules.rules.instruments["MES"].enabled
+    assert authed.put("/api/markets", json={"symbol": "MES", "enabled": True}).status_code == 404
 
 
 def test_plan_switch(authed):
     from app.risk.holder import RULES_DIR
 
     r = authed.get("/api/plans").json()
-    assert r["current"] == "lucid_daily_25k" and any(p["id"] == "lucid_daily_25k" for p in r["plans"])
+    assert r["current"] == "lucid_daily_25k"  # test settings; legacy plan is no longer offered
+    assert not any(p["id"] == "lucid_daily_25k" for p in r["plans"])
+    assert all(p["id"].startswith(("lucid_pro_", "lucid_flex_")) for p in r["plans"])
     assert authed.put("/api/plans", json={"plan": "nope"}).status_code == 404
-    alt = RULES_DIR / "zz_test_plan.yaml"
-    alt.write_text((RULES_DIR / "lucid_daily_25k.yaml").read_text())
+    assert authed.put("/api/plans", json={"plan": "lucid_daily_25k"}).status_code == 404
+    alt = RULES_DIR / "lucid_flex_zztest.yaml"
+    alt.write_text((RULES_DIR / "lucid_flex_25k.yaml").read_text())
     try:
-        assert authed.put("/api/plans", json={"plan": "zz_test_plan"}).json()["current"] == "zz_test_plan"
+        r = authed.put("/api/plans", json={"plan": "lucid_flex_zztest"}).json()
+        assert r["current"] == "lucid_flex_zztest" and any(p["id"] == "lucid_flex_zztest" for p in r["plans"])
         alt.unlink()
         h = authed.app.state.rules
         with authed.app.state.sessionmaker() as s:
