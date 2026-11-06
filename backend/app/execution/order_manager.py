@@ -63,6 +63,7 @@ class OpenTrade:
     exit_fee: Decimal = Decimal(0)
     pending_until: datetime | None = None  # limit entries: cancel the unfilled legs from this moment on
     cancel_alerted: bool = False  # a failed entry cancel already raised the pause/banner (retries stay quiet)
+    profile: str = ""  # signal profile (TIGHT/STD): the half-off defence reads this timeframe's MSO (D37)
 
     @property
     def d(self) -> Direction:
