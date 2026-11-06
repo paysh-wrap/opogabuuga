@@ -28,6 +28,14 @@ PINE_DIR = REPO_ROOT / "pine"
 PINE_FILES = {"bridge": "Paytience_Bridge.pine"}
 
 
+async def _run_sync(st: Any, fn: Any) -> Any:
+    """DB work off the event loop (live). Backtests set app.state.inline_db_work: one event loop and no other
+    requests, so the thread hop is pure overhead there — same code, same order of operations."""
+    if getattr(st, "inline_db_work", False):
+        return fn()
+    return await run_in_threadpool(fn)
+
+
 async def _after_accept(request: Request, acc: Accepted) -> None:
     st = request.app.state
     p = acc.payload
@@ -53,7 +61,7 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
                 )
 
         try:
-            updates = await run_in_threadpool(work)
+            updates = await _run_sync(st, work)
         except Exception as e:  # §1.9: never silent — log + banner; entries stay blocked because nothing passed
             log.error("signal.process_failed", key=key, error=type(e).__name__, detail=str(e)[:300])
             await st.hub.broadcast(
@@ -123,7 +131,7 @@ async def tradingview(request: Request, background: BackgroundTasks) -> JSONResp
                 stats=st.webhook_stats,
             )
 
-    res = await run_in_threadpool(work)
+    res = await _run_sync(st, work)
     if isinstance(res, Accepted):
         if not res.duplicate:
             background.add_task(_after_accept, request, res)

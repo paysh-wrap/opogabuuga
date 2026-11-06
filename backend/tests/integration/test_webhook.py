@@ -2,6 +2,7 @@ import json
 import time
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 
 from app.models import AuditLog, Bar, Event
@@ -206,7 +207,10 @@ def test_rate_limit(wc):
     assert codes == [200, 200, 200, 429, 429]
 
 
-def test_status_endpoint_and_connections_card_react(authed, clock):
+def test_status_endpoint_and_connections_card_react(authed, clock, mock_http):
+    # /api/connections also asks GitHub for the latest TradingAgents tag; stub it (was order-dependent: passed only
+    # when an earlier test had filled the module-level tag cache)
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
     clock.set(NOW)
     assert post(authed, hb()).status_code == 200
     st = authed.get("/api/webhook/status").json()

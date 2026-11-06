@@ -74,7 +74,7 @@ super_groups:
   EQUITY_INDEX: [NQ, ES, YM, RTY]
   METALS: [GC]
 
-trade_plan: {rr_min: 1.0, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
+trade_plan: {rr_min: 1.5, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
 filters:
   c1_min_range_atr: 0.0                # tunable 0.4–1.0

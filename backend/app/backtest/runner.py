@@ -156,6 +156,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
 
         # Replay pushes a whole day in seconds: the live per-minute webhook rate limit (wall-clock) must not apply.
         st.webhook_limiter = SlidingWindow(10**9, 60)
+        st.inline_db_work = True  # backtest only: no thread hop per webhook (identical results, faster)
         st.calendar = lambda d: []
         with st.sessionmaker() as s:
             from app.auth import create_user
