@@ -102,6 +102,8 @@ const goto = async (path, heading) => { await page.goto(BASE + path); await page
 await step("login page carries Paytience branding; bad password is refused", async () => {
   await page.goto(BASE + "/dashboard");
   await page.waitForURL("**/login");
+  // the tab title is set by an effect after the route renders → wait for it instead of reading it once (was flaky)
+  await page.waitForFunction(() => document.title === "Paytience · Login", null, { timeout: 15000 }).catch(() => {});
   expect((await page.title()) === "Paytience · Login", "title " + (await page.title()));
   await page.getByRole("heading", { name: "Paytience" }).waitFor();
   await page.getByLabel("Password").fill("wrong-" + password);
@@ -130,6 +132,7 @@ await step('"Paytience" brand + tab title on every page (incl. 404)', async () =
     await goto(path, heading);
     const brand = page.getByTestId("brand");
     expect((await brand.innerText()).includes("Paytience"), `brand on ${path}`);
+    await page.waitForFunction(() => document.title.startsWith("Paytience · "), null, { timeout: 15000 }).catch(() => {});
     expect((await page.title()).startsWith("Paytience · "), `title on ${path}: ${await page.title()}`);
   }
 });
@@ -242,7 +245,11 @@ await step("risk edit → preview → save → rollback", async () => {
 await step("cooldown banner + typed clear", async () => {
   await goto("/dashboard", "Dashboard");
   const b = page.getByTestId("cooldown-MNQ-TIGHT");
-  await b.waitFor();
+  try {
+    await b.waitFor();
+  } catch (e) { // diagnostics for the intermittent failure: server state vs page
+    throw new Error(`cooldowns API: ${JSON.stringify(await api("GET", "/api/cooldowns")).slice(0, 300)} | ${e.message.split("\n")[0]}`);
+  }
   await b.getByRole("button", { name: "Clear…" }).click();
   await b.getByLabel("Cooldown clear confirmation").fill("CLEAR COOLDOWN");
   await b.getByRole("button", { name: "Clear cooldown" }).click();
@@ -251,9 +258,17 @@ await step("cooldown banner + typed clear", async () => {
 
 await step("payout tickets: sweep + skim → submitted → processed", async () => {
   await goto("/payouts", "Payouts");
-  await page.getByRole("button", { name: "Check now" }).click();
+  const [resp] = await Promise.all([
+    page.waitForResponse((r) => r.url().endsWith("/api/payouts/check")),
+    page.getByRole("button", { name: "Check now" }).click(),
+  ]);
+  const made = await resp.text();
   const rows = page.locator("[data-testid^=payout-]").filter({ hasText: /sweep|skim/ });
-  await rows.nth(1).waitFor();
+  try {
+    await rows.nth(1).waitFor();
+  } catch (e) { // diagnostics for the intermittent failure: what the server created vs what the page shows
+    throw new Error(`check ${resp.status()} ${made.slice(0, 400)} | rows: ${(await page.locator("[data-testid^=payout-]").allInnerTexts()).join(" / ")} | ${e.message.split("\n")[0]}`);
+  }
   const txt = await rows.allInnerTexts();
   expect(txt.some((t) => t.includes("sweep") && t.includes("$600.00")), "sweep $600: " + txt.join(" / "));
   expect(txt.some((t) => t.includes("skim") && t.includes("$550.00")), "skim $550: " + txt.join(" / "));
