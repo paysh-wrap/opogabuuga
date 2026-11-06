@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import RuleMeters from "../components/RuleMeters";
+import type { MeterAcct } from "../lib/insights";
 import { EvalModePanel, FirmAndSafety, ImpactTable, type PreviewResp, Versions, WhatIf } from "../components/RiskPanels";
 
 interface Settings {
@@ -37,6 +39,7 @@ export default function Risk() {
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
   const plans = useQuery({ queryKey: ["plans"], queryFn: () => api<{ current: string; plans: { id: string; title: string }[] }>("/api/plans") });
+  const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => api<{ accounts: (MeterAcct & { id: number; label: string; error?: string })[] }>("/api/dashboard"), refetchInterval: 5000 });
   const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean; max_losses_per_day: number; max_trades_per_day: number }>("/api/risk/low-risk") });
   const s = st.data;
   if (!s) return <p role="status">Loading…</p>;
@@ -56,6 +59,20 @@ export default function Risk() {
           onChange={(e) => run.mutate(() => api("/api/plans", { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }).then(() => qc.invalidateQueries({ queryKey: ["plans"] })))}>
           {plans.data?.plans.map((p) => <option key={p.id} value={p.id}>{p.title.replace("Paytience rule profile — Lucid Trading ", "")}</option>)}
         </select>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-4" data-testid="risk-gauges">
+        <h2 className="font-semibold text-gold">Rule gauges</h2>
+        <p className="text-xs">How close each account is to Lucid's limits right now. Gold = 50%+ used, red dot = 80%+.</p>
+        {dash.isLoading && <p role="status" className="text-sm">Loading…</p>}
+        {dash.error && <p role="alert" className="text-sm text-goldLight">⚠ Cannot load account limits.</p>}
+        {dash.data && dash.data.accounts.length === 0 && <p className="mt-2 text-sm">No accounts yet.</p>}
+        {dash.data?.accounts.map((a) => (
+          <div key={a.id} className="mt-3 border-t border-border pt-2">
+            <b className="text-sm text-gold">{a.label || a.id}</b> <span className="text-xs">{a.stage}</span>
+            {a.error ? <p className="text-xs text-goldLight">⚠ {a.error}</p> : <RuleMeters a={a} />}
+          </div>
+        ))}
       </section>
 
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">

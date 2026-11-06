@@ -23,7 +23,7 @@ function mock(calls: string[]) {
     const j = (o: unknown) => new Response(JSON.stringify(o));
     if (u === "/api/dashboard") return j({ session: "2026-11-06", mode: "OFF", bias: {}, accounts: [
       { id: 1, label: "E1", stage: "EVAL", paper: true, armed: false, paused: null, balance: "25200", today_pnl: "0", open_pnl: "0", trades_today: 0,
-        mll: "24000", to_mll: "1200", kill_at: "100", idle_days: 3, idle_alert_days: 21, guard_on: false, eval_mode_on: true, day_lockin: true, day_net_r: "2.1", day_lockin_r: "2" }] });
+        mll: "24000", to_mll: "1200", max_loss: "1500", kill_at: "100", idle_days: 3, idle_alert_days: 21, guard_on: false, eval_mode_on: true, day_lockin: true, day_net_r: "2.1", day_lockin_r: "2" }] });
     if (u === "/api/markets") return j({ markets: [] });
     if (u === "/api/market/openbb") return j({ status: "LOADING", source: "x" });
     if (u === "/api/signals/skips") return j({ date: "2026-11-06", counts: {}, avg_20: {}, sessions_in_avg: 0 });
@@ -120,6 +120,8 @@ test("Risk: Eval Mode needs preview + typed phrase, OFF is one click; settings n
   await waitFor(() => expect(calls).toContain("POST /api/risk/rollback/2"));
   expect(await screen.findByTestId("firm-rules")).toHaveTextContent("EOD drawdown");
   expect(screen.getByTestId("firm-rules")).toHaveTextContent("VERIFY");
+  expect(await screen.findByTestId("meter-1-mll")).toHaveTextContent("20% used · $1,200 left of $1,500");
+  expect(screen.getByTestId("risk-gauges")).toHaveTextContent("E1");
 });
 
 test("Backtest: compare guard ON/OFF, payout simulation and Monte Carlo P(≥$50k)", async () => {

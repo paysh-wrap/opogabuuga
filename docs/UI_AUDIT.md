@@ -37,7 +37,7 @@
 | Risk | eval pace | partial (Today only) | done via Dashboard/Today cards |
 | Risk | day lock-in, model-fail cooldown, kill log | missing | done |
 | Risk | Firm Rules incl. purchase profile, VERIFY badges | missing | done (read-only; editing still via API) |
-| Risk | gauges | missing | missing (rule-proximity meters live on Dashboard) |
+| Risk | gauges | missing | done (Rule gauges section: same meters as Dashboard via shared RuleMeters component) |
 | Backtest | jobs, results, skip reasons, CSV import | done | done (E2E job) |
 | Backtest | guard ON/OFF compare | missing | done (drawdown_type param + pair run + compare table) |
 | Backtest | Eval Mode ON/OFF compare | missing | done |

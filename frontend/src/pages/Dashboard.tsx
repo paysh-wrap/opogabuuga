@@ -4,7 +4,7 @@ import { usePageTitle } from "../components/usePageTitle";
 import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
 import WhyNoTrade from "../components/WhyNoTrade";
-import { band, meters } from "../lib/insights";
+import RuleMeters from "../components/RuleMeters";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
 const chip = "rounded border px-1.5 text-[11px] font-semibold";
@@ -23,28 +23,6 @@ const money = (v?: string | null) => (v == null ? "—" : `$${Number(v).toLocale
 function Pnl({ v }: { v?: string }) {
   const n = Number(v ?? 0);
   return <span className="font-semibold text-gold">{n > 0 ? "▲ +" : n < 0 ? "▼ −" : ""}{money(String(Math.abs(n)))}</span>;
-}
-function Meters({ a }: { a: Acct }) {
-  const ms = meters({ ...a, stage: a.stage });
-  if (ms.length === 0) return null;
-  return (
-    <div className="mt-3 space-y-2" data-testid={`meters-${a.id}`}>
-      {ms.map((m) => {
-        const b = band(m.used);
-        return (
-          <div key={m.key} data-testid={`meter-${a.id}-${m.key}`} data-band={b}>
-            <div className="flex items-center justify-between text-xs">
-              <span>{m.label}{b === "danger" && <span aria-label="near limit" title="80% or more used" className="ml-2 inline-block h-2 w-2 rounded-full align-middle" style={{ background: "#EF4444" }} />}</span>
-              <span className={b === "safe" ? "text-blueLight" : "text-goldLight"}>{Math.round(m.used * 100)}% used · {m.detail}</span>
-            </div>
-            <div className="mt-1 h-1.5 rounded bg-border" role="meter" aria-label={m.label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(m.used * 100)}>
-              <div className={`h-1.5 rounded ${b === "safe" ? "bg-blue" : "bg-gold"}`} style={{ width: `${Math.round(m.used * 100)}%` }} />
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 function Stat({ k, v, warn }: { k: string; v: React.ReactNode; warn?: boolean }) {
   return (
@@ -123,7 +101,7 @@ export default function Dashboard() {
                   <Stat k={`Profit from ≤${a.fast_hold_s}s trades (Lucid max ${a.fast_limit_pct}%)`} v={`${Number(a.fast_profit_pct ?? 0).toFixed(1)}%`} warn={Number(a.fast_profit_pct) >= Number(a.fast_warn_pct)} />
                 </div>
               )}
-              {!a.error && <Meters a={a} />}
+              {!a.error && <RuleMeters a={a} />}
               {a.stage === "EVAL" && <EvalPaceCard id={a.id} />}
             </section>
           );
