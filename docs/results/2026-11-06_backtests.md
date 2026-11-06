@@ -64,3 +64,14 @@ Champion: train 19 tr, 53% win, +0.237R/trade · test 6 tr, 67%, +0.297R.
 Lab verdict: best train candidate = entry.max_wait_bars 5 (18 tr, 56%, +0.266R); on the 6 unseen sessions it was
 identical to the champion (6 tr, 67%, +0.297R) → not ≥ +0.03R better → NO proposal. Intraday MGC unchanged (correct,
 conservative behaviour). Bug found + fixed by this run: invalid candidate rule sets now skipped (commit 7e2d6d4).
+
+## G. MNQ under master-prompt settings (22 sessions, neutral bias) — almost no trades
+spec = G4/G5 hard, R:R ≥ 2, neutral_min_score 75, C1 ≥ 0.6 ATR · spec175 = same with R:R ≥ 1.75 (identical
+results) · gates = only G4/G5 hard (R:R from 1.0, neutral 60, C1 0.4).
+| MNQ mode | spec / spec175 | gates |
+|---|---|---|
+| Intraday | 1 tr, 0%, −$52 | 4 tr, 50%, PF 1.12, +$12 |
+| Low risk | 2 tr, 0%, −$105 | 7 tr, 43%, PF 0.96, −$7 |
+| 1:1 | 6 tr, 50%, PF 1.08, +$9 | 7 tr, 43%, PF 0.48, −$90 |
+| Scalp | 6 tr, 50%, PF 5.37, +$42 | 6 tr, 83%, PF 8.94, +$64 |
+Too few trades to trust any of these. MGC under the same variants: cancelled at the user's request (focus Intraday).
