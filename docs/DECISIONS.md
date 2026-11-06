@@ -340,3 +340,9 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   self_improvement.auto_promote_paper and the app is PAPER) → 18:00 apply → nightly auto_rollback when the live
   rolling-30 net-R E since the change < the champion's out-of-sample E recorded when it was found.
   Still not built: Optuna search, bootstrap CI guard.
+
+## D42 — MNQ off (user, 2026-11-06)
+- All Pro/Flex plans: `instruments.MNQ.enabled: false` (every mode: Intraday, Low risk, Scalp, 1:1). MGC only.
+- Why: MNQ not profitable after the D39 realistic-fill fix (22 Yahoo sessions) and MNQ Scalp lost in every period of
+  35 months of Databento data (Results K). Re-enable from the Risk page market toggle or the plan file once proven.
+- Legacy lucid_daily_25k.yaml (test fixture) unchanged.

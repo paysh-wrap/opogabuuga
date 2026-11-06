@@ -33,3 +33,4 @@ Restore: `git clone paytience.bundle paytience && cd paytience && git checkout p
   single-bracket close (half-off on live).
 - Next phases: 10 Lab (self-learning within bounds), 11 polish/PWA.
 - User prefs: short replies, private downloads only, conserve usage (helpers on Sonnet).
+- phase-5 + D42 (branch ccr-cd64ba14-99fipi): MNQ OFF in all Pro/Flex plans (user). MGC only. 514 backend tests green, 100% cov.
