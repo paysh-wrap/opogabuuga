@@ -112,3 +112,8 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   docs/results/, commit, rebuild the bundle and republish the handoff artifact
   (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + paytience.bundle.b64.txt). Push to GitHub
   paysh-wrap/beast once the user's GitHub account is linked. Focus: Intraday MGC (never lower its win rate).
+- WIN-RATE RULE (user, binding, 2026-11-06): never add anything that lowers the current plan's 58% win rate at
+  1.75R. Only add a change after it is measured to RAISE the win rate (and keeps R:R ≥ 1.75). Squeeze (D45) failed →
+  stays OFF. Not yet connected by the user: TradingAgents (Anthropic key) and Vibe Trading (no integration in the
+  repo yet — ask the user what it is before building). Backtests use a fixed NEUTRAL bias, so the live bias may change
+  win rate once connected; it can only be measured forward (§15: no TradingAgents on past dates).
