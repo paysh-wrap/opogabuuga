@@ -82,3 +82,20 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
   Options to settle before Phase 5: Tradovate API access on Lucid accounts (ask Lucid) or CrossTrade/NinjaTrader.
 - 1:1 mode: LIVE stage allowed? 40% consistency cap on FUNDED too?
 - Approve the win-rate filters (docs/IMPROVEMENTS.md §E) and self-learning proposals (§A).
+
+## Session 5 — 2026-11-06
+### Your requests
+- Restore from the artifact; save at every checkpoint (Claude can't see its usage %). Subagents on Sonnet.
+- Raise the Intraday win rate (H1 best hours approved, Intraday only); Low risk / Scalp / 1:1 keep their trade count.
+- Scalp + 1:1 must trade again with the same trade count; model-fail cooldown OFF in Scalp ("change it").
+- OpenBB inside the UI; fancier UI; finish the UI per master prompt §24 (UI additions v9.3, screenshots sent).
+- Make MNQ profitable; use TradingAgents to improve the strategy.
+### Built / found
+- D37 H1 windows (Intraday only), D38 scalp/1:1 same signals + stop-move race fix + no scalp cooldown,
+  D39 finest-feed fills (merged from session 4), OpenBB Markets panel, header mode badge, UI polish.
+- With realistic fills (D39) on 22 sessions only Intraday MGC is clearly profitable; MNQ is not (9 trades, PF 0.93).
+  Tried for MNQ: wider stop buffer, bigger min stop, 5-min only, require structure break, limit timeout 8, market
+  entry — none fixed it on this small sample.
+- TradingAgents: a PERFECT daily direction (hindsight oracle) adds ~nothing on this data, and §15 forbids running
+  TradingAgents on past dates (hindsight leak), so its value can only be measured live (A7 bias scorecard).
+- Uploaded bundles (paytience*.bundle) were older copies — nothing new.

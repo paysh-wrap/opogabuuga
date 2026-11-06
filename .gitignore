@@ -16,3 +16,4 @@ frontend/test-results/
 *.egg-info/
 backup/
 .coverage
+.claude/worktrees/
