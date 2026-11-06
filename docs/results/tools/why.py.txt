@@ -1,0 +1,19 @@
+import sys, logging, collections, json
+from pathlib import Path
+logging.disable(logging.CRITICAL)
+import app.automation.controller as C
+seen = collections.Counter(); detail = []
+orig = C.Controller._one if hasattr(C, "Controller") else None
+cls = next(v for k, v in vars(C).items() if isinstance(v, type) and hasattr(v, "_one"))
+orig = cls._one
+async def wrapped(self, s, a, sig, *rest, **kw):
+    r = await orig(self, s, a, sig, *rest, **kw)
+    seen[(r.reason or "OK").split(":")[0]] += 1
+    if not r.ok: detail.append((str(sig.bar_time), r.reason, [c for c in r.checks if not c.get("ok", True)][:3]))
+    return r
+cls._one = wrapped
+from app.backtest.data import load_csv
+from app.backtest.runner import BacktestConfig, run_backtest
+sym, csvp, plan = sys.argv[1:4]
+r = run_backtest(load_csv(Path(csvp).read_text()), BacktestConfig(symbol=sym, bias="NEUTRAL"), Path(plan))
+print(json.dumps({"trades": len(r.trades), "results": seen, "rejects": detail[:12]}, default=str, indent=1))

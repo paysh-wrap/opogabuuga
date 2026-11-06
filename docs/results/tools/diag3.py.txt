@@ -1,0 +1,36 @@
+import sys, tempfile, sqlite3, json, collections, re, logging, itertools
+from pathlib import Path
+keep=[]; _TD=tempfile.TemporaryDirectory
+class TD(_TD):
+    def __init__(s,*a,**k): super().__init__(*a,**k); s._finalizer.detach(); keep.append(s.name)
+    def cleanup(s): pass
+tempfile.TemporaryDirectory=TD
+logging.disable(logging.CRITICAL)
+from app.backtest.data import load_csv
+from app.backtest.runner import BacktestConfig, run_backtest
+sym, csvp, out, plan = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]; bias = sys.argv[5] if len(sys.argv) > 5 else "NEUTRAL"
+root=Path("/home/user/paytience")
+r=run_backtest(load_csv(Path(csvp).read_text()), BacktestConfig(symbol=sym, bias=bias), Path(plan))
+db=next(Path(k)/"bt.db" for k in keep if (Path(k)/"bt.db").exists())
+c=sqlite3.connect(db); fails=collections.defaultdict(dict); day={}
+for sid,bt in c.execute("select id,bar_time from signals"): day[sid]=bt[:10]
+for sid,det in c.execute("select signal_id,detail from signal_gates where passed=0"):
+    d=json.loads(det); fails[sid][d["code"]]=d.get("detail") or ""
+D=len(set(day.values()))
+def rr(s):
+    m=re.search(r"([\d.]+)R",fails[s].get("RR_BELOW_MIN","")); return float(m.group(1)) if m else 0
+def count(drop, rrmin=None):
+    n=0
+    for s in day:
+        f=dict(fails.get(s,{}))
+        for x in drop: f.pop(x,None)
+        if rrmin is not None and "RR_BELOW_MIN" in f and rr(s)>=rrmin: f.pop("RR_BELOW_MIN")
+        n+= not f
+    return round(n/D,2)
+SC=["NEUTRAL_SCORE_LOW"]
+what={"as built":count([]),"neutral score relaxed":count(SC),
+ "score + RR>=1.75":count(SC,1.75),"score + RR>=1.5":count(SC,1.5),"score + RR>=1.0":count(SC,1.0),"score + no RR min":count(SC+["RR_BELOW_MIN"]),
+ "score + no RR + all hours":count(SC+["RR_BELOW_MIN","OUTSIDE_WINDOW"])}
+anyc=collections.Counter(k for s in day for k in fails.get(s,{}))
+json.dump({"sym":sym,"sessions":r.sessions,"days_with_models":D,"models":len(day),"trades":r.trades,"signals":r.signals,"skips":r.skips,
+ "fails_any":dict(anyc.most_common()),"per_day_if":what,"assumptions":r.assumptions},open(out,"w"),indent=1,default=str)

@@ -1,0 +1,6 @@
+import json,sys
+for f in sys.argv[1:]:
+    t=open(f).read(); d=json.loads(t[t.index('\n{')+1:] if not t.startswith('{') else t)
+    s=d['stats']; print("==",f.split('/')[-1])
+    print(' trades',s['trades'],'days',s['days'],'win',s['win_rate'],'net',s['net'],'pf',s['profit_factor'],'avgR',s['avg_r'],'maxDD',s['max_drawdown'])
+    print(' signals',d['signals']); print(' skips',dict(list(d['skips'].items())[:7])); print(' mc',d['monte_carlo']); print(' hours',{h:(v['n'],v['wins'],v['net']) for h,v in d['by_hour_et'].items()})
