@@ -103,3 +103,7 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - `make test` fails below 100% coverage on risk/, management/, phases/ (§9). Never lower the bar to pass.
 - User prefs: all subagents on Sonnet. Focus MGC + MNQ futures only (no spot). Intraday > scalping. UI modes: Scalping,
   Intraday, Low risk, 1:1. Target 3–5 trades/day total (MGC 2–4). Never break Lucid rules.
+- SAVE RULE (user, binding): nothing may ever be lost. After EVERY commit or finished backtest: write results to
+  docs/results/, commit, rebuild the bundle and republish the handoff artifact
+  (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + paytience.bundle.b64.txt). Push to GitHub
+  paysh-wrap/beast once the user's GitHub account is linked. Focus: Intraday MGC (never lower its win rate).
