@@ -15,8 +15,20 @@ def _acct(authed, label, stage="EVAL"):
 
 def _trade(authed, aid, pnl, closed):
     with authed.app.state.sessionmaker() as s:
-        s.add(Trade(account_id=aid, symbol="MNQ", direction="LONG", qty=1, entry=D(1), exit=D(2), pnl_usd=D(pnl),
-                    risk_usd=D(50), opened_at=closed - timedelta(minutes=5), closed_at=closed))
+        s.add(
+            Trade(
+                account_id=aid,
+                symbol="MNQ",
+                direction="LONG",
+                qty=1,
+                entry=D(1),
+                exit=D(2),
+                pnl_usd=D(pnl),
+                risk_usd=D(50),
+                opened_at=closed - timedelta(minutes=5),
+                closed_at=closed,
+            )
+        )
         s.commit()
 
 
@@ -107,8 +119,17 @@ def test_skips_multi_session_average(authed):
         for i, (days, reason) in enumerate(
             [(0, "RR_BELOW_MIN"), (0, "RR_BELOW_MIN"), (1, "RR_BELOW_MIN"), (2, "OUTSIDE_WINDOW")]
         ):
-            s.add(Signal(symbol="MNQ", profile="STD", direction="LONG", model_key=f"k{i}", status="SKIP",
-                         skip_reason=reason, bar_time=AT - timedelta(days=days)))
+            s.add(
+                Signal(
+                    symbol="MNQ",
+                    profile="STD",
+                    direction="LONG",
+                    model_key=f"k{i}",
+                    status="SKIP",
+                    skip_reason=reason,
+                    bar_time=AT - timedelta(days=days),
+                )
+            )
         s.commit()
     r = authed.get("/api/signals/skips?date=2026-11-05").json()
     assert r["counts"] == {"RR_BELOW_MIN": 2} and r["sessions_in_avg"] == 2

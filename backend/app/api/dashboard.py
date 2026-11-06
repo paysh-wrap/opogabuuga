@@ -15,6 +15,7 @@ from app.automation import state as stt
 from app.clock import session_date
 from app.execution.adapters.base import BrokerError
 from app.models import Account, Signal, Trade
+from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
 from app.signals.service import today_bias
 
@@ -65,6 +66,8 @@ async def dashboard(
             "mll": _s(a.mll),
             "to_mll": _s(eq - a.mll) if a.mll is not None else None,
             "kill_at": str(r.internal.kill_switch_mll_distance),
+            "max_loss": str(stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
+            "dll_limit": _s(dll),
             "today_pnl": str(day.today_pnl),
             "trades_today": day.trades_today,
             "dll_left": _s(dll_remaining(dll, day.today_pnl, day.today_peak_pnl)) if dll is not None else None,

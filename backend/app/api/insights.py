@@ -88,7 +88,11 @@ def today_plan(request: Request, _: Principal = Depends(current_user), db: Sessi
     events = st.calendar(sess)
     accounts = list(db.execute(select(Account).order_by(Account.priority, Account.id)).scalars())
     cds = [
-        {"symbol": c.symbol, "profile": c.profile, "until_session": c.until_session.isoformat() if c.until_session else None}
+        {
+            "symbol": c.symbol,
+            "profile": c.profile,
+            "until_session": c.until_session.isoformat() if c.until_session else None,
+        }
         for c in db.execute(select(Cooldown)).scalars()
         if CooldownState(c.streak, c.until_session).active(sess)
     ]
@@ -145,9 +149,8 @@ def pnl_daily(
         q = q.where(Trade.account_id == account_id)
     per: dict[int, dict[date, Decimal]] = defaultdict(lambda: defaultdict(lambda: Decimal(0)))
     for aid, pnl, closed in db.execute(q).all():
-        d = session_date(closed)
-        if d >= since and pnl is not None:
-            per[aid][d] += pnl
+        if closed is not None and pnl is not None and session_date(closed) >= since:
+            per[aid][session_date(closed)] += pnl
     house: dict[date, Decimal] = defaultdict(lambda: Decimal(0))
     for dd in per.values():
         for d, v in dd.items():
@@ -156,7 +159,12 @@ def pnl_daily(
     out_accounts = []
     for aid, m in sorted(per.items()):
         a = accts.get(aid)
-        row: dict[str, Any] = {"id": aid, "label": a.label if a else str(aid), "stage": a.stage if a else None, **_pack(m)}
+        row: dict[str, Any] = {
+            "id": aid,
+            "label": a.label if a else str(aid),
+            "stage": a.stage if a else None,
+            **_pack(m),
+        }
         if a is not None and a.stage == "EVAL" and pct is not None:
             best_d, best = max(m.items(), key=lambda kv: kv[1])
             total = sum(m.values(), Decimal(0))
