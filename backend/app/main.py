@@ -20,6 +20,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.insights import router as insights_router
 from app.api.lab import router as lab_router
 from app.api.live import router as live_router
+from app.api.logs import router as logs_router
 from app.api.market import router as market_router
 from app.api.payouts import router as payouts_router
 from app.api.replay import router as replay_router
@@ -378,6 +379,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(router)
     app.include_router(webhook_router)
     app.include_router(signals_router)
+    app.include_router(logs_router)
     app.include_router(risk_router)
     app.include_router(automation_router)
     app.include_router(live_router)
