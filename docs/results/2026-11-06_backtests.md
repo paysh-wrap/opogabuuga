@@ -111,3 +111,17 @@ strategy changes with full engine backtests, not the offline screener.
 | R:R ≥1.75 plain | 16 tr, 38%, PF 1.32, +$151 | 5 tr, 20%, −$54 |
 Engine's 24 baseline MGC trades: 13 TP, 9 STOP; 15 of 24 aim for 1R (D36b) → that is why win rate is 58%.
 60%+ at R:R 1.75–3 not reached on this data. Nothing applied to the live plan (user decides).
+
+## L. TradingView indicator filters at a fixed 1.75R target (session 7, MGC, 22 Yahoo sessions — TOO SMALL)
+Tool: docs/results/tools/indscreen.py on research.py setups (loose plan, R:R floor 1.0, every PASS setup, target
+forced to exactly 1.75R). 87 filled setups; train = older 12 sessions, test = newest 6. Breakeven ≈ 38% win.
+| Filter (trade only in its direction) | Train | Test |
+|---|---|---|
+| none (all setups) | 56 tr 20% −0.54R | 31 tr 29% −0.27R |
+| Session VWAP side | 15 tr 40% −0.03R | 7 tr 43% +0.11R |
+| UT Bot (1, 10) 5m | 11 tr 36% −0.13R | 10 tr 60% +0.60R |
+| EMA 200 5m | 15 tr 33% −0.21R | 12 tr 42% +0.07R |
+| EMA 200 15m + Supertrend 15m | 15 tr 33% −0.21R | 12 tr 42% +0.06R |
+| ADX ≥ 25, RVOL > 1, WaveTrend extreme | worse than none | worse |
+Trend-side filters (VWAP, EMA 200, UT Bot) roughly double win rate at 1.75R; momentum/strength filters don't help.
+Samples are 7–15 trades → NOT applied. Needs the long Databento history (research_par.sh, monthly chunks × 4 workers).
