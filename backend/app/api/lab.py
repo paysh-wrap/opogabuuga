@@ -81,6 +81,7 @@ def lab(_: Principal = Depends(current_user), db: Session = Depends(get_db)) -> 
     return {
         "lab_layer": {"version": lab_row.version, "settings": lab_row.settings} if lab_row else None,
         "last_cycle": stt.get_setting(db, "lab.last_cycle"),
+        "last_nightly": stt.get_setting(db, "lab.last_nightly"),
         "tunables": {k: {"lo": str(t.lo), "hi": str(t.hi), "step": str(t.step)} for k, t in TUNABLE_PARAMS.items()},
         "sessions": session_progress(rows),
         "backtests": bts,

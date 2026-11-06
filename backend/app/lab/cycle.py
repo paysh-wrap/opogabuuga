@@ -122,8 +122,13 @@ async def run_cycle(app: Any, s: Session, now: datetime, days: int = 90) -> list
     si = cfg.self_improvement
     if not si.enabled:
         return [{"status": "disabled"}]
-    if s.execute(select(Proposal).where(Proposal.status.in_(("pending", "approved")))).first() is not None:
-        return [{"status": "waiting", "why": "a proposal is still waiting for your decision or the 18:00 apply"}]
+    if s.execute(select(Proposal).where(Proposal.status.in_(("shadow", "pending", "approved")))).first() is not None:
+        return [
+            {
+                "status": "waiting",
+                "why": "a challenger is still in shadow, waiting for your decision or the 18:00 apply",
+            }
+        ]
     last = _last_applied(s)
     if last is not None and now - (last if last.tzinfo else last.replace(tzinfo=UTC)) < timedelta(
         days=si.cooldown_days
@@ -159,7 +164,13 @@ async def run_cycle(app: Any, s: Session, now: datetime, days: int = 90) -> list
         if win is None:
             row["status"] = "champion_kept"
         else:
-            m = {"symbol": sym, "train": vars_perf(ctr, win.train), "test": vars_perf(cte, win.test)}
+            m = {
+                "symbol": sym,
+                "train": vars_perf(ctr, win.train),
+                "test": vars_perf(cte, win.test),
+                "oos_champion_e": str(round(cte.e, 4)),
+                "shadow": {"since": now.isoformat(), "sessions": 0},
+            }
             diff = {k: str(v) for k, v in win.diff.items()}
             version = (s.execute(select(func.max(Proposal.challenger_version))).scalar() or 0) + 1
             prop = Proposal(
@@ -169,7 +180,7 @@ async def run_cycle(app: Any, s: Session, now: datetime, days: int = 90) -> list
             audit.record(s, st.clock, "lab", "lab.challenger", sym, {"diff": diff})
             s.commit()
             row |= {"status": "proposal", "proposal_id": prop.id, "diff": diff}
-            st.controller.notify("info", "Lab found an improvement", prop.explanation[:200])
+            st.controller.notify("info", "Lab found a challenger (now shadow-testing)", prop.explanation[:200])
         out.append(row)
     return out
 
@@ -243,3 +254,110 @@ def rollback_lab(s: Session, clock: Clock, author: str) -> int:
     audit.record(s, clock, author, "lab.rollback", f"v{cur.version}", {"now": prev.version if prev else 0})
     s.commit()
     return prev.version if prev else 0
+
+
+def _effective_raw(s: Session, base: Any) -> dict[str, Any]:
+    from app.risk.settings_store import latest, latest_firm, merged_raw
+
+    firm, std, lab = latest_firm(s), latest(s, "standard"), latest(s, "lab")
+    mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
+    return merged_raw(base, firm.body_overrides() if firm else {}, mine)
+
+
+def shadow_verdict(champ: Perf, chal: Perf, sessions: int, si: Any) -> str:
+    """PURE. 'wait' until enough new sessions + trades; then 'pass' only if the challenger still keeps the win rate
+    and trade count and is at least as good as the champion; 'fail' otherwise or when shadow ran too long."""
+    if sessions < si.shadow_min_sessions or chal.trades < si.shadow_min_trades:
+        return "fail" if sessions >= si.shadow_max_sessions else "wait"
+    ok = chal.win_rate >= champ.win_rate and chal.trades >= champ.trades * D("0.9") and chal.e >= champ.e
+    return "pass" if ok else "fail"
+
+
+async def shadow_check(app: Any, s: Session, now: datetime, run: Runner | None = None) -> list[dict[str, Any]]:
+    """Nightly: replay every SHADOW challenger and the champion on the sessions recorded since it was found."""
+    from app.backtest.nightly import recorded_bars
+    from app.backtest.runner import BacktestConfig, run_backtest
+
+    st = app.state
+    cfg = st.rules.rules
+    si = cfg.self_improvement
+    out: list[dict[str, Any]] = []
+    for prop in list(s.execute(select(Proposal).where(Proposal.status == "shadow")).scalars()):
+        sym = prop.metrics.get("symbol")
+        since = prop.created_at if prop.created_at.tzinfo else prop.created_at.replace(tzinfo=UTC)
+        bars = recorded_bars(s, sym, since) if sym else []
+        sessions = len({_sess(b) for b in bars})
+
+        def default_run(b: list[Bar], symbol: str, path: Path) -> list[dict[str, Any]]:
+            bc = BacktestConfig(
+                symbol=symbol, bias="recorded", one_to_one=cfg.one_to_one_mode.enabled, scalp=cfg.scalp_mode.enabled
+            )
+            return run_backtest(b, bc, path).trades if b else []
+
+        r = run or default_run
+        raw = _effective_raw(s, st.rules.base)
+        with tempfile.TemporaryDirectory() as tmp:
+            cp = write_rules(raw, {}, Path(tmp), "champ")
+            xp = write_rules(raw, {k: D(v) for k, v in prop.diff.items()}, Path(tmp), "chal")
+            champ = perf(await asyncio.to_thread(r, bars, sym or "", cp))
+            chal = perf(await asyncio.to_thread(r, bars, sym or "", xp))
+        verdict = shadow_verdict(champ, chal, sessions, si)
+        m = dict(prop.metrics)
+        m["shadow"] = {"since": since.isoformat(), "sessions": sessions, **vars_perf(champ, chal), "verdict": verdict}
+        prop.metrics = m
+        if verdict == "pass":
+            auto = si.auto_promote_paper and not st.settings.allow_live
+            prop.status = "approved" if auto else "pending"
+            audit.record(s, st.clock, "lab", "lab.shadow_passed", str(prop.id), {"auto_approved": auto})
+            st.controller.notify(
+                "info", "Lab challenger passed shadow", "auto-approved (paper)" if auto else "ready for your approval"
+            )
+        elif verdict == "fail":
+            prop.status = "shadow_failed"
+            audit.record(s, st.clock, "lab", "lab.shadow_failed", str(prop.id), m["shadow"])
+        s.commit()
+        out.append({"proposal": prop.id, "verdict": verdict, "sessions": sessions})
+    return out
+
+
+def rolling_e(s: Session, since: datetime, window: int) -> tuple[int, D | None]:
+    """Net-R expectancy of the last `window` closed trades since `since` (live or paper)."""
+    from app.models import Trade
+
+    rows = (
+        s.execute(
+            select(Trade.net_r)
+            .where(Trade.closed_at.is_not(None), Trade.closed_at >= since, Trade.net_r.is_not(None))
+            .order_by(Trade.closed_at.desc())
+            .limit(window)
+        )
+        .scalars()
+        .all()
+    )
+    vals = [D(str(x)) for x in rows if x is not None]
+    return len(vals), (sum(vals, D(0)) / len(vals) if vals else None)
+
+
+def auto_rollback(app: Any, s: Session, now: datetime) -> dict[str, Any] | None:
+    """§17.4 nightly: if the live rolling-N expectancy since the newest Lab change is below the champion's
+    out-of-sample result recorded when the change was found, roll it back automatically and tell the user."""
+    from app.risk.settings_store import latest
+
+    st = app.state
+    si = st.rules.rules.self_improvement
+    lab = latest(s, "lab")
+    if lab is None or not lab.note.startswith("proposal "):
+        return None
+    prop = s.get(Proposal, int(lab.note.split()[1]))
+    bound = D(prop.metrics.get("oos_champion_e", "0")) if prop else D(0)
+    since = lab.created_at if lab.created_at.tzinfo else lab.created_at.replace(tzinfo=UTC)
+    n, e = rolling_e(s, since, si.rollback_window_trades)
+    if n < si.rollback_window_trades or e is None or e >= bound:
+        return {"status": "kept", "trades": n, "e": None if e is None else str(round(e, 4)), "bound": str(bound)}
+    v = rollback_lab(s, st.clock, "lab-auto")
+    if prop is not None:
+        prop.status = "rolled_back"
+        s.commit()
+    st.rules.refresh(s)
+    st.controller.notify("warning", "Lab change rolled back automatically", f"rolling-{n} E {e:.3f}R < {bound}R")
+    return {"status": "rolled_back", "trades": n, "e": str(round(e, 4)), "bound": str(bound), "active_version": v}

@@ -333,3 +333,10 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   rollback; max one per cooldown_days. Nightly session backtest (existing) keeps feeding the Lab page.
 - Not built yet: SHADOW run of a challenger before proposal (§17.3), automatic rollback on live rolling-30 E
   (§17.4), Optuna search (one-step neighbours used instead), bootstrap CI guard.
+- D40b (same day): SHADOW + AUTO-ROLLBACK built — the loop now closes by itself:
+  nightly (every session) → backtest recorded bars + shadow_check (challenger vs champion on sessions recorded
+  since it was found; pass needs ≥ shadow_min_sessions 10 and ≥ shadow_min_trades 20, same-or-better win rate,
+  ≥90% trades, E ≥ champion; fail after shadow_max_sessions 30) → pending (or auto-approved when
+  self_improvement.auto_promote_paper and the app is PAPER) → 18:00 apply → nightly auto_rollback when the live
+  rolling-30 net-R E since the change < the champion's out-of-sample E recorded when it was found.
+  Still not built: Optuna search, bootstrap CI guard.

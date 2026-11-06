@@ -159,3 +159,155 @@ def test_scheduler_lab_job_applies_and_runs_weekly(authed, monkeypatch):
         asyncio.run(main._lab(authed.app, s, sat))
         asyncio.run(main._lab(authed.app, s, sat + timedelta(minutes=1)))  # once per session / week
     assert len(calls) == 1 and st.rules.rules.score.min_score == 63
+
+
+# ---------- §17.3 shadow + §17.4 auto-rollback (the self-looping part) ----------
+from app.lab.cycle import auto_rollback, shadow_check, shadow_verdict  # noqa: E402
+from app.models import Trade  # noqa: E402
+
+
+def _si(**kw):
+    from types import SimpleNamespace
+
+    base = {"shadow_min_sessions": 10, "shadow_min_trades": 20, "shadow_max_sessions": 30}
+    return SimpleNamespace(**(base | kw))
+
+
+def test_shadow_verdict_rules():
+    P = cycle.Perf
+    assert shadow_verdict(P(20, 12, D(4)), P(20, 12, D(5)), 5, _si()) == "wait"
+    assert shadow_verdict(P(20, 12, D(4)), P(10, 6, D(5)), 12, _si()) == "wait"
+    assert shadow_verdict(P(20, 12, D(4)), P(10, 6, D(5)), 30, _si()) == "fail"
+    assert shadow_verdict(P(20, 12, D(4)), P(20, 13, D(5)), 10, _si()) == "pass"
+    assert shadow_verdict(P(20, 12, D(4)), P(20, 11, D(9)), 10, _si()) == "fail"  # lower win rate never passes
+
+
+def _shadow_prop(s, created):
+    p = Proposal(
+        challenger_version=1,
+        diff={"score.min_score": "63"},
+        metrics={"symbol": "MNQ", "oos_champion_e": "0.1"},
+        explanation="x",
+        status="shadow",
+    )
+    p.created_at = created
+    s.add(p)
+    s.commit()
+    return p
+
+
+def test_shadow_check_moves_proposal_to_ready_or_failed(authed, monkeypatch):
+    app = authed.app
+    st = app.state
+    monkeypatch.setattr("app.backtest.nightly.recorded_bars", lambda s, sym, since: _bars(12))
+
+    def run(bars, symbol, path):
+        chal = "min_score: 63" in path.read_text()
+        return [{"pnl": "1", "net_r": "2" if chal else "1"}] * 15 + [{"pnl": "-1", "net_r": "-1"}] * 7
+
+    with st.sessionmaker() as s:
+        p = _shadow_prop(s, NOW - timedelta(days=20))
+        rep = asyncio.run(shadow_check(app, s, NOW, run))
+        assert rep == [{"proposal": p.id, "verdict": "pass", "sessions": 12}]
+        s.refresh(p)
+        assert p.status == "pending" and p.metrics["shadow"]["verdict"] == "pass"
+        assert authed.put(f"/api/lab/proposals/{p.id}", json={"status": "approved"}).json()["status"] == "approved"
+        si = st.rules.rules.self_improvement
+        st.rules.rules = st.rules.rules.model_copy(
+            update={"self_improvement": si.model_copy(update={"auto_promote_paper": True})}
+        )
+        q = _shadow_prop(s, NOW - timedelta(days=20))
+        asyncio.run(shadow_check(app, s, NOW, run))
+        s.refresh(q)
+        assert q.status == "approved"  # paper + auto_promote_paper → self-looping without a click
+        r = _shadow_prop(s, NOW - timedelta(days=20))
+        asyncio.run(
+            shadow_check(
+                app,
+                s,
+                NOW,
+                lambda b, sym, path: (
+                    [{"pnl": "-1", "net_r": "-1"}] * 25
+                    if "min_score: 63" in path.read_text()
+                    else [{"pnl": "1", "net_r": "1"}] * 25
+                ),
+            )
+        )
+        s.refresh(r)
+        assert r.status == "shadow_failed"
+
+
+def test_auto_rollback_on_live_expectancy(authed):
+    st = authed.app.state
+    with st.sessionmaker() as s:
+        assert auto_rollback(authed.app, s, NOW) is None
+        p = Proposal(
+            challenger_version=1,
+            diff={"score.min_score": "63"},
+            metrics={"oos_champion_e": "0.2"},
+            explanation="",
+            status="approved",
+        )
+        s.add(p)
+        s.commit()
+        apply_approved(s, st.rules.base, st.clock)
+        st.rules.refresh(s)
+        aid = authed.post("/api/accounts", json={"label": "A", "stage": "EVAL"}).json()["id"]
+        t0 = datetime.now(UTC) + timedelta(minutes=1)
+        for i in range(29):
+            s.add(
+                Trade(
+                    account_id=aid,
+                    symbol="MGC",
+                    direction="LONG",
+                    qty=1,
+                    entry=D(1),
+                    exit=D(1),
+                    pnl_usd=D(-1),
+                    risk_usd=D(50),
+                    net_r=D(-1),
+                    opened_at=t0,
+                    closed_at=t0 + timedelta(minutes=i),
+                )
+            )
+        s.commit()
+        assert auto_rollback(authed.app, s, NOW)["status"] == "kept"  # 29 < 30 trades: too early to judge
+        s.add(
+            Trade(
+                account_id=aid,
+                symbol="MGC",
+                direction="LONG",
+                qty=1,
+                entry=D(1),
+                exit=D(1),
+                pnl_usd=D(-1),
+                risk_usd=D(50),
+                net_r=D(-1),
+                opened_at=t0,
+                closed_at=t0 + timedelta(minutes=40),
+            )
+        )
+        s.commit()
+        r = auto_rollback(authed.app, s, NOW)
+        assert r["status"] == "rolled_back" and r["active_version"] == 0
+        s.refresh(p)
+        assert p.status == "rolled_back" and st.rules.rules.score.min_score == 60
+
+
+def test_nightly_runs_shadow_and_rollback(authed, monkeypatch):
+    from app import main
+
+    calls = []
+
+    async def fake_nightly(app, s, now, days=30):
+        calls.append("bt")
+        return []
+
+    monkeypatch.setattr("app.backtest.nightly.nightly", fake_nightly)
+    fri = datetime(2026, 11, 6, 22, 20, tzinfo=UTC)  # Fri 17:20 ET
+    with authed.app.state.sessionmaker() as s:
+        asyncio.run(main._nightly(authed.app, s, fri))
+        from app.automation import state as stt
+
+        rep = stt.get_setting(s, "lab.last_nightly")
+    assert calls == ["bt"] and rep["shadow"] == [] and rep["rollback"] is None

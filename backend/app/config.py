@@ -461,6 +461,10 @@ class SelfImprovement(_M):
     min_oos_trades: int
     min_improvement_r: D
     max_param_step_pct: D
+    shadow_min_sessions: int = 10  # §17.3: challenger runs in SHADOW ≥10 sessions / 20 trades before you can approve
+    shadow_min_trades: int = 20
+    shadow_max_sessions: int = 30  # still short of trades after this → shadow fails (no endless waiting)
+    rollback_window_trades: int = 30  # §17.4: live rolling-30 E below the champion's OOS bound → auto-rollback
 
 
 class RulesConfig(_M):

@@ -71,6 +71,11 @@ async def _nightly(app: FastAPI, s: Session, now: datetime) -> None:
     stt.set_setting(s, "job.nightly.session", sess.isoformat(), now)  # mark first: one attempt per session
     s.commit()
     await nightly(app, s, now)
+    from app.lab.cycle import auto_rollback, shadow_check
+
+    report = {"shadow": await shadow_check(app, s, now), "rollback": auto_rollback(app, s, now)}
+    stt.set_setting(s, "lab.last_nightly", {"at": now.isoformat(), **report}, now)
+    s.commit()
 
 
 async def _lab(app: FastAPI, s: Session, now: datetime) -> None:

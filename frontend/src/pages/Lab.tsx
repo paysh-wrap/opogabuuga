@@ -4,9 +4,10 @@ import { usePageTitle } from "../components/usePageTitle";
 
 interface Sess { session: string; trades: number; win_rate: number; net: string; avg_r: string | null; cum_win_rate: number; cum_net: string }
 interface Bt { id: number; params: { symbol: string; stage: string; bias: string; one_to_one?: boolean; scalp?: boolean }; trades: number | null; win_rate: string | null; profit_factor: string | null; net: string | null; mc_pass: string | null }
-interface Prop { id: number; text: string; status: string; at: string; diff?: Record<string, string> }
+interface Prop { id: number; text: string; status: string; at: string; diff?: Record<string, string>; metrics?: { shadow?: { sessions: number; verdict?: string; challenger?: { trades: number; win_rate: string; e_r: string } | null; champion?: { trades: number; win_rate: string; e_r: string } | null } } }
+const PSTATUS: Record<string, string> = { shadow: "shadow-testing on new sessions", pending: "passed shadow — your decision", approved: "approved — applies at 18:00", applied: "applied", rejected: "rejected", shadow_failed: "failed shadow (not applied)", invalid: "blocked by rule validation", rolled_back: "rolled back automatically (live results worse)" };
 interface CycleRow { symbol?: string; status: string; sessions?: number; need?: number; candidates?: number; why?: string[] | string; diff?: Record<string, string> }
-interface Lab { sessions: Sess[]; backtests: Bt[]; suggestions: string[]; proposals: Prop[]; lab_layer: { version: number; settings: Record<string, string> } | null; last_cycle: { at: string; report: CycleRow[] } | null; tunables: Record<string, { lo: string; hi: string; step: string }> }
+interface Lab { sessions: Sess[]; backtests: Bt[]; suggestions: string[]; proposals: Prop[]; lab_layer: { version: number; settings: Record<string, string> } | null; last_nightly: { at: string; rollback: { status: string; trades: number; e: string | null; bound: string } | null } | null; last_cycle: { at: string; report: CycleRow[] } | null; tunables: Record<string, { lo: string; hi: string; step: string }> }
 const STATUS: Record<string, string> = { proposal: "found an improvement → proposal below", champion_kept: "no change beat the current settings", not_enough_data: "not enough recorded sessions yet", waiting: "waiting for your decision on a proposal", cooldown: "cooling down after the last change", disabled: "self-improvement is turned off" };
 
 const card = "rounded-xl border border-border bg-card p-4";
@@ -100,6 +101,14 @@ export default function LabPage() {
           <span>Active Lab changes: {d.lab_layer ? <b className="text-gold">v{d.lab_layer.version} · {Object.entries(d.lab_layer.settings).map(([k, v]) => `${k} = ${v}`).join(", ") || "none"}</b> : "none (your plan as loaded)"}</span>
           {d.lab_layer && <button className={`${btn} border-blue text-blue`} onClick={() => rollback.mutate()}>Roll back</button>}
         </div>
+        {d.last_nightly?.rollback && <p className="mt-1 text-xs">Live check of the active change ({new Date(d.last_nightly.at).toLocaleDateString()}): {d.last_nightly.rollback.trades} trades, {d.last_nightly.rollback.e ?? "—"}R/trade vs bound {d.last_nightly.rollback.bound}R — {d.last_nightly.rollback.status === "rolled_back" ? "rolled back" : `kept`}</p>}
+        <ol className="mt-3 list-decimal pl-5 text-xs opacity-80">
+          <li>Every session: recorded bars are backtested (nightly) and live results are checked against the last change.</li>
+          <li>Weekly: search for a better setting (older sessions), confirm on newer unseen sessions.</li>
+          <li>Shadow: the challenger must keep winning on ≥10 NEW sessions and ≥20 trades.</li>
+          <li>You approve (or auto on PAPER if enabled) → applied at 18:00.</li>
+          <li>If live results fall below what the old settings did out of sample → automatic rollback + alert.</li>
+        </ol>
       </section>
 
       <section className={card}>
@@ -109,14 +118,14 @@ export default function LabPage() {
           <p key={t} className="mt-1 text-sm">• {t} <button className={`${btn} ml-2 border-blue text-blue`} onClick={() => propose.mutate(t)}>Propose</button></p>
         ))}
         {d.proposals.map((p) => (
-          <p key={p.id} data-testid={`proposal-${p.id}`} className="mt-1 text-sm">#{p.id} {p.diff && Object.keys(p.diff).length ? <b className="text-gold">{Object.entries(p.diff).map(([k, v]) => `${k} → ${v}`).join(", ")}: </b> : null}{p.text} — <b className={p.status === "approved" ? "text-gold" : ""}>{p.status}</b>
+          <p key={p.id} data-testid={`proposal-${p.id}`} className="mt-1 text-sm">#{p.id} {p.diff && Object.keys(p.diff).length ? <b className="text-gold">{Object.entries(p.diff).map(([k, v]) => `${k} → ${v}`).join(", ")}: </b> : null}{p.text} — <b className={p.status === "approved" || p.status === "pending" ? "text-gold" : ""}>{PSTATUS[p.status] ?? p.status}</b>{p.status === "shadow" && p.metrics?.shadow ? ` (${p.metrics.shadow.sessions}/10 sessions${p.metrics.shadow.challenger ? `, ${p.metrics.shadow.challenger.trades} trades, win ${(Number(p.metrics.shadow.challenger.win_rate) * 100).toFixed(0)}%` : ""})` : ""}
             {p.status === "pending" && (<>
               <button className={`${btn} ml-2 border-gold text-gold`} onClick={() => decide.mutate({ id: p.id, status: "approved" })}>Approve</button>
               <button className={`${btn} ml-1 border-border text-blue`} onClick={() => decide.mutate({ id: p.id, status: "rejected" })}>Reject</button>
             </>)}
           </p>
         ))}
-        <p className="mt-2 text-xs opacity-75">Approved Lab changes apply at the next 18:00 reset (never mid-session), are re-checked against bounds and all rule validation, max one per 14 days, and can be rolled back in one click. Pillars, firm rules, risk %, Evaluation Mode, cooldown and payouts can never be changed by the Lab.</p>
+        <p className="mt-2 text-xs opacity-75">Approved Lab changes apply at the next 18:00 reset (never mid-session), are re-checked against bounds and all rule validation, max one per 14 days, roll back automatically if live results get worse, and can be rolled back by you in one click. Pillars, firm rules, risk %, Evaluation Mode, cooldown and payouts can never be changed by the Lab.</p>
       </section>
     </div>
   );
