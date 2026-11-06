@@ -31,6 +31,7 @@ export default function Accounts() {
   const [err, setErr] = useState("");
   const q = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[] }>("/api/accounts"), refetchInterval: 15000 });
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dash>("/api/dashboard"), refetchInterval: 30000 });
+  const logs = useQuery({ queryKey: ["account-history"], queryFn: () => api<{ logs: { id: number; at: string; actor: string; action: string; entity: string; payload: unknown }[] }>("/api/logs?limit=500"), staleTime: 30_000 });
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
     onMutate: () => setErr(""),
@@ -52,6 +53,7 @@ export default function Accounts() {
     select(trading || 1, ids);
   };
   const patch = (id: number, body: object) => run.mutate(() => api(`/api/accounts/${id}`, { method: "PATCH", body: JSON.stringify(body) }));
+  const history = (a: Acct) => (logs.data?.logs ?? []).filter((l) => l.entity === String(a.id) || l.entity === a.broker_account_id);
   const idle = (id: number) => dash.data?.accounts.find((a) => a.id === id);
 
   return (
@@ -119,6 +121,14 @@ export default function Accounts() {
                   </span>
                 )}
               </div>
+              <details className="mt-2 text-xs" data-testid={`history-${a.id}`}>
+                <summary className="cursor-pointer text-blue">History</summary>
+                {logs.isLoading && <p role="status">Loading…</p>}
+                {logs.data && history(a).length === 0 && <p>No recorded changes yet.</p>}
+                {history(a).slice(0, 30).map((l) => (
+                  <p key={l.id}>{new Date(l.at).toLocaleString()} · {l.actor} · <b className="text-gold">{l.action}</b> {l.payload ? JSON.stringify(l.payload).slice(0, 120) : ""}</p>
+                ))}
+              </details>
               {a.drawdown_check && <p className="mt-2 text-xs text-goldLight">⚠ {a.drawdown_check}</p>}
             </li>
           );

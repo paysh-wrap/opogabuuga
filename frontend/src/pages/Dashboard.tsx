@@ -5,6 +5,9 @@ import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
 import WhyNoTrade from "../components/WhyNoTrade";
 import { band, meters } from "../lib/insights";
+import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
+
+const chip = "rounded border px-1.5 text-[11px] font-semibold";
 
 interface Acct {
   id: number; label: string; stage: string; paper: boolean; armed: boolean; paused: string | null; error?: string;
@@ -12,6 +15,7 @@ interface Acct {
   trades_today?: number; dll_left?: string | null; consistency_cap?: string | null; consistency_stop?: string | null;
   target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number; idle_days?: number; idle_alert_days?: number; idle_delete_days?: number;
   max_loss?: string; dll_limit?: string | null;
+  guard_on?: boolean; eval_mode_on?: boolean; day_lockin?: boolean; day_net_r?: string; day_lockin_r?: string;
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
 
@@ -64,6 +68,7 @@ export default function Dashboard() {
   usePageTitle("Dashboard");
   const q = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dash>("/api/dashboard"), refetchInterval: 5000 });
   const d = q.data;
+  if (q.error) return <p role="alert">Cannot load the dashboard: {q.error instanceof Error ? q.error.message : "unknown error"}</p>;
   if (!d) return <p role="status">Loading…</p>;
   return (
     <div className="space-y-5">
@@ -80,6 +85,12 @@ export default function Dashboard() {
       <p className="text-sm">Session {d.session} · Automation <b className="text-gold">{d.mode}</b> · Bias:{" "}
         {Object.entries(d.bias).map(([s, b]) => <span key={s} className="mr-2">{s} <b className="text-gold">{b}</b></span>)}
       </p>
+      <CooldownBanner />
+      <div className="grid gap-4 lg:grid-cols-3">
+        <PlanProgress />
+        <ApprovalQueue />
+        <BiasAndBlackouts />
+      </div>
       <WhyNoTrade />
       {d.accounts.length === 0 && <p>No accounts yet — add one on the Automation page.</p>}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -88,6 +99,12 @@ export default function Dashboard() {
           return (
             <section key={a.id} data-testid={`dash-${a.id}`} className="rounded-xl border border-border bg-card p-4">
               <h2 className="font-semibold text-gold">{a.label} <span className="text-sm font-normal text-blue">{a.stage} · {a.paper ? "APP PAPER" : a.stage === "LIVE" ? "LUCID LIVE $" : "LUCID SIM"} · {a.armed ? "armed" : "disarmed"}</span></h2>
+              <div className="mt-1 flex flex-wrap gap-1" data-testid={`badges-${a.id}`}>
+                {a.mll_locked && <span className={`${chip} border-gold text-gold`}>MLL LOCKED</span>}
+                {a.guard_on !== undefined && <span className={`${chip} border-border text-blueLight`}>GUARD {a.guard_on ? "ON" : "OFF"}</span>}
+                {a.eval_mode_on && <span className={`${chip} border-gold text-gold`}>EVAL MODE</span>}
+                {a.day_lockin && <span className={`${chip} border-gold text-goldLight`} title={`Today ${a.day_net_r}R ≥ ${a.day_lockin_r}R: next trade at floor %`}>DAY LOCK-IN</span>}
+              </div>
               {a.paused && <p className="text-sm text-goldLight">⚠ paused: {a.paused}</p>}
               {a.idle_days != null && a.idle_alert_days != null && a.idle_days >= a.idle_alert_days && (
                 <p className="text-sm text-goldLight">⚠ No trade for {a.idle_days} days — Lucid deletes accounts with no $1 P&amp;L in {a.idle_delete_days} days.</p>
@@ -100,12 +117,14 @@ export default function Dashboard() {
                   <Stat k={`To MLL ${a.mll_locked ? "(locked)" : ""}`} v={`${money(a.to_mll)} (MLL ${money(a.mll)})`} warn={nearKill} />
                   <Stat k="DLL room" v={money(a.dll_left)} warn={a.dll_left != null && Number(a.dll_left) < 200} />
                   <Stat k="Trades today" v={a.trades_today} />
+                  {a.idle_days != null && <Stat k="Days since last trade" v={a.idle_days} warn={a.idle_alert_days != null && a.idle_days >= a.idle_alert_days} />}
                   {a.consistency_cap && <Stat k="Consistency cap / stop" v={`${money(a.consistency_cap)} / ${money(a.consistency_stop)}`} warn={Number(a.today_pnl) >= Number(a.consistency_stop)} />}
                   {a.target_left != null && <Stat k="Eval target left" v={money(a.target_left)} />}
                   <Stat k={`Profit from ≤${a.fast_hold_s}s trades (Lucid max ${a.fast_limit_pct}%)`} v={`${Number(a.fast_profit_pct ?? 0).toFixed(1)}%`} warn={Number(a.fast_profit_pct) >= Number(a.fast_warn_pct)} />
                 </div>
               )}
               {!a.error && <Meters a={a} />}
+              {a.stage === "EVAL" && <EvalPaceCard id={a.id} />}
             </section>
           );
         })}

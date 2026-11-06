@@ -2,15 +2,17 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "../components/usePageTitle";
 import { api, ApiError } from "../lib/api";
+import { ComparePanel, guardLabel, PayoutAndIncome, type CmpRun } from "../components/BacktestCompare";
 
 interface Run {
   id: number; status: string; error: string | null;
-  params: { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean };
+  params: { symbol: string; stage: string; bias: string; one_to_one: boolean; scalp?: boolean; low_risk?: boolean; eval_mode: boolean; drawdown_type?: string | null };
   metrics: {
     stats?: { trades: number; win_rate: string | null; net: string; avg_r: string | null; profit_factor: string | null; max_drawdown: string; best_day_share: string | null; days: number };
     monte_carlo_eval?: { pass_rate: string; fail_rate: string; median_trades_to_pass: number | null };
     breakdown?: Record<string, Record<string, { trades: number; win_rate: string; pnl: string }>>;
     suggestions?: string[];
+    payout_sim?: CmpRun["metrics"]["payout_sim"]; income_mc?: CmpRun["metrics"]["income_mc"];
     consistency_ok?: boolean; sessions?: number; assumptions?: string[]; skips?: Record<string, number>;
   };
 }
@@ -21,13 +23,25 @@ export default function Backtest() {
   usePageTitle("Backtest");
   const qc = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
-  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", one_to_one: false, scalp: false, low_risk: false, eval_mode: false });
+  const [opt, setOpt] = useState({ symbol: "MGC", stage: "EVAL", bias: "recorded", one_to_one: false, scalp: false, low_risk: false, eval_mode: false, drawdown_type: "" });
   const [err, setErr] = useState("");
   const runs = useQuery({ queryKey: ["backtests"], queryFn: () => api<{ runs: Run[] }>("/api/backtest"), refetchInterval: 3000 });
+  const launch = async (o: typeof opt, body: string) => {
+    const q = new URLSearchParams({ symbol: o.symbol, stage: o.stage, bias: o.bias, one_to_one: String(o.one_to_one), scalp: String(o.scalp), low_risk: String(o.low_risk), eval_mode: String(o.eval_mode) });
+    if (o.drawdown_type) q.set("drawdown_type", o.drawdown_type);
+    return api(`/api/backtest?${q}`, { method: "POST", body, headers: { "content-type": "text/csv" } });
+  };
+  const [pair, setPair] = useState("guard");
   const start = useMutation({
-    mutationFn: async () => {
-      const q = new URLSearchParams({ symbol: opt.symbol, stage: opt.stage, bias: opt.bias, one_to_one: String(opt.one_to_one), scalp: String(opt.scalp), low_risk: String(opt.low_risk), eval_mode: String(opt.eval_mode) });
-      return api(`/api/backtest?${q}`, { method: "POST", body: await file!.text(), headers: { "content-type": "text/csv" } });
+    mutationFn: async (kind: string | null) => {
+      const body = await file!.text();
+      if (!kind) return launch(opt, body);
+      // §16.3/§16.7: same CSV, one toggle flipped
+      const sides = kind === "guard" ? [{ ...opt, drawdown_type: "intraday" }, { ...opt, drawdown_type: "eod" }]
+        : kind === "eval" ? [{ ...opt, eval_mode: true }, { ...opt, eval_mode: false }]
+        : [{ ...opt, bias: "recorded" }, { ...opt, bias: "NEUTRAL" }];
+      for (const o of sides) await launch(o, body);
+      return null;
     },
     onMutate: () => setErr(""),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["backtests"] }),
@@ -58,14 +72,25 @@ export default function Backtest() {
           <option value="intraday">Intraday (best hours)</option><option value="scalp">Scalp</option><option value="1to1">1:1</option></select></label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.low_risk} onChange={(e) => setOpt({ ...opt, low_risk: e.target.checked })} />Lower risk</label>
         <label className="flex items-center gap-1"><input type="checkbox" checked={opt.eval_mode} onChange={(e) => setOpt({ ...opt, eval_mode: e.target.checked })} />Evaluation Mode</label>
-        <button className={`${btn} border-gold text-gold`} disabled={!file || start.isPending} onClick={() => start.mutate()}>{start.isPending ? "Uploading…" : "Run backtest"}</button>
+        <label className="flex flex-col">Drawdown (guard)<select aria-label="Drawdown type" value={opt.drawdown_type} onChange={(e) => setOpt({ ...opt, drawdown_type: e.target.value })}>
+          <option value="">Stage default (guard auto)</option><option value="intraday">Intraday trailing (guard ON)</option><option value="eod">EOD trailing (guard OFF)</option></select></label>
+        <button className={`${btn} border-gold text-gold`} disabled={!file || start.isPending} onClick={() => start.mutate(null)}>{start.isPending ? "Uploading…" : "Run backtest"}</button>
+        <span className="flex items-end gap-1">
+          <select aria-label="Comparison pair" value={pair} onChange={(e) => setPair(e.target.value)}>
+            <option value="guard">Guard ON vs OFF</option><option value="eval">Eval Mode ON vs OFF</option><option value="bias">Bias ablation (recorded vs NEUTRAL)</option></select>
+          <button className={`${btn} border-blue text-blue`} disabled={!file || start.isPending} onClick={() => start.mutate(pair)}>Run comparison pair</button>
+        </span>
       </section>
 
+      {runs.isLoading && <p role="status">Loading…</p>}
+      {runs.error && <p role="alert" className="text-goldLight">⚠ Cannot load backtests.</p>}
+      {runs.data && runs.data.runs.length === 0 && <p className="text-sm">No backtests yet — import a CSV above.</p>}
+      {runs.data && <ComparePanel runs={runs.data.runs} />}
       {runs.data?.runs.map((r) => {
         const s = r.metrics.stats, mc = r.metrics.monte_carlo_eval;
         return (
           <section key={r.id} data-testid={`bt-${r.id}`} className="rounded-xl border border-border bg-card p-4 text-sm">
-            <h2 className="font-semibold text-gold">#{r.id} · {r.params.symbol} · {r.params.stage} · bias {r.params.bias}{r.params.one_to_one ? " · 1:1" : ""}{r.params.scalp ? " · scalp" : ""}{r.params.low_risk ? " · lower risk" : ""}{r.params.eval_mode ? " · Eval Mode" : ""} — {r.status}</h2>
+            <h2 className="font-semibold text-gold">#{r.id} · {r.params.symbol} · {r.params.stage} · bias {r.params.bias}{r.params.one_to_one ? " · 1:1" : ""}{r.params.scalp ? " · scalp" : ""}{r.params.low_risk ? " · lower risk" : ""}{r.params.eval_mode ? " · Eval Mode" : ""}{r.params.drawdown_type ? ` · ${guardLabel(r.params)}` : ""} — {r.status}</h2>
             {r.status !== "running" && r.status !== "queued" && (
               <button data-testid={`bt-delete-${r.id}`} className={`${btn} mt-1 border-border text-blue`} disabled={del.isPending}
                 onClick={() => { if (window.confirm(`Delete backtest #${r.id} and its trades? This cannot be undone.`)) del.mutate(r.id); }}>Delete</button>
@@ -82,6 +107,7 @@ export default function Backtest() {
                 {mc && <div className="col-span-2">Monte Carlo eval: pass <b className="text-gold">{pct(mc.pass_rate)}</b> · fail {pct(mc.fail_rate)} · median {mc.median_trades_to_pass ?? "—"} days</div>}
               </div>
             )}
+            {s && <PayoutAndIncome m={r.metrics} />}
             {r.metrics.skips && Object.keys(r.metrics.skips).length > 0 && (
               <p className="mt-1 opacity-80">Top skips: {Object.entries(r.metrics.skips).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => `${k} ${v}`).join(" · ")}</p>
             )}

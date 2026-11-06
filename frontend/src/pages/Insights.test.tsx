@@ -25,6 +25,7 @@ function mock(calls: string[]) {
     calls.push(`${init?.method ?? "GET"} ${u}`);
     const j = (o: unknown) => new Response(JSON.stringify(o));
     if (u === "/api/today/plan") return j(plan);
+    if (u === "/api/accounts/1/eval-pace") return j({ ...plan.eval_pace[0], target_left: "1150", largest_day: "100", consistency_cap: "500", consistency_day_stop: "437.50", consistency_headroom: "400", consistency_pct: "40" });
     if (u === "/api/today") return j({ signals: [], trades: [] });
     if (u === "/api/signals/skips") return j({ date: "2026-11-05", counts: { RR_BELOW_MIN: 3, WEIRD: 1 }, avg_20: { RR_BELOW_MIN: 1.5 }, sessions_in_avg: 4 });
     if (u === "/api/automation/preflight") return j({ ok: true, checks: {}, failures: [] });
@@ -51,7 +52,8 @@ test("Today: blackouts, windows, pace, why-no-trade, and Ready runs attestation 
   wrap(<Today />);
   expect(await screen.findByText(/no entry .* flat by/)).toBeInTheDocument();
   expect(screen.getByText(/06:45–09:30/)).toBeInTheDocument();
-  expect(screen.getByText(/profitable days 1\/3/)).toBeInTheDocument();
+  expect(await screen.findByTestId("pace-1")).toHaveTextContent("profitable days 1/3");
+  expect(screen.getByTestId("headroom-1")).toHaveTextContent("$400");
   expect(await screen.findByText("Reward:risk below minimum")).toBeInTheDocument();
   expect(screen.getByText("WEIRD", { selector: "td" })).toBeInTheDocument();
   const btn = screen.getByRole("button", { name: "Ready to trade" });
