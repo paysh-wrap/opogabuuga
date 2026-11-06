@@ -181,6 +181,7 @@ class Instrument(_M):
     min_stop_ticks: int | None = None
     slippage_ticks: int | None = None
     windows: list[tuple[str, str]] | None = None  # per-market entry windows (ET); falls back to internal.windows
+    intraday_windows: list[tuple[str, str]] | None = None  # D37 H1: normal Intraday mode only (not low risk/1:1/scalp)
     news_after_min: int | None = None  # no entries until N min after a high-impact release (falls back to firm rule)
 
 

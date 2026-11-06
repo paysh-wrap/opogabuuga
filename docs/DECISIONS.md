@@ -301,3 +301,10 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   1.0); with a structure break they keep 1R–3R. Futures 18 sessions: MGC 61% win PF 1.73 +$601 MC 95%; MNQ 43% win
   PF 1.73 +$404 MC 92%; ~3.6 trades/day total. One parameter, same effect on both markets, but small sample —
   re-check on longer data.
+
+## D37 — H1 best-hours filter, normal Intraday mode only (user-approved 2026-11-06)
+- Instruments get `intraday_windows`; used ONLY when low risk, 1:1 and scalp are all OFF (pure `apply_intraday_windows`).
+- MGC 05–07, 09–12, 13–15:30 ET; MNQ 08–09:30, 09:35–10, 11–12, 14–15 ET. Low risk / 1:1 / scalp keep full windows
+  so their trade counts are unchanged.
+- Sample (Pro 25K, 18 futures sessions, neutral): MGC 61%→71% win, PF 1.73→3.92; MNQ 43%→67%, PF 1.73→4.66;
+  ~2 trades/day in Intraday. Hours chosen in-sample (1–6 trades/hour) — confirm on longer data (Databento).

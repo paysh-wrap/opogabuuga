@@ -49,11 +49,13 @@ class RulesHolder:
         self.rules, self.eval_mode_on = eff.rules, eff.eval_mode_on
         self._apply_instrument_toggles(s)
         from app.automation.state import get_setting
-        from app.risk.low_risk import apply_low_risk
+        from app.risk.low_risk import apply_intraday_windows, apply_low_risk
 
         self.low_risk = bool(get_setting(s, "risk.low_risk", False))
         if self.low_risk:
             self.rules = apply_low_risk(self.rules)
+        else:
+            self.rules = apply_intraday_windows(self.rules)
         self.standard_version, self.firm_version, self.verified_paths = (
             eff.standard_version,
             eff.firm_version,

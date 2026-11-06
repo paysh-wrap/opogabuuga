@@ -37,3 +37,15 @@ def apply_low_risk(r: RulesConfig) -> RulesConfig:
         }
     )
     return r.model_copy(update={"internal": internal, "eval_mode": eval_mode})
+
+
+def apply_intraday_windows(r: RulesConfig) -> RulesConfig:
+    """D37 H1: in normal Intraday mode (low risk, 1:1 and scalp all OFF) each market trades only its
+    intraday_windows (best hours). Other modes keep the full windows so their trade count is unchanged."""
+    if r.one_to_one_mode.enabled or r.scalp_mode.enabled:
+        return r
+    inst = {
+        k: v.model_copy(update={"windows": v.intraday_windows}) if v.intraday_windows else v
+        for k, v in r.instruments.items()
+    }
+    return r.model_copy(update={"instruments": inst})
