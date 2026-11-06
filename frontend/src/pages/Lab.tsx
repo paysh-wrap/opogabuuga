@@ -4,8 +4,10 @@ import { usePageTitle } from "../components/usePageTitle";
 
 interface Sess { session: string; trades: number; win_rate: number; net: string; avg_r: string | null; cum_win_rate: number; cum_net: string }
 interface Bt { id: number; params: { symbol: string; stage: string; bias: string; one_to_one?: boolean; scalp?: boolean }; trades: number | null; win_rate: string | null; profit_factor: string | null; net: string | null; mc_pass: string | null }
-interface Prop { id: number; text: string; status: string; at: string }
-interface Lab { sessions: Sess[]; backtests: Bt[]; suggestions: string[]; proposals: Prop[] }
+interface Prop { id: number; text: string; status: string; at: string; diff?: Record<string, string> }
+interface CycleRow { symbol?: string; status: string; sessions?: number; need?: number; candidates?: number; why?: string[] | string; diff?: Record<string, string> }
+interface Lab { sessions: Sess[]; backtests: Bt[]; suggestions: string[]; proposals: Prop[]; lab_layer: { version: number; settings: Record<string, string> } | null; last_cycle: { at: string; report: CycleRow[] } | null; tunables: Record<string, { lo: string; hi: string; step: string }> }
+const STATUS: Record<string, string> = { proposal: "found an improvement → proposal below", champion_kept: "no change beat the current settings", not_enough_data: "not enough recorded sessions yet", waiting: "waiting for your decision on a proposal", cooldown: "cooling down after the last change", disabled: "self-improvement is turned off" };
 
 const card = "rounded-xl border border-border bg-card p-4";
 const btn = "rounded-md border px-2 py-1 text-xs font-semibold";
@@ -35,6 +37,8 @@ export default function LabPage() {
   const q = useQuery({ queryKey: ["lab"], queryFn: () => api<Lab>("/api/lab"), refetchInterval: 30000 });
   const done = () => void qc.invalidateQueries({ queryKey: ["lab"] });
   const propose = useMutation({ mutationFn: (text: string) => api("/api/lab/proposals", { method: "POST", body: JSON.stringify({ text }) }), onSuccess: done });
+  const cycle = useMutation({ mutationFn: () => api("/api/lab/cycle", { method: "POST" }), onSuccess: done });
+  const rollback = useMutation({ mutationFn: () => api("/api/lab/rollback", { method: "POST" }), onSuccess: done });
   const decide = useMutation({ mutationFn: (x: { id: number; status: string }) => api(`/api/lab/proposals/${x.id}`, { method: "PUT", body: JSON.stringify({ status: x.status }) }), onSuccess: done });
   const d = q.data;
   if (!d) return <p role="status">Loading…</p>;
@@ -78,6 +82,26 @@ export default function LabPage() {
         )}
       </section>
 
+      <section className={card} data-testid="lab-cycle">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-semibold text-gold">Self-improvement cycle</h2>
+          <button className={`${btn} border-gold text-gold`} disabled={cycle.isPending} onClick={() => cycle.mutate()}>{cycle.isPending ? "Running… (can take minutes)" : "Run Lab now"}</button>
+        </div>
+        <p className="mt-1 text-xs">Weekly (and on demand) the Lab replays your recorded sessions with the same engine: it tunes only the {Object.keys(d.tunables).length} allowed settings on the older sessions, then they must also win on the newest sessions they never saw — without lowering win rate or trade count. Winners become proposals; nothing changes until you approve.</p>
+        {d.last_cycle ? (
+          <div className="mt-2 text-sm">
+            <p className="text-xs opacity-75">Last run {new Date(d.last_cycle.at).toLocaleString()}</p>
+            {d.last_cycle.report.map((r, i) => (
+              <p key={i}>• <b className="text-gold">{r.symbol ?? "Lab"}</b> — {STATUS[r.status] ?? r.status}{r.sessions != null ? ` (${r.sessions}${r.need ? `/${r.need}` : ""} sessions${r.candidates ? `, ${r.candidates} changes tested` : ""})` : ""}{Array.isArray(r.why) && r.why.length ? `: ${r.why.join("; ")}` : typeof r.why === "string" ? `: ${r.why}` : ""}</p>
+            ))}
+          </div>
+        ) : <p className="mt-2 text-sm">Not run yet.</p>}
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <span>Active Lab changes: {d.lab_layer ? <b className="text-gold">v{d.lab_layer.version} · {Object.entries(d.lab_layer.settings).map(([k, v]) => `${k} = ${v}`).join(", ") || "none"}</b> : "none (your plan as loaded)"}</span>
+          {d.lab_layer && <button className={`${btn} border-blue text-blue`} onClick={() => rollback.mutate()}>Roll back</button>}
+        </div>
+      </section>
+
       <section className={card}>
         <h2 className="font-semibold text-gold">Suggestions & proposals</h2>
         {d.suggestions.length === 0 && d.proposals.length === 0 && <p className="text-sm">No suggestions yet.</p>}
@@ -85,14 +109,14 @@ export default function LabPage() {
           <p key={t} className="mt-1 text-sm">• {t} <button className={`${btn} ml-2 border-blue text-blue`} onClick={() => propose.mutate(t)}>Propose</button></p>
         ))}
         {d.proposals.map((p) => (
-          <p key={p.id} data-testid={`proposal-${p.id}`} className="mt-1 text-sm">#{p.id} {p.text} — <b className={p.status === "approved" ? "text-gold" : ""}>{p.status}</b>
+          <p key={p.id} data-testid={`proposal-${p.id}`} className="mt-1 text-sm">#{p.id} {p.diff && Object.keys(p.diff).length ? <b className="text-gold">{Object.entries(p.diff).map(([k, v]) => `${k} → ${v}`).join(", ")}: </b> : null}{p.text} — <b className={p.status === "approved" ? "text-gold" : ""}>{p.status}</b>
             {p.status === "pending" && (<>
               <button className={`${btn} ml-2 border-gold text-gold`} onClick={() => decide.mutate({ id: p.id, status: "approved" })}>Approve</button>
               <button className={`${btn} ml-1 border-border text-blue`} onClick={() => decide.mutate({ id: p.id, status: "rejected" })}>Reject</button>
             </>)}
           </p>
         ))}
-        <p className="mt-2 text-xs opacity-75">Approved proposals are applied only through the guarded process: shadow-tested ≥ 10 sessions, at 18:00, max one change per 14 days, auto-rollback if worse.</p>
+        <p className="mt-2 text-xs opacity-75">Approved Lab changes apply at the next 18:00 reset (never mid-session), are re-checked against bounds and all rule validation, max one per 14 days, and can be rolled back in one click. Pillars, firm rules, risk %, Evaluation Mode, cooldown and payouts can never be changed by the Lab.</p>
       </section>
     </div>
   );

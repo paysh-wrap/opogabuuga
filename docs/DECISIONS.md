@@ -321,3 +321,15 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - Controller.bar_feed_ok: 5-minute bars are ignored for fills/stops/management while 1-minute bars arrive (within
   3 of their bars); falls back to the slower feed if the finer one goes silent. Half-off defence reads the trade's
   own profile MSO. Test fixed (it checked after the 1-minute feed had gone silent).
+
+## D40 — §17 self-improvement loop (Lab), built 2026-11-06 (user: "strategy must constantly self-improve")
+- lab/tunables.py: TUNABLE_PARAMS = only §17.2 keys with bounds; steps ≤ max_param_step_pct (25%) of the range;
+  everything else rejected (pillars, firm rules, risk %, Eval Mode, cooldown, lock-in, payouts, windows, R:R).
+- lab/challenger.py + lab/cycle.py: weekly (schedule.lab_cycle) and on demand ("Run Lab now"): recorded sessions →
+  walk-forward (older 75% train / newest 25% test) → champion vs one-step neighbours → best train candidate that
+  keeps WIN RATE and ≥90% of the TRADE COUNT (user rule) → must beat the champion out of sample by
+  self_improvement.min_improvement_r with ≥ min_oos_trades → pending Proposal (plain-English explanation).
+- Approved proposals apply at the next 18:00 reset as a versioned "lab" settings layer (re-validated); one-click
+  rollback; max one per cooldown_days. Nightly session backtest (existing) keeps feeding the Lab page.
+- Not built yet: SHADOW run of a challenger before proposal (§17.3), automatic rollback on live rolling-30 E
+  (§17.4), Optuna search (one-step neighbours used instead), bootstrap CI guard.

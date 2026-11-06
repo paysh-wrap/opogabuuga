@@ -176,7 +176,9 @@ def build(raw: dict[str, Any]) -> tuple[RulesConfig, Validation]:
 
 def effective(s: Session, base: LoadedRules) -> Effective:
     std, firm, ev = latest(s, "standard"), latest_firm(s), latest(s, "evaluation")
-    cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, std.settings if std else {}))
+    lab = latest(s, "lab")  # §17: approved Lab tunables (separate layer; My Settings never contain these keys)
+    mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
+    cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, mine))
     verified = list(firm.verified_paths) if firm else []
     return Effective(
         cfg,

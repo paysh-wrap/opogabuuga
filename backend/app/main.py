@@ -73,6 +73,32 @@ async def _nightly(app: FastAPI, s: Session, now: datetime) -> None:
     await nightly(app, s, now)
 
 
+async def _lab(app: FastAPI, s: Session, now: datetime) -> None:
+    """§17: approved Lab changes apply at the 18:00 reset (never mid-session); the challenger search runs weekly."""
+    from app.automation import state as stt
+    from app.clock import parse_hhmm, session_date, to_et
+    from app.lab.cycle import apply_approved, run_cycle
+    from app.payouts.service import due, week_key
+
+    st = app.state
+    sched = st.rules.rules.schedule
+    local, sess = to_et(now), session_date(now)
+    if (
+        local.time() >= parse_hhmm(sched.reconcile_reset)
+        and stt.get_setting(s, "job.lab_apply.session") != sess.isoformat()
+    ):
+        stt.set_setting(s, "job.lab_apply.session", sess.isoformat(), now)
+        s.commit()
+        if apply_approved(s, st.rules.base, st.clock):
+            st.rules.refresh(s)
+    if due(now, sched.lab_cycle, stt.get_setting(s, "job.lab_cycle.week")):  # type: ignore[arg-type]
+        stt.set_setting(s, "job.lab_cycle.week", week_key(now), now)  # mark first: one attempt per week
+        s.commit()
+        report = await run_cycle(app, s, now)
+        stt.set_setting(s, "lab.last_cycle", {"at": now.isoformat(), "report": report}, now)
+        s.commit()
+
+
 async def _eod(app: FastAPI, s: Session, now: datetime) -> None:
     """Weekdays at schedule.eod_update (after the 16:44 hard flat): EOD accounts trail their MLL once."""
     from app.automation import state as stt
@@ -149,6 +175,7 @@ async def _scheduler(app: FastAPI) -> None:
                 await _daily_bias(app, s, now)
                 await _eod(app, s, now)
                 await _nightly(app, s, now)
+                await _lab(app, s, now)
         except Exception as e:  # never silent (§1.8)
             log.error("scheduler.error", error=type(e).__name__)
             st.controller.notify("error", "Scheduled job failed", type(e).__name__)

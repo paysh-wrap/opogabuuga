@@ -73,7 +73,15 @@ def lab(_: Principal = Depends(current_user), db: Session = Depends(get_db)) -> 
         )
         latest_suggestions = r.metrics.get("suggestions", []) or latest_suggestions
     props = db.execute(select(Proposal).order_by(Proposal.id.desc()).limit(50)).scalars()
+    from app.automation import state as stt
+    from app.lab.tunables import TUNABLE_PARAMS
+    from app.risk.settings_store import latest
+
+    lab_row = latest(db, "lab")
     return {
+        "lab_layer": {"version": lab_row.version, "settings": lab_row.settings} if lab_row else None,
+        "last_cycle": stt.get_setting(db, "lab.last_cycle"),
+        "tunables": {k: {"lo": str(t.lo), "hi": str(t.hi), "step": str(t.step)} for k, t in TUNABLE_PARAMS.items()},
         "sessions": session_progress(rows),
         "backtests": bts,
         "suggestions": latest_suggestions,
@@ -83,6 +91,7 @@ def lab(_: Principal = Depends(current_user), db: Session = Depends(get_db)) -> 
                 "text": p.explanation,
                 "status": p.status,
                 "metrics": p.metrics,
+                "diff": p.diff,
                 "at": p.created_at.isoformat(),
             }
             for p in props
@@ -122,3 +131,33 @@ def decide(
     audit.record(db, request.app.state.clock, p.user.username, f"lab.{body.status}", str(pid), {})
     db.commit()
     return {"id": pid, "status": row.status}
+
+
+@router.post("/lab/cycle")
+async def run_now(
+    request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    """Run the §17.3 challenger search now (same guards as the weekly run). Creates a proposal only if one wins."""
+    from app.automation import state as stt
+    from app.lab.cycle import run_cycle
+
+    st = request.app.state
+    now = st.clock.now()
+    report = await run_cycle(request.app, db, now)
+    stt.set_setting(db, "lab.last_cycle", {"at": now.isoformat(), "report": report}, now)
+    audit.record(db, st.clock, p.user.username, "lab.cycle_run", "manual", {})
+    db.commit()
+    return {"report": report}
+
+
+@router.post("/lab/rollback")
+def lab_rollback(
+    request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    """One-click rollback of the newest applied Lab change (takes effect for the next NEW trade)."""
+    from app.lab.cycle import rollback_lab
+
+    st = request.app.state
+    v = rollback_lab(db, st.clock, p.user.username)
+    st.rules.refresh(db)
+    return {"active_lab_version": v}
