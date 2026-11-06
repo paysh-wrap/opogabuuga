@@ -67,14 +67,21 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
         await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
     ctl = st.controller
     if p.event == "HEARTBEAT" and p.price is not None:
-        await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
+        finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
+        if finest:
+            await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
         await ctl.flat_time_check()
         from app.clock import session_date
 
         await ctl.news_check(st.calendar(session_date(st.clock.now())))
         ss = st.market.states.get((acc.symbol, p.profile))
-        if ss is not None:
-            await ctl.defence_check(acc.symbol, p.price.h, p.price.l, ss.mso, ss.mso_events)
+        if ss is not None and finest:
+            by_profile = {
+                prof: (x.mso, x.mso_events)
+                for prof in ("TIGHT", "STD")
+                if (x := st.market.states.get((acc.symbol, prof))) is not None
+            }
+            await ctl.defence_check(acc.symbol, p.price.h, p.price.l, ss.mso, ss.mso_events, by_profile)
     for u in updates:
         if u.status == "PASS":
             what = ctl.on_signal_pass(u.signal_id)

@@ -73,6 +73,7 @@ class Controller:
     notices: list[dict[str, Any]] = field(default_factory=list)  # banner/notify queue for the API layer
     _flatten_reason: str | None = None
     _flatten_alerted: set[str] = field(default_factory=set)  # accounts whose failed flatten already raised the banner
+    _bar_feeds: dict[str, dict[int, datetime]] = field(default_factory=dict)  # symbol → {tf minutes: last bar seen}
 
     # ---------- setup ----------
     def load_accounts(self) -> None:
@@ -413,6 +414,7 @@ class Controller:
                 r.entry.mode,
                 self._limit_deadline(sig, now),
             )
+            t.profile = sig.profile
         except OrphanedPosition as e:
             # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
             # pause the account for good (never auto-resumes) and raise the banner (§1.8)
@@ -495,6 +497,18 @@ class Controller:
             )
 
     # ---------- fills / prices ----------
+    def bar_feed_ok(self, symbol: str, tf: str, now: datetime) -> bool:
+        """Fills, stops and trade management use only the FINEST live price feed of a symbol (D37): a 5-minute bar
+        holds prices from before a 1-minute trade was placed (false fills/stops), so it is ignored while 1-minute
+        bars keep arriving (seen within the last 3 of their bars). A missing finer feed falls back to the slower one."""
+        try:
+            m = int(tf)
+        except ValueError:
+            return True
+        seen = self._bar_feeds.setdefault(symbol, {})
+        seen[m] = now
+        return not any(t < m and 0 <= (now - last).total_seconds() <= 3 * 60 * t for t, last in seen.items())
+
     async def on_bar(self, symbol: str, o: Decimal, h: Decimal, low: Decimal, c: Decimal, at: datetime) -> None:
         async with self.lock:
             with self.sessionmaker() as s:
@@ -887,6 +901,7 @@ class Controller:
         low: Decimal,
         mso: dict[str, Any] | None,
         mso_events: list[tuple[str, str, int]],
+        by_profile: dict[str, tuple[dict[str, Any] | None, list[tuple[str, str, int]]]] | None = None,
     ) -> None:
         """Half-off defence: every confirmation against the trade (MSO trend flipped AND a CHoCH against since entry)
         and price ≥ adverse_half_at of the way to the stop → close one of the two brackets (once per trade)."""
@@ -898,10 +913,12 @@ class Controller:
             with self.sessionmaker() as s:
                 for t in [t for t in self.om.trades.values() if t.symbol == symbol]:
                     against = "SHORT" if t.d is Direction.LONG else "LONG"
-                    trend_against = (mso or {}).get("trend") == ("BEAR" if against == "SHORT" else "BULL")
+                    # D37: judge the trade with its own timeframe's MSO when that state is known
+                    t_mso, t_events = (by_profile or {}).get(t.profile, (mso, mso_events))
+                    trend_against = (t_mso or {}).get("trend") == ("BEAR" if against == "SHORT" else "BULL")
                     opened_ms = int(t.opened_at.timestamp() * 1000)
                     choch_against = any(
-                        e == "MSO_CHOCH" and d == against and ms >= opened_ms for e, d, ms in mso_events
+                        e == "MSO_CHOCH" and d == against and ms >= opened_ms for e, d, ms in t_events
                     )
                     worst = low if t.d is Direction.LONG else high
                     ev = await self.om.adverse_half(
