@@ -308,3 +308,11 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   so their trade counts are unchanged.
 - Sample (Pro 25K, 18 futures sessions, neutral): MGC 61%→71% win, PF 1.73→3.92; MNQ 43%→67%, PF 1.73→4.66;
   ~2 trades/day in Intraday. Hours chosen in-sample (1–6 trades/hour) — confirm on longer data (Databento).
+
+## D38 — Scalp + 1:1 trade again, same signals as normal (user-approved 2026-11-06)
+- 1:1 filters E1–E6 off in Pro/Flex plans (min_samples 0 = off; min_score = normal 60); E7 news kept.
+- Fix: a stop move that races a same-bar TP/stop fill is not a broker failure (stop no longer WORKING) — real
+  modify failures still flatten + pause (§8). This was pausing 1:1 accounts after ~2 trades.
+- User: model-fail cooldown does not apply in Scalp mode (`filters.model_fail_cooldown.in_scalp: false`).
+- Pro 25K, 18 sessions, neutral: 1:1 MGC 40 tr 65% PF1.56, MNQ 24 tr 50% PF2.06; Scalp MGC 22 tr 50% PF0.66
+  (−$86), MNQ 16 tr 56% PF5.75. ~Half of placed limit orders don't fill (all modes).

@@ -329,6 +329,16 @@ class OrderManager:
             return [Event("CLOSED", t, "FLATTEN")]
         return []
 
+    async def _stop_already_done(self, t: OpenTrade, leg: Leg) -> bool:
+        """True only when the broker shows this leg's stop order no longer working (filled, or cancelled by its OCO
+        take-profit). Any doubt (lookup error, order still listed WORKING) → False, so the §8 pause still applies."""
+        try:
+            orders = await self.adapter.get_orders(t.account)
+        except BrokerError:
+            return False
+        o = next((x for x in orders if x.order_id == leg.stop_order_id), None)
+        return o is None or o.status in ("FILLED", "CANCELLED")
+
     async def _move_stop(self, t: OpenTrade, leg: Leg, price: Decimal, why: str) -> list[Event]:
         new = ratchet(leg.stop, price, t.d)
         if new == leg.stop:
@@ -338,6 +348,8 @@ class OrderManager:
             ok = await self.adapter.modify_stop(t.account, leg.stop_order_id, new)
         except BrokerError:
             ok = False
+        if not ok and await self._stop_already_done(t, leg):
+            return []  # D38: the stop/TP already filled at the broker (race on the same bar) — its fill closes the leg
         if not ok:  # §8: stop-modify failure → flatten remainder + pause account
             t.closing = t.closing or "STOP_MODIFY_FAILED"  # tracked until flat; watchdog retries a failed flatten
             await self._emergency_flatten(t)

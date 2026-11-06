@@ -80,7 +80,7 @@ trade_plan: {rr_min: 1.0, rr_max: 3.0, stop_buffer_ticks: 4, min_stop_ticks: 20,
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0
   htf_atr_period: 14
-  model_fail_cooldown: {streak: 3, sessions: 5}   # my setting, not Lab-tunable
+  model_fail_cooldown: {streak: 3, sessions: 5, in_scalp: false}   # my setting, not Lab-tunable
   require_mso_agree: false            # D36: G4 score-only (blend: confirmation lag killed entries)
   require_structure_break: false      # D36: G5 score-only
   t1_through_ok_with_limit: true      # D36: limit entry needs a full retrace, so T1 touched is fine
@@ -156,15 +156,15 @@ one_to_one_mode:                       # D7 — user toggle in Risk UI; the Lab 
   # Works for EOD and intraday-trailing accounts; on intraday accounts the partial + stop lock also limits how
   # far open-profit peaks drag the MLL up. While ON, this management replaces the §8 drawdown guard for that trade.
   gate: {min_trades: 100, min_e_net_r: 0.20, min_pf: 1.4, max_violations: 0}   # own backtest before paid accounts
-  filters:                             # D16 — approved win-rate filters (1:1 mode only; stricter-only)
-    target_within_t1: true             # E1: the 1R target must sit at or before the model's T1
-    t1_rate_min: 0.65                  # E2: this symbol+profile's models reach T1 at least this often…
-    t1_rate_min_samples: 30            #     …measured over at least this many resolved models (else no trade)
-    min_score: 75                      # E3
-    require_choch: true                # E4: CHoCH after the sweep (BoS alone is not enough)
-    require_bias_and_htf: true         # E5: bias aligned (no NEUTRAL) and HTF structure agrees
-    atr_pct_band: [10, 90]             # E6: skip when HTF ATR is in its top/bottom 10% …
-    atr_pct_min_samples: 30            #     …of recorded values (else no trade)
+  filters:                             # D38 — user: scalp/1:1 keep the normal trade count (E1–E6 off; E7 kept)
+    target_within_t1: false            # E1 off
+    t1_rate_min: 0.65                  # E2 off while samples = 0
+    t1_rate_min_samples: 0
+    min_score: 60                      # E3 = normal minimum
+    require_choch: false               # E4 off
+    require_bias_and_htf: false        # E5 off
+    atr_pct_band: [10, 90]             # E6 off while samples = 0
+    atr_pct_min_samples: 0
     news_after_min: 5                  # E7: no 1:1 entries until 5 min after a high-impact release
     # E8 (weak 30-min slices) is a Lab suggestion inside your windows only — Phase 9.
   # Unchanged in this mode: all gates, per-trade DLL/MLL checks (never weakened), kill switch, 40% consistency

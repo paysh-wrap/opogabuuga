@@ -382,3 +382,23 @@ async def test_market_mode_unchanged(env):
     plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
     t, ev = await opened(sim, om, plan, 1, False)
     assert t.pending_until is None and [e.kind for e in ev] == ["OPENED"]
+
+
+async def test_lock_after_tp_filled_same_bar_is_not_a_failure(env):
+    """D38: the TP fills on the same bar that reaches the 75% lock point → the stop is already gone; no pause."""
+    sim, om, _ = env
+    plan = build_one_to_one_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20, D("0.75"), D("0.30"), 2)
+    await opened(sim, om, plan, 1, False)
+    ev = await pump(sim, om, 20005, 20040, 20004, 20030)
+    kinds = [(e.kind, e.detail) for e in ev]
+    assert ("PAUSE", "STOP_MODIFY_FAILED") not in kinds
+    assert any(k == "CLOSED" for k, _ in kinds)
+
+
+async def test_stop_lookup_error_still_pauses(env):
+    sim, om, _ = env
+    plan = apply_guard(build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20), T, 2)
+    await opened(sim, om, plan, 2, True)
+    sim.fail_next.update({"modify_stop", "get_orders"})
+    ev = await pump(sim, om, 20010, 20031, 20005, 20028)
+    assert ("PAUSE", "STOP_MODIFY_FAILED") in [(e.kind, e.detail) for e in ev]

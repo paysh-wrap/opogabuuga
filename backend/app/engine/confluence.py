@@ -312,7 +312,9 @@ def _one_to_one_filters(
     if f.target_within_t1 and isinstance(plan11, TradePlan) and (plan11.take_profit - m.t1) * d.sign > 0:
         fails.append(("1TO1_TARGET_BEYOND_T1", False))  # E1
     rate, n = x.t1_rate
-    if n < f.t1_rate_min_samples or rate is None:
+    if f.t1_rate_min_samples == 0:
+        pass  # D38: E2 off (samples 0) — scalp/1:1 keep the normal trade count
+    elif n < f.t1_rate_min_samples or rate is None:
         fails.append(("1TO1_T1_RATE_UNPROVEN", True))  # E2
     elif rate < f.t1_rate_min:
         fails.append(("1TO1_T1_RATE_LOW", True))
@@ -327,7 +329,9 @@ def _one_to_one_filters(
             fails.append(("1TO1_BIAS_OR_HTF", not aligned))
     pct, an = x.atr_pct  # E6
     lo, hi = f.atr_pct_band
-    if an < f.atr_pct_min_samples or pct is None:
+    if f.atr_pct_min_samples == 0:
+        pass  # D38: E6 off
+    elif an < f.atr_pct_min_samples or pct is None:
         fails.append(("1TO1_ATR_UNPROVEN", True))
     elif not (lo <= pct <= hi):
         fails.append(("1TO1_ATR_EXTREME", True))

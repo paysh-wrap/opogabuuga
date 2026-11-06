@@ -209,7 +209,8 @@ def process(
     fresh = feed_status(bar_ms, tf_min, now, rules.webhook.stale_after_bar_multiple) == "FRESH"
     bias = today_bias(s, sess, rules.instrument(st.symbol).bias_proxy)
     cal = calendar(sess)
-    cooled = cooldown_active(s, st.symbol, st.profile, sess)
+    mfc = rules.filters.model_fail_cooldown
+    cooled = cooldown_active(s, st.symbol, st.profile, sess) and (mfc.in_scalp or not rules.scalp_mode.enabled)
     mso = st.mso or {}
     enabled = rules.instrument(st.symbol).enabled
     eval_rules = rules if enabled else shadow_rules(rules, st.symbol)

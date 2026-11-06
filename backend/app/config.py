@@ -197,6 +197,7 @@ class TradePlanCfg(_M):
 class Cooldown(_M):
     streak: int
     sessions: int
+    in_scalp: bool = True  # D38 (user): false = the model-fail cooldown does not pause Scalp mode
 
 
 class Filters(_M):
