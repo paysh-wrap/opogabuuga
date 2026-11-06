@@ -61,19 +61,32 @@ def simulate(c):
         return {"filled": False}
     fee_r = FEE / (risk / TICK * TV)
     slip_r = TICK / risk
-    for j in range(fill, len(bars)):
-        b = bars[j]
-        et = datetime.fromtimestamp(b.open_ms / 1000, tz=UTC).astimezone(ET)
-        if j > fill and et.time() >= FLAT:
-            r = (b.o - entry) * d / risk
-            return {"filled": True, "r": float(r - fee_r), "win": r > 0, "exit": "FLAT"}
-        hit_stop = (d == 1 and b.l <= stop) or (d == -1 and b.h >= stop)
-        if hit_stop:
-            return {"filled": True, "r": float(D(-1) - slip_r - fee_r), "win": False, "exit": "STOP"}
-        if j > fill and ((d == 1 and b.h >= tp) or (d == -1 and b.l <= tp)):
-            r = (tp - entry) * d / risk
-            return {"filled": True, "r": float(r - fee_r), "win": True, "exit": "TP"}
-    return {"filled": True, "r": 0.0, "win": False, "exit": "END"}
+    fee_ticks = -(-FEE // TV)  # ceil: breakeven stop covers the round-trip fee
+
+    def manage(be_at):
+        cur_stop, moved = stop, False
+        for j in range(fill, len(bars)):
+            b = bars[j]
+            et = datetime.fromtimestamp(b.open_ms / 1000, tz=UTC).astimezone(ET)
+            if j > fill and et.time() >= FLAT:
+                r = (b.o - entry) * d / risk
+                return {"r": float(r - fee_r), "win": r - fee_r > 0, "exit": "FLAT"}
+            if (d == 1 and b.l <= cur_stop) or (d == -1 and b.h >= cur_stop):  # stop-first on ambiguous bars
+                if moved:
+                    r = (cur_stop - entry) * d / risk - slip_r
+                    return {"r": float(r - fee_r), "win": False, "exit": "BE"}
+                return {"r": float(D(-1) - slip_r - fee_r), "win": False, "exit": "STOP"}
+            if j > fill and ((d == 1 and b.h >= tp) or (d == -1 and b.l <= tp)):
+                r = (tp - entry) * d / risk
+                return {"r": float(r - fee_r), "win": True, "exit": "TP"}
+            if be_at is not None and not moved and j > fill:
+                if (d == 1 and b.h >= entry + D(str(be_at)) * risk) or (d == -1 and b.l <= entry - D(str(be_at)) * risk):
+                    cur_stop, moved = entry + d * fee_ticks * TICK, True  # takes effect from the NEXT bar
+        return {"r": 0.0, "win": False, "exit": "END"}
+
+    base, be1, be125 = manage(None), manage(1.0), manage(1.25)
+    return {"filled": True, **base, "be1_r": be1["r"], "be1_exit": be1["exit"], "be125_r": be125["r"],
+            "be125_exit": be125["exit"]}
 
 
 cands = []
@@ -134,6 +147,20 @@ te = [x for x in cands if x["part"] == "test"]
 print(f"{res['symbol']}: {len(cands)} filled candidates · sessions {len(days)} (train {sum(1 for d in days if d < cut)}, test {sum(1 for d in days if d >= cut)})")
 print(f"ALL            train {fmt(st(tr))} | test {fmt(st(te))}")
 
+
+def mg(rows, key):
+    """Management variant summary: TP rate, non-loss rate (TP or BE), R/trade."""
+    n = len(rows)
+    if not n:
+        return "  0 tr"
+    tp = sum(1 for r in rows if r[f"{key}_exit"] == "TP")
+    nl = sum(1 for r in rows if r[f"{key}_exit"] in ("TP", "BE") or (r[f"{key}_exit"] == "FLAT" and r[f"{key}_r"] > 0))
+    return f"{n:3d} tr TP {tp / n:4.0%} non-loss {nl / n:4.0%} {sum(r[f'{key}_r'] for r in rows) / n:+.2f}R"
+
+
+for key, label in (("be1", "BE at +1R"), ("be125", "BE at +1.25R")):
+    print(f"ALL {label:13s} train {mg(tr, key)} | test {mg(te, key)}")
+
 conds = {
     "brk": lambda x: x["brk"], "choch": lambda x: x["choch"], "no_brk": lambda x: not x["brk"],
     "TIGHT": lambda x: x["profile"] == "TIGHT", "STD": lambda x: x["profile"] == "STD",
@@ -166,4 +193,7 @@ for n in (1, 2, 3):
 best.sort(key=lambda z: (z[1], z[0]), reverse=True)
 print(f"\nfilter combos with TRAIN win >= 60% and >= {MIN} trades (top 25), then their TEST result:")
 for e, w, combo, s, t in best[:25]:
+    te_rows = [x for x in te if all(conds[k](x) for k in combo)]
+    tr_rows = [x for x in tr if all(conds[k](x) for k in combo)]
     print(f"  {' & '.join(combo):40s} train {fmt(s)} | test {fmt(t)}")
+    print(f"  {'':40s}   +BE1R train {mg(tr_rows, 'be1')} | test {mg(te_rows, 'be1')}")

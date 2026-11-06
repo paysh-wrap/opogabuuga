@@ -75,3 +75,19 @@ results) · gates = only G4/G5 hard (R:R from 1.0, neutral 60, C1 0.4).
 | 1:1 | 6 tr, 50%, PF 1.08, +$9 | 7 tr, 43%, PF 0.48, −$90 |
 | Scalp | 6 tr, 50%, PF 5.37, +$42 | 6 tr, 83%, PF 8.94, +$64 |
 Too few trades to trust any of these. MGC under the same variants: cancelled at the user's request (focus Intraday).
+
+## H. Can Intraday reach 60%+ wins at R:R 1.75–3? (offline screening of every setup, 22 sessions)
+Method: research.py exports every setup that passed the gates (loose plan: score/C1 minimums off, full hours,
+R:R ≥ 1.75, T2 must reach 1.75R); screen.py / frontier.py simulate each bracket exactly like the engine (limit at
+CISD, 4-bar timeout, stop-first, 1-tick stop slip, fees, flat 16:40). Verified against the engine on a probe
+(same fills, same stops). Train = older 15–16 sessions, test = newest 6.
+| Market | Setups filled | Win at ≥1.75R targets (train / test) | R/trade (train / test) |
+|---|---|---|---|
+| MGC | 66 | 19% / 26% | −0.43 / −0.24 |
+| MNQ | 60 | 7% / 12% | −0.79 / −0.59 |
+- No filter combination (hour, break, score, osc, C1 size, ATR, direction, profile, R:R) reached 60% with ≥ 8
+  trades on train. Breakeven at +1R / +1.25R did not help (MGC non-loss 26–37%, still negative).
+- Frontier (same entries/stops, target k·R): MGC all hours 1.0R 34%/42% … 1.75R 23%/32% … 3R 15%/21%;
+  MNQ 1.0R 16%/24% … 1.75R 12%/24% … 3R 7%/12%. All negative.
+- Caveat: this set excluded setups whose model T2 is < 1.75R away (the plan required ≥1.75R) — those are the
+  setups behind the current 58% (D36b: no-break setups aim for 1R). Re-run with the real R:R floor 1.0 pending.
