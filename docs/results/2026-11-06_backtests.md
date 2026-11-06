@@ -56,4 +56,11 @@ Champion: train 19 tr, 53% win, +0.237R/trade · test 6 tr, 67%, +0.297R.
 | trade_plan.stop_buffer_ticks 5 | 20 | 50% | +0.155 |
 | trade_plan.min_stop_ticks 16 / 24 | 19 | 53% | +0.237 (MGC uses its own min_stop_ticks 16) |
 | entry.max_wait_bars 5 | 18 | 56% | +0.266 |
-| (remaining candidates: see section F2 when finished) | | | |
+| entry.max_wait_bars 7 | 19 | 53% | +0.237 |
+| entry.limit_timeout_bars 3 | 17 | 53% | +0.229 |
+| entry.limit_timeout_bars 5 | 20 | 50% | +0.170 |
+| internal.no_entry_before_news_min 10 / 20 | 19 | 53% | +0.237 |
+
+Lab verdict: best train candidate = entry.max_wait_bars 5 (18 tr, 56%, +0.266R); on the 6 unseen sessions it was
+identical to the champion (6 tr, 67%, +0.297R) → not ≥ +0.03R better → NO proposal. Intraday MGC unchanged (correct,
+conservative behaviour). Bug found + fixed by this run: invalid candidate rule sets now skipped (commit 7e2d6d4).
