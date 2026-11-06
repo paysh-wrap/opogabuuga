@@ -16,6 +16,9 @@ import Replay from "../pages/Replay";
 import LabPage from "../pages/Lab";
 import Signals from "../pages/Signals";
 import Journal from "../pages/Journal";
+import Trade from "../pages/Trade";
+import Accounts from "../pages/Accounts";
+import Settings from "../pages/Settings";
 import { LiveProvider } from "./live";
 
 export function useMe() {
@@ -53,6 +56,9 @@ export default function App() {
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />
         <Route path="/risk" element={<Risk />} />
+        <Route path="/trade" element={<Trade />} />
+        <Route path="/accounts" element={<Accounts />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

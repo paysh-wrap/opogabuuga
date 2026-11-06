@@ -56,7 +56,7 @@ export default function HeaderStatus() {
         </Link>
       )}
       {list && (
-        <Link to="/automation" data-testid="trading-count" className="text-xs text-blueLight">
+        <Link to="/accounts" data-testid="trading-count" className="text-xs text-blueLight">
           Trading <b className="text-gold">{trading} of {list.length}</b>
         </Link>
       )}

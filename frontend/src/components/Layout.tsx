@@ -5,6 +5,8 @@ const NAV = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/today", label: "Today" },
   { to: "/signals", label: "Signals" },
+  { to: "/trade", label: "Trade" },
+  { to: "/accounts", label: "Accounts" },
   { to: "/strategy", label: "Strategy" },
   { to: "/backtest", label: "Backtest" },
   { to: "/lab", label: "Lab" },
@@ -14,6 +16,7 @@ const NAV = [
   { to: "/payouts", label: "Payouts" },
   { to: "/connections", label: "Connections" },
   { to: "/journal", label: "Journal & Logs" },
+  { to: "/settings", label: "Settings" },
 ];
 
 export default function Layout() {

@@ -237,29 +237,24 @@ class SelectionIn(BaseModel):
 
 
 @router.put("/accounts/selection")
-def selection(
+async def selection(
     body: SelectionIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
-    for i, aid in enumerate(body.order):
-        a = db.get(Account, aid)
-        if a is not None:
-            a.priority = i
-    from app.risk import settings_store as ss
-
-    try:
-        ss.save_my_settings(
-            db,
-            request.app.state.rules.base,
-            request.app.state.clock,
-            p.user.username,
-            {"automation.accounts_to_trade": body.count},
-            "account selector",
-        ) if "automation.accounts_to_trade" in ss.MY_SETTINGS_KEYS else None
-    except ss.SettingsError as e:
-        raise HTTPException(422, e.errors) from e
+    """ "Trading N of M": priority order (`order` first, then the rest as before); the first N are selected."""
+    accts = {a.id: a for a in db.execute(select(Account)).scalars()}
+    if any(i not in accts for i in body.order) or len(set(body.order)) != len(body.order):
+        raise HTTPException(422, "order must list existing accounts once each")
+    rest = sorted((a for i, a in accts.items() if i not in body.order), key=lambda a: (a.priority, a.id))
+    ranked = [accts[i] for i in body.order] + rest
+    for rank, a in enumerate(ranked):
+        a.priority = rank
+        a.selected = rank < body.count
+    audit.record(
+        db, request.app.state.clock, p.user.username, "account.selection", str(body.count), {"order": body.order}
+    )
     db.commit()
-    request.app.state.rules.refresh(db)
-    return {"count": body.count, "order": body.order}
+    await request.app.state.hub.broadcast("account.updated", {"selection": body.count})
+    return {"count": body.count, "order": [a.id for a in ranked], "selected": [a.id for a in ranked[: body.count]]}
 
 
 # ---------- approvals / execution ----------
