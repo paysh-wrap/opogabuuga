@@ -17,3 +17,4 @@ frontend/test-results/
 backup/
 .coverage
 .claude/worktrees/
+data/futures/*_databento_1m.csv
