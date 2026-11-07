@@ -256,3 +256,20 @@ NEXT (in order):
   BUY/SELL, plan picker = Pro/Flex only, MNQ takes every setup, MGC needs UT Bot 5m + EMA200 5m, R:R 1.5–2.5.
 - Last year (engine): MNQ +$562 (0.64/day, 36%), MGC filtered −$367. 3+ profitable trades/day not available.
 - Tests: 545 backend (100% cov), 52 UI, E2E 20/20. App zip sent to the user.
+
+## START HERE — session 9 (from session 8 end, 2026-11-07 07:45 UTC) — branch ccr-42644967-7tvu35
+Repo: GitHub paysh-wrap/opogabuuga, branch ccr-42644967-7tvu35 (all pushed). Read CLAUDE.md, docs/DECISIONS.md D46–D54,
+docs/STRATEGY_MAIN.md, docs/results/2026-11-06_backtests.md sections O–T.
+- Strategy (final): MGC (UT Bot 5m + EMA200 5m) + MNQ (every setup, from 03:00 ET), R:R 1.5–2.5 (config refuses
+  < 1.5), max 3 trades/day (Lower risk 7), TradingAgents = required backbone (blocks a side only on BUY/SELL),
+  Vibe-Trading (HKUDS, .venv-vt, Claude/Qwen key) can only unblock a one-sided day, OpenBB = data context.
+  1-year engine: MGC 47 tr +$215, MNQ 248 tr +$492 → ≈1.1 trades/day. AI boost estimate 0 to +1 pt win rate.
+- Delivery: Windows app = desktop/paytience_app.py + desktop/paytience.spec, built by .github/workflows/desktop.yml
+  → GitHub release "desktop-latest" (Paytience-Windows.zip; nothing to install; data in paytience-data/,
+  reset-password.txt resets the PayDay password; listens on 0.0.0.0 and prints Tailscale/Wi-Fi addresses).
+  Android app = android/dist/Paytience.apk (WebView; key in android/.keystore — NOT in git, keep it).
+  start.py / start.bat / start.command = source launcher.
+- Tests: 558 backend (100% cov risk/management/phases), 52 UI, E2E 20/20.
+- OPEN: user's phone did not connect through Tailscale with the previous build (app listened on 127.0.0.1) — fixed in
+  cfefc92 (needs Windows firewall "Allow" Private+Public); confirm with the user. User has not yet added the
+  TradingAgents / Vibe-Trading keys or a broker. VERIFY values (Flex DLL, Pro DLL $600) still unconfirmed.
