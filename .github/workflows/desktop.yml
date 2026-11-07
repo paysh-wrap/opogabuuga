@@ -1,0 +1,55 @@
+name: Desktop app (Windows + Mac)
+on:
+  push:
+    branches: [ccr-42644967-7tvu35, main]
+    paths: [backend/**, frontend/**, desktop/**, config/**, .github/workflows/desktop.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Paytience-Windows
+          - os: macos-14
+            name: Paytience-Mac
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22" }
+      - name: Build dashboard
+        run: cd frontend && npm ci --no-audit --no-fund && npm run build
+      - name: Install backend + PyInstaller
+        run: python -m pip install --upgrade pip && python -m pip install ./backend pyinstaller
+      - name: Package
+        run: pyinstaller --noconfirm --distpath dist --workpath work desktop/paytience.spec
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path dist/Paytience -DestinationPath ${{ matrix.name }}.zip
+      - name: Zip (Mac)
+        if: runner.os == 'macOS'
+        run: cd dist && zip -qry ../${{ matrix.name }}.zip Paytience
+      - uses: actions/upload-artifact@v4
+        with: { name: "${{ matrix.name }}", path: "${{ matrix.name }}.zip" }
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: out, merge-multiple: true }
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-latest
+          name: Paytience desktop app (latest)
+          prerelease: false
+          make_latest: true
+          files: out/*.zip
+          body: |
+            Download, unzip, double-click Paytience (Windows: Paytience.exe; Mac: Paytience, first time right-click → Open).
+            Nothing else to install. PAPER mode by default.

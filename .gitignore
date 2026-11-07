@@ -24,3 +24,4 @@ data/futures/*_databento_1m.csv
 android/.sdk/
 android/.keystore/
 android/build/
+build/
