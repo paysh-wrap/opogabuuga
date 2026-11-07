@@ -76,9 +76,14 @@ def ensure_login() -> None:
     from app.models import User
 
     with Session(make_engine(os.environ["PAYTIENCE_DATABASE_URL"])) as s:
-        if s.query(User).count():
+        reset = DATA / "reset-password.txt"
+        existing = s.query(User).filter(User.username == USERNAME).one_or_none()
+        if existing is not None and not reset.exists():
             return
-        say(f"Create your dashboard login (user name: {USERNAME}). Choose a strong password.")
+        if existing is not None:  # forgot password: drop a file named reset-password.txt in paytience-data
+            say("Password reset requested — choose a NEW password for PayDay.")
+        if existing is None:
+            say(f"Create your dashboard login (user name: {USERNAME}). Choose a strong password.")
         import getpass
 
         pw = os.environ.pop("PAYTIENCE_ADMIN_PASSWORD", "")  # automated setups/tests; otherwise ask
@@ -87,7 +92,13 @@ def ensure_login() -> None:
             if len(pw) < 8 or pw != getpass.getpass("Repeat password: "):
                 print("  Passwords must match and be at least 8 characters.")
                 pw = ""
-        create_user(s, USERNAME, pw)
+        if existing is not None:
+            from app.auth import hash_password
+
+            existing.password_hash = hash_password(pw)
+            reset.unlink(missing_ok=True)
+        else:
+            create_user(s, USERNAME, pw)
         s.commit()
 
 
@@ -176,16 +187,26 @@ def main() -> None:
     migrate()
     ensure_login()
     ensure_ai_tools()
-    host = "127.0.0.1"
-    if "--phone" in sys.argv or (DATA / "phone-mode.txt").exists():
-        host = "0.0.0.0"
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
-                sk.connect(("192.0.2.1", 80))
-                lan = sk.getsockname()[0]
-        except OSError:
-            lan = "<this computer's IP>"
-        say(f"PHONE: on the same Wi-Fi (or Tailscale) open http://{lan}:8000 in the Paytience phone app.")
+    # Always reachable from your own devices (phone app on the same Wi-Fi or via Tailscale); login still required.
+    host = "0.0.0.0"
+    addrs = set()
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            addrs.add(info[4][0])
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+            sk.connect(("192.0.2.1", 80))
+            addrs.add(sk.getsockname()[0])
+    except OSError:
+        pass
+    ts = sorted(a for a in addrs if a.startswith("100."))  # Tailscale addresses are 100.x.x.x
+    lan = sorted(a for a in addrs if not a.startswith(("127.", "100.")))
+    if ts:
+        say(f"PHONE (Tailscale, works on mobile data): http://{ts[0]}:8000")
+    else:
+        say("PHONE via Tailscale: Tailscale not detected on this computer — install it and sign in, then restart.")
+    for a in lan:
+        print(f"  PHONE (same Wi-Fi): http://{a}:8000")
+    print("  If the phone can't connect: allow Paytience in the Windows firewall prompt (Private + Public).")
 
     def open_when_ready() -> None:
         for _ in range(120):

@@ -24,7 +24,7 @@ export default function Layout() {
     <div className="min-h-screen">
       <Header />
       <nav aria-label="Main" className="border-b border-border bg-card/40 px-4">
-        <ul className="mx-auto flex max-w-6xl gap-4 overflow-x-auto py-2 text-sm">
+        <ul className="mx-auto flex max-w-6xl flex-wrap gap-x-3 gap-y-1 py-2 text-sm">
           {NAV.map((n) => (
             <li key={n.to} className="shrink-0 whitespace-nowrap">
               <NavLink to={n.to} className={({ isActive }) => (isActive ? "font-semibold text-gold" : "text-blue")}>

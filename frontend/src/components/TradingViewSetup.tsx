@@ -31,7 +31,7 @@ export default function TradingViewSetup({ publicBase }: { publicBase?: string }
     <section data-testid="tv-setup" className="rounded-xl border border-border bg-card p-4">
       <h2 className="font-semibold text-gold">TradingView setup</h2>
       <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm">
-        <li>Download <a href="/api/pine/bridge" download data-testid="download-bridge">Paytience_Bridge.pine</a> and add it to an MNQ1! chart (1-minute for TIGHT, 5-minute for STD) via Pine Editor → Add to chart.</li>
+        <li>Download <a href="/api/pine/bridge" download data-testid="download-bridge">Paytience_Bridge.pine</a> and add it to an <b>MGC1!</b> chart and an <b>MNQ1!</b> chart (1-minute for TIGHT, 5-minute for STD — 4 charts, one alert each) via Pine Editor → Add to chart.</li>
         <li>Paste the webhook secret below into the indicator's <b className="text-goldLight">Webhook secret</b> setting.</li>
         <li>Create an alert → Condition <b className="text-goldLight">Paytience_Bridge</b> → <b className="text-goldLight">Any alert() function call</b> → Webhook URL below.</li>
       </ol>
