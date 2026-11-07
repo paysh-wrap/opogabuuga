@@ -116,9 +116,14 @@ def _python_for_venv() -> list[str]:
     uv = DATA / ("uv.exe" if WIN else "uv")
     if not uv.exists():
         say("Fetching a private Python runtime (one time)…")
-        if WIN:
-            _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
-                            f"irm https://astral.sh/uv/install.ps1 | iex; Copy-Item \"$env:USERPROFILE\\.local\\bin\\uv.exe\" \"{uv}\""])
+        if WIN:  # plain download of uv.exe (no PowerShell: blocked/odd paths made that fail)
+            import io
+            import zipfile
+            DATA.mkdir(parents=True, exist_ok=True)
+            url = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+            with urllib.request.urlopen(url, timeout=180) as r:
+                z = zipfile.ZipFile(io.BytesIO(r.read()))
+            uv.write_bytes(z.read("uv.exe"))
         else:
             _run(["sh", "-c", f"curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR='{DATA}' sh"])
     return [str(uv)]  # uv creates the venvs and installs into them
