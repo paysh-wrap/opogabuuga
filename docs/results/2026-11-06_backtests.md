@@ -244,3 +244,13 @@ won 0/12. Bias right 55% → MGC 37% +$102 · MNQ 45% +$403 · MES 37% +$92 (≈
 
 ## S. User's original spec on MNQ, full year (Nov 2025 – Oct 2026, engine, orig_spec.yaml)
 13 trades (0.05/day, ~1 per month), 46% win, PF 2.22, +$458, +0.64R/trade, worst day −$65. Profitable but rare.
+
+## T. Final plan (D52, lucid_flex_25k) — Normal vs Lower-risk mode, Nov 2025 – Oct 2026, real engine, NEUTRAL bias
+| | Normal (max 3/day) | Lower risk (½ risk, 4 losses/day, max 7/day) |
+|---|---|---|
+| MGC (trend filter) | 47 tr 32% PF 1.16 +$215 | 48 tr 33% PF 1.22 +$259 |
+| MNQ (every setup) | 169 tr 36% PF 1.12 +$562 | 178 tr 34% PF 1.03 +$132 |
+| both | 216 tr 0.82/day +$777 | 226 tr 0.86/day +$391 |
+Correction to D52: MGC with the trend filter as a real engine gate made +$215 (the earlier −$367 was a post-hoc filter
+of a different run). Lower risk adds only ~4% more trades (the 3/day cap rarely binds) and halves the $ swing; the
+extra losing streaks it allows cost MNQ most of its edge this year. data/{mgcn,mgclr,mnqlr}.
