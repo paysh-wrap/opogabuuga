@@ -250,3 +250,9 @@ NEXT (in order):
 - Review fixes: approvals single-use + mode-aware, ALREADY_TRADED per account/signal, D46 approval broadcast.
 - Backtests 18% faster (inline DB work). UI: D49 text, MES button/backtest option, display fixes.
 - USER: Anthropic key (TradingAgents), broker connection, VERIFY values; decide the "strong ratings only" bias option.
+
+## FINAL (session 8, Nov 7 00:15 UTC) — commit ef1b6ac on ccr-42644967-7tvu35
+- D50–D52: MGC + MNQ only (MES removed), max 3 trades/day (Lower risk 7), TradingAgents blocks a side only on
+  BUY/SELL, plan picker = Pro/Flex only, MNQ takes every setup, MGC needs UT Bot 5m + EMA200 5m, R:R 1.5–2.5.
+- Last year (engine): MNQ +$562 (0.64/day, 36%), MGC filtered −$367. 3+ profitable trades/day not available.
+- Tests: 545 backend (100% cov), 52 UI, E2E 20/20. App zip sent to the user.
