@@ -87,4 +87,6 @@ def test_vibe_trading_blend_unblocks_strong_disagreement(authed, tmp_path):
     with st.sessionmaker() as s:
         row = s.query(BiasDecision).one()
         assert row.raw_rating.startswith("Overweight·VT SHORT 85") and "Vibe-Trading disagrees" in row.reasoning
+    d = authed.get("/api/bias").json()["decisions"][0]
+    assert d["blend"].startswith("Vibe-Trading disagrees") and "[Blend]" not in d["reasoning"]
     assert (tmp_path / "data" / "vibe-trading").is_dir()  # its runtime files stay inside the app's data folder

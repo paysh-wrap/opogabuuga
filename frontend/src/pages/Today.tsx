@@ -97,7 +97,7 @@ export default function Today() {
   usePageTitle("Today");
   const q = useQuery({ queryKey: ["today"], queryFn: () => api<{ signals: Sig[]; trades: Tr[] }>("/api/today"), refetchInterval: 10000 });
   const qc = useQueryClient();
-  const bias = useQuery({ queryKey: ["bias"], queryFn: () => api<{ decisions: { proxy: string; raw: string; mapped: string; reasoning: string }[] }>("/api/bias"), refetchInterval: 60000 });
+  const bias = useQuery({ queryKey: ["bias"], queryFn: () => api<{ decisions: { proxy: string; raw: string; mapped: string; reasoning: string; blend?: string | null }[] }>("/api/bias"), refetchInterval: 60000 });
   const runBias = useMutation({ mutationFn: () => api("/api/bias/run", { method: "POST" }), onSettled: () => void qc.invalidateQueries({ queryKey: ["bias"] }) });
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<Plan>("/api/today/plan"), refetchInterval: 15000 });
   const d = q.data;
@@ -114,13 +114,14 @@ export default function Today() {
 
       <section className="rounded-xl border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-semibold text-gold">Bias today (TradingAgents)</h2>
+          <h2 className="font-semibold text-gold">Bias today (TradingAgents + Vibe-Trading + OpenBB)</h2>
           <button className="rounded-md border border-blue px-3 py-1 text-sm font-semibold text-blue disabled:opacity-50" disabled={runBias.isPending}
             onClick={() => runBias.mutate()}>{runBias.isPending ? "Running… (up to 10 min)" : "Run now"}</button>
         </div>
         {bias.data?.decisions.length === 0 && <p className="text-sm">Not run yet (02:40 ET). No bias = no trading.</p>}
         {bias.data?.decisions.map((b, i) => (
-          <details key={i} className="text-sm"><summary>{b.proxy}: <b className="text-gold">{b.mapped}</b> ({b.raw})</summary>
+          <details key={i} className="text-sm" data-testid={`bias-${b.proxy}`}><summary>{b.proxy}: <b className="text-gold">{b.mapped}</b> ({b.raw})</summary>
+            {b.blend && <p className="mt-1 text-blueLight">Blend: {b.blend}</p>}
             <p className="whitespace-pre-wrap opacity-80">{b.reasoning.slice(0, 1500)}</p></details>
         ))}
       </section>

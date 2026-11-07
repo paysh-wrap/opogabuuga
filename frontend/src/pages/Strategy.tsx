@@ -25,7 +25,7 @@ export default function Strategy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
-      <p className="text-sm">No single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
+      <p className="text-sm">No single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className={card} data-testid="ta-card">

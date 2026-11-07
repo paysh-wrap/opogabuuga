@@ -162,7 +162,14 @@ def bias_today(request: Request, _: Principal = Depends(current_user), db: Sessi
     return {
         "session": sess.isoformat(),
         "decisions": [
-            {"proxy": b.proxy, "raw": b.raw_rating, "mapped": b.mapped, "reasoning": b.reasoning[:4000]} for b in rows
+            {
+                "proxy": b.proxy,
+                "raw": b.raw_rating,
+                "mapped": b.mapped,
+                "reasoning": b.reasoning.split("\n\n[Blend] ")[0][:4000],
+                "blend": b.reasoning.split("\n\n[Blend] ", 1)[1][:600] if "\n\n[Blend] " in b.reasoning else None,
+            }
+            for b in rows
         ],
     }
 
