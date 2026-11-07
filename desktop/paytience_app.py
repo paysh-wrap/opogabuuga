@@ -102,25 +102,25 @@ def ensure_login() -> None:
         s.commit()
 
 
+def _run(cmd: list[str]) -> None:
+    """Run a helper command with a clean environment (the frozen app's PYTHON* vars break child Pythons) and
+    surface its real error text instead of a bare CalledProcessError."""
+    env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("PYTHON", "VIRTUAL_ENV", "_MEI", "PIP_"))}
+    r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    if r.returncode:
+        raise RuntimeError(f"{' '.join(cmd[:4])}… exit {r.returncode}: {(r.stderr or r.stdout).strip()[-600:]}")
+
+
 def _python_for_venv() -> list[str]:
     """A real Python to build helper venvs with: the system one if present, else uv (downloads one)."""
-    for cand in ("python3.12", "python3.11", "python3", "python", "py"):
-        p = __import__("shutil").which(cand)
-        if p:
-            try:
-                out = subprocess.run([p, "-c", "import sys;print(sys.version_info>=(3,11))"], capture_output=True, text=True, timeout=20).stdout
-                if out.strip() == "True":
-                    return [p]
-            except Exception:  # noqa: BLE001 - try the next candidate
-                pass
     uv = DATA / ("uv.exe" if WIN else "uv")
     if not uv.exists():
         say("Fetching a private Python runtime (one time)…")
         if WIN:
-            subprocess.run(["powershell", "-NoProfile", "-Command",
-                            f"irm https://astral.sh/uv/install.ps1 | iex; Copy-Item \"$env:USERPROFILE\\.local\\bin\\uv.exe\" \"{uv}\""], check=True)
+            _run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command",
+                            f"irm https://astral.sh/uv/install.ps1 | iex; Copy-Item \"$env:USERPROFILE\\.local\\bin\\uv.exe\" \"{uv}\""])
         else:
-            subprocess.run(["sh", "-c", f"curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR='{DATA}' sh"], check=True)
+            _run(["sh", "-c", f"curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR='{DATA}' sh"])
     return [str(uv)]  # uv creates the venvs and installs into them
 
 
@@ -141,16 +141,16 @@ def ensure_ai_tools() -> None:
 
         def venv(path: Path) -> None:
             if use_uv:
-                subprocess.run([py[0], "venv", "--python", "3.12", str(path)], check=True)
+                _run([py[0], "venv", "--python", "3.12", str(path)])
             else:
-                subprocess.run([*py, "-m", "venv", str(path)], check=True)
+                _run([*py, "-m", "venv", str(path)])
 
         def pip(path: Path, *args: str) -> None:
             vpy = path / ("Scripts/python.exe" if WIN else "bin/python")
             if use_uv:
-                subprocess.run([py[0], "pip", "install", "--python", str(vpy), "-q", *args], check=True)
+                _run([py[0], "pip", "install", "--python", str(vpy), "-q", *args])
             else:
-                subprocess.run([str(vpy), "-m", "pip", "install", "-q", *args], check=True)
+                _run([str(vpy), "-m", "pip", "install", "-q", *args])
 
         if not ta_py.exists():
             say("Installing TradingAgents (the AI daily bias) — a few minutes, one time…")
