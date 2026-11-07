@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from pydantic import Field, SecretStr
@@ -29,7 +30,9 @@ class Settings(BaseSettings):
     http_timeout_s: float = 10.0
     scheduler_enabled: bool = True  # in-process jobs (payouts, calendar); tests turn it off
     watchdog_interval_s: float = 5.0  # wall-clock flat-time / news / MLL watchdog (needs scheduler_enabled)
-    ta_python: str = str(REPO_ROOT / ".venv-ta" / "bin" / "python")  # isolated TradingAgents venv
+    ta_python: str = str(  # isolated TradingAgents venv (Windows keeps Python in Scripts\python.exe)
+        REPO_ROOT / ".venv-ta" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    )
     vt_root: Path = (
         REPO_ROOT  # D53: Vibe-Trading CLI lives in <vt_root>/.venv-vt (isolated); runtime in data/vibe-trading
     )
