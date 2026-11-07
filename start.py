@@ -5,6 +5,7 @@ First run: installs everything, creates your secret keys (.env), sets up the dat
 password, installs TradingAgents, builds the UI. Every run: starts the app and opens http://127.0.0.1:8000.
 Usage:  python3 start.py            (or double-click start.command on Mac / start.bat on Windows)
         python3 start.py --no-browser
+        python3 start.py --phone        (also reachable from your phone on the same Wi-Fi → install as an app)
 Uses only the Python standard library. Never stores your password (only its hash, in the local database)."""
 
 from __future__ import annotations
@@ -102,6 +103,19 @@ def main() -> None:
     elif not TA_PY.exists():
         print("  ⚠ git not found: TradingAgents not installed — the app runs but takes no trades (bias = NO_TRADE).")
 
+    host = "127.0.0.1"
+    if "--phone" in sys.argv:  # same Wi-Fi only; the dashboard still needs your login
+        import socket
+
+        host = "0.0.0.0"
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sk:
+                sk.connect(("192.0.2.1", 80))  # no packet is sent; picks the Wi-Fi address
+                lan = sk.getsockname()[0]
+        except OSError:
+            lan = "<this computer's IP>"
+        say(f"PHONE: on the same Wi-Fi open http://{lan}:8000 → sign in → Share/⋮ menu → 'Add to Home Screen'.")
+        print("  Only use this on your own home Wi-Fi. Away from home use a Cloudflare Tunnel (README).")
     say(f"Starting Paytience on {URL}  (PAPER mode by default — press Ctrl+C to stop)")
     if "--no-browser" not in sys.argv:
         def open_when_ready() -> None:
@@ -114,7 +128,7 @@ def main() -> None:
                     time.sleep(1)
         threading.Thread(target=open_when_ready, daemon=True).start()
     try:  # the server's own exit (Ctrl+C / closed window) is not a setup failure
-        subprocess.run([str(VPY), "-m", "uvicorn", "app.main:create_app", "--factory", "--host", "127.0.0.1",
+        subprocess.run([str(VPY), "-m", "uvicorn", "app.main:create_app", "--factory", "--host", host,
                         "--port", "8000"], cwd=BACKEND)
     except KeyboardInterrupt:
         pass

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import shutil
 import time
 from dataclasses import dataclass, field
@@ -20,7 +21,17 @@ TIMEOUT_S = 240
 UVX_ARGS = ["--from", "openbb", "--with", "openbb-yfinance", "--with", "openbb-equity", "python", "-I", "-c"]
 SCRIPT = """
 import json, datetime
+import os
 from openbb import obb
+# optional keys from the Connections page (passed in the environment, never on the command line)
+if os.environ.get("PB_OPENBB_PAT"):
+    try:
+        obb.account.login(pat=os.environ["PB_OPENBB_PAT"], remember_me=False)
+    except Exception:
+        pass
+for _k in ("fmp_api_key", "polygon_api_key"):
+    if os.environ.get("PB_" + _k.upper()):
+        setattr(obb.user.credentials, _k, os.environ["PB_" + _k.upper()])
 start = (datetime.date.today() - datetime.timedelta(days=45)).isoformat()
 out = {}
 for k, s in %s.items():
@@ -68,6 +79,7 @@ class OpenBBFeed:
     error: str | None = None
     fetched_at: float = 0.0
     _task: asyncio.Task[None] | None = None
+    creds: dict[str, str] = field(default_factory=dict)  # optional keys from the Connections page
 
     def snapshot(self) -> dict[str, Any]:
         if self.uvx is None:
@@ -96,6 +108,10 @@ class OpenBBFeed:
                 SCRIPT % repr(SYMBOLS),
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
+                env={
+                    **os.environ,
+                    **{f"PB_{('OPENBB_PAT' if k == 'pat' else k.upper())}": v for k, v in self.creds.items() if v},
+                },
             )
             out, _ = await asyncio.wait_for(p.communicate(), TIMEOUT_S)
             self.data, self.error = summarize(parse_output(out.decode())), None

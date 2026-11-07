@@ -31,6 +31,25 @@ a key. Paste a key, press **Save & Test**, and the card turns gold when the live
 
 Docker instead: `cp .env.example .env`, fill keys (`make keys`), then `make up` and run `make create-admin` once.
 
+## Use it on your phone (mobile app)
+
+Paytience installs on your phone like an app (home-screen icon, full screen, no browser bars):
+1. On your computer start it with **`python3 start.py --phone`** (Mac/Windows: run that in a terminal in this folder).
+   It prints an address like `http://192.168.1.20:8000`.
+2. On your phone (same Wi-Fi) open that address and sign in.
+3. **iPhone:** Share → **Add to Home Screen**. **Android:** ⋮ menu → **Install app** / **Add to Home screen**.
+
+The computer must stay on with Paytience running (it does the trading; the phone is the remote control).
+Away from home: use a Cloudflare Tunnel (below) and open your tunnel address on the phone instead. Only use
+`--phone` on your own home Wi-Fi.
+
+## API keys (Connections page)
+- **TradingAgents (required — the backbone):** Connections → TradingAgents → pick the LLM provider (e.g. Anthropic),
+  paste your API key → **Save & Test**. Without it the daily bias is NO_TRADE and nothing trades.
+- **OpenBB (optional):** Connections → OpenBB → optional OpenBB Hub token / FMP / Polygon keys. The free Yahoo feed
+  works without keys; OpenBB is information only (never places or blocks trades).
+- Broker (CrossTrade / TradersPost), Databento (backtest data), Telegram/Discord alerts: same page.
+
 ## Connections page
 - Keys are encrypted with your `PAYTIENCE_MASTER_KEY` (Fernet), never shown again (last 4 chars only), never logged.
 - Tests are read-only: they never place orders or send messages. Broker relays that can't be tested show **Saved**.

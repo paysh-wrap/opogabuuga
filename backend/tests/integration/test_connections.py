@@ -198,3 +198,25 @@ def test_crosstrade_key_test(authed, mock_http):
     assert v["status"] == "failed" and "api_requires_pro" in v["detail"]
     v = authed.put("/api/connections/crosstrade", json={"values": {"token": "good-key-12345"}}).json()
     assert v["status"] == "connected"
+
+
+def test_openbb_keys_are_optional_and_reach_the_openbb_process(authed, monkeypatch):
+    r = authed.put("/api/connections/openbb", json={"values": {"pat": "pat-secret-123"}})  # FMP/Polygon left empty
+    assert r.status_code == 200, r.text
+    assert "pat-secret-123" not in r.text  # never echoed back
+    seen = {}
+
+    async def fake_exec(*args, **kw):
+        seen.update(kw.get("env") or {})
+        raise OSError("stop here")  # don't run uvx in tests
+
+    import asyncio
+
+    from app.market import openbb_feed
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", fake_exec)
+    st = authed.app.state
+    st.openbb = openbb_feed.OpenBBFeed(uvx="/usr/bin/true")
+    authed.get("/api/market/openbb")  # loads the saved keys, starts a refresh
+    authed.portal.call(st.openbb.refresh)
+    assert seen.get("PB_OPENBB_PAT") == "pat-secret-123" and "PB_FMP_API_KEY" not in seen

@@ -278,14 +278,27 @@ PROVIDERS: tuple[Provider, ...] = (
     ),
     Provider(
         id="openbb",
-        name="OpenBB (market data — no key needed)",
+        name="OpenBB (market data — keys optional)",
         category="data",
         testable=False,
+        fields=(  # all optional: the free Yahoo feed works without any key
+            FieldSpec(
+                "pat",
+                "OpenBB Hub personal access token",
+                "secret",
+                required=False,
+                placeholder="optional",
+                help="my.openbb.co → Settings → Personal Access Token",
+            ),
+            FieldSpec("fmp_api_key", "Financial Modeling Prep key", "secret", required=False, placeholder="optional"),
+            FieldSpec("polygon_api_key", "Polygon key", "secret", required=False, placeholder="optional"),
+        ),
         purpose="Free daily MGC/MNQ data (Yahoo Finance via OpenBB) — live on the Dashboard 'Markets · OpenBB' panel "
         "(runs in its own uvx process, refreshed every 5 min). Information only; signals still come from TradingView "
         "webhooks and bias from TradingAgents.",
         links=(
             Link("OpenBB", "https://github.com/OpenBB-finance/OpenBB"),
+            Link("OpenBB Hub (token)", "https://my.openbb.co/app/platform/pat"),
             Link(
                 "OpenBB MCP server",
                 "https://github.com/OpenBB-finance/OpenBB/tree/develop/openbb_platform/extensions/mcp_server",
