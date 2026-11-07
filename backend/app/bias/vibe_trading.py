@@ -60,6 +60,8 @@ def env_for(creds: dict[str, str]) -> dict[str, str]:
     lc, key_env, model, extra = PROVIDERS[pid]
     if not creds.get("api_key"):
         raise ValueError("api_key missing")
+    if pid == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):
+        extra = {**extra, "DASHSCOPE_BASE_URL": os.environ["PAYTIENCE_QWEN_BASE_URL"]}
     return {
         "LANGCHAIN_PROVIDER": lc,
         "LANGCHAIN_MODEL_NAME": creds.get("model") or model,

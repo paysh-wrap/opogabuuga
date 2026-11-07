@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
+import os
+
 import httpx
 
 from app.connections.registry import LLM_PROVIDERS
@@ -38,7 +40,10 @@ async def test_llm_key(provider: str, key: str, http: httpx.AsyncClient) -> Test
         headers = {"x-goog-api-key": key}
     else:
         headers = {"Authorization": f"Bearer {key}"}
-    r = await http.get(spec["models_url"], headers=headers)
+    url = spec["models_url"]
+    if provider == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):  # workspace keys (sk-ws-…) only work on their own endpoint
+        url = os.environ["PAYTIENCE_QWEN_BASE_URL"].rstrip("/") + "/models"
+    r = await http.get(url, headers=headers)
     return _status_msg(r, f"{provider} key accepted")
 
 

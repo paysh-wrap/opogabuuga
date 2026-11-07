@@ -97,6 +97,8 @@ class TradingAgentsAdapter:
         quick = quick or best.get("quick") or (opts.get("quick") or [""])[0]
         deep = deep or best.get("deep") or (opts.get("deep") or [""])[0]
         env = {spec["env"]: creds["api_key"], "TRADINGAGENTS_LLM_PROVIDER": provider}
+        if provider == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):
+            env["DASHSCOPE_BASE_URL"] = os.environ["PAYTIENCE_QWEN_BASE_URL"]
         if quick:
             env["TRADINGAGENTS_QUICK_THINK_LLM"] = quick
         if deep:
