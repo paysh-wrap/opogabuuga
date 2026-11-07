@@ -71,6 +71,7 @@ def test_main_strategy_d49(plan):
     for sym in ("MGC", "MNQ"):  # D50 (user): MGC + MNQ only
         assert p.instruments[sym].enabled and p.instruments[sym].intraday_windows is None, sym
     assert "MES" not in p.instruments and not p.instruments["MYM"].enabled  # D51: MES eliminated
+    assert p.instruments["MGC"].trend_filters and not p.instruments["MNQ"].trend_filters  # D52: MNQ every setup
     assert p.internal.max_trades_per_day == 3 and p.internal.low_risk_max_trades_per_day == 7  # normal 3, low risk 7
     rm = p.bias.rating_map  # D50: TradingAgents blocks a side only on strong calls
     assert rm["BUY"] == "LONG_ONLY" and rm["SELL"] == "SHORT_ONLY"

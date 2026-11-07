@@ -437,3 +437,13 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - MES removed from every Pro/Flex plan (instrument, ES correlation group entry, SMT pair). Legacy Daily file (tests only)
   untouched. Normal mode max 3/day; Lower risk mode = its own limit, 7/day (risk/low_risk.py now uses
   max(normal, low_risk_max_trades_per_day) instead of min(2×normal, cap)).
+
+## D52 — Final: MNQ takes every setup, MGC keeps the D49 trend filter (session 8 end)
+- 1-year engine run, Nov 2025 – Oct 2026, Pro 25K rules, rr 1.5–2.5, max 3/day, NEUTRAL bias (data/{mgc1y,mnq1y}):
+  MNQ every setup 169 tr 0.64/day 36% PF 1.12 +$562 · MNQ UT+EMA200 28 tr 46% PF 1.49 +$373 · MNQ structure break
+  40 tr 45% PF 1.72 +$762 · MGC every setup 215 tr 30% −$870 · MGC UT+EMA200 27 tr 19% −$367 · both, every setup
+  384 tr 1.46/day −$308. MGC was positive with D47/D49 on Nov 2024 – Oct 2025.
+- New per-market switch instruments.<SYM>.trend_filters (default true). Pro/Flex: MNQ false (every setup), MGC true.
+- The user's original spec (MNQ, 9:35–11:30 + 13:30–15:30, hard G4/G5, 2–3R, neutral score 75): 8 months → 9 trades
+  (~1/month), 44% win, +$316 — profitable but almost never trades.
+- 3+ profitable trades/day per account is not available from this setup type on MGC + MNQ (all setups = 1.46/day).

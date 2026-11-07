@@ -77,7 +77,7 @@ export default function Risk() {
 
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
         <h2 className="font-semibold text-gold">Trading mode · Intraday ✓</h2>
-        <p className="text-xs">Main strategy (D49/D50): Micro Gold and Micro Nasdaq (MGC 3:00 AM–3:30 PM, MNQ 6:45 AM–3:30 PM ET, 9:30–9:35 skipped), at most 3 trades a day per account. Every trade aims at 1.5R–2.5R (no 1R trades), only in the direction UT Bot 5m and EMA 200 5m both agree on. TradingAgents is required (no API key = no trades) and blocks a side only on a strong BUY or SELL call. Always flat before 4:40 PM ET. PAPER by default. Scalp and 1:1 were retired. Lower risk can be added below.</p>
+        <p className="text-xs">Main strategy (D52): Micro Nasdaq takes every valid setup; Micro Gold only when UT Bot 5m and EMA 200 5m agree. Hours: MGC 3:00 AM–3:30 PM, MNQ 6:45 AM–3:30 PM ET (9:30–9:35 skipped). Every trade aims at 1.5R–2.5R (no 1R trades); at most 3 trades a day per account (Lower risk: 7). TradingAgents is required (no API key = no trades) and blocks a side only on a strong BUY or SELL call. Always flat before 4:40 PM ET. PAPER by default.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">

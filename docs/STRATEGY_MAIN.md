@@ -1,3 +1,6 @@
+**D52 (final):** MNQ takes every valid setup (trend_filters: false); MGC keeps UT Bot 5m + EMA200 5m. Last year (engine,
+Nov 2025 – Oct 2026): MNQ 169 tr, 0.64/day, 36% win, PF 1.12, +$562; MGC with the filter 27 tr, −$367. Lower risk: 7/day.
+
 # Main strategy (D49 + D50) — trend-aligned 1.5–2.5R on Micro Gold and Micro Nasdaq
 
 **D50 (latest):** MGC + MNQ only (MES off), max 3 trades/day, TradingAgents blocks a side only on BUY/SELL

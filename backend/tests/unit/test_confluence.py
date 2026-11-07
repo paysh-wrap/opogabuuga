@@ -367,6 +367,11 @@ def test_trend_filter_d44():
     d = evaluate(good(trend={"vwap": 1}), on)
     assert d.outcome == "WAIT" and d.skip_reason == "TREND_WARMUP"
     assert d.features["trend"] == {"vwap": 1}
+    sym = good().symbol  # D52: a market with trend_filters: false takes the setup whatever the trend says
+    inst = on.instruments[sym].model_copy(update={"trend_filters": False})
+    off_here = on.model_copy(update={"instruments": {**on.instruments, sym: inst}})
+    assert evaluate(good(trend={"vwap": -1, "utbot_5m": -1}), off_here).outcome == "PASS"
+    assert evaluate(good(trend={}), off_here).outcome == "PASS"  # no warm-up wait either
 
 
 def test_squeeze_switch_d45():

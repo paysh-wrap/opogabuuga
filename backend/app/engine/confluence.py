@@ -202,7 +202,8 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         ("utbot_5m", tf.utbot_5m),
         ("squeeze_5m_15m", tf.squeeze_5m_15m),
     )
-    active = [k for k, on in switches if on]
+    # D52: a market can opt out of the trend switches (instruments.<SYM>.trend_filters: false)
+    active = [k for k, on in switches if on] if cfg.instrument(x.symbol).trend_filters else []
     for name in active:
         side = x.trend.get(name)
         if side is None:

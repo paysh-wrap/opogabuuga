@@ -183,6 +183,7 @@ class Instrument(_M):
     windows: list[tuple[str, str]] | None = None  # per-market entry windows (ET); falls back to internal.windows
     intraday_windows: list[tuple[str, str]] | None = None  # D37 H1: normal Intraday mode only (not low risk/1:1/scalp)
     news_after_min: int | None = None  # no entries until N min after a high-impact release (falls back to firm rule)
+    trend_filters: bool = True  # D52: False → this market ignores filters.trend (MNQ takes every setup)
 
 
 class TradePlanCfg(_M):
