@@ -241,3 +241,6 @@ Offline (7 years MGC, best1525.py): no target rule in 1.5–2.5 + ≤2 filters h
 early exits add ≈ +0.1R/trade (D47: offline −0.01R vs engine +0.13R).
 TradingAgents estimate (bias_est.py, same trades): with-the-day share MGC 85% · MNQ 84% · MES 79%; "against" trades
 won 0/12. Bias right 55% → MGC 37% +$102 · MNQ 45% +$403 · MES 37% +$92 (≈ half the trades); 60% → 38%/46%/38%.
+
+## S. User's original spec on MNQ, full year (Nov 2025 – Oct 2026, engine, orig_spec.yaml)
+13 trades (0.05/day, ~1 per month), 46% win, PF 2.22, +$458, +0.64R/trade, worst day −$65. Profitable but rare.
