@@ -19,3 +19,8 @@ backup/
 .coverage
 .claude/worktrees/
 data/futures/*_databento_1m.csv
+
+# Android build (SDK, signing key, intermediates)
+android/.sdk/
+android/.keystore/
+android/build/
