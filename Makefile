@@ -4,10 +4,13 @@ PY := .venv/bin/python
 TA_TAG := v0.7.1
 TA_COMMIT := 3e44faafa042daf953f6ec2422ae36bb1fd4f50f
 
-.PHONY: help install tradingagents keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
+.PHONY: help start install tradingagents keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
+
+start: ## One command: install if needed, keys, database, login, build, run + open the browser
+	python3 start.py
 
 install: ## Python venv + frontend packages + TradingAgents
 	python3 -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -e "backend[dev]"

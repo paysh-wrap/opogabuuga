@@ -11,29 +11,20 @@ broker connection. The app never logs into, scrapes, or clicks around TradingVie
 > TradingAgents (Connections page; no key = no trades), your broker connection, and the `# VERIFY` values checked
 > against your Lucid dashboard. LIVE trading stays locked until the Live-Readiness Checklist passes.
 
-## Quick start (your computer)
+## Quick start (your computer) — one click
 
-Prerequisites: Python 3.11+, Node 22, git.
+Install once: **Python 3.11+** (python.org) and **Node.js LTS** (nodejs.org). Then:
 
-```bash
-make install
-```
+- **Mac:** double-click **`start.command`** (first time: right-click → Open).
+- **Windows:** double-click **`start.bat`**.
+- **Any computer:** `python3 start.py` (or `make start`).
 
-```bash
-make keys >> .env
-```
+The first run installs everything, creates your secret keys (`.env`, keep it private), sets up the database, asks
+once for your dashboard password (user name **PayDay**), installs TradingAgents and builds the dashboard (a few
+minutes). After that it just starts and opens your browser at http://127.0.0.1:8000. Close the window or press
+Ctrl+C to stop.
 
-```bash
-make create-admin
-```
-
-```bash
-make build
-```
-
-```bash
-make dev
-```
+Manual steps instead (developers): `make install`, `make keys >> .env`, `make create-admin`, `make build`, `make dev`.
 
 Open http://127.0.0.1:8000, sign in as `PayDay`, and go to **Connections**. Every service shows where to log in or get
 a key. Paste a key, press **Save & Test**, and the card turns gold when the live test passes.

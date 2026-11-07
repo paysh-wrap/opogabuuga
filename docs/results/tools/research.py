@@ -34,7 +34,8 @@ bars = load_csv(Path(csvp).read_text())
 if days:
     first = bars[0].open_ms
     bars = [b for b in bars if b.open_ms < first + days * 86_400_000]
-r = run_backtest(bars, BacktestConfig(symbol=sym, bias="NEUTRAL"), Path(plan))
+import os  # noqa: E402
+r = run_backtest(bars, BacktestConfig(symbol=sym, bias="NEUTRAL", low_risk=os.environ.get("LOW_RISK") == "1"), Path(plan))
 db = next(Path(k) / "bt.db" for k in keep if (Path(k) / "bt.db").exists())
 c = sqlite3.connect(db)
 c.row_factory = sqlite3.Row
