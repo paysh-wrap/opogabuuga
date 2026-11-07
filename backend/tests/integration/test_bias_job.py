@@ -61,3 +61,30 @@ def test_failed_bias_can_retry(authed):
     assert authed.post("/api/bias/run").json()["ran"] == {"QQQ": "NO_TRADE"}
     ta.results["QQQ"] = RunnerResult(True, {"rating": "Sell"})
     assert authed.post("/api/bias/run").json()["ran"] == {"QQQ": "SHORT_ONLY"}
+
+
+def test_vibe_trading_blend_unblocks_strong_disagreement(authed, tmp_path):
+    """D53: TradingAgents says long-only, Vibe-Trading strongly says SHORT → NEUTRAL (both sides), stored with notes."""
+    import os
+    import stat
+
+    from app.crypto import Vault
+    from app.models import ApiCredential, BiasDecision
+
+    save_creds(authed)
+    st = authed.app.state
+    with st.sessionmaker() as s:
+        v = Vault(st.settings.master_key.get_secret_value())
+        s.add(ApiCredential(provider="vibetrading", ciphertext=v.seal({"llm_provider": "qwen", "api_key": "q"})))
+        s.commit()
+    exe = tmp_path / ".venv-vt" / ("Scripts/vibe-trading.exe" if os.name == "nt" else "bin/vibe-trading")
+    exe.parent.mkdir(parents=True)
+    exe.write_text('#!/bin/sh\necho \'VT_OUTLOOK {"direction": "SHORT", "confidence": 85, "reason": "risk-off"}\'\n')
+    exe.chmod(exe.stat().st_mode | stat.S_IEXEC)
+    st.settings.vt_root = tmp_path
+    st.ta = FakeTA({"QQQ": RunnerResult(True, {"rating": "Overweight", "decision": "x", "version": "0.7.1"})})
+    assert authed.post("/api/bias/run").json()["ran"] == {"QQQ": "NEUTRAL"}
+    with st.sessionmaker() as s:
+        row = s.query(BiasDecision).one()
+        assert row.raw_rating.startswith("Overweight·VT SHORT 85") and "Vibe-Trading disagrees" in row.reasoning
+    assert (tmp_path / "data" / "vibe-trading").is_dir()  # its runtime files stay inside the app's data folder

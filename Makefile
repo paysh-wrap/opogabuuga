@@ -4,7 +4,7 @@ PY := .venv/bin/python
 TA_TAG := v0.7.1
 TA_COMMIT := 3e44faafa042daf953f6ec2422ae36bb1fd4f50f
 
-.PHONY: help start install tradingagents keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
+.PHONY: help start install tradingagents vibetrading keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -16,12 +16,17 @@ install: ## Python venv + frontend packages + TradingAgents
 	python3 -m venv .venv && .venv/bin/pip install -q --upgrade pip && .venv/bin/pip install -q -e "backend[dev]"
 	cd frontend && npm ci --no-audit --no-fund
 	$(MAKE) tradingagents
+	$(MAKE) vibetrading
 
 tradingagents: ## Install TauricResearch/TradingAgents at the pinned tag into its own venv (.venv-ta)
 	@if [ ! -d vendor/TradingAgents ]; then git clone -q --depth 1 --branch $(TA_TAG) https://github.com/TauricResearch/TradingAgents.git vendor/TradingAgents; fi
 	@test "$$(git -C vendor/TradingAgents rev-parse HEAD)" = "$(TA_COMMIT)" || (echo "TradingAgents commit mismatch — refusing to install"; exit 1)
 	python3 -m venv .venv-ta && .venv-ta/bin/pip install -q --upgrade pip && .venv-ta/bin/pip install -q ./vendor/TradingAgents
 	.venv-ta/bin/python -c "import tradingagents; print('TradingAgents', tradingagents.__version__)"
+
+vibetrading: ## Install HKUDS/Vibe-Trading (pinned PyPI release) into its own venv (.venv-vt) — D53 second AI opinion
+	python3 -m venv .venv-vt && .venv-vt/bin/pip install -q --upgrade pip && .venv-vt/bin/pip install -q "vibe-trading-ai[anthropic]==0.1.19"
+	.venv-vt/bin/vibe-trading --version
 
 keys: ## Print a new master key + webhook secret (paste into .env)
 	cd backend && ../$(PY) -m app.cli keys

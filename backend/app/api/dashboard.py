@@ -176,7 +176,20 @@ async def bias_run(request: Request, _: Principal = Depends(current_user), db: S
     st = request.app.state
     sess = session_date(st.clock.now())
     vault = Vault(st.settings.master_key.get_secret_value())
-    return {"ran": await run_bias(db, st.ta, vault, st.rules.rules, st.clock, sess, st.controller.notify)}
+    from app.bias.service import openbb_context
+
+    ran = await run_bias(
+        db,
+        st.ta,
+        vault,
+        st.rules.rules,
+        st.clock,
+        sess,
+        st.controller.notify,
+        vt_root=st.settings.vt_root,
+        context=openbb_context(st),
+    )
+    return {"ran": ran}
 
 
 GATES = [

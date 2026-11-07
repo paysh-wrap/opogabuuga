@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     scheduler_enabled: bool = True  # in-process jobs (payouts, calendar); tests turn it off
     watchdog_interval_s: float = 5.0  # wall-clock flat-time / news / MLL watchdog (needs scheduler_enabled)
     ta_python: str = str(REPO_ROOT / ".venv-ta" / "bin" / "python")  # isolated TradingAgents venv
+    vt_root: Path = (
+        REPO_ROOT  # D53: Vibe-Trading CLI lives in <vt_root>/.venv-vt (isolated); runtime in data/vibe-trading
+    )
     web_dist: Path = REPO_ROOT / "frontend" / "dist"
 
 

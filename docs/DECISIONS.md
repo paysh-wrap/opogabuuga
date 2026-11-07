@@ -447,3 +447,18 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 - The user's original spec (MNQ, 9:35–11:30 + 13:30–15:30, hard G4/G5, 2–3R, neutral score 75): 8 months → 9 trades
   (~1/month), 44% win, +$316 — profitable but almost never trades.
 - 3+ profitable trades/day per account is not available from this setup type on MGC + MNQ (all setups = 1.46/day).
+
+## D53 — TradingAgents + Vibe-Trading + OpenBB blended into the daily bias (user 2026-11-07)
+- Vibe-Trading (HKUDS/Vibe-Trading, MIT, PyPI vibe-trading-ai 0.1.19 pinned) installed in its own venv `.venv-vt`
+  (make vibetrading / start.py), run as a subprocess only. Connections card "Vibe-Trading": provider Claude
+  (anthropic, LANGCHAIN_TEMPERATURE=1 for current Claude models) / Qwen (DashScope intl) / OpenRouter / OpenAI + key +
+  optional model; Save & Test checks install + key. Runtime files in data/vibe-trading.
+- Blend (app/bias/vibe_trading.blend, pure + tested): TradingAgents is the backbone (no rating = NO_TRADE). After it
+  rates GLD/QQQ, Vibe-Trading gets OpenBB daily context (last, change %, 20-day average, 10 closes) and answers
+  LONG/SHORT/NEUTRAL + confidence. If TradingAgents limits the day to one side and Vibe-Trading says the opposite with
+  confidence ≥ 60 → NEUTRAL (both sides; intraday rules decide). It never blocks a side, sizes or places trades.
+  Stored on the decision (raw "BUY·VT SHORT 85", reasoning + [Blend] note) and shown wherever the bias is shown.
+- Why "can only unblock": on the final plan's real trades (last year) a daily direction barely matters for MNQ
+  (perfect hindsight: with-the-day 35% vs against 36%); for MGC it matters (39% vs 14%). A wrong daily call that blocks
+  a side costs more than a right one gains unless accuracy is very high; a 20-day-trend rule (OpenBB) flipped sign
+  between the two years tested → not used as a hard rule.

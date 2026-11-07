@@ -2,7 +2,7 @@
 """Paytience one-click launcher (Mac / Windows / Linux). Needs only Python 3.11+ and Node 18+ installed.
 
 First run: installs everything, creates your secret keys (.env), sets up the database, asks once for your dashboard
-password, installs TradingAgents, builds the UI. Every run: starts the app and opens http://127.0.0.1:8000.
+password, installs TradingAgents + Vibe-Trading, builds the UI. Every run: starts the app and opens http://127.0.0.1:8000.
 Usage:  python3 start.py            (or double-click start.command on Mac / start.bat on Windows)
         python3 start.py --no-browser
         python3 start.py --phone        (also reachable from your phone on the same Wi-Fi → install as an app)
@@ -25,6 +25,8 @@ BACKEND, FRONTEND = ROOT / "backend", ROOT / "frontend"
 WIN = os.name == "nt"
 VPY = ROOT / ".venv" / ("Scripts/python.exe" if WIN else "bin/python")
 TA_PY = ROOT / ".venv-ta" / ("Scripts/python.exe" if WIN else "bin/python")
+VT_PY = ROOT / ".venv-vt" / ("Scripts/python.exe" if WIN else "bin/python")
+VT_PIN = "vibe-trading-ai[anthropic]==0.1.19"  # HKUDS/Vibe-Trading — second AI opinion (D53)
 TA_TAG, TA_COMMIT = "v0.7.1", "3e44faafa042daf953f6ec2422ae36bb1fd4f50f"  # same pin as the Makefile
 URL = "http://127.0.0.1:8000"
 USERNAME = "PayDay"
@@ -116,6 +118,16 @@ def main() -> None:
             lan = "<this computer's IP>"
         say(f"PHONE: on the same Wi-Fi open http://{lan}:8000 → sign in → Share/⋮ menu → 'Add to Home Screen'.")
         print("  Only use this on your own home Wi-Fi. Away from home use a Cloudflare Tunnel (README).")
+    if not VT_PY.exists():
+        say("Installing Vibe-Trading (second AI opinion)…")
+        try:
+            run([sys.executable, "-m", "venv", ".venv-vt"])
+            run([str(VT_PY), "-m", "pip", "install", "-q", "--upgrade", "pip"])
+            run([str(VT_PY), "-m", "pip", "install", "-q", VT_PIN])
+        except subprocess.CalledProcessError:
+            print("  ⚠ Vibe-Trading install failed — the app still runs with TradingAgents alone. Re-run start later.")
+            shutil.rmtree(ROOT / ".venv-vt", ignore_errors=True)
+
     say(f"Starting Paytience on {URL}  (PAPER mode by default — press Ctrl+C to stop)")
     if "--no-browser" not in sys.argv:
         def open_when_ready() -> None:

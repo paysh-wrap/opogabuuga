@@ -106,7 +106,23 @@ async def _crosstrade(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     return TestResult(False, f"HTTP {r.status_code} {err}".strip())
 
 
+async def _vibetrading(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
+    """D53: Vibe-Trading must be installed (.venv-vt) and its LLM key must work."""
+    from app.bias.vibe_trading import executable
+    from app.settings import get_settings
+
+    if not executable(get_settings().vt_root).exists():
+        return TestResult(False, "Vibe-Trading not installed — run start.py (or make vibetrading) once")
+    p = v.get("llm_provider", "anthropic")
+    if p in ("anthropic", "qwen"):
+        return await test_llm_key(p, v["api_key"], http)
+    url = {"openrouter": "https://openrouter.ai/api/v1/key", "openai": "https://api.openai.com/v1/models"}[p]
+    r = await http.get(url, headers={"Authorization": f"Bearer {v['api_key']}"})
+    return _status_msg(r, f"{p} key accepted")
+
+
 TESTERS: dict[str, Tester] = {
+    "vibetrading": _vibetrading,
     "crosstrade": _crosstrade,
     "alpha_vantage": _alpha_vantage,
     "fred": _fred,

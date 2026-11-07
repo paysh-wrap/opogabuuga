@@ -277,6 +277,33 @@ PROVIDERS: tuple[Provider, ...] = (
         note="Panel wiring waits until the API endpoints are verified (no guessing on data sources).",
     ),
     Provider(
+        id="vibetrading",
+        name="Vibe-Trading — HKUDS/Vibe-Trading (AI second opinion)",
+        category="ai_bias",
+        required=False,
+        purpose="Second AI opinion on the daily bias (D53). Each morning after TradingAgents it reads OpenBB market "
+        "data and gives LONG / SHORT / NEUTRAL with a confidence. It can only UNBLOCK: if TradingAgents allows one "
+        "side and Vibe-Trading strongly disagrees, both sides are allowed and the intraday rules decide. "
+        "It never places, sizes or blocks trades by itself. Installed in its own environment (.venv-vt).",
+        links=(
+            Link("GitHub repository", "https://github.com/HKUDS/Vibe-Trading"),
+            Link("Claude (Anthropic) key", "https://console.anthropic.com/settings/keys"),
+            Link("Qwen (Alibaba DashScope) key", "https://www.alibabacloud.com/help/en/model-studio/get-api-key"),
+            Link("OpenRouter key", "https://openrouter.ai/keys"),
+        ),
+        fields=(
+            FieldSpec("llm_provider", "LLM provider", "select", options=("anthropic", "qwen", "openrouter", "openai")),
+            FieldSpec("api_key", "LLM API key", "secret", placeholder="paste key"),
+            FieldSpec(
+                "model",
+                "Model (optional)",
+                "text",
+                required=False,
+                placeholder="default: claude-sonnet-5-5 / qwen-plus-latest",
+            ),
+        ),
+    ),
+    Provider(
         id="openbb",
         name="OpenBB (market data — keys optional)",
         category="data",

@@ -171,7 +171,17 @@ async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
     if not bias.due(now, st.rules.rules.schedule.bias, stt.get_setting(s, "job.bias.session"), sess):  # type: ignore[arg-type]
         return
     vault = Vault(st.settings.master_key.get_secret_value())
-    await bias.run_bias(s, st.ta, vault, st.rules.rules, st.clock, sess, st.controller.notify)
+    await bias.run_bias(
+        s,
+        st.ta,
+        vault,
+        st.rules.rules,
+        st.clock,
+        sess,
+        st.controller.notify,
+        vt_root=st.settings.vt_root,
+        context=bias.openbb_context(st),
+    )
     stt.set_setting(s, "job.bias.session", sess.isoformat(), now)
     s.commit()
 
