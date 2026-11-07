@@ -462,3 +462,9 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
   (perfect hindsight: with-the-day 35% vs against 36%); for MGC it matters (39% vs 14%). A wrong daily call that blocks
   a side costs more than a right one gains unless accuracy is very high; a 20-day-trend rule (OpenBB) flipped sign
   between the two years tested → not used as a hard rule.
+
+## D54 — MNQ trades from 03:00 ET (user: "at least 1-2 trades a day", profitable)
+1 year engine (Nov 2025–Oct 2026): MNQ 06:45 start 169 tr 0.64/day +$562 · 03:00 start 248 tr 0.94/day 35% PF 1.07
++$492 · 03:00 + 8-bar limit timeout 289 tr 1.09/day +$408 (not applied: global setting, untested on MGC).
+With MGC (47 tr, +$215) ≈ 1.1 trades/day combined, profitable. AI-tool estimate (D53 model on these trades):
+win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trades/$40 vs TradingAgents alone.
