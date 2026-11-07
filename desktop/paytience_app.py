@@ -160,14 +160,24 @@ def ensure_ai_tools() -> None:
                 with urllib.request.urlopen(url, timeout=120) as r:
                     zipfile.ZipFile(io.BytesIO(r.read())).extractall(DATA)
                 shutil.move(str(DATA / f"TradingAgents-{TA_COMMIT}"), str(src))
-            venv(DATA / ".venv-ta")
-            pip(DATA / ".venv-ta", str(src))
+            shutil.rmtree(DATA / ".venv-ta", ignore_errors=True)  # a half-built venv from a failed try would be skipped forever
+            try:
+                venv(DATA / ".venv-ta")
+                pip(DATA / ".venv-ta", str(src))
+            except Exception:
+                shutil.rmtree(DATA / ".venv-ta", ignore_errors=True)
+                raise
         if not vt_exe.exists():
             say("Installing Vibe-Trading (second AI opinion)…")
-            venv(DATA / ".venv-vt")
-            pip(DATA / ".venv-vt", VT_PIN)
+            shutil.rmtree(DATA / ".venv-vt", ignore_errors=True)
+            try:
+                venv(DATA / ".venv-vt")
+                pip(DATA / ".venv-vt", VT_PIN)
+            except Exception:
+                shutil.rmtree(DATA / ".venv-vt", ignore_errors=True)
+                raise
     except Exception as e:  # noqa: BLE001 - optional tools; the app still runs
-        print(f"  ⚠ AI tools not installed yet ({type(e).__name__}). The app runs; no trades until they install. "
+        print(f"  ⚠ AI tools not installed yet ({type(e).__name__}: {e}). The app runs; no trades until they install. "
               "Close and reopen Paytience later to retry.")
 
 
