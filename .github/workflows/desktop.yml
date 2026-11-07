@@ -1,4 +1,4 @@
-name: Desktop app (Windows + Mac)
+name: Desktop app (Windows)
 on:
   push:
     branches: [ccr-42644967-7tvu35, main]
@@ -14,8 +14,6 @@ jobs:
         include:
           - os: windows-latest
             name: Paytience-Windows
-          - os: macos-14
-            name: Paytience-Mac
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
