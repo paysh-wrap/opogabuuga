@@ -221,3 +221,18 @@ Median 60 trading days to the 1st payout (≈ $1,249 to you). Busted accounts bu
 2022 $24,418 / $30,793 · 2023 $11,199 / $4,509 · 2024 $24,265 / $28,011 · **2025 $88 / $0** (starts in 2025 ran into
 the weak Jan / Jul 2026 months and almost all busted). Average income by month of the funded year (5 accounts): m1 $243,
 m2 $927, then ≈ $1,300–1,900 a month in m3–m10.
+
+## 20. Lucid's largest accounts: Pro 150K / Flex 150K, 5 funded accounts, MAIN $250/$250 (five_year/big150k.py)
+| plan | size | eval pass/bust 120 d | 250 d | per 2 wk | year avg / median | middle half | ≥1 payout | bust yr 1 |
+|---|---|---|---|---|---|---|---|---|
+| Pro 100K | 2 micros | 45% / 18% | 70% / 25% | $686 | $17,838 / $19,048 | $0–$29,923 | 73% | 30% |
+| Pro 150K | 2 micros | 14% / 6% | 57% / 14% | $553 | $14,368 / $13,500 | $0–$24,061 | 71% | 14% |
+| **Pro 150K** | **3 micros** | 45% / 18% | **70% / 25%** | **$918** | **$23,866 / $23,611** | $0–$39,708 | 73% | 29% |
+| Pro 150K | 4 micros | 48% / 35% | 61% / 36% | $950 | $24,702 / $18,385 | $0–$45,000 | 64% | 42% |
+| Pro 150K | 2 micros + grow/$1,500 | 42% / 14% | 67% / 21% | $811 | $21,080 / $18,486 | **$2,428**–$36,041 | **75%** | **24%** |
+| Pro 150K | 3 micros + grow/$2,250 | 46% / 20% | 70% / 25% | $916 | $23,825 / $23,149 | $0–$39,339 | 72% | 32% |
+| Flex 150K | 3 micros | 42% / 18% | 66% / 25% | $484 | $12,577 / $6,342 | $3,372–$23,384 | 95% | 70% |
+| Flex 150K | 6 micros | 50% / 48% | 54% / 46% | $569 | $14,798 / $7,144 | $0–$26,658 | 74% | 77% |
+Pro 150K at 3 micros = same risk shape as Pro 100K at 2 micros (both 1 micro per $1,500 of MLL) with ≈ 34% more income.
+Flex 150K pays 50% of profit (cap $3,000) and locks the MLL at each payout → many small payouts (≥1 payout 95%) but
+the account usually ends soon after (bust 70%) and pays far less than Pro.
