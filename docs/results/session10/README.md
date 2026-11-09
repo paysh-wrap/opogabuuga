@@ -107,3 +107,18 @@ Alone: Opening drive +$1,449 PF 1.16 (pass 0.3%), PM fade +$6,225 PF 1.26 (loses
 −$1,538, overnight −$5,532. Verdict: keep NOISE 1%; PM fade (NOISE-free days) is the only add-on that clearly helps in BOTH
 halves (profit + pass rate) — but its gain is uneven (2021–23 +$824, 2024–26 +$5,401) and the 2024–26 bust rate stays ≈ 42%.
 Opening drive adds ≈ nothing (120 of 173 trades overlap NOISE). Overnight hurts.
+
+## 11. Afternoon-fade settings + 2 micros on the fade only (five_year/fade_settings.py; NOISE stays 1 micro), 5 years
+| set | fade trades | total | PF | max DD | worst day | 5y pass/bust · value | 2021–23 | 2024–26 | fade losing years |
+|---|---|---|---|---|---|---|---|---|---|
+| fade 1.5 sd ×1 | 578 | +$20,626 | 1.25 | −$2,817 | −$774 | 58%/42% · $656 | 70%/25% · $977 | 53%/47% · $490 | 2022, 2023, 2025 |
+| fade 1.5 sd ×2 | 578 | +$22,665 | 1.21 | −$3,842 | −$1,037 | 53%/47% · $466 | 56%/44% · $494 | 54%/46% · $483 | 2022, 2023, 2025 |
+| **fade 2.0 sd ×1 (tested setting)** | 488 | +$24,813 | **1.32** | −$2,914 | −$774 | **62%/37% · $1,083** | **74%/21% · $1,295** | 57%/42% · $1,011 | 2022 |
+| fade 2.0 sd ×2 | 488 | **+$31,038** | 1.31 | −$4,546 | −$1,233 | 62%/38% · $875 | 65%/34% · $1,221 | **63%/37%** · $596 | 2022 |
+| fade 2.5 sd ×1 | 348 | +$20,803 | 1.29 | −$2,571 | −$774 | 61%/37% · $927 | 75%/17% · $1,244 | 54%/44% · $817 | 2021, 2022 |
+| fade 2.5 sd ×2 | 348 | +$23,019 | 1.25 | −$4,000 | −$1,541 | 59%/41% · $648 | 65%/35% · $847 | 57%/43% · $497 | 2021, 2022 |
+| fade 3.0 sd ×1 | 228 | +$18,590 | 1.28 | −$2,271 | −$774 | 57%/41% · $519 | 67%/27% · $589 | 52%/46% · $451 | 4 years |
+| fade 3.0 sd ×2 | 228 | +$18,593 | 1.24 | −$3,445 | −$913 | 53%/46% · $454 | 61%/39% · $379 | 49%/50% · $541 | 4 years |
+2.0 sd stays the best band (the neighbours 1.5/2.5 are worse on every column → not a lucky peak, but a peak). 2 micros on
+the fade: +$6,225 more profit, same 5-year pass rate, better 2024–26 pass (63% vs 57%) but worse 2021–23 (65% vs 74%),
+lower value per eval ($875 vs $1,083), max DD −$4,546 and worst day −$1,233 (> the $1,000 MLL in one day is possible).
