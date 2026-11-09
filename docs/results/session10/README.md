@@ -84,3 +84,11 @@ Also: July 2026 alone was −$795 for NOISE at 1 micro on a fresh eval → the 4
 Profit holds up on this year, but win rate falls to 26–34% and the eval pass rate jumps 28% → 64% → 29% between
 neighbouring stops = noise from one year's losing streaks, not a reliable edge. 2–3 micros at any stop: pass ≤ 32%.
 Session 9 (2024–26 held-out) found 0.3–0.5% stops cut PF 1.33 → 1.18. Needs the multi-year test before any change.
+
+## 9. NOISE with a fixed $250 emergency stop (user request), 1 year, 1 micro (fixed points: (250−2)/2 = 124 pts)
+| stop | trades | win | $/tr | total | PF | avg loss | worst | max DD | hit the stop | Pro 25K pass / bust |
+|---|---|---|---|---|---|---|---|---|---|---|
+| $520 fixed (≈1%) | 153 | 45.1% | +16.77 | +$2,566 | 1.18 | −$173 | −$520 | −$2,214 | 5 | 49% / 47% |
+| **$250 fixed** | 160 | 43.8% | +18.43 | **+$2,948** | 1.21 | −$159 | **−$250** | −$2,228 | 41 | 45% / 56% |
+Bad months stay bad (Jan −$1,604, Jul −$1,074 at $250). The stop only caps single trades; drawdown comes from many
+ordinary hourly-exit losses in a row, so the eval bust rate does not improve (slightly worse on this year).
