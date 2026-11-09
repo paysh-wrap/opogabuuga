@@ -104,12 +104,25 @@ def test_strategy_buttons_d55(plan):
     assert (
         n.emergency_stop_pct == D("0.01")
         and n.emergency_stop_usd == D(250)
-        and n.contracts == 1
         and n.max_entries_per_day == 3
     )
+    assert n.contracts == (3 if plan == "lucid_pro_150k" else 1)  # D62: 150K sized at 3 micros
     assert s.open_drive_cfg.paper_only
 
 
 def test_legacy_daily_plan_keeps_lunqfx_only():
     s = load_rules(RULES / "lucid_daily_25k.yaml").rules.strategy
     assert s.lunqfx and not s.noise and not s.open_drive
+
+
+def test_pro_150k_sizes_main_strategy_at_3_micros():  # D62
+    from pathlib import Path
+
+    from app.config import load_rules
+
+    root = Path(__file__).resolve().parents[3] / "config" / "rules"
+    st = load_rules(root / "lucid_pro_150k.yaml").rules.strategy
+    assert st.noise_cfg.contracts == 3 and st.pm_fade_cfg.contracts == 3 and st.noise and st.pm_fade
+    assert st.noise_cfg.emergency_stop_usd == D(250)  # per contract → $750 worst case at 3 micros
+    small = load_rules(root / "lucid_pro_25k.yaml").rules.strategy
+    assert small.noise_cfg.contracts == 1 and small.pm_fade_cfg.contracts == 1

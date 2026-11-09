@@ -75,7 +75,7 @@ super_groups:
 
 trade_plan: {rr_min: 1.5, rr_max: 2.5, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
-strategy: {lunqfx: false, noise: true, open_drive: false, pm_fade: true}   # D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on; LunqFX + Opening-drive are buttons (Strategy page)
+strategy: {lunqfx: false, noise: true, open_drive: false, pm_fade: true, noise_cfg: {contracts: 3}, pm_fade_cfg: {contracts: 3}}   # D62 (user 2026-11-09): 150K = 3 micros (5y: eval 70% pass / 25% bust in 250 d; 5 funded ≈ $918 per 2 wk, median yr $23,611, bust 29%). D58: D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on; LunqFX + Opening-drive are buttons (Strategy page)
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0

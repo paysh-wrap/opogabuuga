@@ -236,3 +236,19 @@ m2 $927, then ≈ $1,300–1,900 a month in m3–m10.
 Pro 150K at 3 micros = same risk shape as Pro 100K at 2 micros (both 1 micro per $1,500 of MLL) with ≈ 34% more income.
 Flex 150K pays 50% of profit (cap $3,000) and locks the MLL at each payout → many small payouts (≥1 payout 95%) but
 the account usually ends soon after (bust 70%) and pays far less than Pro.
+
+## 21. Pro 150K sizing (five_year/size150k.py) + drawdown brake (risk_rules_report.md, brake150k.py)
+Pro 150K eval (250 sessions): 2 micros 57% / 14% (30% still open, median 155 days) · **3 micros 70% / 25% (median 100
+days)** · 4 micros 61% / 36% · 5 → 57% / 42%. Funded (5 accounts): 3 micros $918 per 2 wk, median year $23,611, bust
+29% — the best balance; 4+ micros raise bust to 42–54% for no more income. → plan file lucid_pro_150k: 3 micros (D62).
+Account-level rules (22 variants × 3 plans, agent E): only the DRAWDOWN BRAKE lowers bust in both halves without
+cutting income > 15%: when cushion (balance − trailing MLL floor) < x·MLL, trade fewer micros.
+| plan | brake | eval pass/bust | per 2 wk | year median | funded bust (H1 / H2) |
+|---|---|---|---|---|---|
+| 50K 2 micros | none | 60% / 37% | $595 | $9,000 | 52% (49 / 58) |
+| 50K 2 micros | < 50% → 1 | 57% / 29% | $564 | $13,070 | 44% (40 / 52) |
+| 100K 2 micros | none | 45% / 18% | $686 | $19,048 | 30% (12 / 53) |
+| 100K 2 micros | < 30% → 1 | 44% / 17% | $643 | $16,025 | 26% (12 / 42) |
+| 150K 3 micros | none | 70% / 25% | $918 | $23,611 | 29% (12 / 48) |
+| **150K 3 micros** | **< 50% → 2** | 67% / 22% | $881 | $21,072 | **24% (7 / 41)** |
+Daily/weekly stops, pauses, cool-offs, profit locks: no gain or too costly. Pro 25K: nothing helps at 1 micro.

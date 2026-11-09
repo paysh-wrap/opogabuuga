@@ -538,3 +538,7 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   max 5, shrinks again with the cushion; applied at the start of each session. Eval replay eval_path (plan's eval
   target / MLL / lock / soft DLL / consistency / profitable days). Dashboard card: "Account growth" selector.
   Projection only — the live sizing for NOISE / PM_FADE stays fixed (strategy.*_cfg.contracts) until the user decides.
+
+## D62 (user 2026-11-09): Pro 150K sized at 3 micros for NOISE + afternoon fade
+- lucid_pro_150k.yaml strategy.noise_cfg.contracts = 3, pm_fade_cfg.contracts = 3 ($250 stop is per contract → $750
+  worst case per trade, 17% of the $4,500 MLL). Other plans stay 1 micro until the user picks their size.

@@ -114,6 +114,7 @@ def funded_path(
     grow_per: Decimal | None = None,
     max_micros: int = 5,
     take: Decimal = Decimal(1),
+    brake: tuple[Decimal, int] | None = None,
 ) -> Path1:
     bal = peak = r.start
     floor = r.start - r.mll
@@ -124,6 +125,8 @@ def funded_path(
     for n, trades in enumerate(days):
         day = ZERO
         qty = size_for(base, bal - floor, grow_per, max_micros)  # sized at the start of each session
+        if brake is not None and bal - floor < brake[0] * r.mll:  # D63 drawdown brake: cushion < x·MLL → brake size
+            qty = min(qty, brake[1])
         for p in trades:
             p *= qty
             if r.dll is not None and day + p <= -r.dll:
@@ -189,6 +192,7 @@ def eval_path(
     grow_per: Decimal | None = None,
     max_micros: int = 5,
     horizon: int = 120,
+    brake: tuple[Decimal, int] | None = None,
 ) -> tuple[str, int]:
     """("PASS" | "BUST" | "OPEN", sessions) for one evaluation started on days[0]."""
     bal = peak = r.start
@@ -197,6 +201,8 @@ def eval_path(
     for n, trades in enumerate(days[:horizon]):
         day = ZERO
         q = size_for(qty, bal - floor, grow_per, max_micros)
+        if brake is not None and bal - floor < brake[0] * r.mll:
+            q = min(q, brake[1])
         for p in trades:
             p *= q
             if r.dll is not None and day + p <= -r.dll:
@@ -278,12 +284,13 @@ def project(
     grow_per: Decimal | None = None,
     max_micros: int = 5,
     take: Decimal = Decimal(1),
+    brake: tuple[Decimal, int] | None = None,
 ) -> Projection:
     if accounts < 1 or micros < 1 or cadence < 1 or horizon < cadence:
         raise ValueError("accounts, micros ≥ 1 and horizon ≥ cadence")
     all_days = list(days) if days is not None else list(research_days()[1])
     starts = range(0, max(1, len(all_days) - horizon), step)
-    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros, take) for i in starts]
+    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros, take, brake) for i in starts]
     paid = [p.paid * accounts for p in paths]
     firsts = [p.payouts[0][0] for p in paths if p.payouts]
     n = len(paths)
