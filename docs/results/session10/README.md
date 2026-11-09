@@ -194,3 +194,15 @@ The app already withdraws everything above the buffer up to the cap. Leaving par
 Leaving profit in lowers the bust rate a little but costs more income than the extra size earns back within a year.
 "$15k × 5": 5 × Pro 50K at 2 micros averages ≈ $15,500 per year IN TOTAL (≈ $3,100 per account); $15k per account is
 not reached by any setting.
+
+## 18. Pro 100K vs Pro 50K, 5 funded accounts, MAIN $250/$250 (five_year/pro100k.py)
+| plan | size | eval pass / bust (120 d) | 5 funded per 2 wk | year avg / median | ≥1 payout | bust yr 1 |
+|---|---|---|---|---|---|---|
+| Pro 50K | 2 micros | 60% / 37% | $595 | $15,457 / $9,000 | 61% | 52% |
+| Pro 100K | 1 micro | 1% / 0% (too slow for the $6,000 target) | $239 | $6,212 / $4,793 | 71% | 0% |
+| **Pro 100K** | **2 micros** | 45% / 18% | **$686** | **$17,838 / $19,048** | **73%** | **30%** |
+| Pro 100K | 2 micros + grow/$1,500 | 46% / 21% | $717 | $18,637 / $16,355 | 73% | 34% |
+| Pro 100K | 3 micros | 52% / 39% | $776 | $20,174 / $11,250 | 62% | 48% |
+| Pro 100K | 4 / 5 micros | 51% / 48% · 46% / 54% | $692 · $561 | $17,992 · $14,596 | 53% · 46% | 55% · 64% |
+Best risk/return: 100K at 2 micros (typical year ≈ $19,000 for 5 accounts ≈ $3,800 each, bust 30%). 3 micros has the
+highest average but a much lower typical year. Eval at 2 micros: 45% pass in 120 days, 18% bust, rest still running.
