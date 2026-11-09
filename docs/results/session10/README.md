@@ -286,3 +286,19 @@ fade whose VWAP target is < $100 (5y bust 32% → 26%, but 2024–26 pass 66% �
 | **High risk** | **150K** | **4** | **< 50% → 2** | 69% / 25% | **$952** | **$23,706** | 27% |
 High risk on 100K pays no more than Regular (3 micros + brake to 1 ≈ $637 vs $643) — shown on the button.
 Rejected brake levels: 100K 3 → 2 at 50% (bust 49%), 150K 4 → 3 (bust 46%).
+
+## 25. Payout every 3 sessions · eval vs funded size · staggered starts (five_year/cadence_eval_stagger.py)
+A. Payout every 3 sessions vs every 10 (5 funded, yr 1): 25K $340 vs $317 per 2-wk equivalent (bust 62% vs 57%) ·
+50K $608 vs $564 (49% vs 44%) · 100K $693 vs $643 (27% vs 26%) · 150K Regular $955 vs $881 (24% both) · 150K High
+$1,057 vs $952 (28% vs 27%). ≈ +8–11% income (money leaves the account sooner); slightly higher bust on small accounts.
+Lucid's real minimum time between Pro payout requests must be VERIFIED before relying on it.
+3. Eval size: the profile's own size is already the best value per eval bought (pass × funded pay): 25K 1 micro
+($1,039), 50K 2 ($1,761), 100K 2 ($2,328), 150K 3 ($3,190). Bigger eval sizes pass faster but bust more → no change.
+4. STAGGERED STARTS (fund the 5 accounts ~1–2 months apart instead of the same day) — biggest win found:
+| plan | starts | 5-acct yr avg | median | 25th pct | P(total $0) | P(all 5 bust) |
+|---|---|---|---|---|---|---|
+| 150K | same day | $22,918 | $21,072 | $0 | 25% | 24% |
+| 150K | every ~1 month | $24,306 | $24,271 | $7,318 | 14% | 6% |
+| 150K | every ~2 months | $25,090 | $26,214 | $15,497 | 6% | 5% |
+| 100K | same day / ~1 mo / ~2 mo | $16,723 / $17,737 / $18,349 | $16,025 / $16,698 / $19,065 | $0 / $4,884 / $11,158 | 27% / 13% / 6% | 26% / 7% / 4% |
+| 50K | same day / ~1 mo / ~2 mo | $14,664 / $15,583 / $15,982 | $13,070 / $15,154 / $16,840 | $0 / $3,309 / $7,221 | 34% / 13% / 5% | 44% / 21% / 9% |
