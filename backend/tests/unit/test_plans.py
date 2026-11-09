@@ -132,5 +132,15 @@ def test_size_table_validation_and_plans():  # D63
                 (D(25000), 1),
                 (D(50000), 2),
                 (D(100000), 2),
+                (D(150000), 3),
+            ]
+            assert [(t.account_size, t.contracts) for t in st.size_table_high] == [
+                (D(25000), 1),
+                (D(50000), 2),
+                (D(100000), 3),
                 (D(150000), 4),
             ]
+            assert all(t.brake_below is not None for t in st.size_table_high if t.contracts > 1)  # brake on every row
+            assert not st.high_risk and st.active_size_table() is st.size_table
+            hi = st.model_copy(update={"high_risk": True})
+            assert hi.active_size_table() is st.size_table_high

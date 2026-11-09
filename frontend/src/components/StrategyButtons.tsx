@@ -20,7 +20,17 @@ export interface StrategiesResp {
   noise_warmup: { sessions: number; needed: number; ready: boolean };
   ai_ledger: Ledger[];
   markets: Record<string, boolean>;
+  size_profiles?: SizeProfiles;
 }
+export interface SizeTierRow { account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null }
+export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[] }
+
+// D64: research numbers for each profile (5 funded accounts, payout every 2 weeks, 5-year MNQ replay — README §24)
+const PROFILE_NOTE: Record<string, string> = {
+  regular: "150K ≈ $881 / 2 wk, typical year $21,072, bust 24% · 100K ≈ $643, $16,025, bust 26%",
+  high: "150K ≈ $952 / 2 wk, typical year $23,706, bust 27% · 100K ≈ $637, $11,250, bust 24% (no gain over Regular on 100K)",
+};
+const k$ = (v: string) => `${Math.round(Number(v) / 1000)}K`;
 
 const pct = (x: number | null) => (x == null ? "—" : `${x.toFixed(1)}%`);
 const card = "rounded-xl border border-border bg-card p-4";
@@ -31,6 +41,11 @@ export default function StrategyButtons() {
   const toggle = useMutation({
     mutationFn: (s: Strat) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [s.setting]: !s.enabled, ...(s.enabled ? {} : Object.fromEntries((s.also ?? []).map((k) => [k, true]))) }, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+  });
+  const size = useMutation({
+    mutationFn: (high: boolean) =>
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.high_risk": high }, note: `Size profile: ${high ? "high risk" : "regular"}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
@@ -68,6 +83,32 @@ export default function StrategyButtons() {
           </div>
         ))}
       </div>
+      {d.size_profiles && (
+        <div className="mt-4" data-testid="size-profiles">
+          <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
+          <div className="mt-2 grid gap-3 lg:grid-cols-2">
+            {(["regular", "high"] as const).map((p) => {
+              const on = d.size_profiles!.active === p;
+              return (
+                <div key={p} className="rounded-lg border border-border p-3">
+                  <button type="button" aria-pressed={on} disabled={size.isPending || on} onClick={() => size.mutate(p === "high")}
+                    className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
+                    {on ? "ON" : "OFF"} · {p === "high" ? "High risk" : "Regular"}
+                  </button>
+                  <ul className="mt-2 text-sm" data-testid={`size-${p}`}>
+                    {d.size_profiles![p].map((t) => (
+                      <li key={t.account_size}>{k$(t.account_size)}: <b className="text-gold">{t.contracts} micro{t.contracts > 1 ? "s" : ""}</b>
+                        {t.brake_below && <> → {t.brake_contracts} when cushion &lt; {Math.round(Number(t.brake_below) * 100)}% of loss limit</>}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-1 text-xs text-blue">{PROFILE_NOTE[p]}</p>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit and $250-per-micro emergency stop in both profiles.</p>
+        </div>
+      )}
       <div className="mt-3 text-sm" data-testid="ai-ledger">
         <b className="text-gold">AI daily call (TradingAgents + Vibe-Trading) — scored every session:</b>
         {d.ai_ledger.map((l) => (

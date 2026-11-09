@@ -343,6 +343,12 @@ class StrategyCfg(_M):
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
     size_table: list[SizeTierCfg] = []
+    # D64: Strategy-page button "High risk" switches NOISE / PM_FADE sizing to size_table_high (same brake system)
+    high_risk: bool = False
+    size_table_high: list[SizeTierCfg] = []
+
+    def active_size_table(self) -> list[SizeTierCfg]:
+        return self.size_table_high if self.high_risk and self.size_table_high else self.size_table
 
 
 class ScoreCfg(_M):

@@ -560,3 +560,10 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Dashboard income card: "Micros each" defaults to "Auto (by account size)" and shows the chosen size + brake.
 - Caveat: the app loads ONE plan for all accounts (MLL/DLL/payout rules). Accounts of different sizes are sized
   correctly, but their firm rules come from the loaded plan — select the plan that matches the accounts.
+
+## D64 (user 2026-11-09): Regular / High-risk size profiles, drawdown brake LIVE
+- Strategy page: two buttons (versioned My Settings strategy.high_risk). Regular = strategy.size_table: 25K 1 · 50K 2
+  (< 50% → 1) · 100K 2 (< 30% → 1) · 150K 3 (< 50% → 2). High risk = strategy.size_table_high: 25K 1 · 50K 2 (< 50% → 1)
+  · 100K 3 (< 50% → 1) · 150K 4 (< 50% → 2). Brake in both, applied live by risk/strategy_sizing (D63); audit
+  trade.auto_size carries the profile. NOISE trailing exit and $250-per-micro stop unchanged. Dashboard income card:
+  "Size profile" selector (active / Regular / High risk). Numbers: docs/results/session10/README.md §24.

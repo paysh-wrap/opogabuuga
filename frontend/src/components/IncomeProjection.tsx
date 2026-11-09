@@ -21,9 +21,10 @@ export default function IncomeProjection() {
   const [accounts, setAccounts] = useState(5);
   const [micros, setMicros] = useState(0); // 0 = automatic size for the plan (D63 size table + drawdown brake)
   const [cadence, setCadence] = useState(10);
+  const [profile, setProfile] = useState<"" | "regular" | "high">(""); // D64: "" = the active profile
   const [grow, setGrow] = useState(0); // D60: +1 micro per $grow of cushion above the trailing MLL (0 = fixed size)
-  const qs = new URLSearchParams({ accounts: String(accounts), micros: String(micros), cadence: String(cadence), grow: String(grow), ...(plan ? { plan } : {}) });
-  const q = useQuery({ queryKey: ["income-projection", plan, accounts, micros, cadence, grow], queryFn: () => api<IncomeResp>(`/api/income/projection?${qs}`), staleTime: 3_600_000 });
+  const qs = new URLSearchParams({ accounts: String(accounts), micros: String(micros), cadence: String(cadence), grow: String(grow), ...(plan ? { plan } : {}), ...(profile ? { profile } : {}) });
+  const q = useQuery({ queryKey: ["income-projection", plan, accounts, micros, cadence, grow, profile], queryFn: () => api<IncomeResp>(`/api/income/projection?${qs}`), staleTime: 3_600_000 });
   const d = q.data;
   const sel = "rounded-md border border-border bg-card px-2 py-1 text-sm text-blue";
   return (
@@ -39,6 +40,9 @@ export default function IncomeProjection() {
         <label>Micros each <select aria-label="Micros" className={sel} value={micros} onChange={(e) => setMicros(Number(e.target.value))}>
           <option value={0}>Auto (by account size)</option>
           {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
+        </select></label>
+        <label>Size profile <select aria-label="Size profile" className={sel} value={profile} onChange={(e) => setProfile(e.target.value as "" | "regular" | "high")}>
+          <option value="">active</option><option value="regular">Regular</option><option value="high">High risk</option>
         </select></label>
         <label>Payout <select aria-label="Payout cadence" className={sel} value={cadence} onChange={(e) => setCadence(Number(e.target.value))}>
           <option value={5}>weekly</option><option value={10}>every 2 weeks</option>

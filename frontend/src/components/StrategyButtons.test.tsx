@@ -14,6 +14,11 @@ const resp: StrategiesResp = {
   noise_warmup: { sessions: 3, needed: 10, ready: false },
   ai_ledger: [{ proxy: "QQQ", symbol: "MNQ", state: "WARMUP", badge: "ADVISORY", required_accuracy: 0.7, min_calls: 30, stats: { n: 0, hit_rate: 0, brier: 0.25, wilson_lb: 0 } }],
   markets: { MNQ: true, MGC: false },
+  size_profiles: {
+    active: "regular", setting: "strategy.high_risk",
+    regular: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 2 }],
+    high: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 4, brake_below: "0.5", brake_contracts: 2 }],
+  },
 };
 
 test("strategy buttons show tested win/pass rates and toggle via versioned settings", async () => {
@@ -41,4 +46,9 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("pass-pm_fade")).toHaveTextContent("65.7%");
   await userEvent.click(screen.getByRole("button", { name: /OFF · MAIN/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.pm_fade":true,"strategy.noise":true'))).toBe(true));
+  // D64: size profiles
+  expect(screen.getByTestId("size-regular")).toHaveTextContent("150K: 3 micros → 2 when cushion < 50%");
+  expect(screen.getByTestId("size-high")).toHaveTextContent("150K: 4 micros");
+  await userEvent.click(screen.getByRole("button", { name: /OFF · High risk/ }));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
 });

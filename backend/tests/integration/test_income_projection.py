@@ -108,9 +108,12 @@ def test_income_endpoint(authed):
     assert authed.get("/api/income/projection", params={"plan": "../../etc/passwd"}).status_code == 422
     assert authed.get("/api/income/projection", params={"accounts": 9}).status_code == 422
     assert authed.get("/api/income/projection").status_code == 200  # current plan
-    a = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k"}).json()  # D63 auto size
-    assert a["micros"] == 4 and a["auto"] == {"contracts": 4, "brake_below": "0.5", "brake_contracts": 2}
-    assert a["year_median"] == "23705.50"
+    a = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k"}).json()  # D63/D64 auto, Regular
+    assert a["micros"] == 3 and a["auto"] == {"contracts": 3, "brake_below": "0.5", "brake_contracts": 2}
+    assert a["profile"] == "regular" and a["bust_pct"] == "23.5"
+    h = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "profile": "high"}).json()
+    assert h["micros"] == 4 and h["profile"] == "high" and h["year_median"] == "23705.50"
+    assert authed.get("/api/income/projection", params={"profile": "max"}).status_code == 422
     g = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "grow": 1000}).json()
     assert (
         g["grow"] == 1000 and g["year_mean"] == "9049.28"

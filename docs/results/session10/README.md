@@ -274,3 +274,15 @@ fade whose VWAP target is < $100 (5y bust 32% → 26%, but 2024–26 pass 66% �
 | Pro 50K | 2 → 1 below 50% cushion | $564 | $13,070 | 44% |
 | Pro 100K | 2 → 1 below 30% cushion | $643 | $16,025 | 26% |
 | Pro 150K | 4 → 2 below 50% cushion | $952 | $23,706 | 27% |
+
+## 24. D64 size profiles (Strategy-page buttons), drawdown brake LIVE in both (five_year/profiles.py), 5 funded accounts
+| profile | plan | micros | brake | eval pass/bust (250 d) | per 2 wk | year median | bust yr 1 |
+|---|---|---|---|---|---|---|---|
+| Regular | 25K | 1 | — | 63% / 35% (120 d) | $317 | $4,500 | 57% |
+| Regular | 50K | 2 | < 50% → 1 | 57% / 29% (120 d) | $564 | $13,070 | 44% |
+| Regular | 100K | 2 | < 30% → 1 | 66% / 23% | $643 | $16,025 | 26% |
+| **Regular** | **150K** | **3** | **< 50% → 2** | 67% / 22% | $881 | $21,072 | **24%** |
+| High risk | 100K | 3 | < 50% → 1 | 63% / 22% | $637 | $11,250 | 24% |
+| **High risk** | **150K** | **4** | **< 50% → 2** | 69% / 25% | **$952** | **$23,706** | 27% |
+High risk on 100K pays no more than Regular (3 micros + brake to 1 ≈ $637 vs $643) — shown on the button.
+Rejected brake levels: 100K 3 → 2 at 50% (bust 49%), 150K 4 → 3 (bust 46%).

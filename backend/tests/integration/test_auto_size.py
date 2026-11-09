@@ -57,8 +57,52 @@ def test_noise_trade_sized_per_account(authed, clock):
     assert got["25K"]["contracts"] == 1 and not got["25K"]["braked"]
     assert got["50K"]["contracts"] == 2 and not got["50K"]["braked"]  # cushion $1,000 = 50% of $2,000 → no brake
     assert got["150K"]["contracts"] == 2 and got["150K"]["braked"]  # cushion $1,000 < 50% of $4,500 → brake 4 → 2
+    assert all(v["profile"] == "REGULAR" for v in sizes.values())
     # the pre-trade checks received exactly that size (the order itself needs a live price feed, not in this test)
     want = {ids["25K"]: "1", ids["50K"]: "2", ids["150K"]: "2"}
     for aid, n in want.items():
         fixed = next(c for c in by[aid].checks if c["check"] == "fixed_size")
         assert fixed["contracts"] == n, (aid, by[aid])
+
+
+def test_high_risk_profile_switches_table(authed, clock):  # D64
+    from app.config import SizeTierCfg
+
+    st = authed.app.state
+    clock.set(AT)
+    aid = authed.post("/api/accounts", json={"label": "50K", "stage": "EVAL", "balance": "50000"}).json()["id"]
+    assert authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True}).status_code == 200
+    authed.post("/api/attestation", json={"confirm": True})
+    st.controller.mode = "FULL"
+    h = st.controller.rules
+    reg = [SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2)]
+    high = [SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=3, brake_below=D("0.4"), brake_contracts=2)]
+    h.rules = h.rules.model_copy(
+        update={
+            "strategy": h.rules.strategy.model_copy(
+                update={"size_table": reg, "size_table_high": high, "high_risk": True}
+            )
+        }
+    )
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(
+            s,
+            FixedClock(AT),
+            symbol="MNQ",
+            key="MNQ-NOISE-2026-10-13-1",
+            direction=Direction.LONG,
+            at=AT,
+            gate=(True, "OK", ""),
+            features={"reason": "test"},
+            plan=("NOISE", D(20000), D(19876), D(20050), D(124), D("0.40")),
+        )
+        s.commit()
+        sid = sig.id
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    fixed = next(c for c in res[0].checks if c["check"] == "fixed_size")
+    assert fixed["contracts"] == "3", res  # high-risk table; cushion $1,000 ≥ 40% of $2,000 → no brake
+    with st.sessionmaker() as s:
+        assert s.query(AuditLog).filter_by(action="trade.auto_size").one().payload["profile"] == "HIGH"
+    # the Strategy page shows both profiles and saves the switch through versioned settings
+    body = authed.get("/api/strategies").json()["size_profiles"]
+    assert set(body) == {"active", "setting", "regular", "high"} and body["setting"] == "strategy.high_risk"

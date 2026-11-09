@@ -221,6 +221,15 @@ def gate_texts(r: Any) -> list[tuple[str, str]]:
     return list(out.items())
 
 
+def _tier(t: Any) -> dict[str, Any]:
+    return {
+        "account_size": str(t.account_size),
+        "contracts": t.contracts,
+        "brake_below": None if t.brake_below is None else str(t.brake_below),
+        "brake_contracts": t.brake_contracts,
+    }
+
+
 @router.get("/strategy")
 async def strategy(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """How the three parts fit together, live: TradingAgents (which side) · LunqFX fractal (where/what) ·
@@ -324,4 +333,10 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         },
         "ai_ledger": ledgers,
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
+        "size_profiles": {  # D64: Regular / High risk buttons (each account sized by its own size + drawdown brake)
+            "active": "high" if r.strategy.high_risk else "regular",
+            "setting": "strategy.high_risk",
+            "regular": [_tier(t) for t in r.strategy.size_table],
+            "high": [_tier(t) for t in r.strategy.size_table_high],
+        },
     }

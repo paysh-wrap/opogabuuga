@@ -19,20 +19,20 @@ router = APIRouter(prefix="/api")
 
 
 @lru_cache(maxsize=64)
-def _cached(path: str, mtime: float, accounts: int, micros: int, cadence: int, grow: int) -> dict[str, Any]:
+def _cached(
+    path: str, mtime: float, accounts: int, micros: int, cadence: int, grow: int, high: bool = False
+) -> dict[str, Any]:
     """micros = 0 → D63 automatic size from the plan's size_table (tier for the plan's account size + brake)."""
     r = load_rules(Path(path)).rules
     g = Decimal(grow) if grow else None
     brake: tuple[Decimal, int] | None = None
     auto = None
     if micros == 0:
-        if r.strategy.size_table:
+        table = (r.strategy.size_table_high or r.strategy.size_table) if high else r.strategy.size_table
+        if table:
             t = tier_for(
                 r.account_size,
-                [
-                    SizeTier(x.account_size, x.mll, x.contracts, x.brake_below, x.brake_contracts)
-                    for x in r.strategy.size_table
-                ],
+                [SizeTier(x.account_size, x.mll, x.contracts, x.brake_below, x.brake_contracts) for x in table],
             )
             micros = t.contracts
             if t.brake_below is not None and t.brake_contracts is not None:
@@ -58,6 +58,7 @@ def income_projection(
     micros: int = Query(0, ge=0, le=6),  # 0 = automatic (D63 size_table)
     cadence: int = Query(10, ge=5, le=20),
     grow: int = Query(0, ge=0, le=10000),  # D60: +1 micro per `grow` $ of cushion above the trailing MLL (0 = fixed)
+    profile: str | None = Query(None, pattern="^(regular|high)$"),  # D64: size profile for "Auto" (default: active)
 ) -> dict[str, Any]:
     st = request.app.state
     folder: Path = st.settings.rules_path.parent
@@ -66,11 +67,13 @@ def income_projection(
     if name not in plans:  # whitelist: only plan files in the rules folder (no paths from the client)
         raise HTTPException(422, f"unknown plan {name!r}")
     path = folder / f"{name}.yaml"
-    out = _cached(str(path), path.stat().st_mtime, accounts, micros, cadence, grow)
+    high = st.rules.rules.strategy.high_risk if profile is None else profile == "high"
+    out = _cached(str(path), path.stat().st_mtime, accounts, micros, cadence, grow, high)
     return {
         **out,
         "plan": name,
         "grow": grow,
+        "profile": "high" if high else "regular",
         "plans": plans,
         "current_plan": st.rules.plan,
         "basis": "MAIN strategy (NOISE $250 + afternoon fade $250), Databento MNQ 2021-11 → 2026-10, replayed through "

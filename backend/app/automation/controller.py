@@ -425,15 +425,13 @@ class Controller:
             if strategy
             else None
         )
-        if strategy in ("NOISE", "PM_FADE") and r.strategy.size_table:  # D63: size by this account's own size
+        table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
+        if strategy in ("NOISE", "PM_FADE") and table:  # D63: size by this account's own size
             size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
             auto = auto_contracts(
                 size,
                 base,
-                [
-                    SizeTier(t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts)
-                    for t in r.strategy.size_table
-                ],
+                [SizeTier(t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts) for t in table],
             )
             fixed = auto.contracts
             audit.record(
@@ -442,7 +440,13 @@ class Controller:
                 actor,
                 "trade.auto_size",
                 a.broker_account_id,
-                {"signal": sig.id, "contracts": auto.contracts, "tier": str(auto.tier), "braked": auto.braked},
+                {
+                    "signal": sig.id,
+                    "contracts": auto.contracts,
+                    "tier": str(auto.tier),
+                    "braked": auto.braked,
+                    "profile": "HIGH" if r.strategy.high_risk else "REGULAR",
+                },
             )
         lim = TradeLimits(
             inst.tick,

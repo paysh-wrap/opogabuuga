@@ -70,6 +70,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.open_drive",
         "strategy.ai_bias",
         "strategy.pm_fade",
+        "strategy.high_risk",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(

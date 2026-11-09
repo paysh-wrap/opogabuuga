@@ -81,10 +81,16 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
   noise: true
   open_drive: false
   pm_fade: true
-  size_table:   # D63 (2026-11-09): automatic micros per account size (+ drawdown brake), research §21–22
+  size_table:   # D63/D64 REGULAR: automatic micros per account size + drawdown brake (research §21–23)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
     - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
+    - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 2}
+  high_risk: false   # D64: Strategy-page button "High risk" → size_table_high
+  size_table_high:   # D64 (user 2026-11-09): HIGH RISK — 100K 3 micros, 150K 4 micros (same brake system)
+    - {account_size: 25000, mll: 1000, contracts: 1}
+    - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
+    - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
     - {account_size: 150000, mll: 4500, contracts: 4, brake_below: 0.5, brake_contracts: 2}
 
 filters:
