@@ -334,3 +334,10 @@ The margin on 100K / 150K is modest (single sample of ~15 rules) — re-check on
 ## 28. Second market for NOISE (agent, second_market_report.md, ≈ $16.55 Databento)
 MCL held-out PF 0.71 (in-sample 0.97), M6E 0.54 (0.78) → FAIL; 10Y untestable (half the minute bars empty). Both
 uncorrelated with MNQ (≈ 0.0) but losing → no diversification. M2K / MYM skipped (budget; index twins of MNQ).
+
+## 29. 50% vs 40% consistency (agent, consistency_50_report.md; Lucid's actual Pro payout rule is 40%)
+50% adds ≈ 0.3–0.4 payouts per account per year (+15–20%) but 5-account income per 2 weeks moves only −1% to +5%
+(25K $334 → $334, 50K $599 → $631, 100K $695 → $686, 150K $973 → $1,001); bust ±2–5 pts (noise). The rule IS a real
+constraint for this spiky strategy: ≈ 90%+ of otherwise-eligible payout checks fail on consistency alone at either 40%
+or 50%, 53–76% of cycles are blocked at least once, waiting a median 8–15 sessions. A day-stop (stop for the day at
+35% / 45% of cycle profit) does not unblock payouts (it only trims bust 1–6 pts) → not added. Flex eval: 50% ≈ no change.
