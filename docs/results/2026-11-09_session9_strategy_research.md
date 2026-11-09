@@ -62,6 +62,18 @@ it binds on only 3 of ~720 days for this strategy, so DLL on/off barely matters.
 under a DLL: on 2025-04-09 its first trade lost > $600 before a +$3,600 winner — the DLL would have cut the day at −$600.
 User decision (2026-11-09): focus on **Pro 25K** unless Flex data changes.
 
+## More trades per day/week? (user: "maximum amount of trades possible that don't break the plan")
+| Option (held-out 2024-01 → 2026-11, 1 micro) | trades/week | win | $/tr | PF | Pro 25K pass / bust | verdict |
+|---|---|---|---|---|---|---|
+| **MNQ RTH, hourly checks (chosen)** | **3.0** | 45.0% | +25.81 | 1.33 | **57% / 42%** | keep |
+| MNQ RTH, checks every 30 min | 4.1 | 40.6% | +18.70 | 1.27 | 48% / 49% | worse |
+| MNQ RTH, max 5 entries/day | 3.1 | 44.8% | +24.64 | 1.32 | 57% / 42% | no gain (rarely > 3 signals) |
+| MES alone (Micro S&P, same rules) | 3.3 | 40.6% | −5.87 | 0.87 | 0% / 71% | FAIL (in-sample PF 1.09) |
+| MNQ + MES, one position per account | 4.1 | 41.8% | +11.24 | 1.17 | 29% / 71% | worse → MES stays OFF (user: "add it only if you need to") |
+| MNQ London session 03:00–09:30 (hourly / 30-min) | 3.6 / 5.0 | 36.9% / 32.5% | −4.18 / −4.97 | 0.92 / 0.87 | — | FAIL (negative 7 of 8 years) |
+Conclusion: ≈ 3 trades/week (≈ 0.6/day) on MNQ RTH is the most the verified edge supports; every way to add trades
+found so far lowers the Pro 25K pass rate. (MES data cost ≈ $10; scripts in session9/verify/.)
+
 ## TradingAgents + Vibe-Trading (reports/aibias.md + tools/noise_biascheck.py)
 - On the noise strategy, **89% of trades already go with the day** (393/440, 49% win, +$20,209); the 47 against-the-day
   trades lost −$8,851 (9% win). A daily call must be **≈ 70% accurate just to break even** as a hard filter
