@@ -62,13 +62,13 @@ def bars(r):
     c = VerticalBarChart()
     c.x, c.y, c.width, c.height = 30, 18, 205, 82
     c.data = [r["months5"]]
-    c.categoryAxis.categoryNames = [f"m{i + 1}" for i in range(12)]
+    c.categoryAxis.categoryNames = [str(i + 1) if i % 2 == 0 else "" for i in range(26)]
     c.categoryAxis.labels.fontSize = 6
     c.valueAxis.labels.fontSize = 6
     c.valueAxis.valueMin = 0
     c.bars[0].fillColor = BLUE
     d.add(c)
-    d.add(String(30, 106, f"{r['label']} · {r['profile']}: avg 5-account income by month", fontSize=7, fillColor=NAVY))
+    d.add(String(30, 106, f"{r['label']} · {r['profile']}: avg 5-account payout per 2-week period (1–26)", fontSize=7, fillColor=NAVY))
     return d
 
 
@@ -77,7 +77,7 @@ doc = SimpleDocTemplate(sys.argv[2], pagesize=letter, leftMargin=0.45 * inch, ri
 el = [Paragraph("Paytience — 2-week income breakdown, Lucid 25K → 150K", H1),
       Paragraph(f"Finalized MAIN strategy (NOISE $250 stop + afternoon fade $250 stop, MNQ) · automatic size per account with "
                 f"the drawdown brake (Regular / High-risk buttons) · Databento MNQ 1-minute replay {data['period']} "
-                f"({data['sessions']} sessions) through each plan's own Lucid rules. Payout requested every 2 weeks, 90% split.", P),
+                f"({data.get('trading_sessions', data['sessions']):,} trading sessions) through each plan's own Lucid rules. Payout requested every 2 weeks, 90% split.", P),
       Spacer(1, 6),
       Paragraph("Summary", H2),
       Paragraph("• <b>Best overall:</b> Pro 150K. Regular (3 micros, brake to 2) ≈ <b>$881 every 2 weeks for 5 accounts</b>, typical "
@@ -93,7 +93,7 @@ el = [Paragraph("Paytience — 2-week income breakdown, Lucid 25K → 150K", H1)
                 "start dates earn $0 on most plans. Eval fees not subtracted.", S),
       Paragraph("Lucid Flex — all sizes", H2), main_table("lucid_flex"),
       PageBreak(),
-      Paragraph("Payouts and monthly income per plan (5 accounts)", H2)]
+      Paragraph("Payouts per plan and income for each 2-week period of the first funded year (5 accounts)", H2)]
 dist_hdr = ["Plan", "Profile", "0 payouts", "1", "2", "3", "4", "5", "≥1 payout", "Days to 1st", "Max/yr (5 accts)", "Middle half / yr"]
 dist_body = [[r["label"], r["profile"]] + [f"{r['payout_dist'][str(k)] * 100:.0f}%" for k in range(6)] +
              [f"{r['payout_pct']:.0f}%", str(r["first_payout"] or "—"), money(r["max_year5"]), f"{money(r['p5_p25'])}–{money(r['p5_p75'])}"]
@@ -112,7 +112,7 @@ for t in (
     "back toward VWAP (target = VWAP), $250 stop per micro, flat 15:55, 1 per day. Fade trades PAPER accounts first.",
     "<b>Automatic size</b> (Strategy page buttons) — Regular: 25K 1 · 50K 2 · 100K 2 · 150K 3 micros. High risk: 100K 3 · 150K 4. "
     "<b>Drawdown brake</b> in both: when the cushion above the trailing loss limit falls below 30–50% of the limit, trade fewer "
-    "micros (50K/150K: below 50%; 100K Regular: below 30%) until it recovers.",
+    "micros (Regular: 50K/150K below 50%, 100K below 30%; High risk: below 50% on every size) until it recovers.",
     "<b>Every trade still passes all safety checks</b>: Lucid DLL / MLL room, kill switch, one position per account, no hedging, "
     "news blackouts, attestation, 16:40/16:44 flat. Default PAPER; LIVE needs the explicit live switches.",
     "5-year research: NOISE + fade 1,291 trades, 50% win, PF 1.33, +$25,345 at 1 micro, no losing full year. 21 win-rate filters and "
@@ -134,7 +134,7 @@ for t in (
     "6. <b>Start with Regular sizing and 1–2 accounts</b>; add accounts and consider High risk on 150K once live results track the "
     "projection.",
     "7. <b>TradingAgents + Vibe-Trading</b>: they stay ADVISORY. Every daily call is scored in the calibration ledger; once ≥ 30 "
-    "calls are proven (≥ 70% accuracy, Brier &lt; 0.25) the app lets a strongly-agreed call block the opposite NOISE side. That "
+    "calls are proven (lower 90% Wilson bound of the hit rate ≥ 70%, Brier &lt; 0.25) the app lets a strongly-agreed call block the opposite NOISE side. That "
     "ledger is the feedback loop for refining their prompts/inputs (OpenBB data can be added as an input source next).",
 ):
     el.append(Paragraph(t, P))

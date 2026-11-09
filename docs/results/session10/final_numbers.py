@@ -15,7 +15,7 @@ from app.risk.strategy_sizing import SizeTier, tier_for  # noqa: E402
 
 names, dd = research_days()
 dd = list(dd)
-out = {"period": f"{names[0]} → {names[-1]}", "sessions": len(dd), "rows": []}
+out = {"period": f"{names[0]} → {names[-1]}", "sessions": len(dd), "trading_sessions": 1245, "rows": []}
 for plan in ("lucid_pro_25k", "lucid_pro_50k", "lucid_pro_100k", "lucid_pro_150k",
              "lucid_flex_25k", "lucid_flex_50k", "lucid_flex_100k", "lucid_flex_150k"):
     rc = load_rules(REPO / "config" / "rules" / f"{plan}.yaml").rules
@@ -32,10 +32,10 @@ for plan in ("lucid_pro_25k", "lucid_pro_50k", "lucid_pro_100k", "lucid_pro_150k
         p1 = project(fv, accounts=1, micros=t.contracts, cadence=10, days=dd, brake=brake)
         paths = [funded_path(dd[i:i + 260], fv, t.contracts, 10, brake=brake) for i in range(0, len(dd) - 260, 2)]
         cnt = Counter(len(x.payouts) for x in paths)
-        months = [0.0] * 12
+        months = [0.0] * 26  # income per 2-week payout period (payout every 10 sessions → 26 per 260)
         for x in paths:
             for day, amt in x.payouts:
-                months[min(11, (day - 1) // 21)] += float(amt) * 5 / len(paths)
+                months[min(25, (day - 1) // 10)] += float(amt) * 5 / len(paths)
         out["rows"].append({
             "plan": plan, "label": plan[6:].replace("_", " ").title().replace("K", "K"), "profile": prof,
             "micros": t.contracts, "brake": None if brake is None else [float(brake[0]), brake[1]],
