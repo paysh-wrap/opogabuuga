@@ -261,7 +261,7 @@ payouts:
   skim_mode: half                      # half | off
   block_trading_while_pending: true
   mode: max_eligible                   # D65: largest allowed payout = balance − buffer, capped; 40% consistency per cycle
-  min_sessions_between: 10             # D67: 10 trading days (2 weeks) after the last processed payout
+  min_sessions_between: 5              # D68: 5 trading days (weekly) after the last processed payout — 100K/150K (study: +8–9% income, ~1 pt bust)
   session_check_time: "17:05"          # D65: daily check after the flat
   min_pct_of_cap: null                 # D65: 0.5 = wait for ≥ 50% of the cap (study: most take-home on 100K/150K Regular)
 

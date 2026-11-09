@@ -593,3 +593,8 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   Strategy, sizing, brake, stops, Evaluation Mode and the 40% consistency rule are untouched (payout planning only).
   Study numbers at this cadence (5 funded accts, per 2 wk · bust): 25K $317 · 57%, 50K $564 · 44%, 100K $643 · 26%,
   150K Regular $881 · 24%, 150K High $952 · 27%.
+
+## D68 (user 2026-11-09): payout cadence per Pro size — 25K / 50K every 10 trading days, 100K / 150K every 5
+- lucid_pro_100k / 150k payouts.min_sessions_between = 5 (weekly); 25K / 50K stay 10. Study (payout_timing_report.md,
+  5 funded accts, per 2 wk · bust): 100K $643 · 26.0% → $702 · 27.5%; 150K Regular $881 · 23.5% → $954 · 24.5%; 150K High
+  $952 · 26.8% → $1,064 · 27.9%. 25K / 50K every 5 would add ~9% income but +5–6 pts bust → kept at 10.

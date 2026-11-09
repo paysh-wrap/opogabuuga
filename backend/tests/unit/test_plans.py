@@ -157,17 +157,18 @@ def test_size_table_validation_and_plans():  # D63
             assert hi.active_size_table() is st.size_table_high
 
 
-def test_pro_plans_pay_out_every_two_weeks_at_the_maximum():  # D67
+def test_pro_plans_pay_out_the_maximum_on_their_cadence():  # D67 / D68
     from pathlib import Path
 
     from app.config import load_rules
 
     root = Path(__file__).resolve().parents[3] / "config" / "rules"
-    for f in sorted(root.glob("lucid_pro_*.yaml")):
-        pc = load_rules(f).rules.payouts
+    gap = {"lucid_pro_25k": 10, "lucid_pro_50k": 10, "lucid_pro_100k": 5, "lucid_pro_150k": 5}  # trading days
+    for stem, n in gap.items():
+        pc = load_rules(root / f"{stem}.yaml").rules.payouts
         assert (pc.frequency, pc.mode, pc.min_sessions_between, pc.min_pct_of_cap) == (
             "every_n_sessions",
             "max_eligible",
-            10,
+            n,
             None,
-        ), f.stem
+        ), stem
