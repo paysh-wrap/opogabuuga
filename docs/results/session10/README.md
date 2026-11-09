@@ -179,3 +179,18 @@ accounts, payout every 2 weeks, first 12 months. Growth = +1 micro per $X of cus
 Notes: the 25K eval here is 63% / 35% (Dashboard engine, requires 1 profitable day, starts up to 130 sessions before the
 end) vs 66% / 32% in sim25k.py — same trades, slightly different start window. $40,000/yr from 5 accounts is NOT
 reached by any setting: best average is 5 × 50K at 2 micros ≈ $15,500 (typical year $9,000).
+
+## 17. Payout buffer + withdrawing only part of each payout (D61, five_year/take_share.py, 5 funded accounts, MAIN $250/$250)
+The $26,100 / $52,100 payout buffer is LUCID's rule (no payout may leave the balance below it) → cannot be removed.
+The app already withdraws everything above the buffer up to the cap. Leaving part of each payout in (to compound):
+| plan / size | take 100% | take 75% | take 50% |
+|---|---|---|---|
+| 25K, 1 micro | $317 per 2 wk · bust 57% | $256 · bust 46% | $168 · bust 43% |
+| 25K, 1 micro + grow/$1,000 | $348 · 56% | $282 · 49% | $193 · 47% |
+| 50K, 1 micro | $317 · 21% | $266 · 20% | $192 · 20% |
+| **50K, 2 micros** | **$595 · 52%** ($15,457/yr) | $468 · 46% | $317 · 43% |
+| 50K, 1 micro + grow/$1,000 | $436 · 29% | $342 · 27% | $239 · 27% |
+| 50K, 2 micros + grow/$1,000 | $521 · 59% | $413 · 57% | $281 · 55% |
+Leaving profit in lowers the bust rate a little but costs more income than the extra size earns back within a year.
+"$15k × 5": 5 × Pro 50K at 2 micros averages ≈ $15,500 per year IN TOTAL (≈ $3,100 per account); $15k per account is
+not reached by any setting.

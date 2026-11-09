@@ -130,3 +130,12 @@ def test_account_growth_sizing_and_eval_path():
     cons = EvalRulesView(D(25000), D(1250), D(1000), D(26100), D(25100), D(600), D(40), 3)
     assert eval_path([(D(1300),)], cons, 1)[0] == "OPEN"  # one day = 100% of the profit > 40%
     assert eval_path([(D(-500), D(-500))], cons, 1) == ("OPEN", 1)  # soft DLL stops the day at −600
+
+
+def test_partial_withdrawal_leaves_profit_to_compound():
+    full = funded_path([(D(400),)] * 20, PRO25, 1, 10)
+    half = funded_path([(D(400),)] * 20, PRO25, 1, 10, take=D("0.5"))
+    assert [a for _, a in half.payouts][0] == D("450.00")  # 50% of the $1,000 eligible = $500 request → 90% to you
+    assert half.paid < full.paid
+    tiny = funded_path([(D(400),)] * 10, PRO25, 1, 10, take=D("0.1"))  # 10% of $900 < $500 minimum → no payout
+    assert tiny.payouts == ()

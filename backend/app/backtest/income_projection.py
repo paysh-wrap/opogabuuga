@@ -113,6 +113,7 @@ def funded_path(
     cadence: int,
     grow_per: Decimal | None = None,
     max_micros: int = 5,
+    take: Decimal = Decimal(1),
 ) -> Path1:
     bal = peak = r.start
     floor = r.start - r.mll
@@ -139,6 +140,9 @@ def funded_path(
         floor = r.lock_level if peak >= r.lock_trigger else max(floor, peak - r.mll)
         if (n + 1) % cadence == 0 and (r.max_payouts is None or len(pays) < r.max_payouts):
             amt = payout_amount(r, bal, cycle, len(pays))
+            if take < 1 and amt > 0:  # D61: withdraw only part, leave the rest to compound (still ≥ min request)
+                amt = (amt * take).quantize(CENT)
+                amt = amt if amt >= r.min_request else ZERO
             if amt > 0:
                 bal -= amt
                 mine = (amt * r.split).quantize(CENT)
@@ -273,12 +277,13 @@ def project(
     days: Sequence[Sequence[Decimal]] | None = None,
     grow_per: Decimal | None = None,
     max_micros: int = 5,
+    take: Decimal = Decimal(1),
 ) -> Projection:
     if accounts < 1 or micros < 1 or cadence < 1 or horizon < cadence:
         raise ValueError("accounts, micros ≥ 1 and horizon ≥ cadence")
     all_days = list(days) if days is not None else list(research_days()[1])
     starts = range(0, max(1, len(all_days) - horizon), step)
-    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros) for i in starts]
+    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros, take) for i in starts]
     paid = [p.paid * accounts for p in paths]
     firsts = [p.payouts[0][0] for p in paths if p.payouts]
     n = len(paths)
