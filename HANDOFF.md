@@ -314,3 +314,6 @@ Known edge: exit+reverse on the same check may skip the new entry (position stil
 - D56 built: AI-only button `strategy.ai_bias` (paper only, default OFF) + hindsight 1y table (ai_only_bound.py). Backend 591 tests,
   mypy/ruff clean. Frontend tests NOT run this session (no node_modules in the cloud box): run `npm test`, tsc, eslint.
 - Not done: per-month fresh-account e2e backtests for the true NOISE trade count; AI ledger UI for ai_bias; DECISIONS.md D56 entry.
+- Session 10 later: D57 drawdown-scaled stop built + tested (risk 100% cov, 592 tests) but the app e2e (Jul–Aug 2026) got
+  WORSE (−$795 vs −$539) → ask the user: revert D57 or keep. 1-year comparisons + add-on test (PM fade on NOISE-free days:
+  NOISE+PM fade +$5,084 / pass 51% on ONE year, unverified multi-year) in docs/results/session10/README.md §4–7.

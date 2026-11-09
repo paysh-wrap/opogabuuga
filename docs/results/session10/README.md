@@ -61,3 +61,14 @@ promoted. ORB loses again. Per-trade CSVs are reproducible with the script.
 Funded columns of sim25k are meaningless on one year (runs are cut off) → only eval pass/bust shown. ONE year only:
 the session-9 VWAP-band fade (all days) failed 2019–2026; "only on days NOISE didn't trade" is new and unverified →
 needs the multi-year test (pick 2019–2023, judge 2024–2026) before it may trade anything but paper.
+
+## 7. D57 checked end-to-end in the app (MNQ Jul–Aug 2026, Pro 25K, fresh account, 45 sessions) — DID NOT HELP
+| | trades | P&L | blocked later signals |
+|---|---|---|---|
+| before D57 (pause at $500) | 6 | −$539 | RISK_BASE_BELOW_PAUSE ×3 (run stopped 29 Jul) |
+| **with D57 (scaled stop)** | 7 | **−$795** (bal $24,204.50) | DRAWDOWN_TOO_DEEP ×12 |
+On 28 Jul the tightened stops were hit (−$394 at a $393 stop, then −$158 at a $157 stop) where the 1% stop version lost
+−$295 on the trail exit. The account then sat $204 above the MLL and every later signal was too deep to trade.
+Read: NOISE's edge needs the wide stop; shrinking it in a drawdown turns trail exits into full stop-outs. One account,
+one bad July — but it is evidence AGAINST D57. User decision needed: revert D57 (back to the $500 pause), or keep it.
+Also: July 2026 alone was −$795 for NOISE at 1 micro on a fresh eval → the 42–47% bust rate is real.
