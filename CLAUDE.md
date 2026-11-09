@@ -101,7 +101,7 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   risk/{settings_store,holder} (versioned settings; app.state.rules = RulesHolder) · signals/{service,stats} ·
   webhook/ · api/{routes,webhook,signals,risk}.
 - `make test` fails below 100% coverage on risk/, management/, phases/ (§9). Never lower the bar to pass.
-- User prefs: all subagents on Sonnet. ALL backtesting/simulation runs go to agents (user, 2026-11-09) — the main session plans, checks and integrates. Focus MGC + MNQ futures only (no spot). Intraday > scalping. UI modes: Scalping,
+- User prefs: all subagents on Sonnet at HIGH effort (Agent calls: model sonnet, effort high — user 2026-11-09); the main session on Opus 5.5 at LOW effort (set by the user with /model, not by the agent). ALL backtesting/simulation runs go to agents — the main session plans, checks and integrates. Focus MGC + MNQ futures only (no spot). Intraday > scalping. UI modes: Scalping,
   Intraday, Low risk, 1:1. Target 3–5 trades/day total (MGC 2–4). Never break Lucid rules.
 - D42 (user 2026-11-06): MNQ OFF in all Pro/Flex plans — MGC only. D43: Scalp + 1:1 RETIRED (lost money after D39);
   risk/low_risk.retire_short_modes forces them off; UI options removed. Kept: Intraday + Lower risk.
