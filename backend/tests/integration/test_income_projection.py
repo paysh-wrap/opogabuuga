@@ -135,7 +135,7 @@ def test_account_growth_sizing_and_eval_path():
 def test_partial_withdrawal_leaves_profit_to_compound():
     full = funded_path([(D(400),)] * 20, PRO25, 1, 10)
     half = funded_path([(D(400),)] * 20, PRO25, 1, 10, take=D("0.5"))
-    assert [a for _, a in half.payouts][0] == D("450.00")  # 50% of the $1,000 eligible = $500 request → 90% to you
+    assert half.payouts[0][1] == D("450.00")  # 50% of the $1,000 eligible = $500 request → 90% to you
     assert half.paid < full.paid
     tiny = funded_path([(D(400),)] * 10, PRO25, 1, 10, take=D("0.1"))  # 10% of $900 < $500 minimum → no payout
     assert tiny.payouts == ()
