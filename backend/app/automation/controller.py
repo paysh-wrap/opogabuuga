@@ -426,17 +426,36 @@ class Controller:
             else None
         )
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
-        eval_sizing = bool(r.strategy.size_table_eval) and eval_mode_effective(
+        eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on
         )
         if eval_sizing:  # D66: Evaluation Mode for the MAIN strategy — EVAL stage only (pure check in risk/eval_mode)
-            table = r.strategy.size_table_eval
+            table = r.strategy.active_eval_table()  # D66 / D69 (High risk → size_table_eval_high)
         if strategy in ("NOISE", "PM_FADE") and table:  # D63: size by this account's own size
             size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
+            remaining_frac: Decimal | None = None
+            if eval_sizing:  # share of the eval target still to earn at the start of this session (D69 taper)
+                day0 = st.day_stats(s, a, now).day_profit
+                done = bal - day0 - (a.starting_balance or r.account_size)
+                remaining_frac = max(r.eval.profit_target - done, Decimal(0)) / r.eval.profit_target
             auto = auto_contracts(
                 size,
                 base,
-                [SizeTier(t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts) for t in table],
+                [
+                    SizeTier(
+                        t.account_size,
+                        t.mll,
+                        t.contracts,
+                        t.brake_below,
+                        t.brake_contracts,
+                        t.grow_per,
+                        t.max_contracts,
+                        t.taper_below_remaining,
+                        t.taper_contracts,
+                    )
+                    for t in table
+                ],
+                remaining_frac,
             )
             fixed = auto.contracts
             row = next((t for t in table if t.account_size == auto.tier), None)

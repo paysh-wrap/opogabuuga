@@ -22,8 +22,11 @@ export interface StrategiesResp {
   markets: Record<string, boolean>;
   size_profiles?: SizeProfiles;
 }
-export interface SizeTierRow { account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null }
-export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[] }
+export interface SizeTierRow {
+  account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
+  taper_below_remaining?: string | null; taper_contracts?: number | null;
+}
+export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[] }
 
 // D64: research numbers for each profile (5 funded accounts, payout every 2 weeks, 5-year MNQ replay — README §24)
 const PROFILE_NOTE: Record<string, string> = {
@@ -102,6 +105,14 @@ export default function StrategyButtons() {
                     ))}
                   </ul>
                   <p className="mt-1 text-xs text-blue">{PROFILE_NOTE[p]}</p>
+                  {(p === "high" ? d.size_profiles!.eval_high : d.size_profiles!.eval_regular)?.length ? (
+                    <p className="mt-1 text-xs" data-testid={`eval-size-${p}`}>
+                      <b className="text-gold">Evaluations</b> (EVAL accounts, Evaluation Mode on):{" "}
+                      {(p === "high" ? d.size_profiles!.eval_high : d.size_profiles!.eval_regular)!.map((t) => (
+                        <span key={t.account_size} className="mr-2">{k$(t.account_size)} {t.contracts}{t.taper_below_remaining ? ` → ${t.taper_contracts} once < ${Math.round(Number(t.taper_below_remaining) * 100)}% of the target is left` : ""}</span>
+                      ))}
+                    </p>
+                  ) : null}
                 </div>
               );
             })}

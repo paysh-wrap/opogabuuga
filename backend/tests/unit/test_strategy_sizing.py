@@ -42,3 +42,13 @@ def test_eval_growth_rows():  # D66
     assert auto_contracts(D(100000), D(9000), g).contracts == 4  # max_contracts
     b = auto_contracts(D(100000), D(899), g)
     assert b.contracts == 1 and b.braked  # brake still applies on top
+
+
+def test_eval_taper_sprint_then_protect():  # D69
+    t = [SizeTier(D(25000), D(1000), 4, None, None, None, None, D("0.5"), 1)]
+    assert auto_contracts(D(25000), D(1000), t, D(1)).contracts == 4  # nothing earned yet
+    assert auto_contracts(D(25000), D(1000), t, D("0.5")).contracts == 4  # exactly half left → still big
+    assert auto_contracts(D(25000), D(1600), t, D("0.49")).contracts == 1  # < 50% left → 1 micro
+    assert auto_contracts(D(25000), D(1000), t, None).contracts == 4  # no target info (funded) → no taper
+    both = [SizeTier(D(25000), D(1000), 4, D("0.5"), 2, None, None, D("0.5"), 1)]
+    assert auto_contracts(D(25000), D(400), both, D("0.8")).contracts == 2  # brake still applies on top

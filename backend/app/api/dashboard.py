@@ -227,6 +227,8 @@ def _tier(t: Any) -> dict[str, Any]:
         "contracts": t.contracts,
         "brake_below": None if t.brake_below is None else str(t.brake_below),
         "brake_contracts": t.brake_contracts,
+        "taper_below_remaining": None if t.taper_below_remaining is None else str(t.taper_below_remaining),
+        "taper_contracts": t.taper_contracts,
     }
 
 
@@ -338,5 +340,9 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "setting": "strategy.high_risk",
             "regular": [_tier(t) for t in r.strategy.size_table],
             "high": [_tier(t) for t in r.strategy.size_table_high],
+            "eval_regular": [
+                _tier(t) for t in r.strategy.size_table_eval
+            ],  # D66 / D69 — EVAL accounts, Evaluation Mode on
+            "eval_high": [_tier(t) for t in r.strategy.size_table_eval_high],
         },
     }

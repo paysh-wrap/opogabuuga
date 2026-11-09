@@ -598,3 +598,14 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - lucid_pro_100k / 150k payouts.min_sessions_between = 5 (weekly); 25K / 50K stay 10. Study (payout_timing_report.md,
   5 funded accts, per 2 wk · bust): 100K $643 · 26.0% → $702 · 27.5%; 150K Regular $881 · 23.5% → $954 · 24.5%; 150K High
   $952 · 26.8% → $1,064 · 27.9%. 25K / 50K every 5 would add ~9% income but +5–6 pts bust → kept at 10.
+
+## D69 (user 2026-11-09): Pro 25K High-risk evaluation (sprint then protect) + fix of D66 growth
+- strategy.size_table_eval_high (Pro plans): 25K evals trade 4 micros per signal and 1 micro once < 50% of the
+  $1,250 target remains (taper_below_remaining 0.5 → taper_contracts 1; pure risk/strategy_sizing); 50K/100K/150K rows
+  = the D66 eval rows. Used when Evaluation Mode is on (EVAL stage only) AND the High-risk button is on. Funded 25K stays
+  1 micro (2 micros funded: bust 64–73%, income −25–35%). Agent study (eval25k_report.md, 593 starts, 120 sessions):
+  1 micro 63% pass / 34% bust / median 36 sessions → B2 52% / 48% / 7 sessions; value per eval −17%.
+  Best variant (30-min NOISE checks + 5 entries + opening-drive as eval-only extras: 58% / 42%, median 7, value −9%)
+  NOT built: needs per-stage signals and opening-drive on EVAL accounts (D55: paper only) — needs user approval.
+- BUG FIXED: the D66 controller built SizeTier without grow_per / max_contracts, so 100K eval growth was ignored.
+  Test now asserts the growth reaches the sizing (test_eval_growth_row_is_applied_by_the_controller).

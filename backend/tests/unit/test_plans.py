@@ -128,6 +128,12 @@ def test_size_table_validation_and_plans():  # D63
         SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, grow_per=D(1200))  # no max_contracts
     with pytest.raises(ValidationError):
         SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, day_lock_pct=D(2))
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D("0.5"))  # needs both
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D(2), taper_contracts=1)
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=2, taper_below_remaining=D("0.5"), taper_contracts=2)
     root = Path(__file__).resolve().parents[3] / "config" / "rules"
     for f in sorted(root.glob("lucid_*.yaml")):
         st = load_rules(f).rules.strategy
@@ -147,6 +153,11 @@ def test_size_table_validation_and_plans():  # D63
             assert all(t.brake_below is not None for t in st.size_table_high if t.contracts > 1)  # brake on every row
             assert not st.high_risk and st.active_size_table() is st.size_table
             if f.stem.startswith("lucid_pro"):  # D66: Evaluation Mode table (Pro only — Flex evals were not studied)
+                hi = {t.account_size: t for t in st.size_table_eval_high}  # D69 high-risk evals
+                assert hi[D(25000)].contracts == 4 and hi[D(25000)].taper_contracts == 1
+                assert hi[D(25000)].taper_below_remaining == D("0.5") and hi[D(150000)].contracts == 4
+                assert st.active_eval_table() is st.size_table_eval
+                assert st.model_copy(update={"high_risk": True}).active_eval_table() is st.size_table_eval_high
                 ev = {t.account_size: t for t in st.size_table_eval}
                 assert ev[D(150000)].contracts == 4 and ev[D(25000)].contracts == 1
                 assert ev[D(100000)].grow_per == D(1200) and ev[D(100000)].max_contracts == 4

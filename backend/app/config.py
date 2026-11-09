@@ -310,6 +310,8 @@ class SizeTierCfg(_M):
     grow_per: D | None = None  # D66 (eval tables): +1 micro per grow_per $ of cushion beyond the first
     max_contracts: int | None = None
     day_lock_pct: D | None = None  # D66 (eval tables): stop for the day once today's profit ≥ x × remaining target
+    taper_below_remaining: D | None = None  # D69 (eval tables): fraction of the target still to earn
+    taper_contracts: int | None = None  # D69: micros once less than that fraction of the target remains
 
     @model_validator(mode="after")
     def _valid(self) -> SizeTierCfg:
@@ -319,6 +321,15 @@ class SizeTierCfg(_M):
             raise ValueError("size_table: grow_per > 0 needs max_contracts ≥ contracts")
         if self.day_lock_pct is not None and not (D(0) < self.day_lock_pct <= D(1)):
             raise ValueError("size_table: 0 < day_lock_pct ≤ 1")
+        if (self.taper_below_remaining is None) != (self.taper_contracts is None):
+            raise ValueError("size_table: taper_below_remaining and taper_contracts go together")
+        bad_taper = (
+            self.taper_below_remaining is not None
+            and self.taper_contracts is not None
+            and (not (D(0) < self.taper_below_remaining < D(1)) or not (1 <= self.taper_contracts < self.contracts))
+        )
+        if bad_taper:
+            raise ValueError("size_table: 0 < taper_below_remaining < 1 and 1 ≤ taper_contracts < contracts")
         if self.account_size <= 0 or self.mll <= 0 or self.contracts < 1:
             raise ValueError("size_table: account_size, mll > 0 and contracts ≥ 1")
         if (self.brake_below is None) != (self.brake_contracts is None):
@@ -358,6 +369,10 @@ class StrategyCfg(_M):
 
     # D66: Evaluation Mode (EVAL stage only, non-negotiable 10) sizes NOISE / PM_FADE from this table when present
     size_table_eval: list[SizeTierCfg] = []
+    size_table_eval_high: list[SizeTierCfg] = []  # D69: Evaluation Mode when the High-risk button is on
+
+    def active_eval_table(self) -> list[SizeTierCfg]:
+        return self.size_table_eval_high if self.high_risk and self.size_table_eval_high else self.size_table_eval
 
     def active_size_table(self) -> list[SizeTierCfg]:
         return self.size_table_high if self.high_risk and self.size_table_high else self.size_table

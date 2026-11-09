@@ -96,6 +96,11 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
     - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1, grow_per: 1200, max_contracts: 4, day_lock_pct: 0.33}
     - {account_size: 150000, mll: 4500, contracts: 4, brake_below: 0.5, brake_contracts: 2}
+  size_table_eval_high:   # D69 (user 2026-11-09): HIGH-RISK evals — 25K: 4 micros, 1 micro once < 50% of the target remains
+    - {account_size: 25000, mll: 1000, contracts: 4, taper_below_remaining: 0.5, taper_contracts: 1}
+    - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
+    - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1, grow_per: 1200, max_contracts: 4, day_lock_pct: 0.33}
+    - {account_size: 150000, mll: 4500, contracts: 4, brake_below: 0.5, brake_contracts: 2}
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0

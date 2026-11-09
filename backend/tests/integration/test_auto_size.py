@@ -6,7 +6,7 @@ from decimal import Decimal as D
 
 from app.clock import FixedClock
 from app.engine.trade_plan import Direction
-from app.models import AuditLog
+from app.models import Account, AuditLog, Order
 from app.signals import strategy_service as SS
 
 AT = datetime(2026, 10, 13, 15, 0, tzinfo=UTC)  # Tue 11:00 ET
@@ -105,7 +105,8 @@ def test_high_risk_profile_switches_table(authed, clock):  # D64
         assert s.query(AuditLog).filter_by(action="trade.auto_size").one().payload["profile"] == "HIGH"
     # the Strategy page shows both profiles and saves the switch through versioned settings
     body = authed.get("/api/strategies").json()["size_profiles"]
-    assert set(body) == {"active", "setting", "regular", "high"} and body["setting"] == "strategy.high_risk"
+    assert set(body) == {"active", "setting", "regular", "high", "eval_regular", "eval_high"}
+    assert body["setting"] == "strategy.high_risk"
 
 
 def test_eval_mode_uses_eval_table_only_on_eval_accounts(authed, clock):  # D66
@@ -199,3 +200,83 @@ def test_eval_day_lock_in_stops_the_day(authed, clock, monkeypatch):  # D66
         sid = sig.id
     res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
     assert res[0].reason == "EVAL_DAY_LOCK", res
+
+
+def _eval_account(authed, clock, balance="25000"):
+    clock.set(AT)
+    aid = authed.post("/api/accounts", json={"label": "E", "stage": "EVAL", "balance": balance}).json()["id"]
+    assert authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True}).status_code == 200
+    authed.post("/api/attestation", json={"confirm": True})
+    assert (
+        authed.put("/api/risk/eval-mode", json={"enabled": True, "confirm": "ENABLE EVALUATION MODE"}).status_code
+        == 200
+    )
+    authed.app.state.controller.mode = "FULL"
+    return aid
+
+
+def _signal(st):
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(
+            s,
+            FixedClock(AT),
+            symbol="MNQ",
+            key="MNQ-NOISE-2026-10-13-1",
+            direction=Direction.LONG,
+            at=AT,
+            gate=(True, "OK", ""),
+            features={"reason": "test"},
+            plan=("NOISE", D(20000), D(19876), D(20050), D(124), D("0.40")),
+        )
+        s.commit()
+        return sig.id
+
+
+def test_eval_growth_row_is_applied_by_the_controller(authed, clock):  # D66 — the growth rule must reach the sizing
+    from app.config import SizeTierCfg
+
+    st = authed.app.state
+    aid = _eval_account(authed, clock, "100000")
+    h = st.controller.rules
+    ev = [SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, grow_per=D(400), max_contracts=4)]
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update={"size_table_eval": ev})})
+    res = asyncio.run(st.controller.execute(_signal(st), "automation", only=[aid]))
+    fixed = next(c for c in res[0].checks if c["check"] == "fixed_size")
+    # this test plan's loss limit is $1,000 → cushion $1,000 → 2 + (1,000 // 400 − 1) = 3 micros (was ignored before)
+    assert fixed["contracts"] == "3"
+
+
+def test_high_risk_eval_taper_on_25k(authed, clock, monkeypatch):  # D69 sprint then protect
+    from app.config import SizeTierCfg
+
+    st = authed.app.state
+    aid = _eval_account(authed, clock, "25000")
+    h = st.controller.rules
+    hi = [
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D("0.5"), taper_contracts=1)
+    ]
+    reg = [SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=1)]
+    strat = h.rules.strategy.model_copy(update={"size_table_eval": reg, "size_table_eval_high": hi, "high_risk": True})
+    h.rules = h.rules.model_copy(update={"strategy": strat})
+    sid = _signal(st)
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    assert next(c for c in res[0].checks if c["check"] == "fixed_size")["contracts"] == "4"  # nothing earned yet
+    real = st.controller._equity
+
+    async def ahead(a):  # +$700 earned: 44% of the $1,250 target left → below 50% → protect with 1 micro
+        bal, opnl = await real(a)
+        return bal + D(700), opnl
+
+    monkeypatch.setattr(st.controller, "_equity", ahead)
+    with (
+        st.sessionmaker() as s
+    ):  # the paper broker has no price in this test: the first order failed and paused the account
+        s.query(Order).delete()
+        acct = s.get(Account, aid)
+        acct.paused_reason, acct.armed = None, True
+        s.commit()
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    assert next(c for c in res[0].checks if c["check"] == "fixed_size")["contracts"] == "1"
+    with st.sessionmaker() as s:
+        profiles = [x.payload["profile"] for x in s.query(AuditLog).filter_by(action="trade.auto_size")]
+    assert profiles == ["EVAL", "EVAL"]
