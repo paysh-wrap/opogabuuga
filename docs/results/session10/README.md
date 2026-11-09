@@ -341,3 +341,15 @@ uncorrelated with MNQ (≈ 0.0) but losing → no diversification. M2K / MYM ski
 constraint for this spiky strategy: ≈ 90%+ of otherwise-eligible payout checks fail on consistency alone at either 40%
 or 50%, 53–76% of cycles are blocked at least once, waiting a median 8–15 sessions. A day-stop (stop for the day at
 35% / 45% of cycle profit) does not unblock payouts (it only trims bust 1–6 pts) → not added. Flex eval: 50% ≈ no change.
+
+## 30. Payout pace for SURVIVING accounts (agent, survivor_pace_report.md; live sizes + cadence 10/10/5/5/5)
+| plan | all accts payouts/yr | survivors payouts/yr | survivors mean $ paid in yr 1 | median session of 1st payout | median sessions between payouts | 5 accts per 2 wk: all → survivors |
+|---|---|---|---|---|---|---|
+| 25K | 1.65 | 3.08 | $3,125 | 80 | 40 | $317 → $601 |
+| 50K | 1.70 | 2.77 | $4,865 | 70 | 30 | $564 → $936 |
+| 100K | 2.04 | 2.73 | $4,924 | 85 | 30 | $702 → $947 |
+| 150K Reg | 2.13 | 2.78 | $6,531 | 75 | 30 | $954 → $1,256 |
+| 150K High | 2.11 | 2.85 | $7,551 | 70 | 30 | $1,064 → $1,452 |
+Checking every 5–10 sessions does not raise the pace: only 6–12% of checks after the first payout pay out (blocked: cycle
+profit below the minimum 37–55%, consistency 39–51%). A surviving account pays ≈ every 30–45 sessions (≈ 3 a year after a
+≈ 70–85-session ramp). No 5-payout cap ≈ same. 2024+ starts are worse (bust 43–49% on 50K–150K; consistency blocks 57–65%).
