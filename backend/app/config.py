@@ -241,6 +241,9 @@ class NoiseCfg(_M):
     flat_at: str = "16:00"  # every NOISE position is closed on the 16:00 bar
     emergency_stop_pct: D = D("0.01")  # broker-side safety stop, 1% of price (0.3–0.5% cut winners — research)
     take_profit_pct: D = D("0.10")  # broker-side far target (safety only; the trailing rule exits)
+    # D58 (user 2026-11-09): fixed-dollar emergency stop per contract (replaces emergency_stop_pct when set). 5-year
+    # study (docs/results/session10 §10–12): $250 ties 1% on PF (1.36 vs 1.35), no losing year, worst trade −$250.
+    emergency_stop_usd: D | None = D("250")
     max_entries_per_day: int = 3
     contracts: int = 1  # fixed size (user: Pro 25K at 1 micro); still subject to every pre-trade risk check
     roll_gap_pct: D = D("0.015")  # |RTH open / prior RTH close − 1| above this → contract roll or shock: no trades
@@ -278,6 +281,24 @@ class AiBiasCfg(_M):
     paper_only: bool = True
 
 
+class PmFadeCfg(_M):
+    """D58 (user 2026-11-09): afternoon VWAP-band fade on MNQ, ONLY when NOISE has not traded today; paper first.
+    Rules (docs/results/session10/five_year/stops_250.py, 5y with NOISE: pass 66% / bust 32%): on each 1-minute close
+    from 13:01 to 15:29 ET, sd = population std of (close − VWAP) over today's RTH bars so far; close > VWAP + band·sd →
+    SHORT, close < VWAP − band·sd → LONG, at market; target = VWAP at the signal; fixed $ stop; flat 15:55; 1 per day;
+    skip when the target is < min_target_ticks away. Research fills at the next bar open (≈ the signal close)."""
+
+    symbol: str = "MNQ"
+    first_signal: str = "13:01"  # close time of the first bar that may signal (bar opening 13:00)
+    last_signal: str = "15:29"
+    band_sd: D = D("2.0")
+    stop_usd: D = D("250")
+    min_target_ticks: int = 4
+    flat_at: str = "15:55"
+    contracts: int = 1
+    paper_only: bool = True
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
     they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
@@ -286,6 +307,7 @@ class StrategyCfg(_M):
     noise: bool = False
     open_drive: bool = False
     ai_bias: bool = False
+    pm_fade: bool = False
     # D57: NOISE / AI_BIAS scale their emergency stop down as the account draws down instead of pausing at the pause
     # floor: worst case ≤ this fraction of the room (DLL left / distance to MLL − kill distance); None = old pause.
     drawdown_shrink: D | None = D("0.6")
@@ -293,6 +315,7 @@ class StrategyCfg(_M):
     noise_cfg: NoiseCfg = NoiseCfg()
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
+    pm_fade_cfg: PmFadeCfg = PmFadeCfg()
 
 
 class ScoreCfg(_M):

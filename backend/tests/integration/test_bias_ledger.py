@@ -75,15 +75,15 @@ def test_strategies_endpoint(authed):
     assert r.status_code == 200, r.text
     body = r.json()
     keys = [x["key"] for x in body["strategies"]]
-    assert keys == ["noise", "lunqfx", "open_drive", "ai_bias"]
-    noise = body["strategies"][0]
+    assert keys == ["pm_fade", "noise", "lunqfx", "open_drive", "ai_bias"]
+    noise = body["strategies"][1]
     assert noise["win_pct"] == 45.0 and noise["pro25k_pass_pct"] == 56.9 and noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10
     # the button saves through versioned My Settings
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.noise": True}, "note": "test"})
     assert r.status_code == 200, r.text
-    assert authed.get("/api/strategies").json()["strategies"][0]["enabled"] is True
+    assert authed.get("/api/strategies").json()["strategies"][1]["enabled"] is True
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_bias": True}, "note": "test"})
     assert r.status_code == 200, r.text
-    ai = authed.get("/api/strategies").json()["strategies"][3]
+    ai = authed.get("/api/strategies").json()["strategies"][4]
     assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "PAPER ONLY"

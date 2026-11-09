@@ -5,6 +5,7 @@ import StrategyButtons, { type StrategiesResp } from "./StrategyButtons";
 
 const resp: StrategiesResp = {
   strategies: [
+    { key: "pm_fade", name: "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)", source: "s", verified: true, status: "MAIN · fade on PAPER first", win_pct: 50, profit_factor: 1.33, usd_per_trade: 19.63, trades_per_week: 5.2, held_out_trades: 1291, pro25k_pass_pct: 65.7, pro25k_bust_pct: 32.2, period: "p", note: "n", enabled: false, setting: "strategy.pm_fade", also: ["strategy.noise"] },
     { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
     { key: "lunqfx", name: "LunqFX fractal (original strategy)", source: "s", verified: false, status: "ORIGINAL", win_pct: 35, profit_factor: 1.07, usd_per_trade: 1.98, trades_per_week: 4.7, held_out_trades: 248, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "p", note: "n", enabled: false, setting: "strategy.lunqfx" },
     { key: "open_drive", name: "Opening-drive pullback (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: 58.3, profit_factor: 1.29, usd_per_trade: 9.95, trades_per_week: 0.75, held_out_trades: 108, pro25k_pass_pct: 4.8, pro25k_bust_pct: 8.8, period: "p", note: "n", enabled: false, setting: "strategy.open_drive" },
@@ -35,4 +36,9 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(btn).toHaveAttribute("aria-pressed", "false");
   await userEvent.click(btn);
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.lunqfx":true'))).toBe(true));
+  // D58: the MAIN card is first and turns NOISE on with the fade
+  expect(screen.getAllByRole("button")[0]).toHaveTextContent("MAIN");
+  expect(screen.getByTestId("pass-pm_fade")).toHaveTextContent("65.7%");
+  await userEvent.click(screen.getByRole("button", { name: /OFF · MAIN/ }));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.pm_fade":true,"strategy.noise":true'))).toBe(true));
 });

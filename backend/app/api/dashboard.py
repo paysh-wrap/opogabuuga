@@ -305,6 +305,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "lunqfx": r.strategy.lunqfx,
         "open_drive": r.strategy.open_drive,
         "ai_bias": r.strategy.ai_bias,
+        "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
     }
     nc = r.strategy.noise_cfg
     stored = [

@@ -40,7 +40,7 @@ from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
-STRATEGY_MODES = ("NOISE", "OPEN_DRIVE", "AI_BIAS")  # D55: TradePlan modes of the fixed-size strategies
+STRATEGY_MODES = ("NOISE", "OPEN_DRIVE", "AI_BIAS", "PM_FADE")  # D55: TradePlan modes of the fixed-size strategies
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
 
@@ -350,7 +350,11 @@ class Controller:
         equity = bal + opnl
         base = risk_base(equity, mll.mll)
         strategy = plan0.mode if plan0.mode in STRATEGY_MODES else ""
-        paper_only = {"OPEN_DRIVE": r.strategy.open_drive_cfg.paper_only, "AI_BIAS": r.strategy.ai_bias_cfg.paper_only}
+        paper_only = {
+            "OPEN_DRIVE": r.strategy.open_drive_cfg.paper_only,
+            "AI_BIAS": r.strategy.ai_bias_cfg.paper_only,
+            "PM_FADE": r.strategy.pm_fade_cfg.paper_only,
+        }
         if paper_only.get(strategy) and not a.is_sim:
             return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # D55/D56: not verified → paper accounts only
         one_to_one = (
@@ -427,6 +431,7 @@ class Controller:
                     "NOISE": r.strategy.noise_cfg.contracts,
                     "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
                     "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
+                    "PM_FADE": r.strategy.pm_fade_cfg.contracts,
                 }[strategy]
                 if strategy
                 else None

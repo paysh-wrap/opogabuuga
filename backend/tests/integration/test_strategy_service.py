@@ -87,7 +87,7 @@ def test_noise_warmup_entry_exit_and_flat(db, loaded_rules):
         assert sig.direction == "LONG" and sig.features["strategy"] == "NOISE" and sig.features["state"] == "OPEN"
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert plan.mode == "NOISE" and plan.stop < plan.entry < plan.take_profit
-        assert float((plan.entry - plan.stop) / plan.entry) == pytest.approx(0.01, abs=1e-4)
+        assert plan.entry - plan.stop == D(124)  # D58: fixed $250 emergency stop (1 micro MNQ)
         # a non-check minute does nothing
         assert (
             SS.run(
@@ -281,3 +281,68 @@ def test_ai_bias_trades_only_when_both_tools_agree(db, loaded_rules):
         sig = s.get(Signal, out.updates[0].signal_id)
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert sig.direction == "SHORT" and plan.mode == "AI_BIAS" and plan.stop > plan.entry
+
+
+def test_pm_fade_fades_a_stretch_only_on_noise_free_days(db, loaded_rules):
+    rules = _rules(loaded_rules, pm_fade=True)
+    today = _sessions(2)[-1]
+    k_sig = 211  # bar closing 13:02
+    with db() as s:
+        # flat at 20000 all morning, then a jump to 20100 at 13:01–13:02 → far above VWAP + 2 sd
+        _add_day(s, today, {k: (D(20100) if k >= 210 else D(20000)) for k in range(212)})
+        s.commit()
+        at = today + timedelta(minutes=k_sig + 1)
+        out = SS.run(s, rules=rules, clock=FixedClock(at), calendar=lambda _d: [], symbol="MNQ", tf="1", at=at)
+        assert len(out.updates) == 1 and out.updates[0].status == "PASS"
+        sig = s.get(Signal, out.updates[0].signal_id)
+        plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
+        assert sig.direction == "SHORT" and plan.mode == "PM_FADE" and plan.stop - plan.entry == D(124)
+        assert plan.take_profit < plan.entry and sig.features["paper_only"] is True
+        # one per day
+        at2 = at + timedelta(minutes=1)
+        assert (
+            SS.run(s, rules=rules, clock=FixedClock(at2), calendar=lambda _d: [], symbol="MNQ", tf="1", at=at2).updates
+            == []
+        )
+        # flat at 15:55
+        flat = today + timedelta(minutes=385)  # bar closing 15:55
+        out = SS.run(s, rules=rules, clock=FixedClock(flat), calendar=lambda _d: [], symbol="MNQ", tf="1", at=flat)
+        assert out.exits == [(sig.id, "FADE_FLAT_1555")]
+
+
+def test_pm_fade_skips_when_noise_traded_or_target_too_close(db, loaded_rules):
+    rules = _rules(loaded_rules, pm_fade=True)
+    d1, d2 = _sessions(3)[-2:]
+    with db() as s:
+        _add_day(s, d1, {k: (D(20100) if k >= 210 else D(20000)) for k in range(212)})
+        s.add(
+            Signal(
+                symbol="MNQ",
+                profile="TIGHT",
+                direction="LONG",
+                model_key=f"MNQ-NOISE-{d1.date().isoformat()}-1",
+                bar_time=d1,
+                status="PASS",
+                passed=True,
+                features={"state": "CLOSED"},
+                updated_at=d1,
+            )
+        )
+        # tiny stretch: 0.5 pt above a VWAP of ~20000 with a tiny sd → target < 4 ticks away
+        _add_day(s, d2, {k: (D("20000.75") if k >= 210 else D(20000)) for k in range(212)}, vol=D(100))
+        s.commit()
+        at = d1 + timedelta(minutes=212)
+        assert (
+            SS.run(s, rules=rules, clock=FixedClock(at), calendar=lambda _d: [], symbol="MNQ", tf="1", at=at).updates
+            == []
+        )
+        at = d2 + timedelta(minutes=212)
+        out = SS.run(s, rules=rules, clock=FixedClock(at), calendar=lambda _d: [], symbol="MNQ", tf="1", at=at)
+        assert len(out.updates) == 1 and out.updates[0].status == "SKIP" and out.updates[0].reason == "TARGET_TOO_CLOSE"
+        before = d2 + timedelta(minutes=100)  # outside 13:01–15:29 → nothing
+        assert (
+            SS.run(
+                s, rules=rules, clock=FixedClock(before), calendar=lambda _d: [], symbol="MNQ", tf="1", at=before
+            ).updates
+            == []
+        )

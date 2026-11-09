@@ -31,7 +31,9 @@ def _one(args: tuple[str, str, str, str, bool, bool, bool]) -> dict[str, Any]:
 
     bars = load_csv(Path(path).read_text())
     src = "spot" if any(x in Path(path).name.lower() for x in ("xauusd", "xau", "spot")) else "futures"
-    cfg = BacktestConfig(symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp, data_source=src, low_risk=low_risk)
+    cfg = BacktestConfig(
+        symbol=symbol, bias=bias, one_to_one=one_to_one, scalp=scalp, data_source=src, low_risk=low_risk
+    )
     r = run_backtest(bars, cfg, Path(plan))
     return {
         "file": Path(path).name,

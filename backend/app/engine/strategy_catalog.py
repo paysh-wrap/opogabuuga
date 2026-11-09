@@ -9,6 +9,25 @@ from __future__ import annotations
 
 CATALOG: list[dict[str, object]] = [
     {
+        "key": "pm_fade",
+        "name": "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)",
+        "source": "D58: NOISE (fixed $250 emergency stop) + 13:00–15:29 VWAP ±2 sd fade on days NOISE didn't trade",
+        "verified": True,
+        "status": "MAIN · fade on PAPER first",
+        "win_pct": 50.0,
+        "profit_factor": 1.33,
+        "usd_per_trade": 19.63,
+        "trades_per_week": 5.2,
+        "held_out_trades": 1291,
+        "pro25k_pass_pct": 65.7,
+        "pro25k_bust_pct": 32.2,
+        "period": "5 years 2021-11 → 2026-10 (Databento MNQ, 1 micro): +$25,345, no losing full year; pass 71% "
+        "(2021–23) / 66% (2024–26)",
+        "note": "Turns NOISE + the fade on together. The fade trades paper accounts only until it proves itself live. "
+        "Grid of stop sizes: fade $200–400 all ≈ equal; NOISE $250 is a narrow peak (±$50 → ≈ 60% pass).",
+        "also": ["strategy.noise"],
+    },
+    {
         "key": "noise",
         "name": "NOISE — intraday momentum (MNQ)",
         "source": "Zarattini, Aziz & Barbon 2024, 'Beat the Market' (noise-area bands, VWAP trail)",

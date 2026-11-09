@@ -511,3 +511,15 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Evidence (README §7): app e2e Jul–Aug 2026 got worse (−$795 vs −$539: tightened stops hit). User reviewed and chose
   to keep it as is (2026-11-09). Also kept: NOISE 1% stop ($250 / $80–120 fixed stops tested on 1 year, §8–9: not
   better for the Pro 25K pass rate).
+
+## D58 (user 2026-11-09, session 10): NOISE fixed $250 emergency stop + afternoon fade = MAIN strategy button
+- NOISE emergency stop = fixed $250 per contract (noise_cfg.emergency_stop_usd, 124 pts on MNQ: (250 − $1 fee − 2 ticks
+  slippage) / $2); null → the old 1% stop. Parity with the research script tested for both. 5 years: PF 1.36, no losing
+  year, worst trade −$250. Grid caveat: NOISE $250 is a narrow peak (±$50 → ≈ 60% pass) — watch it live.
+- PM_FADE (engine/pm_fade.py pure, strategy_service.run_pm_fade): 13:01–15:29 ET, close beyond VWAP ± 2.0 × population sd
+  of (close − VWAP) today → fade at market, target = VWAP, fixed $250 stop, flat 15:55, 1 per day, only when NOISE has
+  no PASS signal today; a too-near target (< 4 ticks) ends the day (TARGET_TOO_CLOSE), like research. PAPER accounts only.
+  Live difference to research: research skips days NOISE trades at ANY time; live can only know "no NOISE trade yet"
+  (a later NOISE signal is then blocked by the one-position rule while the fade is open).
+- Strategy page: MAIN card first ("NOISE + Afternoon fade"), ON switches strategy.pm_fade + strategy.noise; ON in all
+  Pro/Flex plans. Research: NOISE $250 + fade $250, 5 years 1 micro: +$25,345, PF 1.33, Pro 25K pass 66% / bust 32%.

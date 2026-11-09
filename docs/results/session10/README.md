@@ -144,3 +144,9 @@ $26,100 buffer, ≥ $500 request, 40% consistency, caps $1,000 / $1,500, max 5).
 Payouts in year 1 (best set): 0 → 42%, 1 → 12%, 2 → 9%, 3 → 17%, 4 → 15%, 5 → 4%. Worst 25% of starts: $0 (all 5 bust
 before a payout, together). Maximum possible per account = (1,000 + 4 × 1,500) × 90% = $6,300 → $31,500 for 5. Eval fees
 and resets are NOT subtracted (user's fee needed); a busted funded account needs a new eval (pass ≈ 66%).
+
+## 14. Stop-size grid, NOISE $150–520 × fade $100–400 (five_year/stop_grid_report.md, 49 combos, 5 years)
+Only 250/200 (66.2% / 31.6%, $1,080 per eval) and 250/350 (66.5% / 31.3%) beat 66% pass with ≤ 32% bust — by < 1 point.
+Fade axis: $200–400 is a flat plateau (≈ 65–67% pass) → the fade stop barely matters. NOISE axis: only the $250 row is
+good; $200 and $300 drop to 57–63% pass / 37–43% bust → $250 is a narrow, probably sample-specific peak. Wider NOISE
+stops ($350–400) pay more per pass ($1,240 per eval) but bust 37–38%. Built: NOISE $250 + fade $250 (centre of the plateau).

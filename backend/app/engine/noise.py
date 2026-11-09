@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, time
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 
 from app.clock import ET
 from app.engine.trade_plan import Direction, round_to_tick
@@ -152,10 +152,30 @@ def decide(
     return tuple(out) or (NoiseAction("NONE", None, "INSIDE_NOISE_AREA", **info),)
 
 
-def plan(direction: Direction, entry: Decimal, tick: Decimal, stop_pct: Decimal, tp_pct: Decimal) -> NoisePlan:
-    """Broker bracket: emergency stop stop_pct away (rounded away from entry), safety target tp_pct away (toward)."""
+def stop_pts_for_usd(usd: Decimal, tick: Decimal, tick_value: Decimal, fee_rt: Decimal, slip_ticks: int) -> Decimal:
+    """D58: points of a fixed-dollar emergency stop per contract: usd = pts·(tick_value/tick) + fee + slippage on entry
+    and exit (2 × slip_ticks), floored to the tick grid. MNQ $250 → (250 − 1 − 1) / 2 = 124 pts (research script)."""
+    ticks = ((usd - fee_rt - 2 * slip_ticks * tick_value) / tick_value).to_integral_value(rounding=ROUND_FLOOR)
+    if ticks < 1:
+        raise ValueError(f"stop of ${usd} does not cover costs")
+    return ticks * tick
+
+
+def plan(
+    direction: Direction,
+    entry: Decimal,
+    tick: Decimal,
+    stop_pct: Decimal,
+    tp_pct: Decimal,
+    stop_pts: Decimal | None = None,
+) -> NoisePlan:
+    """Broker bracket: emergency stop stop_pct away — or exactly stop_pts away when given (D58 fixed-dollar stop) —
+    rounded away from entry; safety target tp_pct away (toward)."""
     s = direction.sign
-    stop = round_to_tick(entry * (1 - s * stop_pct), tick, away_from=entry)
+    if stop_pts is not None:
+        stop = entry - s * stop_pts
+    else:
+        stop = round_to_tick(entry * (1 - s * stop_pct), tick, away_from=entry)
     tp = round_to_tick(entry * (1 + s * tp_pct), tick, toward=entry)
     risk = (entry - stop) * s
     return NoisePlan(direction, entry, stop, tp, risk, ((tp - entry) * s / risk).quantize(Decimal("0.01")))

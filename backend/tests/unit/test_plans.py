@@ -101,7 +101,12 @@ def test_strategy_buttons_d55(plan):
     assert s.noise and not s.lunqfx and not s.open_drive
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
-    assert n.emergency_stop_pct == D("0.01") and n.contracts == 1 and n.max_entries_per_day == 3
+    assert (
+        n.emergency_stop_pct == D("0.01")
+        and n.emergency_stop_usd == D(250)
+        and n.contracts == 1
+        and n.max_entries_per_day == 3
+    )
     assert s.open_drive_cfg.paper_only
 
 

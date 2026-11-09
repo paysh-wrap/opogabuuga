@@ -23,6 +23,7 @@ from app.clock import ET, Clock
 from app.config import RulesConfig
 from app.engine import noise as N
 from app.engine import open_drive as OD
+from app.engine import pm_fade as PF
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
 from app.models import Bar, BiasDecision, Signal, SignalGate, TradePlanRow
@@ -194,7 +195,9 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
             out.exits.append((open_sig.id, a.reason))
             open_sig = None
         elif a.kind == "ENTER" and a.direction is not None:
-            p = N.plan(a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct)
+            p = N.plan(
+                a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules)
+            )
             entries += 1
             gate = _gate(rules, cfg.symbol, at, calendar)
             if gate[0]:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
@@ -290,6 +293,88 @@ def run_open_drive(
     return out
 
 
+def noise_stop_pts(rules: RulesConfig) -> Decimal | None:
+    """D58: NOISE fixed-dollar emergency stop in points (None = the % stop)."""
+    cfg = rules.strategy.noise_cfg
+    if cfg.emergency_stop_usd is None:
+        return None
+    inst = rules.instrument(cfg.symbol)
+    slip = inst.slippage_ticks or rules.trade_plan.slippage_ticks
+    return N.stop_pts_for_usd(cfg.emergency_stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+
+
+def run_pm_fade(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
+) -> StrategyOutput:
+    """D58: afternoon VWAP-band fade, only on a day NOISE has not traded (no NOISE PASS signal yet), 1 per day."""
+    cfg = rules.strategy.pm_fade_cfg
+    out = StrategyOutput()
+    k = N.minute_index(at)
+    day = at.astimezone(ET).date().isoformat()
+    if k == N.hhmm_to_k(cfg.flat_at):
+        for x in _today_signals(s, cfg.symbol, "FADE", day):
+            if x.features.get("state") == "OPEN":
+                _close(x, "FADE_FLAT_1555", at, clock)
+                out.exits.append((x.id, "FADE_FLAT_1555"))
+        return out
+    if not N.hhmm_to_k(cfg.first_signal) <= k <= N.hhmm_to_k(cfg.last_signal):
+        return out
+    if _today_signals(s, cfg.symbol, "FADE", day):
+        return out  # one per day (a skipped signal also ends the day)
+    if any(x.status == "PASS" for x in _today_signals(s, cfg.symbol, "NOISE", day)):
+        return out  # NOISE traded today → no fade
+    days = load_days(s, cfg.symbol, at)
+    if not days or days[-1].day != day or k not in days[-1].bars:
+        return out
+    bars = [b for kk, b in sorted(days[-1].bars.items()) if kk <= k]
+    vws = PF.running_vwaps([(b.h, b.l, b.c, b.v) for b in bars])
+    inst = rules.instrument(cfg.symbol)
+    slip = inst.slippage_ticks or rules.trade_plan.slippage_ticks
+    stop_pts = N.stop_pts_for_usd(cfg.stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+    close = days[-1].bars[k].c
+    d = PF.decide(
+        close=close,
+        vwap=vws[-1],
+        sd=PF.dev_sd([b.c for b in bars], vws),
+        band=cfg.band_sd,
+        tick=inst.tick,
+        stop_pts=stop_pts,
+        min_target_ticks=cfg.min_target_ticks,
+    )
+    if d is None:
+        return out
+    if isinstance(d, str):  # research: a too-near target ends the fade for the day — record it as a skip
+        sig = Signal(
+            symbol=cfg.symbol,
+            profile="TIGHT",
+            direction=Direction.LONG.value if close < (vws[-1] or close) else Direction.SHORT.value,
+            model_key=f"{cfg.symbol}-FADE-{day}",
+            bar_time=at,
+            status="SKIP",
+            passed=False,
+            skip_reason=d,
+            features={"strategy": "PM_FADE", "state": "SKIPPED"},
+            updated_at=clock.now(),
+        )
+        s.add(sig)
+        s.flush()
+        out.updates.append(SignalUpdate(sig.id, sig.model_key, sig.status, sig.skip_reason, None))
+        return out
+    new = _new_signal(
+        s,
+        clock,
+        symbol=cfg.symbol,
+        key=f"{cfg.symbol}-FADE-{day}",
+        direction=d.direction,
+        at=at,
+        gate=_gate(rules, cfg.symbol, at, calendar),
+        features={"vwap": str(d.vwap), "sd": str(d.sd), "close": str(close), "k": k, "paper_only": cfg.paper_only},
+        plan=("PM_FADE", d.entry, d.stop, d.take_profit, d.risk_pts, d.rr),
+    )
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run_ai_bias(
     s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
 ) -> StrategyOutput:
@@ -354,6 +439,10 @@ def run(
         out.exits += r.exits
     if st.open_drive and symbol == st.open_drive_cfg.symbol:
         r = run_open_drive(s, rules, clock, calendar, at)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.pm_fade and symbol == st.pm_fade_cfg.symbol:
+        r = run_pm_fade(s, rules, clock, calendar, at)
         out.updates += r.updates
         out.exits += r.exits
     if st.ai_bias and symbol == st.ai_bias_cfg.symbol:

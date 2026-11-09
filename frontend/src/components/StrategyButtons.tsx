@@ -9,6 +9,7 @@ export interface Strat {
   win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number; held_out_trades: number;
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
   enabled: boolean; setting: string;
+  also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
 }
 export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;
@@ -29,7 +30,7 @@ export default function StrategyButtons() {
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<StrategiesResp>("/api/strategies"), refetchInterval: 30000 });
   const toggle = useMutation({
     mutationFn: (s: Strat) =>
-      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [s.setting]: !s.enabled }, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) }),
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [s.setting]: !s.enabled, ...(s.enabled ? {} : Object.fromEntries((s.also ?? []).map((k) => [k, true]))) }, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;

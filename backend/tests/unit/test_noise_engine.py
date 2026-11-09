@@ -124,7 +124,27 @@ def _synthetic(n_days=40, seed=7):
     return days
 
 
-def test_parity_with_research_script(tmp_path):
+class _Pts:  # research trick: pos * hard * entry == pos * PTS (fixed-point emergency stop)
+    def __init__(self, p):
+        self.p = p
+
+    def __bool__(self):
+        return True
+
+    def __rmul__(self, pos):
+        return _PV(pos * self.p)
+
+
+class _PV:
+    def __init__(self, v):
+        self.v = v
+
+    def __mul__(self, _entry):
+        return self.v
+
+
+@pytest.mark.parametrize("stop_usd", [None, D(250)])  # D58: 1% (verified) and the fixed $250 stop
+def test_parity_with_research_script(tmp_path, stop_usd):
     pytest.importorskip("pandas")
     pytest.importorskip("numpy")
     spec = importlib.util.spec_from_file_location("noise_area", REPO / "docs/results/tools/noise_area.py")
@@ -137,7 +157,8 @@ def test_parity_with_research_script(tmp_path):
         for bars in days:
             for t, o, h, lo, c, v in bars:
                 f.write(f"{t.strftime('%Y-%m-%dT%H:%M:%SZ')},{o},{h},{lo},{c},{v}\n")
-    research = na.run(na.load_days(str(csv)), look=14, step=60, hard=0.01, maxtr=3)
+    hard = 0.01 if stop_usd is None else _Pts(float((stop_usd - 2) / 2))
+    research = na.run(na.load_days(str(csv)), look=14, step=60, hard=hard, maxtr=3)
     sim_days = [
         (
             bars[0][0].astimezone().date().isoformat() if False else bars[0][0].date().isoformat(),
@@ -145,7 +166,9 @@ def test_parity_with_research_script(tmp_path):
         )
         for bars in days
     ]
-    cfg = NoiseCfg(min_history_days=14)  # the research script needs 14 complete days before its first trade
+    cfg = NoiseCfg(
+        min_history_days=14, emergency_stop_usd=stop_usd
+    )  # the research script needs 14 complete days before its first trade
     ours = simulate(sim_days, cfg, tick=D("0.25"), point_value=D(2), fee_rt=D(1))
     assert len(research) > 10, "synthetic data must produce trades"
     assert len(ours) == len(research)

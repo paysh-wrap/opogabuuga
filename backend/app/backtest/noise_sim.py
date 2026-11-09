@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from app.config import NoiseCfg
-from app.engine.noise import RTH_BARS, Session, bands, decide, is_check, plan, roll_guard, sigma
+from app.engine.noise import RTH_BARS, Session, bands, decide, is_check, plan, roll_guard, sigma, stop_pts_for_usd
 from app.engine.trade_plan import Direction
 
 
@@ -45,6 +45,8 @@ def simulate(
 ) -> list[SimTrade]:
     out: list[SimTrade] = []
     history: list[Session] = []
+    tv = point_value * tick
+    stop_pts = None if cfg.emergency_stop_usd is None else stop_pts_for_usd(cfg.emergency_stop_usd, tick, tv, fee_rt, 1)
     for day, bars in days:
         by_k = {b.k: b for b in bars if 0 <= b.k < RTH_BARS}
         if 0 not in by_k:
@@ -68,7 +70,7 @@ def simulate(
             if pending is not None and pos is None:
                 pos, pending = pending, None
                 entry = b.o + pos.sign * tick
-                stop = plan(pos, entry, tick, cfg.emergency_stop_pct, cfg.take_profit_pct).stop
+                stop = plan(pos, entry, tick, cfg.emergency_stop_pct, cfg.take_profit_pct, stop_pts).stop
             pv += (b.h + b.l + b.c) / 3 * b.v
             vol += b.v
             if pos is not None and (

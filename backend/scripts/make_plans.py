@@ -62,18 +62,20 @@ def make(plan: str, k: int) -> str:
         f"purchase: {{drawdown_type: eod, dll_enabled: true, consistency_pct: {'null' if pro else 40}}}"
         + ("   # Pro eval: no consistency stated" if pro else "   # Flex eval 40% (50% add-on) 12945805"),
     )
-    t = line(t, "max_contracts", f"max_contracts: {{minis: {minis}, micros: {micros}}}                 # 12890029/12945790")
+    t = line(
+        t, "max_contracts", f"max_contracts: {{minis: {minis}, micros: {micros}}}                 # 12890029/12945790"
+    )
     edll = PRO_EVAL_DLL[k] if pro else None
     t = block(
         t,
         "eval",
         f"""eval:
   profit_target: {tgt}
-  consistency_max_day_pct: {'null' if pro else 40}{'          # Pro: none stated' if pro else '            # 12945805'}
-  min_profitable_days: {1 if pro else 3}{'                # Pro: pass in one day 12890029' if pro else '                # 12945790'}
+  consistency_max_day_pct: {"null" if pro else 40}{"          # Pro: none stated" if pro else "            # 12945805"}
+  min_profitable_days: {1 if pro else 3}{"                # Pro: pass in one day 12890029" if pro else "                # 12945790"}
   max_loss_limit: {mll}
   drawdown_type: eod                   # 12890136 / 12945815
-  daily_loss_limit: {edll if edll is not None else 'null'}{'                # VERIFY Flex DLL amount not stated (on/off at checkout)' if not pro else '               # 12890122 soft'}
+  daily_loss_limit: {edll if edll is not None else "null"}{"                # VERIFY Flex DLL amount not stated (on/off at checkout)" if not pro else "               # 12890122 soft"}
   lock_trigger: {trail}
   lock_level: {lock}
   news_allowed_by_firm: true           # 11404728
@@ -103,8 +105,8 @@ def make(plan: str, k: int) -> str:
   drawdown_type: eod                   # 12890136 / 12945815
   lock_trigger: {trail}
   lock_level: {lock}
-  daily_loss_limit: {fdll if fdll is not None else 'null'}{'               # 12890069 fixed, then 60% LucidScale (VERIFY 25K)' if pro else '                # VERIFY Flex funded DLL amount not stated'}
-  consistency_max_day_pct: {40 if pro else 'null'}{'            # Pro funded 40% for payouts 12890109' if pro else '          # Flex funded: none 12945795'}
+  daily_loss_limit: {fdll if fdll is not None else "null"}{"               # 12890069 fixed, then 60% LucidScale (VERIFY 25K)" if pro else "                # VERIFY Flex funded DLL amount not stated"}
+  consistency_max_day_pct: {40 if pro else "null"}{"            # Pro funded 40% for payouts 12890109" if pro else "          # Flex funded: none 12945795"}
   news_allowed_by_firm: true           # 11404728
   news_breach_min_before: 1
   news_breach_min_after: 1
@@ -120,7 +122,9 @@ def make(plan: str, k: int) -> str:
         f"lock_level: 100, sim_payout_cap_on_move: 0}}   # 16558826 (lock at $100 once profit = start DD) VERIFY",
     )
     # account-size dependent internal tunables (the user's own limits, not Lucid rules)
-    t = re.sub(r"^  cushion_target_balance: .*$", f"  cushion_target_balance: {lock + int(3000 * scale)}", t, flags=re.M)
+    t = re.sub(
+        r"^  cushion_target_balance: .*$", f"  cushion_target_balance: {lock + int(3000 * scale)}", t, flags=re.M
+    )
     t = re.sub(r"^  funded_consistency_reference_min: .*$", f"  funded_consistency_reference_min: {tgt}", t, flags=re.M)
     t = re.sub(r"^  internal_max_micros: .*$", f"  internal_max_micros: {min(micros, int(10 * scale))}", t, flags=re.M)
     t = re.sub(r"^  pause_below_risk_base: .*$", f"  pause_below_risk_base: {int(500 * scale)}", t, flags=re.M)
@@ -128,7 +132,9 @@ def make(plan: str, k: int) -> str:
     dll = PRO_FUNDED_DLL[k] if pro else None
     cap = int((dll - 100) * 0.4) if dll else None  # two max losses + slippage must fit inside the DLL (§11 test)
     t = re.sub(r"^  max_risk_usd: .*$", f"  max_risk_usd: {cap if cap else 'null'}", t, count=1, flags=re.M)
-    t = re.sub(r"^  consistency_on_funded: .*$", f"  consistency_on_funded: {'true' if pro else 'false'}", t, flags=re.M)
+    t = re.sub(
+        r"^  consistency_on_funded: .*$", f"  consistency_on_funded: {'true' if pro else 'false'}", t, flags=re.M
+    )
     return head + t
 
 
