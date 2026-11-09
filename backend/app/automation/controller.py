@@ -32,7 +32,7 @@ from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
-from app.risk.eval_mode import effective_risk_cfg, one_to_one_for
+from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -426,6 +426,11 @@ class Controller:
             else None
         )
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
+        eval_sizing = bool(r.strategy.size_table_eval) and eval_mode_effective(
+            a.stage, a.eval_mode, self.rules.eval_mode_on
+        )
+        if eval_sizing:  # D66: Evaluation Mode for the MAIN strategy — EVAL stage only (pure check in risk/eval_mode)
+            table = r.strategy.size_table_eval
         if strategy in ("NOISE", "PM_FADE") and table:  # D63: size by this account's own size
             size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
             auto = auto_contracts(
@@ -434,6 +439,13 @@ class Controller:
                 [SizeTier(t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts) for t in table],
             )
             fixed = auto.contracts
+            row = next((t for t in table if t.account_size == auto.tier), None)
+            if eval_sizing and row is not None and row.day_lock_pct is not None:  # D66 day lock-in (eval only)
+                day_profit = st.day_stats(s, a, now).day_profit
+                start_profit = bal - day_profit - (a.starting_balance or r.account_size)
+                remaining = r.eval.profit_target - start_profit
+                if day_profit > 0 and remaining > 0 and day_profit >= row.day_lock_pct * remaining:
+                    return AccountResult(a.id, False, "EVAL_DAY_LOCK")
             audit.record(
                 s,
                 self.clock,
@@ -445,7 +457,7 @@ class Controller:
                     "contracts": auto.contracts,
                     "tier": str(auto.tier),
                     "braked": auto.braked,
-                    "profile": "HIGH" if r.strategy.high_risk else "REGULAR",
+                    "profile": "EVAL" if eval_sizing else "HIGH" if r.strategy.high_risk else "REGULAR",
                 },
             )
         lim = TradeLimits(

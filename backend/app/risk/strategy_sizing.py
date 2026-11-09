@@ -20,6 +20,8 @@ class SizeTier:
     contracts: int
     brake_below: Decimal | None = None  # fraction of the MLL
     brake_contracts: int | None = None
+    grow_per: Decimal | None = None  # D66: +1 micro per grow_per $ of cushion beyond the first grow_per
+    max_contracts: int | None = None  # D66: growth cap
 
 
 @dataclass(frozen=True)
@@ -39,6 +41,10 @@ def tier_for(size: Decimal, table: Sequence[SizeTier]) -> SizeTier:
 
 def auto_contracts(size: Decimal, cushion: Decimal, table: Sequence[SizeTier]) -> AutoSize:
     t = tier_for(size, table)
+    n = t.contracts
+    if t.grow_per is not None and t.grow_per > 0:
+        extra = max(0, int(cushion // t.grow_per) - 1)
+        n = min(t.max_contracts or t.contracts, t.contracts + extra)
     if t.brake_below is not None and t.brake_contracts is not None and cushion < t.brake_below * t.mll:
-        return AutoSize(min(t.contracts, t.brake_contracts), t.account_size, True)
-    return AutoSize(t.contracts, t.account_size, False)
+        return AutoSize(min(n, t.brake_contracts), t.account_size, True)
+    return AutoSize(n, t.account_size, False)

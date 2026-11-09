@@ -106,3 +106,96 @@ def test_high_risk_profile_switches_table(authed, clock):  # D64
     # the Strategy page shows both profiles and saves the switch through versioned settings
     body = authed.get("/api/strategies").json()["size_profiles"]
     assert set(body) == {"active", "setting", "regular", "high"} and body["setting"] == "strategy.high_risk"
+
+
+def test_eval_mode_uses_eval_table_only_on_eval_accounts(authed, clock):  # D66
+    from app.config import SizeTierCfg
+
+    st = authed.app.state
+    clock.set(AT)
+    ids = {}
+    for label, stage in (("E", "EVAL"), ("F", "FUNDED")):
+        aid = authed.post("/api/accounts", json={"label": label, "stage": stage, "balance": "50000"}).json()["id"]
+        assert authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True}).status_code == 200
+        ids[stage] = aid
+    authed.post("/api/attestation", json={"confirm": True})
+    r = authed.put("/api/risk/eval-mode", json={"enabled": True, "confirm": "ENABLE EVALUATION MODE"})
+    assert r.status_code == 200, r.text
+    st.controller.mode = "FULL"
+    h = st.controller.rules
+    reg = [SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=1)]
+    ev = [
+        SizeTierCfg(
+            account_size=D(50000), mll=D(2000), contracts=3, grow_per=D(400), max_contracts=4, day_lock_pct=D("0.5")
+        )
+    ]
+    h.rules = h.rules.model_copy(
+        update={"strategy": h.rules.strategy.model_copy(update={"size_table": reg, "size_table_eval": ev})}
+    )
+    assert h.eval_mode_on
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(
+            s,
+            FixedClock(AT),
+            symbol="MNQ",
+            key="MNQ-NOISE-2026-10-13-1",
+            direction=Direction.LONG,
+            at=AT,
+            gate=(True, "OK", ""),
+            features={"reason": "test"},
+            plan=("NOISE", D(20000), D(19876), D(20050), D(124), D("0.40")),
+        )
+        s.commit()
+        sid = sig.id
+    res = {x.account_id: x for x in asyncio.run(st.controller.execute(sid, "automation", only=list(ids.values())))}
+    with st.sessionmaker() as s:
+        prof = {x.entity: x.payload for x in s.query(AuditLog).filter_by(action="trade.auto_size")}
+    by_profile = sorted(v["profile"] for v in prof.values())
+    assert by_profile == ["EVAL", "REGULAR"], prof  # FUNDED never gets the eval table (non-negotiable 10)
+    ev_fixed = next(c for c in res[ids["EVAL"]].checks if c["check"] == "fixed_size")
+    fu_fixed = next(c for c in res[ids["FUNDED"]].checks if c["check"] == "fixed_size")
+    assert ev_fixed["contracts"] in ("3", "4") and fu_fixed["contracts"] == "1"
+
+
+def test_eval_day_lock_in_stops_the_day(authed, clock, monkeypatch):  # D66
+    from app.automation import state as stt
+    from app.config import SizeTierCfg
+
+    st = authed.app.state
+    clock.set(AT)
+    aid = authed.post("/api/accounts", json={"label": "E", "stage": "EVAL", "balance": "50000"}).json()["id"]
+    assert authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True}).status_code == 200
+    authed.post("/api/attestation", json={"confirm": True})
+    assert (
+        authed.put("/api/risk/eval-mode", json={"enabled": True, "confirm": "ENABLE EVALUATION MODE"}).status_code
+        == 200
+    )
+    st.controller.mode = "FULL"
+    h = st.controller.rules
+    ev = [SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, day_lock_pct=D("0.5"))]
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update={"size_table_eval": ev})})
+    target = h.rules.eval.profit_target
+    orig = stt.day_stats
+
+    def big_day(s, a, now):  # today's realized profit already ≥ 50% of the remaining target
+        d = orig(s, a, now)
+        d.day_profit = target  # start-of-day profit = balance − today − start = −target → remaining = 2 × target
+        return d
+
+    monkeypatch.setattr(stt, "day_stats", big_day)
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(
+            s,
+            FixedClock(AT),
+            symbol="MNQ",
+            key="MNQ-NOISE-2026-10-13-1",
+            direction=Direction.LONG,
+            at=AT,
+            gate=(True, "OK", ""),
+            features={"reason": "test"},
+            plan=("NOISE", D(20000), D(19876), D(20050), D(124), D("0.40")),
+        )
+        s.commit()
+        sid = sig.id
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    assert res[0].reason == "EVAL_DAY_LOCK", res

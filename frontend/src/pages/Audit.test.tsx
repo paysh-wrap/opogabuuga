@@ -96,6 +96,7 @@ test("Risk: Eval Mode needs preview + typed phrase, OFF is one click; settings n
   mock(calls);
   vi.spyOn(window, "confirm").mockReturnValue(true);
   wrap(<Risk />);
+  expect(await screen.findByTestId("eval-mode-main")).toHaveTextContent("150K trades 4 micros"); // D66
   await userEvent.click(await screen.findByTestId("eval-mode-preview"));
   expect(await screen.findByTestId("eval-preview-on")).toHaveTextContent("$110.00");
   const enable = screen.getByTestId("eval-mode-enable");

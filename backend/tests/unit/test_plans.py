@@ -124,6 +124,10 @@ def test_size_table_validation_and_plans():  # D63
         SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, brake_below=D("0.5"))
     with pytest.raises(ValidationError):
         SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, brake_below=D("0.5"), brake_contracts=2)
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, grow_per=D(1200))  # no max_contracts
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, day_lock_pct=D(2))
     root = Path(__file__).resolve().parents[3] / "config" / "rules"
     for f in sorted(root.glob("lucid_*.yaml")):
         st = load_rules(f).rules.strategy
@@ -142,5 +146,12 @@ def test_size_table_validation_and_plans():  # D63
             ]
             assert all(t.brake_below is not None for t in st.size_table_high if t.contracts > 1)  # brake on every row
             assert not st.high_risk and st.active_size_table() is st.size_table
+            if f.stem.startswith("lucid_pro"):  # D66: Evaluation Mode table (Pro only — Flex evals were not studied)
+                ev = {t.account_size: t for t in st.size_table_eval}
+                assert ev[D(150000)].contracts == 4 and ev[D(25000)].contracts == 1
+                assert ev[D(100000)].grow_per == D(1200) and ev[D(100000)].max_contracts == 4
+                assert ev[D(100000)].day_lock_pct == D("0.33")
+            else:
+                assert st.size_table_eval == []
             hi = st.model_copy(update={"high_risk": True})
             assert hi.active_size_table() is st.size_table_high

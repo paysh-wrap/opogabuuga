@@ -307,9 +307,18 @@ class SizeTierCfg(_M):
     contracts: int
     brake_below: D | None = None
     brake_contracts: int | None = None
+    grow_per: D | None = None  # D66 (eval tables): +1 micro per grow_per $ of cushion beyond the first
+    max_contracts: int | None = None
+    day_lock_pct: D | None = None  # D66 (eval tables): stop for the day once today's profit ≥ x × remaining target
 
     @model_validator(mode="after")
     def _valid(self) -> SizeTierCfg:
+        if self.grow_per is not None and (
+            self.grow_per <= 0 or not self.max_contracts or self.max_contracts < self.contracts
+        ):
+            raise ValueError("size_table: grow_per > 0 needs max_contracts ≥ contracts")
+        if self.day_lock_pct is not None and not (D(0) < self.day_lock_pct <= D(1)):
+            raise ValueError("size_table: 0 < day_lock_pct ≤ 1")
         if self.account_size <= 0 or self.mll <= 0 or self.contracts < 1:
             raise ValueError("size_table: account_size, mll > 0 and contracts ≥ 1")
         if (self.brake_below is None) != (self.brake_contracts is None):
@@ -346,6 +355,9 @@ class StrategyCfg(_M):
     # D64: Strategy-page button "High risk" switches NOISE / PM_FADE sizing to size_table_high (same brake system)
     high_risk: bool = False
     size_table_high: list[SizeTierCfg] = []
+
+    # D66: Evaluation Mode (EVAL stage only, non-negotiable 10) sizes NOISE / PM_FADE from this table when present
+    size_table_eval: list[SizeTierCfg] = []
 
     def active_size_table(self) -> list[SizeTierCfg]:
         return self.size_table_high if self.high_risk and self.size_table_high else self.size_table

@@ -32,3 +32,13 @@ def test_auto_contracts_with_drawdown_brake():
     assert auto_contracts(D(100000), D(899), T).contracts == 1 and auto_contracts(D(100000), D(900), T).contracts == 2
     assert auto_contracts(D(50000), D(999), T).contracts == 1
     assert auto_contracts(D(25000), D(100), T) == auto_contracts(D(25000), D(1000), T)  # no brake row → 1 always
+
+
+def test_eval_growth_rows():  # D66
+    g = [SizeTier(D(100000), D(3000), 2, D("0.3"), 1, D(1200), 4)]
+    assert auto_contracts(D(100000), D(2399), g).contracts == 2  # < 2 × $1,200
+    assert auto_contracts(D(100000), D(2400), g).contracts == 3
+    assert auto_contracts(D(100000), D(3600), g).contracts == 4
+    assert auto_contracts(D(100000), D(9000), g).contracts == 4  # max_contracts
+    b = auto_contracts(D(100000), D(899), g)
+    assert b.contracts == 1 and b.braked  # brake still applies on top

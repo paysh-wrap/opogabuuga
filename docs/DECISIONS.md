@@ -578,3 +578,11 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   most take-home on 100K / 150K Regular (150K: $1,003 per 2 wk vs $881 every 10 sessions, same bust); 25K / 50K /
   150K High do best with slower requests (every 10 / every 5). Lucid has no API: the app plans + notifies, the user
   requests in Lucid's dashboard; trading blocks while a submitted payout is pending (trade as if already deducted).
+
+## D66 (user 2026-11-09): Evaluation Mode revised for the MAIN strategy (EVAL stage only)
+- strategy.size_table_eval (Pro plans; Flex evals not studied → none): used for NOISE / PM_FADE when Evaluation Mode
+  is effective for the account (risk/eval_mode.eval_mode_effective: EVAL stage only — non-negotiable 10).
+  25K 1 · 50K 2 (< 50% → 1) — unchanged, every faster setting lost value · 100K 2 growing +1 per $1,200 cushion to 4
+  (brake < 30% → 1) + day lock-in (stop for the day once today's profit ≥ 33% of the remaining target,
+  EVAL_DAY_LOCK) · 150K 4 (brake < 50% → 2). Agent study (eval_speed_report.md): median sessions to pass 100K
+  102 → 88, 150K 103 → 84, pass % 65 → 68 / 67 → 68, value per eval 105% / 102%. Original LunqFX keeps 10/12/14% tiers.

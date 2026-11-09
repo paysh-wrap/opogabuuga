@@ -321,3 +321,12 @@ Lucid's real minimum time between Pro payout requests must be VERIFIED before re
 | 150K High 4 | $952 · 27% | $1,113 · 30% | $1,152 · 31% | every 5 ($1,064 · 28%) |
 The $250–$1,000 cycle-profit minimum already makes "every 2–3 days" equal to "as soon as eligible" (≈ 2.4 payouts per
 account per year). Volatility sizing (vol_sizing_report.md): no improvement.
+
+## 27. Faster evaluation (agent study, eval_speed_report.md) — D66 Evaluation Mode for the MAIN strategy
+| plan | rule | pass / bust | median sessions to pass | value per eval vs now |
+|---|---|---|---|---|
+| 25K | keep 1 micro (2 micros: 46% / 55%, 12 sessions, 72%) | 63% / 34% | 36 | 100% |
+| 50K | keep 2 (+1: 49% / 41%, 28 sessions, 86%) | 57% / 29% | 46 | 100% |
+| **100K** | **2 → +1 per $1,200 cushion (max 4) + stop the day at ≥ 33% of remaining target** | 68% / 24% (was 65 / 24) | **88 (was 102)** | 105% |
+| **150K** | **4 micros, brake < 50% → 2** | 68% / 26% (was 67 / 23) | **84 (was 103)** | 102% |
+The margin on 100K / 150K is modest (single sample of ~15 rules) — re-check on live / fresh data.
