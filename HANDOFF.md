@@ -295,3 +295,11 @@ Session 9 work (all pushed):
   new "NOISE" profile for MNQ (Pine Paytience_Noise.pine sending entry/exit webhooks, or bands from heartbeat bars),
   1 micro on Pro 25K, MGC OFF, AI bias advisory + ledger. Engine agent (existing LunqFX strategy filters) was still
   running at hand-off; its report goes to docs/results/session9/reports/engine.md.
+
+### Session 9 late update — D55 IMPLEMENTED (commit 92aee6c+)
+User approved items 1–4 + Opening-drive button + win/pass rates next to buttons. Built: NOISE (MNQ, on), LunqFX button
+(off→shadow), Opening-drive button (paper only), MGC off, AI advisory ledger, Strategy-page buttons. Tests: 590 backend
+(100% cov), 53 UI, E2E 20/20, mypy/ruff/eslint/tsc clean. Live engine = research exactly (440 tr/45.0%/PF 1.33).
+PENDING: end-to-end app backtest (scratchpad e2e_bt.py, MNQ Aug–Oct 2026, Pro 25K plan) was still running; engine agent
+(LunqFX filters) still running. NOISE needs 10 sessions of TradingView 1m MNQ heartbeats before it trades.
+Known edge: exit+reverse on the same check may skip the new entry (position still closing).
