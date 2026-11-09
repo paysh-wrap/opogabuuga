@@ -361,3 +361,17 @@ nothing (83–87% with the 5 evals staggered 10 sessions apart; staggered means 
 Funded slots occupied ≈ 4.0–4.6 of 5; evals bought ≈ 5–6 a year same-day (7–9 staggered); funded busts 0.3–3 a year;
 break-even eval fee ≈ $1,500–3,800 (fees are a small drag: a $150 fee ≈ $30–50 per block). 2024–26 earns about half of
 2021–23 ($260–420 per block). Warm-up (first 130 sessions) averages only $30–200 per block.
+
+## 32. 25K high-risk eval under the LIVE safety rules (agent, live_stop_eval25k_report.md)
+The app tightens the stop (D57: worst case ≤ 60% of room = equity − MLL − $100) and skips when the stop would be < 0.2% of
+price (DRAWDOWN_TOO_DEEP) → an account that took a stop-out FREEZES instead of busting. 25K eval, 593 starts:
+| config | pass | frozen | median sessions to pass | restart chain | value per eval |
+|---|---|---|---|---|---|
+| 1 micro, study (no tightening) | 63.4% (34.4% bust) | 0 | 36 | 47 | $1,044 |
+| 1 micro, LIVE rule | 55.5% | 43.7% | 35 | 59 | $913 |
+| 4 → 1 micros, study | 52.4% (47.6% bust) | 0 | 7 | 11 | $863 |
+| 4 → 1, LIVE 0.6 | 25.1% | 74.9% | 4 | 55 | $414 |
+| 4 → 1, cap = full limit − $140 | 33.2% | 66.8% | 5 | 35 | $547 |
+| 3 → 1, cap = full limit − $140 | 37.6% | 62.4% | 8 | 33 | $619 |
+| 2 → 1, cap = full limit − $140 | 38.8% | 61.2% | 14 | 40 | $639 |
+Findings: the study's speed does not survive the live safety rules; even 1-micro evals lose ≈ 8 pass points (era 2: 61% → 47%).
