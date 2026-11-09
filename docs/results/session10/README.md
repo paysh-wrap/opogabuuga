@@ -72,3 +72,15 @@ On 28 Jul the tightened stops were hit (−$394 at a $393 stop, then −$158 at 
 Read: NOISE's edge needs the wide stop; shrinking it in a drawdown turns trail exits into full stop-outs. One account,
 one bad July — but it is evidence AGAINST D57. User decision needed: revert D57 (back to the $500 pause), or keep it.
 Also: July 2026 alone was −$795 for NOISE at 1 micro on a fresh eval → the 42–47% bust rate is real.
+
+## 8. NOISE with an $80–120 stop (user: "why can't it risk $80–120 per trade?"), 1 year, noise_area.py --hard
+| stop (≈$ at 1 micro) | trades | win | $/tr | total | PF | worst | Pro 25K pass/bust 1 micro |
+|---|---|---|---|---|---|---|---|
+| 1.00% ($520, current) | 153 | 45.1% | +15.15 | +$2,319 | 1.16 | −$610 | 48% / 47% |
+| 0.50% ($260) | 158 | 43.7% | +15.19 | +$2,399 | 1.16 | −$307 | — |
+| 0.23% ($120) | 185 | 34.1% | +15.92 | +$2,945 | 1.22 | −$142 | 29% / 71% |
+| 0.19% ($100) | 196 | 31.1% | +13.61 | +$2,668 | 1.21 | −$119 | 64% / 34% |
+| 0.15% ($78) | 209 | 26.3% | +9.85 | +$2,059 | 1.17 | −$95 | 28% / 72% |
+Profit holds up on this year, but win rate falls to 26–34% and the eval pass rate jumps 28% → 64% → 29% between
+neighbouring stops = noise from one year's losing streaks, not a reliable edge. 2–3 micros at any stop: pass ≤ 32%.
+Session 9 (2024–26 held-out) found 0.3–0.5% stops cut PF 1.33 → 1.18. Needs the multi-year test before any change.
