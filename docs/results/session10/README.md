@@ -92,3 +92,18 @@ Session 9 (2024–26 held-out) found 0.3–0.5% stops cut PF 1.33 → 1.18. Need
 | **$250 fixed** | 160 | 43.8% | +18.43 | **+$2,948** | 1.21 | −$159 | **−$250** | −$2,228 | 41 | 45% / 56% |
 Bad months stay bad (Jan −$1,604, Jul −$1,074 at $250). The stop only caps single trades; drawdown comes from many
 ordinary hourly-exit losses in a row, so the eval bust rate does not improve (slightly worse on this year).
+
+## 10. FIVE YEARS (MNQ 2021-11-01 → 2026-10-30, 1,245 sessions, 1 micro) — five_year/singles_report.md + combos_report.md
+| Set | trades/day | win | total | PF | Pro 25K pass / bust | value per eval | 2021–23 pass | 2024–26 pass | losing years |
+|---|---|---|---|---|---|---|---|---|---|
+| NOISE 1% (current) | 0.64 | 45.3% | +$18,588 | 1.35 | 57.0% / 35.7% | $502 | 63.9% | 55.1% | none |
+| NOISE $250 stop | 0.64 | 44.7% | +$18,930 | 1.36 | 55.0% / 37.0% | $468 | 66.2% | 50.3% | none |
+| NOISE $100 stop | 0.73 | 37.4% | +$15,871 | 1.33 | 56.9% / 33.6% | $389 | 58.9% | 58.6% | 2021 (2 mo) |
+| NOISE + Opening drive | 0.68 | 46.3% | +$19,553 | 1.35 | 58.1% / 35.9% | $585 | 64.6% | 57.7% | none |
+| **NOISE + PM fade** | **1.03** | 48.3% | **+$24,813** | 1.32 | **62.1% / 37.3%** | **$1,083** | **73.8%** | 56.6% | none |
+| NOISE + OD + PM fade | 1.07 | 48.9% | +$25,778 | 1.32 | 62.7% / 36.7% | $1,130 | 74.5% | 57.1% | none |
+| + Overnight | 1.89 | 46.6% | +$20,246 | 1.16 | 55.8% / 44.2% | $289 | 61.6% | 51.7% | 2021 |
+Alone: Opening drive +$1,449 PF 1.16 (pass 0.3%), PM fade +$6,225 PF 1.26 (loses 2022), ORB −/flat PF 1.02, last-half-hour
+−$1,538, overnight −$5,532. Verdict: keep NOISE 1%; PM fade (NOISE-free days) is the only add-on that clearly helps in BOTH
+halves (profit + pass rate) — but its gain is uneven (2021–23 +$824, 2024–26 +$5,401) and the 2024–26 bust rate stays ≈ 42%.
+Opening drive adds ≈ nothing (120 of 173 trades overlap NOISE). Overnight hurts.
