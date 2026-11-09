@@ -122,3 +122,14 @@ Opening drive adds ≈ nothing (120 of 173 trades overlap NOISE). Overnight hurt
 2.0 sd stays the best band (the neighbours 1.5/2.5 are worse on every column → not a lucky peak, but a peak). 2 micros on
 the fade: +$6,225 more profit, same 5-year pass rate, better 2024–26 pass (63% vs 57%) but worse 2021–23 (65% vs 74%),
 lower value per eval ($875 vs $1,083), max DD −$4,546 and worst day −$1,233 (> the $1,000 MLL in one day is possible).
+
+## 12. $250 stops on NOISE and the fade (five_year/stops_250.py, 5 years, 1 micro each)
+| set | trades | win | total | PF | max DD | worst trade | 5y pass/bust · value | 2021–23 | 2024–26 | losing yrs |
+|---|---|---|---|---|---|---|---|---|---|---|
+| NOISE 1% + fade 2 sd (previous best) | 1,281 | 48.3% | +$24,813 | 1.32 | −$2,914 | −$617 | 62%/37% · $1,083 | 74%/21% · $1,295 | 57%/42% · $1,011 | none |
+| NOISE $250 + fade 2 sd | 1,291 | 47.9% | +$25,155 | 1.33 | −$2,958 | −$617 | 64%/36% · $825 | 74%/20% | 60%/40% | none |
+| NOISE $250 + fade min(2 sd, $250) | 1,291 | 47.8% | +$24,675 | 1.32 | −$2,747 | −$250 | 63%/36% · $826 | 74%/20% | 60%/40% | none |
+| **NOISE $250 + fade fixed $250** | 1,291 | **50.0%** | **+$25,345** | **1.33** | **−$2,591** | **−$250** | **66%/32% · $1,045** | 71%/21% · $1,009 | **66%/33% · $1,011** | 2021 (2 months) |
+| NOISE 1% + fade min(2 sd, $250) | 1,281 | 48.2% | +$24,333 | 1.31 | −$2,703 | −$610 | 62%/37% · $1,081 | 74%/21% | 57%/42% | none |
+Fixed $250 on the fade usually WIDENS its stop (2 sd is normally < 124 pts) → more fades reach VWAP (50% win). Best set
+on 5 years: highest pass rate, lowest bust, smallest drawdown, every trade capped at −$250, and the most even halves.
