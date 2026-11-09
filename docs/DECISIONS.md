@@ -542,3 +542,9 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 ## D62 (user 2026-11-09): Pro 150K sized at 3 micros for NOISE + afternoon fade
 - lucid_pro_150k.yaml strategy.noise_cfg.contracts = 3, pm_fade_cfg.contracts = 3 ($250 stop is per contract → $750
   worst case per trade, 17% of the $4,500 MLL). Other plans stay 1 micro until the user picks their size.
+
+## D62b (user 2026-11-09): Pro 150K = 6 micros, Pro 100K = 4 micros (replaces D62's 3 micros on 150K)
+- User's explicit sizing. 5-year research at these sizes: eval 54% pass / 46% bust on both; 5 funded accounts: 150K
+  $827 per 2 wk (median year $13,500, bust 54%), 100K $692 (median $9,228, bust 55%); worst trade = 33% of the MLL.
+  Research-best alternatives shown to the user: 150K 4 micros + brake (cushion < 50% → 2): $952 / $23,706 / bust 27%;
+  150K 3 micros; 100K 2 micros. Change back in config/rules/lucid_pro_{100k,150k}.yaml (strategy.*_cfg.contracts).

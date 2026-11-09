@@ -252,3 +252,17 @@ cutting income > 15%: when cushion (balance − trailing MLL floor) < x·MLL, tr
 | 150K 3 micros | none | 70% / 25% | $918 | $23,611 | 29% (12 / 48) |
 | **150K 3 micros** | **< 50% → 2** | 67% / 22% | $881 | $21,072 | **24% (7 / 41)** |
 Daily/weekly stops, pauses, cool-offs, profit locks: no gain or too costly. Pro 25K: nothing helps at 1 micro.
+
+## 22. Bigger sizes on 100K / 150K (five_year/big_sizes.py) and the win-rate filter study (filters_report.md)
+| plan | micros | brake | worst trade (% of MLL) | eval pass/bust | days to pass | per 2 wk | year avg / median | bust yr1 |
+|---|---|---|---|---|---|---|---|---|
+| 100K | 2 | none | −$500 (17%) | 70% / 25% | 100 | $686 | $17,838 / $19,048 | 30% |
+| **100K** | **4 (set, D62b)** | none | −$1,000 (33%) | 54% / 46% | 45 | $692 | $17,992 / $9,228 | **55%** |
+| 100K | 4 | < 50% → 1 | −$1,000 (33%) | 60% / 33% | 70 | $587 | $15,257 / $11,250 | 41% |
+| 150K | 3 | none | −$750 (17%) | 70% / 25% | 100 | $918 | $23,866 / $23,611 | 29% |
+| **150K** | **4** | **< 50% → 2** | −$1,000 (22%) | **69% / 25%** | 84 | **$952** | **$24,760 / $23,706** | **27%** |
+| **150K** | **6 (set, D62b)** | none | −$1,500 (33%) | 54% / 46% | 45 | $827 | $21,494 / $13,500 | **54%** |
+| 150K | 6 | < 50% → 2 | −$1,500 (33%) | 56% / 44% | 59 | $747 | $19,414 / $13,500 | 49% |
+Filters (21 a-priori, agent D): none raises win % AND PF in both halves; skip-Monday / prior-day-range / min-$100 fade
+target pass the loose rule by chance-sized margins → MAIN unchanged. Only candidate with a mechanical reason: skip a
+fade whose VWAP target is < $100 (5y bust 32% → 26%, but 2024–26 pass 66% → 64%) — needs forward evidence.

@@ -290,7 +290,9 @@ def project(
         raise ValueError("accounts, micros ≥ 1 and horizon ≥ cadence")
     all_days = list(days) if days is not None else list(research_days()[1])
     starts = range(0, max(1, len(all_days) - horizon), step)
-    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros, take, brake) for i in starts]
+    paths = [
+        funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros, take, brake) for i in starts
+    ]
     paid = [p.paid * accounts for p in paths]
     firsts = [p.payouts[0][0] for p in paths if p.payouts]
     n = len(paths)

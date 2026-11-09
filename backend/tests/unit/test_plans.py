@@ -101,12 +101,8 @@ def test_strategy_buttons_d55(plan):
     assert s.noise and not s.lunqfx and not s.open_drive
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
-    assert (
-        n.emergency_stop_pct == D("0.01")
-        and n.emergency_stop_usd == D(250)
-        and n.max_entries_per_day == 3
-    )
-    assert n.contracts == (3 if plan == "lucid_pro_150k" else 1)  # D62: 150K sized at 3 micros
+    assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
+    assert n.contracts == {"lucid_pro_150k": 6, "lucid_pro_100k": 4}.get(plan, 1)  # D62b: user sizing
     assert s.open_drive_cfg.paper_only
 
 
@@ -115,14 +111,20 @@ def test_legacy_daily_plan_keeps_lunqfx_only():
     assert s.lunqfx and not s.noise and not s.open_drive
 
 
-def test_pro_150k_sizes_main_strategy_at_3_micros():  # D62
+def test_big_pro_plans_size_main_strategy_per_user():  # D62b: 150K = 6 micros, 100K = 4
     from pathlib import Path
 
     from app.config import load_rules
 
     root = Path(__file__).resolve().parents[3] / "config" / "rules"
     st = load_rules(root / "lucid_pro_150k.yaml").rules.strategy
-    assert st.noise_cfg.contracts == 3 and st.pm_fade_cfg.contracts == 3 and st.noise and st.pm_fade
-    assert st.noise_cfg.emergency_stop_usd == D(250)  # per contract → $750 worst case at 3 micros
+    assert st.noise_cfg.contracts == 6 and st.pm_fade_cfg.contracts == 6 and st.noise and st.pm_fade
+    assert st.noise_cfg.emergency_stop_usd == D(250)  # per contract → $1,500 worst case at 6 micros
+    hundred = load_rules(root / "lucid_pro_100k.yaml").rules
+    assert hundred.strategy.noise_cfg.contracts == 4 and hundred.strategy.pm_fade_cfg.contracts == 4
+    assert (
+        hundred.internal.internal_max_micros >= 4
+        and load_rules(root / "lucid_pro_150k.yaml").rules.internal.internal_max_micros >= 6
+    )
     small = load_rules(root / "lucid_pro_25k.yaml").rules.strategy
     assert small.noise_cfg.contracts == 1 and small.pm_fade_cfg.contracts == 1
