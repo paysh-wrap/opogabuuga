@@ -273,3 +273,25 @@ docs/STRATEGY_MAIN.md, docs/results/2026-11-06_backtests.md sections O–T.
 - OPEN: user's phone did not connect through Tailscale with the previous build (app listened on 127.0.0.1) — fixed in
   cfefc92 (needs Windows firewall "Allow" Private+Public); confirm with the user. User has not yet added the
   TradingAgents / Vibe-Trading keys or a broker. VERIFY values (Flex DLL, Pro DLL $600) still unconfirmed.
+
+## START HERE — session 10 (from session 9, 2026-11-09) — branch ccr-42644967-7tvu35
+Session 9 work (all pushed):
+- Desktop fixes: AI-tool install retries a half-built venv, always uses its own uv/Python 3.12, downloads uv.exe directly
+  (PowerShell failed on the user's PC), shows real errors. Qwen workspace keys (sk-ws-…): set
+  `PAYTIENCE_QWEN_BASE_URL=https://<workspace>.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1` in paytience-data/.env.
+  User connected TradingAgents + Vibe-Trading (Qwen), set up the Cloudflare quick tunnel + 4 TradingView alerts
+  (Essential plan: alerts expire every 2 months — remind the user). User exposed a Qwen key in a photo → told to reset it.
+- Strategy research (docs/results/2026-11-09_session9_strategy_research.md — read it): 7 agents, Databento 2019–2026,
+  pick 2019–2023 / judge 2024–2026. ONLY the MNQ noise-area intraday momentum (Zarattini, Aziz & Barbon 2024) passes:
+  hourly checks + 1% emergency stop → held-out 440 tr, 45.0% win, +$25.81/tr, PF 1.33 (tools/noise_area.py, verified
+  twice). ORB, last-half-hour momentum, VWAP trend, mean reversion (60–69% win but negative), all gold strategies,
+  MES, London session: FAIL. ≈ 3 trades/week is the maximum the edge supports.
+- User decisions: focus on **Lucid Pro 25K** (Flex only if its data changes); MES only if needed (it is not — it hurts).
+  Pro 25K sim (tools/sim25k.py, 1 micro): 57% eval pass / 42% bust, ≈ $413 value per eval before the fee.
+- TradingAgents/Vibe-Trading: on the noise strategy 89% of trades already go with the day; a daily call must be ≈ 70%
+  accurate to help as a filter → keep it ADVISORY with a calibration ledger (design + drafted pure module/tests:
+  docs/results/session9/agents/aibias/aibias.patch, reports/aibias.md).
+- NOT implemented (needs the user's explicit confirmation — breaks pillars §6 confluence and §7 R:R 1.5–2.5 fixed TP):
+  new "NOISE" profile for MNQ (Pine Paytience_Noise.pine sending entry/exit webhooks, or bands from heartbeat bars),
+  1 micro on Pro 25K, MGC OFF, AI bias advisory + ledger. Engine agent (existing LunqFX strategy filters) was still
+  running at hand-off; its report goes to docs/results/session9/reports/engine.md.
