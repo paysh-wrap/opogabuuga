@@ -8,6 +8,7 @@ const resp: StrategiesResp = {
     { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
     { key: "lunqfx", name: "LunqFX fractal (original strategy)", source: "s", verified: false, status: "ORIGINAL", win_pct: 35, profit_factor: 1.07, usd_per_trade: 1.98, trades_per_week: 4.7, held_out_trades: 248, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "p", note: "n", enabled: false, setting: "strategy.lunqfx" },
     { key: "open_drive", name: "Opening-drive pullback (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: 58.3, profit_factor: 1.29, usd_per_trade: 9.95, trades_per_week: 0.75, held_out_trades: 108, pro25k_pass_pct: 4.8, pro25k_bust_pct: 8.8, period: "p", note: "n", enabled: false, setting: "strategy.open_drive" },
+    { key: "ai_bias", name: "AI only — TradingAgents + Vibe-Trading (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: 1.35, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT back-testable", note: "n", enabled: false, setting: "strategy.ai_bias" },
   ],
   noise_warmup: { sessions: 3, needed: 10, ready: false },
   ai_ledger: [{ proxy: "QQQ", symbol: "MNQ", state: "WARMUP", badge: "ADVISORY", required_accuracy: 0.7, min_calls: 30, stats: { n: 0, hit_rate: 0, brier: 0.25, wilson_lb: 0 } }],
@@ -25,6 +26,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("pass-noise")).toHaveTextContent("56.9%");
   expect(screen.getByTestId("win-open_drive")).toHaveTextContent("58.3%");
   expect(screen.getByTestId("pass-lunqfx")).toHaveTextContent("—");
+  expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
+  expect(screen.getByText("— (not testable)")).toBeInTheDocument();
   expect(screen.getByTestId("noise-warmup")).toHaveTextContent("3/10");
   expect(screen.getByTestId("ai-ledger")).toHaveTextContent("ADVISORY");
   expect(screen.getByText(/MGC \(gold\) is off/)).toBeInTheDocument();

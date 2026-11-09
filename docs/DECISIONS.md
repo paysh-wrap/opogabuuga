@@ -493,3 +493,21 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   may a strongly-agreed call block the opposite NOISE side (BIAS_PROVEN_AGAINST). LunqFX G2 unchanged.
 - UI: Strategy page → strategy buttons with tested win rate, Pro 25K pass/bust, PF, $/trade, trades/week, NOISE
   warm-up progress, AI ledger badge. Numbers are static research facts (app/engine/strategy_catalog.py).
+
+## D56 (user 2026-11-09, session 10): AI-only strategy button — PAPER ONLY, default OFF
+- `strategy.ai_bias` (Strategy page). Trades MNQ only when TradingAgents AND Vibe-Trading agree strongly on the day's side
+  (bias/policy.combine agree_strong, ≈ 27% of days): entry at the 09:31 bar close, 0.5% broker stop, 10% safety TP,
+  flat 16:00, 1 micro (AiBiasCfg). Paper (is_sim) accounts only (PAPER_ONLY_STRATEGY).
+- Not back-testable (spec §15: no LLM runs on past dates / hindsight leakage). The card shows "—" for win/PF/$ and a
+  hindsight 1-year ceiling by assumed accuracy (docs/results/session10/README.md §3: 100% +$267/tr … 50% +$8/tr).
+  Real evidence = the calibration ledger.
+
+## D57 (user 2026-11-09, session 10): drawdown-scaled emergency stop for NOISE / AI_BIAS instead of the $500 pause
+- User: "lower risk as account goes into drawdown or whatever it takes to take more trades". Pure risk/checks.pretrade:
+  fixed-size NOISE/AI_BIAS skip the pause floor; if the worst case at the plan's stop > strategy.drawdown_shrink (0.6) ×
+  room (min(DLL left, equity − MLL − kill distance)), the stop is tightened to fit; tighter than
+  strategy.drawdown_min_stop_pct (0.2%) → DRAWDOWN_TOO_DEEP. Kill switch, DLL, MLL, one-position, hedge lock unchanged.
+  OPEN_DRIVE and LunqFX keep the pause floor. Set strategy.drawdown_shrink = null to restore the old pause.
+- Evidence (README §7): app e2e Jul–Aug 2026 got worse (−$795 vs −$539: tightened stops hit). User reviewed and chose
+  to keep it as is (2026-11-09). Also kept: NOISE 1% stop ($250 / $80–120 fixed stops tested on 1 year, §8–9: not
+  better for the Pro 25K pass rate).
