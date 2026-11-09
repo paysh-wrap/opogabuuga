@@ -133,3 +133,14 @@ lower value per eval ($875 vs $1,083), max DD −$4,546 and worst day −$1,233 
 | NOISE 1% + fade min(2 sd, $250) | 1,281 | 48.2% | +$24,333 | 1.31 | −$2,703 | −$610 | 62%/37% · $1,081 | 74%/21% | 57%/42% | none |
 Fixed $250 on the fade usually WIDENS its stop (2 sd is normally < 124 pts) → more fades reach VWAP (50% win). Best set
 on 5 years: highest pass rate, lowest bust, smallest drawdown, every trade capped at −$250, and the most even halves.
+
+## 13. Take-home from 5 FUNDED Pro 25K accounts, payout request every 2 weeks (five_year/funded_biweekly.py)
+523 rolling funded starts 2021-11 → 2025-10, each followed for 12 months, 1 micro, 90% split, Pro payout rules (cycle ≥ $250,
+$26,100 buffer, ≥ $500 request, 40% consistency, caps $1,000 / $1,500, max 5). 5 accounts take the same trades → 5 × one.
+| set | bust in yr 1 | ≥1 payout | days to 1st payout | per account yr 1 mean / median | **5 accounts yr 1 mean / median** | 5 accounts per 2 weeks (mean) |
+|---|---|---|---|---|---|---|
+| NOISE $250 + fade $250 | 57% | 58% | 70 | $1,646 / $900 | **$8,232 / $4,500** | **≈ $317** |
+| NOISE 1% + fade 2 sd | 68% | 59% | 60 | $1,625 / $900 | $8,123 / $4,500 | ≈ $312 |
+Payouts in year 1 (best set): 0 → 42%, 1 → 12%, 2 → 9%, 3 → 17%, 4 → 15%, 5 → 4%. Worst 25% of starts: $0 (all 5 bust
+before a payout, together). Maximum possible per account = (1,000 + 4 × 1,500) × 90% = $6,300 → $31,500 for 5. Eval fees
+and resets are NOT subtracted (user's fee needed); a busted funded account needs a new eval (pass ≈ 66%).

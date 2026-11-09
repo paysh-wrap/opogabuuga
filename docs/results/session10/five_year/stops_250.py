@@ -43,6 +43,7 @@ for name, nt, mode in (("NOISE 1% + fade orig", n1, "orig"), ("NOISE $250 + fade
                        ("NOISE $250 + fade cap $250", n250, "cap"), ("NOISE $250 + fade fixed $250", n250, "fixed"),
                        ("NOISE 1% + fade cap $250", n1, "cap")):
     t = pd.concat([nt, pm(days, set(nt.d), mode)]).sort_values("d", kind="stable").reset_index(drop=True)
+    t.to_csv("trades_" + "".join(ch if ch.isalnum() else "_" for ch in name) + ".csv", index=False)
     w = t.pnl > 0; eq = t.pnl.cumsum(); cells = []
     for lab, a, b in H:
         fn = "/tmp/claude-0/-home-user-opogabuuga/528f0293-22e9-5e48-80a8-65343eb6ade7/scratchpad/s250.csv"; t.to_csv(fn, index=False)
