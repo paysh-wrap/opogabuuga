@@ -353,3 +353,11 @@ or 50%, 53–76% of cycles are blocked at least once, waiting a median 8–15 se
 Checking every 5–10 sessions does not raise the pace: only 6–12% of checks after the first payout pay out (blocked: cycle
 profit below the minimum 37–55%, consistency 39–51%). A surviving account pays ≈ every 30–45 sessions (≈ 3 a year after a
 ≈ 70–85-session ramp). No 5-payout cap ≈ same. 2024+ starts are worse (bust 43–49% on 50K–150K; consistency blocks 57–65%).
+
+## 31. Fleet: 5 eval + 5 funded accounts, cash paid per 10 trading days (agent, fleet_report.md; payout every 10 sessions, max allowed)
+Steady state (sessions 130–520 of 157 rolling fleets), whole fleet of 5 funded, same-day evals: 25K $464 · 50K $730 ·
+100K $519 · 150K $718 · 150K High $729 per 10 sessions (mean) — but the MEDIAN block pays $0: 91–95% of blocks pay
+nothing (83–87% with the 5 evals staggered 10 sessions apart; staggered means ≈ same, $474 / $702 / $500 / $697 / $718).
+Funded slots occupied ≈ 4.0–4.6 of 5; evals bought ≈ 5–6 a year same-day (7–9 staggered); funded busts 0.3–3 a year;
+break-even eval fee ≈ $1,500–3,800 (fees are a small drag: a $150 fee ≈ $30–50 per block). 2024–26 earns about half of
+2021–23 ($260–420 per block). Warm-up (first 130 sessions) averages only $30–200 per block.
