@@ -317,3 +317,15 @@ Known edge: exit+reverse on the same check may skip the new entry (position stil
 - Session 10 later: D57 drawdown-scaled stop built + tested (risk 100% cov, 592 tests) but the app e2e (Jul–Aug 2026) got
   WORSE (−$795 vs −$539) → ask the user: revert D57 or keep. 1-year comparisons + add-on test (PM fade on NOISE-free days:
   NOISE+PM fade +$5,084 / pass 51% on ONE year, unverified multi-year) in docs/results/session10/README.md §4–7.
+
+## START HERE — session 11 (final state of session 10, 2026-11-09) — branch claude/laughing-feynman-1f0fm5
+FINAL (user's last prompt): docs/results/session10/Paytience_2week_income_breakdown.pdf (make_pdf.py + final_numbers.py/json).
+App state: MAIN = NOISE ($250/micro stop, hourly band/VWAP trailing exit) + afternoon PM fade (paper first) as the top
+Strategy-page button; automatic size per account (D63) with live drawdown brake, Regular / High-risk buttons (D64);
+Dashboard "Projected weekly income" card (D59–D61). Tests: 609 backend (100% risk cov), 54 UI, build OK.
+Open: (1) per-account plans (app applies ONE plan's firm rules to all accounts); (2) TradingAgents + Vibe-Trading
+self-refinement loop driven by the calibration ledger (bias/ledger.py) + OpenBB as an input source; (3) D57 drawdown
+stop-shrink is still on (made the Jul–Aug e2e worse; user kept it) — revisit with the brake now live; (4) the
+fade's "NOISE-free day" uses "no NOISE trade yet" live vs "no NOISE trade all day" in research.
+User next steps: TradingView heartbeats → add accounts (starting balance = account size) → Tradovate connect →
+pre-flight + attestation → PAPER ≥ 5 sessions → live switches.
