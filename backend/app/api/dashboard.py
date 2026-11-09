@@ -287,3 +287,35 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
         "last_signal": {"id": last.id, "status": last.status, "skip_reason": last.skip_reason} if last else None,
         "one_to_one": r.one_to_one_mode.enabled,
     }
+
+
+@router.get("/strategies")
+def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+    """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
+    progress and the AI calibration ledger (advisory until proven)."""
+    from app.bias.ledger import NOISE_MIN_ACC, status
+    from app.engine.strategy_catalog import CATALOG
+    from app.signals.strategy_service import load_days
+
+    st = request.app.state
+    r, now = st.rules.rules, st.clock.now()
+    sess = session_date(now)
+    on = {"noise": r.strategy.noise, "lunqfx": r.strategy.lunqfx, "open_drive": r.strategy.open_drive}
+    nc = r.strategy.noise_cfg
+    stored = [
+        d for d in load_days(db, nc.symbol, now) if len(d.bars) >= nc.min_bars_per_day and d.day < sess.isoformat()
+    ]
+    ledgers = []
+    for sym, i in r.instruments.items():
+        if i.enabled:
+            ledgers.append({**status(db, i.bias_proxy, sym, sess, NOISE_MIN_ACC), "rows": []})
+    return {
+        "strategies": [{**c, "enabled": on[str(c["key"])], "setting": f"strategy.{c['key']}"} for c in CATALOG],
+        "noise_warmup": {
+            "sessions": len(stored),
+            "needed": nc.min_history_days,
+            "ready": len(stored) >= nc.min_history_days,
+        },
+        "ai_ledger": ledgers,
+        "markets": {sym: i.enabled for sym, i in r.instruments.items()},
+    }

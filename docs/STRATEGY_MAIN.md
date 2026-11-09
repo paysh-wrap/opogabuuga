@@ -1,3 +1,12 @@
+**D55 (2026-11-09, current): MAIN STRATEGY = NOISE** — noise-area intraday momentum on MNQ (Zarattini, Aziz & Barbon
+2024), the only strategy that passed the session 9 held-out test (2024–2026: 440 trades, 45.0% win, PF 1.33, +$25.81 per
+trade at 1 micro; Lucid Pro 25K sim 57% pass / 42% bust). Hourly checks 10:00–15:00 ET: close above the upper noise band
+→ long, below the lower → short; exit when the hourly close crosses back through the band/VWAP; 1% emergency stop;
+flat 16:00; max 3 entries/day; ≈ 3 trades/week. The LunqFX strategy below is now a button (off → SHADOW); the
+Opening-drive pullback is a paper-only button; MGC is off. Details: docs/results/2026-11-09_session9_strategy_research.md.
+
+---
+
 **D52 (final):** MNQ takes every valid setup (trend_filters: false); MGC keeps UT Bot 5m + EMA200 5m. Last year (engine,
 Nov 2025 – Oct 2026): MNQ 169 tr, 0.64/day, 36% win, PF 1.12, +$562; MGC with the filter 27 tr, −$367. Lower risk: 7/day.
 

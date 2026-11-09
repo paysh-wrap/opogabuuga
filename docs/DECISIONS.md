@@ -468,3 +468,28 @@ Also fixed: backtests were rate-limited by the live webhook limiter (≈ 90% of 
 +$492 · 03:00 + 8-bar limit timeout 289 tr 1.09/day +$408 (not applied: global setting, untested on MGC).
 With MGC (47 tr, +$215) ≈ 1.1 trades/day combined, profitable. AI-tool estimate (D53 model on these trades):
 win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trades/$40 vs TradingAgents alone.
+
+## D55 — Strategy buttons: NOISE (verified) on, LunqFX + Opening-drive as buttons, MGC off, AI advisory ledger (user 2026-11-09)
+- User (session 9): "do 1-4 and yes keep old strategy as a button and also … Opening-drive pullback, MNQ as a button
+  too"; "add win rates/passing rates next to the buttons"; focus Lucid Pro 25K; "maximum trades … that don't break" it.
+- Research: docs/results/2026-11-09_session9_strategy_research.md (7 agents, Databento 2019–2026, pick 2019–2023 /
+  judge 2024–2026). Only the noise-area intraday momentum on MNQ passed: hourly checks + 1% emergency stop →
+  held-out 440 trades, 45.0% win, +$25.81/trade, PF 1.33; Pro 25K sim 57% pass / 42% bust at 1 micro.
+- `strategy:` section (config.StrategyCfg; My Settings keys strategy.lunqfx / strategy.noise / strategy.open_drive,
+  versioned + rollback). Pro/Flex plans: noise ON, lunqfx OFF (its setups run in SHADOW, skip reason STRATEGY_OFF),
+  open_drive OFF. Legacy Daily file unchanged (LunqFX only).
+- NOISE: app/engine/noise.py (pure) + app/signals/strategy_service.py (from TradingView 1-minute heartbeat bars —
+  non-negotiable #1 kept). Live engine reproduces the research exactly (parity test + full 2019–2026 replay:
+  440 tr / 45.0% / PF 1.33). Warm-up: 10 stored RTH sessions. G1-style gate (window, calendar, news) per entry.
+- Pillar changes approved by the user for these strategies only: §7 R:R window (NOISE exits by band/VWAP trail with a
+  1% emergency stop + 10% safety TP; OPEN_DRIVE R:R ≈ 0.95), §6 confluence (signals not from LunqFX/MSO), §9 sizing
+  (fixed 1 micro: no score tiers, no per-trade $ cap; the worst case at the emergency stop must still fit the DLL left
+  and the MLL distance − kill distance — risk/checks.TradeLimits.fixed_contracts, 100% covered). Drawdown Guard and
+  half-off defence do not apply to strategy trades. Exits are app-initiated (minimum hold D8 respected, retried).
+- OPEN_DRIVE (not verified: in-sample PF 1.00) trades paper (is_sim) accounts only (PAPER_ONLY_STRATEGY).
+- MGC disabled in every Pro/Flex plan (every gold strategy failed). MES stays out (it lowered Pro 25K results).
+- AI bias (app/bias/ledger.py + policy.py): every daily call scored against the session's real RTH move from stored
+  bars; ADVISORY until ≥ 30 scored calls with Wilson lower bound ≥ 70% (NOISE break-even) and Brier < 0.25; only then
+  may a strongly-agreed call block the opposite NOISE side (BIAS_PROVEN_AGAINST). LunqFX G2 unchanged.
+- UI: Strategy page → strategy buttons with tested win rate, Pro 25K pass/bust, PF, $/trade, trades/week, NOISE
+  warm-up progress, AI ledger badge. Numbers are static research facts (app/engine/strategy_catalog.py).

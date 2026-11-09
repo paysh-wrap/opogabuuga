@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import StrategyButtons from "../components/StrategyButtons";
 
 interface Feed { profile: string; feed: string; mso_trend: string | null; mso_osc: string | null; active_models: { key: string; dir: string; status: string }[]; last_mso_event: [string, string] | null }
 interface S {
@@ -25,7 +26,8 @@ export default function Strategy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
-      <p className="text-sm">No single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
+      <StrategyButtons />
+      <p className="text-sm"><b className="text-gold">LunqFX engine (below):</b> no single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <section className={card} data-testid="ta-card">

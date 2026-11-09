@@ -62,7 +62,7 @@ behavior:
 instruments:
   MNQ: {tick: 0.25, tick_value: 0.50, fee_rt: 1.00, enabled: true, group: NQ, super_group: EQUITY_INDEX, bias_proxy: QQQ, exchange: CME, tv_symbol: "MNQ1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}, windows: [["03:00", "09:30"], ["09:35", "15:30"]], trend_filters: false}    # D49: MNQ back on (profitable with the D49 rules on Nov 2024+). VERIFY fees
   MYM: {tick: 1.0, tick_value: 0.50, fee_rt: 1.00, enabled: false, group: YM, super_group: EQUITY_INDEX, bias_proxy: DIA, exchange: CBOT, tv_symbol: "MYM1!", contract: {months: HMUZ, roll: expiry, roll_days: 8}}   # VERIFY fees
-  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: true, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]]}      # VERIFY fees
+  MGC: {tick: 0.10, tick_value: 1.00, fee_rt: 1.60, enabled: false, group: GC, super_group: METALS, bias_proxy: GLD, exchange: COMEX, tv_symbol: "MGC1!", contract: {months: GJMQVZ, roll: fnd, roll_days: 2}, min_stop_ticks: 16, news_after_min: 15, windows: [["03:00", "15:30"]]}      # VERIFY fees
 
 correlation_groups:
   NQ: [NQ, MNQ]
@@ -75,6 +75,8 @@ super_groups:
   METALS: [GC]
 
 trade_plan: {rr_min: 1.5, rr_max: 2.5, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
+
+strategy: {lunqfx: false, noise: true, open_drive: false}   # D55 (user 2026-11-09): NOISE (verified) on; LunqFX + Opening-drive are buttons (Strategy page)
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0

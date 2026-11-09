@@ -226,6 +226,55 @@ class Filters(_M):
     trend: TrendFilter = TrendFilter()
 
 
+class NoiseCfg(_M):
+    """D55 (user-approved 2026-11-09): noise-area intraday momentum (Zarattini, Aziz & Barbon 2024) on MNQ RTH.
+    Verified on Databento 2019–2026 (docs/results/2026-11-09_session9_strategy_research.md): hourly checks + 1%
+    emergency stop → held-out 2024–2026 440 trades, 45.0% win, PF 1.33. Changing these values is NOT verified."""
+
+    symbol: str = "MNQ"
+    lookback_days: int = 14  # σ_t = mean |close_t / open − 1| at minute t over the previous N RTH sessions
+    min_history_days: int = 10  # fewer stored sessions (warm-up from TradingView heartbeats) → no signal
+    min_bars_per_day: int = 300  # an RTH session with fewer 1-minute bars is left out of σ (gaps in the feed)
+    check_minutes: int = 60  # decisions on the bar closing at 10:00, 11:00, … (first_check + k·check_minutes)
+    first_check: str = "10:00"
+    last_check: str = "15:30"  # last time a NEW entry may be decided (hourly → 15:00 is the last check)
+    flat_at: str = "16:00"  # every NOISE position is closed on the 16:00 bar
+    emergency_stop_pct: D = D("0.01")  # broker-side safety stop, 1% of price (0.3–0.5% cut winners — research)
+    take_profit_pct: D = D("0.10")  # broker-side far target (safety only; the trailing rule exits)
+    max_entries_per_day: int = 3
+    contracts: int = 1  # fixed size (user: Pro 25K at 1 micro); still subject to every pre-trade risk check
+    roll_gap_pct: D = D("0.015")  # |RTH open / prior RTH close − 1| above this → contract roll or shock: no trades
+
+
+class OpenDriveCfg(_M):
+    """D55 (user button, 2026-11-09): opening-drive pullback on MNQ — NOT verified (flat in-sample, PF 1.29 held-out)
+    → PAPER accounts only. R:R ≈ 0.95 (below the 1.5 pillar) by the user's explicit choice."""
+
+    symbol: str = "MNQ"
+    drive_min_range_frac: D = D("0.35")  # |close(09:59 bar) − RTH open| ≥ this × 14-day average RTH range
+    range_days: int = 14
+    min_range_days: int = 10
+    entry_retrace: D = D("0.382")  # limit at the 38.2% retrace of open → drive extreme
+    stop_retrace: D = D("0.786")
+    target_frac: D = D("1.0")  # 1.0 = back to the drive extreme
+    signal_time: str = "10:00"
+    entry_expires: str = "12:30"
+    time_stop: str = "13:00"
+    contracts: int = 1
+    paper_only: bool = True
+
+
+class StrategyCfg(_M):
+    """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
+    they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
+
+    lunqfx: bool = True
+    noise: bool = False
+    open_drive: bool = False
+    noise_cfg: NoiseCfg = NoiseCfg()
+    open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
+
+
 class ScoreCfg(_M):
     weights: dict[str, D]
     min_score: D
@@ -492,6 +541,7 @@ class RulesConfig(_M):
     super_groups: dict[str, list[str]]
     trade_plan: TradePlanCfg
     filters: Filters
+    strategy: StrategyCfg = StrategyCfg()
     score: ScoreCfg
     entry: EntryCfg
     profiles: Profiles

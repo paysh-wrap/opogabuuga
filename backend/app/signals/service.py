@@ -212,7 +212,8 @@ def process(
     mfc = rules.filters.model_fail_cooldown
     cooled = cooldown_active(s, st.symbol, st.profile, sess) and (mfc.in_scalp or not rules.scalp_mode.enabled)
     mso = st.mso or {}
-    enabled = rules.instrument(st.symbol).enabled
+    inst_on = rules.instrument(st.symbol).enabled
+    enabled = inst_on and rules.strategy.lunqfx  # D55: LunqFX button off → its setups run in SHADOW only
     eval_rules = rules if enabled else shadow_rules(rules, st.symbol)
     hist = cache.get((st.symbol, st.profile), now) if cache else None
     if hist is None:
@@ -290,7 +291,7 @@ def process(
             }
             sig.status = "SHADOW" if dec.outcome == "WAIT" and final is None else "SHADOWED"
             sig.passed = False
-            sig.skip_reason = "INSTRUMENT_DISABLED"
+            sig.skip_reason = "INSTRUMENT_DISABLED" if not inst_on else "STRATEGY_OFF"
             score_s = str(sig.score) if sig.score is not None else None
             updates.append(SignalUpdate(sig.id, m.model_key, sig.status, sig.skip_reason, score_s))
             continue

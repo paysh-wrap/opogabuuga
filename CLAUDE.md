@@ -119,3 +119,8 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   (D36/D37, 84% of trades < 1.75R — Results Q) lost $1,201 on 2 years. TradingAgents = G2 bias, user key not yet
   connected; at realistic accuracy it adds ~1–2 pts win rate but halves trades (D49). Vibe Trading: not in the repo —
   ask the user what it is before building. Squeeze (D45) failed → stays OFF. MNQ is ON again (D49 supersedes D42).
+- D55 (user 2026-11-09): strategy BUTTONS (Strategy page, My Settings strategy.*): NOISE = verified noise-area momentum on
+  MNQ RTH (engine/noise.py, signals/strategy_service.py, fixed 1 micro, 1% emergency stop, hourly band/VWAP exits, flat
+  16:00) ON in Pro/Flex; LunqFX = button (off → SHADOW); Opening-drive = button, PAPER accounts only. MGC OFF. Focus
+  Lucid Pro 25K. AI bias advisory until the ledger proves ≥ 70% (bias/ledger.py). Research + numbers:
+  docs/results/2026-11-09_session9_strategy_research.md. Changing NOISE parameters = unverified → re-run noise_area.py.

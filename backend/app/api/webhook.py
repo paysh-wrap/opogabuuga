@@ -60,8 +60,29 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
                     cache=st.stats_cache,
                 )
 
+        def strategies() -> Any:  # D55: NOISE / OPEN_DRIVE from the stored 1-minute TradingView bars
+            from datetime import UTC, datetime
+
+            from app.signals import strategy_service
+
+            with st.sessionmaker() as s:
+                return strategy_service.run(
+                    s,
+                    rules=st.rules.rules,
+                    clock=st.clock,
+                    calendar=st.calendar,
+                    symbol=acc.symbol,
+                    tf=p.tf,
+                    at=datetime.fromtimestamp(p.bar_time_ms / 1000, tz=UTC),
+                )
+
+        exits: list[tuple[int, str]] = []
         try:
             updates = await _run_sync(st, work)
+            if p.event == "HEARTBEAT" and p.price is not None:
+                strat = await _run_sync(st, strategies)
+                updates = [*updates, *strat.updates]
+                exits = strat.exits
         except Exception as e:  # §1.9: never silent — log + banner; entries stay blocked because nothing passed
             log.error("signal.process_failed", key=key, error=type(e).__name__, detail=str(e)[:300])
             await st.hub.broadcast(
@@ -75,6 +96,9 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
         st.ws_throttle[key] = now
         await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
     ctl = st.controller
+    for sid, why in exits:  # D55 strategy exits (trailing / 16:00 flat / time stop) before any new entry
+        n = await ctl.strategy_exit(sid, why)
+        await st.hub.broadcast("order.updated", {"signal": sid, "exit": why, "trades": n})
     if p.event == "HEARTBEAT" and p.price is not None:
         finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
         if finest:

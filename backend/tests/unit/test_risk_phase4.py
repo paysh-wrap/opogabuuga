@@ -6,7 +6,7 @@ from decimal import Decimal as D
 import pytest
 
 from app.config import load_rules
-from app.engine.trade_plan import Direction, build_one_to_one_plan, build_trade_plan, fee_cover_ticks
+from app.engine.trade_plan import Direction, TradePlan, build_one_to_one_plan, build_trade_plan, fee_cover_ticks
 from app.management.drawdown_guard import (
     GuardCfgView,
     apply_guard,
@@ -446,3 +446,35 @@ def test_low_risk_min_qty_floor_d36():
     # no DLL on the account (Flex funded): only the cap applies
     nodll = run(plan=wide, lim=replace(LIM, min_qty_cap_mult=mult), acct_dll=None, consistency=None)
     assert nodll.ok and nodll.contracts == 1
+
+
+# ---------- D55 fixed-size strategies (NOISE / OPEN_DRIVE, 1 micro) ----------
+NOISE_PLAN = TradePlan(Direction.LONG, D(20000), D(19800), D(22000), D(200), D(10), mode="NOISE")  # 1% stop
+
+
+def _fixed(n=1, **lim_over):
+    from dataclasses import replace
+
+    return replace(LIM, fixed_contracts=n, **lim_over)
+
+
+def test_fixed_size_ignores_score_and_dollar_cap_but_keeps_worst_case():
+    # 1 micro, 800 ticks × $0.50 + fee + 1 tick slip = $402 worst case; score/tier and the $ cap do not apply
+    r = run(plan=NOISE_PLAN, score=D(0), lim=_fixed(), consistency=None, acct_dll=None)
+    assert r.ok and r.contracts == 1 and r.risk_usd == r.worst_case_usd == D("402.00") and r.risk_pct is None
+    assert any(c["check"] == "fixed_size" for c in r.checks)
+    assert run(plan=PLAN, lim=_fixed(5), consistency=None, acct_dll=None).contracts == 5  # 20-pt stop
+    assert run(plan=PLAN, lim=_fixed(50), consistency=None, acct_dll=None).contracts == 10  # internal max
+
+
+def test_fixed_size_blocked_by_dll_and_mll_room():
+    r = run(plan=NOISE_PLAN, lim=_fixed(), consistency=None)  # DLL $600: 402 + 40 ≤ 600 → ok
+    assert r.ok
+    r = run(plan=NOISE_PLAN, lim=_fixed(), consistency=None, day=DayState(1, 1, 0, D(-200), D(0)))  # $400 left
+    assert not r.ok and r.reason == "WORST_CASE_EXCEEDS_LIMITS"
+    r = run(plan=NOISE_PLAN, lim=_fixed(), consistency=None, acct_dll=None, acct_equity=D(24500))  # 500−100 room
+    assert not r.ok and r.reason == "WORST_CASE_EXCEEDS_LIMITS"
+    r = run(plan=NOISE_PLAN, lim=_fixed(0), consistency=None, acct_dll=None)
+    assert not r.ok and r.reason == "STOP_TOO_WIDE"
+    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))  # consistency
+    assert not r.ok and r.reason == "CONSISTENCY_CAP"

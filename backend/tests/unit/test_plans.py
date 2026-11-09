@@ -69,7 +69,8 @@ def test_main_strategy_d49(plan):
     t = p.filters.trend
     assert t.utbot_5m and t.ema200_5m and not t.vwap and not t.squeeze_5m_15m  # Squeeze failed on 7 years (D45)
     for sym in ("MGC", "MNQ"):  # D50 (user): MGC + MNQ only
-        assert p.instruments[sym].enabled and p.instruments[sym].intraday_windows is None, sym
+        assert p.instruments[sym].intraday_windows is None, sym
+    assert p.instruments["MNQ"].enabled and not p.instruments["MGC"].enabled  # D55: every gold test failed → MGC off
     assert "MES" not in p.instruments and not p.instruments["MYM"].enabled  # D51: MES eliminated
     assert p.instruments["MGC"].trend_filters and not p.instruments["MNQ"].trend_filters  # D52: MNQ every setup
     assert p.internal.max_trades_per_day == 3 and p.internal.low_risk_max_trades_per_day == 7  # normal 3, low risk 7
@@ -90,3 +91,20 @@ def test_no_plan_can_aim_below_15r():
         RulesConfig.model_validate(raw)
     for f in sorted(RULES.glob("*.yaml")):  # every shipped plan, incl. the legacy Daily file
         assert load_rules(f).rules.trade_plan.rr_min >= D("1.5"), f.name
+
+
+@pytest.mark.parametrize("plan", [f"lucid_{p}_{k}k" for p in ("pro", "flex") for k in (25, 50, 100, 150)])
+def test_strategy_buttons_d55(plan):
+    """D55 (user 2026-11-09): NOISE (verified noise-area momentum, MNQ) on; LunqFX and Opening-drive are buttons, off;
+    Opening-drive is paper-only; the verified NOISE parameters ship unchanged."""
+    s = r(plan).strategy
+    assert s.noise and not s.lunqfx and not s.open_drive
+    n = s.noise_cfg
+    assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
+    assert n.emergency_stop_pct == D("0.01") and n.contracts == 1 and n.max_entries_per_day == 3
+    assert s.open_drive_cfg.paper_only
+
+
+def test_legacy_daily_plan_keeps_lunqfx_only():
+    s = load_rules(RULES / "lucid_daily_25k.yaml").rules.strategy
+    assert s.lunqfx and not s.noise and not s.open_drive

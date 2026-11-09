@@ -65,6 +65,9 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "filters.trend.ema200_5m",
         "filters.trend.utbot_5m",
         "filters.trend.squeeze_5m_15m",
+        "strategy.lunqfx",  # D55: strategy buttons (parameters stay in the plan file)
+        "strategy.noise",
+        "strategy.open_drive",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(

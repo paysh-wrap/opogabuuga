@@ -91,6 +91,10 @@ class TradeLimits:
     # D36 Lower-risk mode: when the (halved) risk can't buy min_qty micros, allow exactly min_qty if that costs no
     # more than risk × this multiple (2 = the normal-mode risk). Never above normal risk; None = off.
     min_qty_cap_mult: Decimal | None = None
+    # D55: fixed-size strategies (NOISE / OPEN_DRIVE, user: 1 micro on Pro 25K). No score tiers and no per-trade $ cap
+    # (their broker stop is an emergency stop far beyond the typical loss); the worst case at that stop must still fit
+    # the DLL left and the distance to the MLL minus the kill-switch distance (checks below), like every trade.
+    fixed_contracts: int | None = None
 
 
 @dataclass
@@ -154,18 +158,25 @@ def pretrade(
     stop = day_stop_reason(day, day_limits, consistency)
     if not r.log("day_stop", stop is None, reason=stop, trades=day.trades_today):
         return fail(stop or "DAY_STOP")
+    dll_left = dll_remaining(acct.dll, day.today_pnl, day.today_peak_pnl) if acct.dll is not None else None
+    stop_ticks = plan.risk_pts / lim.tick
+    if lim.fixed_contracts is not None:
+        n = min(lim.fixed_contracts, lim.firm_max, lim.internal_max)
+        usd = money(n * per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks))
+        r.risk_usd = usd
+        if not r.log("fixed_size", n > 0, contracts=n, worst=usd, cap_not_applied=rcfg.max_risk_usd):
+            return fail("STOP_TOO_WIDE")
+        return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist)
     pct = select_risk_pct(score, ctx, rcfg, floor)
     if not r.log("score_tier", pct is not None, score=score, profile=rcfg.kind):
         return fail("SCORE_BELOW_MIN")
     assert pct is not None
     usd = risk_usd(pct, acct.base, rcfg)
     r.risk_pct, r.risk_usd = pct, usd
-    dll_left = dll_remaining(acct.dll, day.today_pnl, day.today_peak_pnl) if acct.dll is not None else None
     if dll_left is not None and not r.log(
         "dll_room", usd + lim.dll_safety_margin <= dll_left, risk=usd, margin=lim.dll_safety_margin, dll_left=dll_left
     ):
         return fail("DLL_LIMIT")
-    stop_ticks = plan.risk_pts / lim.tick
     n = size_contracts(
         usd, stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks, lim.firm_max, lim.internal_max, lim.min_qty
     )
@@ -179,6 +190,21 @@ def pretrade(
             r.log("low_risk_min_qty", True, risk=usd, cap=cap)
     if not r.log("size", n > 0, risk=usd, stop_ticks=stop_ticks, min_qty=lim.min_qty):
         return fail("STOP_TOO_WIDE")
+    return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist)
+
+
+def _finish(
+    r: PreTrade,
+    plan: TradePlan,
+    day: DayState,
+    consistency: ConsistencyLimits | None,
+    lim: TradeLimits,
+    n: int,
+    stop_ticks: Decimal,
+    dll_left: Decimal | None,
+    dist: Decimal,
+) -> PreTrade:
+    """Checks every trade passes after sizing: consistency cap, then worst case vs DLL left / MLL distance."""
     if consistency is not None:
         reward = (plan.take_profit - plan.entry) * plan.direction.sign / lim.tick * lim.tick_value - lim.fee_rt
         fit = fit_contracts(n, day.today_profit_for_consistency, reward, consistency, lim.min_qty)
@@ -191,12 +217,14 @@ def pretrade(
             contracts=n,
             fitted=fit,
         ):
-            return fail("CONSISTENCY_CAP")
+            r.reason = "CONSISTENCY_CAP"
+            return r
         n = fit
     per = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks)
     worst = money(n * per)
     room = min(x for x in (dll_left, dist - lim.kill_switch_distance) if x is not None)
     if not r.log("worst_case", worst + lim.dll_safety_margin <= room, worst=worst, room=room):
-        return fail("WORST_CASE_EXCEEDS_LIMITS")
+        r.reason = "WORST_CASE_EXCEEDS_LIMITS"
+        return r
     r.ok, r.contracts, r.worst_case_usd = True, n, worst
     return r

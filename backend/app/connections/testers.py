@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-
-import os
 
 import httpx
 
@@ -41,7 +40,9 @@ async def test_llm_key(provider: str, key: str, http: httpx.AsyncClient) -> Test
     else:
         headers = {"Authorization": f"Bearer {key}"}
     url = spec["models_url"]
-    if provider == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):  # workspace keys (sk-ws-…) only work on their own endpoint
+    if provider == "qwen" and os.environ.get(
+        "PAYTIENCE_QWEN_BASE_URL"
+    ):  # workspace keys (sk-ws-…) only work on their own endpoint
         url = os.environ["PAYTIENCE_QWEN_BASE_URL"].rstrip("/") + "/models"
     r = await http.get(url, headers=headers)
     return _status_msg(r, f"{provider} key accepted")

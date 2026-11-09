@@ -40,6 +40,7 @@ from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
+STRATEGY_MODES = ("NOISE", "OPEN_DRIVE")  # D55: TradePlan modes of the fixed-size strategies
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
 
@@ -93,6 +94,7 @@ class Controller:
     _flatten_reason: str | None = None
     _flatten_alerted: set[str] = field(default_factory=set)  # accounts whose failed flatten already raised the banner
     _bar_feeds: dict[str, dict[int, datetime]] = field(default_factory=dict)  # symbol → {tf minutes: last bar seen}
+    _pending_exits: dict[str, str] = field(default_factory=dict)  # D55 strategy exits still inside the minimum hold
     bus: Any = None  # app.events.EventBus: stored notifications + WS events (§19)
 
     # ---------- setup ----------
@@ -251,6 +253,10 @@ class Controller:
         )
         want = "ONE_TO_ONE" if any_1to1 else "STANDARD"
         rows = list(s.execute(select(TradePlanRow).where(TradePlanRow.signal_id == sig.id)).scalars())
+        strategy = (sig.features or {}).get("strategy")
+        if strategy in STRATEGY_MODES:  # D55: NOISE / OPEN_DRIVE carry exactly one plan in their own mode
+            want = strategy
+            rows = [r for r in rows if r.mode == strategy]
         row = next((r for r in rows if r.mode == want), None) or next((r for r in rows if r.mode == "STANDARD"), None)
         if row is None:
             return None
@@ -343,6 +349,9 @@ class Controller:
         mll = self._mll_state(a)
         equity = bal + opnl
         base = risk_base(equity, mll.mll)
+        strategy = plan0.mode if plan0.mode in STRATEGY_MODES else ""
+        if strategy == "OPEN_DRIVE" and r.strategy.open_drive_cfg.paper_only and not a.is_sim:
+            return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # D55: not verified → paper accounts only
         one_to_one = (
             plan0.mode == "ONE_TO_ONE"
             and a.stage in r.one_to_one_mode.stages
@@ -356,7 +365,7 @@ class Controller:
         )
         plan = plan0
         guard_on = False
-        if not one_to_one:
+        if not one_to_one and not strategy:
             if plan0.mode == "ONE_TO_ONE":  # stage not allowed for 1:1 → fall back to the standard plan
                 std_row = next(
                     (
@@ -412,6 +421,11 @@ class Controller:
             r.internal.pause_below_risk_base,
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
+            fixed_contracts=(
+                (r.strategy.noise_cfg.contracts if strategy == "NOISE" else r.strategy.open_drive_cfg.contracts)
+                if strategy
+                else None
+            ),
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
         pt = pretrade(
@@ -461,10 +475,10 @@ class Controller:
                 inst.tick_value,
                 now,
                 rr_window,
-                r.entry.mode,
-                self._limit_deadline(sig, now),
+                ("limit_cisd" if strategy == "OPEN_DRIVE" else "market") if strategy else r.entry.mode,
+                self._strategy_deadline(sig) if strategy else self._limit_deadline(sig, now),
             )
-            t.profile = sig.profile
+            t.profile, t.signal_id, t.strategy = sig.profile, sig.id, strategy
         except OrphanedPosition as e:
             # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
             # pause the account for good (never auto-resumes) and raise the banner (§1.8)
@@ -488,6 +502,40 @@ class Controller:
         for f in self.adapter.drain_fills():
             await self._handle_events(s, await self.om.on_fill(f))
         return AccountResult(a.id, True, None, pt.contracts, t.trade_id, pt.checks)
+
+    @staticmethod
+    def _strategy_deadline(sig: Signal) -> datetime | None:
+        """D55 OPEN_DRIVE: the resting limit works until entry_expires (on the signal); NOISE enters at market."""
+        until = (sig.features or {}).get("entry_expires_at")
+        return datetime.fromisoformat(until) if until else None
+
+    async def strategy_exit(self, signal_id: int, reason: str) -> int:
+        """D55: close every open trade of this NOISE / OPEN_DRIVE signal (trailing exit, 16:00 flat, time stop).
+        Returns how many trades were flattened/cancelled now; ones inside the minimum hold retry on the next bar."""
+        done = 0
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for t in [t for t in self.om.trades.values() if t.signal_id == signal_id and not t.closing]:
+                    ev = await self.om.strategy_exit(t.trade_id, reason, self.clock.now())
+                    if ev is None:
+                        self._pending_exits[t.trade_id] = reason
+                        continue
+                    self._pending_exits.pop(t.trade_id, None)
+                    audit.record(s, self.clock, "automation", "trade.strategy_exit", t.account, {"reason": reason})
+                    done += 1
+                    await self._handle_events(s, ev)
+                for f in self.adapter.drain_fills():
+                    await self._handle_events(s, await self.om.on_fill(f))
+                s.commit()
+        return done
+
+    async def _retry_strategy_exits(self, s: Session) -> None:
+        for tid, reason in list(self._pending_exits.items()):
+            ev = await self.om.strategy_exit(tid, reason, self.clock.now())
+            if ev is None:
+                continue
+            del self._pending_exits[tid]
+            await self._handle_events(s, ev)
 
     def _limit_deadline(self, sig: Signal, now: datetime) -> datetime | None:
         """limit_cisd: the entry may work for limit_timeout_bars bars of the signal's (LTF) timeframe."""
@@ -566,6 +614,7 @@ class Controller:
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
                 await self._handle_events(s, await self.om.on_bar(symbol, h, low))
+                await self._retry_strategy_exits(s)
                 await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
                 s.commit()
@@ -970,7 +1019,7 @@ class Controller:
         now = self.clock.now()
         async with self.lock:
             with self.sessionmaker() as s:
-                for t in [t for t in self.om.trades.values() if t.symbol == symbol]:
+                for t in [t for t in self.om.trades.values() if t.symbol == symbol and not t.strategy]:
                     against = "SHORT" if t.d is Direction.LONG else "LONG"
                     # D37: judge the trade with its own timeframe's MSO when that state is known
                     t_mso, t_events = (by_profile or {}).get(t.profile, (mso, mso_events))
