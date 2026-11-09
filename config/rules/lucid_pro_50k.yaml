@@ -255,13 +255,13 @@ automation:
   auto_resume_after_recovery: {paper: true, live: false}
 
 payouts:
-  frequency: every_n_sessions          # D65 (user 2026-11-09): try for a payout every 2–3 days (Lucid Pro: any day once eligible)
+  frequency: every_n_sessions          # D65/D67 (user 2026-11-09): a payout EVERY 2 WEEKS at the maximum allowed (Lucid Pro: any day once eligible)
   check_time: "Fri 17:05"
   sweep_above: 56100
   skim_mode: half                      # half | off
   block_trading_while_pending: true
   mode: max_eligible                   # D65: largest allowed payout = balance − buffer, capped; 40% consistency per cycle
-  min_sessions_between: 2              # D65: at least 2 sessions after the last processed payout
+  min_sessions_between: 10             # D67: 10 trading days (2 weeks) after the last processed payout
   session_check_time: "17:05"          # D65: daily check after the flat
   min_pct_of_cap: null                 # D65: 0.5 = wait for ≥ 50% of the cap (study: most take-home on 100K/150K Regular)
 

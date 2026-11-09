@@ -85,7 +85,7 @@ test("payout settings save and plan tracker render real numbers", async () => {
   // D65: Lucid Pro "largest allowed" mode
   await userEvent.selectOptions(screen.getByLabelText("Payout mode"), "max");
   expect(calls).toContain('PUT /api/payouts/settings {"skim_mode":"half","frequency":"weekly","mode":"max_eligible","min_pct_of_cap":null}');
-  expect(screen.getByRole("option", { name: /Every 2–3 days when eligible/ })).toBeInTheDocument();
+  expect(screen.getByRole("option", { name: /Max payout every 10 trading days when eligible/ })).toBeInTheDocument();
   expect(await screen.findByTestId("next-2")).toHaveTextContent("sweep $600.00");
   expect(screen.getByTestId("next-3")).toHaveTextContent("broker not connected");
   expect(screen.getByTestId("next-4")).toHaveTextContent("no profit");

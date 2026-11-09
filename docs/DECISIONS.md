@@ -586,3 +586,10 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   (brake < 30% → 1) + day lock-in (stop for the day once today's profit ≥ 33% of the remaining target,
   EVAL_DAY_LOCK) · 150K 4 (brake < 50% → 2). Agent study (eval_speed_report.md): median sessions to pass 100K
   102 → 88, 150K 103 → 84, pass % 65 → 68 / 67 → 68, value per eval 105% / 102%. Original LunqFX keeps 10/12/14% tiers.
+
+## D67 (user 2026-11-09): Pro payouts = maximum allowed, every 2 weeks
+- User overrode the 2–3 day setting: lucid_pro_*.yaml payouts.min_sessions_between = 10 (10 trading days after the last
+  processed payout), mode max_eligible, min_pct_of_cap null. Payouts page: "Days between payouts" select (10 / 5 / 3 / 2).
+  Strategy, sizing, brake, stops, Evaluation Mode and the 40% consistency rule are untouched (payout planning only).
+  Study numbers at this cadence (5 funded accts, per 2 wk · bust): 25K $317 · 57%, 50K $564 · 44%, 100K $643 · 26%,
+  150K Regular $881 · 24%, 150K High $952 · 27%.

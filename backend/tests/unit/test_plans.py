@@ -155,3 +155,19 @@ def test_size_table_validation_and_plans():  # D63
                 assert st.size_table_eval == []
             hi = st.model_copy(update={"high_risk": True})
             assert hi.active_size_table() is st.size_table_high
+
+
+def test_pro_plans_pay_out_every_two_weeks_at_the_maximum():  # D67
+    from pathlib import Path
+
+    from app.config import load_rules
+
+    root = Path(__file__).resolve().parents[3] / "config" / "rules"
+    for f in sorted(root.glob("lucid_pro_*.yaml")):
+        pc = load_rules(f).rules.payouts
+        assert (pc.frequency, pc.mode, pc.min_sessions_between, pc.min_pct_of_cap) == (
+            "every_n_sessions",
+            "max_eligible",
+            10,
+            None,
+        ), f.stem

@@ -43,8 +43,8 @@ export function PayoutSettings() {
               onChange={(e) => {
                 const v = e.target.value;
                 save.mutate(v === "max"
-                  ? { skim_mode: s.skim_mode, frequency: s.frequency, mode: "max_eligible", min_pct_of_cap: s.min_pct_of_cap ?? null }
-                  : { skim_mode: v as Settings["skim_mode"], frequency: s.frequency, mode: "sweep_skim", min_pct_of_cap: s.min_pct_of_cap ?? null });
+                  ? { skim_mode: s.skim_mode, frequency: s.frequency, mode: "max_eligible", min_pct_of_cap: s.min_pct_of_cap ?? null, min_sessions_between: s.min_sessions_between }
+                  : { skim_mode: v as Settings["skim_mode"], frequency: s.frequency, mode: "sweep_skim", min_pct_of_cap: s.min_pct_of_cap ?? null, min_sessions_between: s.min_sessions_between });
               }}>
               <option value="max">Largest allowed (Lucid Pro: balance − buffer, capped)</option>
               <option value="half">Sweep + skim (half of week profit once MLL is locked)</option>
@@ -52,15 +52,25 @@ export function PayoutSettings() {
             </select></label>
           <label className="flex min-w-0 max-w-full flex-col">Frequency
             <select aria-label="Payout frequency" value={s.frequency} disabled={save.isPending}
-              onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: e.target.value as Settings["frequency"], min_pct_of_cap: s.min_pct_of_cap ?? null })}>
-              <option value="every_n_sessions">Every {s.min_sessions_between ?? 2}–3 days when eligible ({s.session_check_time ?? "17:05"} ET)</option>
+              onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: e.target.value as Settings["frequency"], min_pct_of_cap: s.min_pct_of_cap ?? null, min_sessions_between: s.min_sessions_between })}>
+              <option value="every_n_sessions">Max payout every {s.min_sessions_between ?? 10} trading days when eligible ({s.session_check_time ?? "17:05"} ET)</option>
               <option value="weekly">Weekly ({s.check_time} ET)</option>
               <option value="on_demand">On demand (Check now only)</option>
             </select></label>
+          {s.frequency === "every_n_sessions" && (
+            <label className="flex min-w-0 max-w-full flex-col">Days between payouts
+              <select aria-label="Days between payouts" value={s.min_sessions_between ?? 10} disabled={save.isPending}
+                onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: s.frequency, mode: s.mode, min_pct_of_cap: s.min_pct_of_cap ?? null, min_sessions_between: Number(e.target.value) })}>
+                <option value={10}>10 trading days (every 2 weeks)</option>
+                <option value={5}>5 (weekly)</option>
+                <option value={3}>3</option>
+                <option value={2}>2</option>
+              </select></label>
+          )}
           {s.mode === "max_eligible" && (
             <label className="flex min-w-0 max-w-full flex-col">Size
               <select aria-label="Payout size" value={s.min_pct_of_cap ? "half" : "any"} disabled={save.isPending}
-                onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: s.frequency, min_pct_of_cap: e.target.value === "half" ? "0.5" : null })}>
+                onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: s.frequency, min_pct_of_cap: e.target.value === "half" ? "0.5" : null, min_sessions_between: s.min_sessions_between })}>
                 <option value="any">As soon as eligible</option>
                 <option value="half">Wait for ≥ 50% of the cap (most take-home on 100K/150K)</option>
               </select></label>
