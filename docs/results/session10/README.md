@@ -302,3 +302,11 @@ Lucid's real minimum time between Pro payout requests must be VERIFIED before re
 | 150K | every ~2 months | $25,090 | $26,214 | $15,497 | 6% | 5% |
 | 100K | same day / ~1 mo / ~2 mo | $16,723 / $17,737 / $18,349 | $16,025 / $16,698 / $19,065 | $0 / $4,884 / $11,158 | 27% / 13% / 6% | 26% / 7% / 4% |
 | 50K | same day / ~1 mo / ~2 mo | $14,664 / $15,583 / $15,982 | $13,070 / $15,154 / $16,840 | $0 / $3,309 / $7,221 | 34% / 13% / 5% | 44% / 21% / 9% |
+
+### §25 corrections (independent agent re-implementation, verify_cadence_eval_stagger.md)
+- A (payout every 3 sessions): CONFIRMED.
+- 3 (eval size): the original ran evals WITHOUT the drawdown brake. With the brake: 50K 2 micros $1,666 per eval bought,
+  100K 2 → $2,194, 150K 3 → $3,094 (−3–6%); on 150K, 4 micros ($3,155) now edges 3 (≈ 2%, within noise). 25K unchanged.
+- 4 (staggered starts): tail-risk cut CONFIRMED (150K P(total $0) 25% → 6%, all-5-bust 24% → 5%), but the HIGHER MEAN
+  was an artifact of comparing different start-date windows: on the same window same-day starts average $27,073 vs
+  $25,090 staggered → staggering costs ≈ 7% of the average and buys a much safer distribution.
