@@ -17,6 +17,9 @@ dev = ["pytest>=8", "pytest-asyncio>=0.24", "pytest-cov>=5", "hypothesis>=6", "r
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.backtest" = ["data/*.csv"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

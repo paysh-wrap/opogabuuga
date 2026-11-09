@@ -523,3 +523,12 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   (a later NOISE signal is then blocked by the one-position rule while the fade is open).
 - Strategy page: MAIN card first ("NOISE + Afternoon fade"), ON switches strategy.pm_fade + strategy.noise; ON in all
   Pro/Flex plans. Research: NOISE $250 + fade $250, 5 years 1 micro: +$25,345, PF 1.33, Pro 25K pass 66% / bust 32%.
+
+## D59 (user 2026-11-09): projected weekly income on the Dashboard
+- GET /api/income/projection?plan=&accounts=1–5&micros=1–5&cadence=5|10 (plan whitelisted to config/rules/lucid_*.yaml).
+  Pure app/backtest/income_projection.py replays the MAIN strategy's 5-year research trades
+  (app/backtest/data/main_strategy_5y.csv, shipped as package data) through the plan's own funded rules (MLL + lock, soft
+  DLL, buffer, min request, cycle profit, caps, 40% consistency, max payouts, split; Flex 50% / profitable days / MLL lock).
+  Dashboard card "Projected weekly income": per week, per payout, year average / median / middle half, max possible,
+  ≥1-payout %, bust %, wait for the 1st payout, with plan / accounts / micros / weekly-or-2-weeks selectors.
+  Labelled as a research projection (same trades on all accounts, no open-trade drawdown / news, no eval fees).

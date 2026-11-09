@@ -150,3 +150,13 @@ Only 250/200 (66.2% / 31.6%, $1,080 per eval) and 250/350 (66.5% / 31.3%) beat 6
 Fade axis: $200–400 is a flat plateau (≈ 65–67% pass) → the fade stop barely matters. NOISE axis: only the $250 row is
 good; $200 and $300 drop to 57–63% pass / 37–43% bust → $250 is a narrow, probably sample-specific peak. Wider NOISE
 stops ($350–400) pay more per pass ($1,240 per eval) but bust 37–38%. Built: NOISE $250 + fade $250 (centre of the plateau).
+
+## 15. Bi-weekly take-home, 5 funded accounts, MAIN strategy (app/backtest/income_projection.py — same code as the Dashboard)
+| plan, 5 accounts | micros each | per 2 weeks (avg) | year 1 avg / median | middle half | ≥1 payout | bust yr 1 | 1st payout |
+|---|---|---|---|---|---|---|---|
+| Pro 25K | 1 | $317 | $8,232 / $4,500 | $0 – $16,875 | 58% | 57% | 70 days |
+| **Pro 50K** | 1 | $317 | $8,248 / **$7,617** | $0 – $13,398 | **70%** | **21%** | 100 days |
+| **Pro 50K** | **2** | **$595** | **$15,457** / $9,000 | $0 – $31,429 | 61% | 52% | 60 days |
+| Pro 50K | 3 | $463 | $12,041 / $0 | $0 – $20,250 | 47% | 63% | 45 days |
+50K at 1 micro: same average as 25K but far safer (bust 21%), slower first payout ($52,100 buffer). 50K at 2 micros: best
+average; risk like 25K at 1. 3 micros: worse. Eval fees not subtracted; 5 accounts take the same trades.

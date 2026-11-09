@@ -4,6 +4,7 @@ import { usePageTitle } from "../components/usePageTitle";
 import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
 import WhyNoTrade from "../components/WhyNoTrade";
+import IncomeProjection from "../components/IncomeProjection";
 import RuleMeters from "../components/RuleMeters";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
@@ -69,6 +70,7 @@ export default function Dashboard() {
         <ApprovalQueue />
         <BiasAndBlackouts />
       </div>
+      <IncomeProjection />
       <WhyNoTrade />
       {d.accounts.length === 0 && <p>No accounts yet — add one on the Automation page.</p>}
       <div className="grid gap-4 lg:grid-cols-2">

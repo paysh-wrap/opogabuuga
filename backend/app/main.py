@@ -18,6 +18,7 @@ from app.api.automation import router as automation_router
 from app.api.backtest import router as backtest_router
 from app.api.dashboard import router as dashboard_router
 from app.api.gate import router as gate_router
+from app.api.income import router as income_router
 from app.api.insights import router as insights_router
 from app.api.journal import router as journal_router
 from app.api.lab import router as lab_router
@@ -434,6 +435,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(automation_router)
     app.include_router(live_router)
     app.include_router(dashboard_router)
+    app.include_router(income_router)
     app.include_router(plan_router)  # before payouts: /payouts/settings must not hit /payouts/{pid}
     app.include_router(payouts_router)
     app.include_router(journal_router)
