@@ -266,3 +266,11 @@ Daily/weekly stops, pauses, cool-offs, profit locks: no gain or too costly. Pro 
 Filters (21 a-priori, agent D): none raises win % AND PF in both halves; skip-Monday / prior-day-range / min-$100 fade
 target pass the loose rule by chance-sized margins → MAIN unchanged. Only candidate with a mechanical reason: skip a
 fade whose VWAP target is < $100 (5y bust 32% → 26%, but 2024–26 pass 66% → 64%) — needs forward evidence.
+
+## 23. D63 automatic size per account (in the app) — projection with the size table (5 accounts, payout every 2 weeks)
+| plan | auto size | per 2 wk | year median | funded bust yr 1 |
+|---|---|---|---|---|
+| Pro 25K | 1 micro | $317 | $4,500 | 57% |
+| Pro 50K | 2 → 1 below 50% cushion | $564 | $13,070 | 44% |
+| Pro 100K | 2 → 1 below 30% cushion | $643 | $16,025 | 26% |
+| Pro 150K | 4 → 2 below 50% cushion | $952 | $23,706 | 27% |

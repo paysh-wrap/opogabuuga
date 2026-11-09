@@ -36,6 +36,7 @@ from app.risk.eval_mode import effective_risk_cfg, one_to_one_for
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
+from app.risk.strategy_sizing import SizeTier, auto_contracts
 from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
@@ -414,6 +415,35 @@ class Controller:
             st.dll_for(r, a),
             base,
         )
+        fixed = (
+            {
+                "NOISE": r.strategy.noise_cfg.contracts,
+                "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
+                "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
+                "PM_FADE": r.strategy.pm_fade_cfg.contracts,
+            }[strategy]
+            if strategy
+            else None
+        )
+        if strategy in ("NOISE", "PM_FADE") and r.strategy.size_table:  # D63: size by this account's own size
+            size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
+            auto = auto_contracts(
+                size,
+                base,
+                [
+                    SizeTier(t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts)
+                    for t in r.strategy.size_table
+                ],
+            )
+            fixed = auto.contracts
+            audit.record(
+                s,
+                self.clock,
+                actor,
+                "trade.auto_size",
+                a.broker_account_id,
+                {"signal": sig.id, "contracts": auto.contracts, "tier": str(auto.tier), "braked": auto.braked},
+            )
         lim = TradeLimits(
             inst.tick,
             inst.tick_value,
@@ -426,16 +456,7 @@ class Controller:
             r.internal.pause_below_risk_base,
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
-            fixed_contracts=(
-                {
-                    "NOISE": r.strategy.noise_cfg.contracts,
-                    "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
-                    "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
-                    "PM_FADE": r.strategy.pm_fade_cfg.contracts,
-                }[strategy]
-                if strategy
-                else None
-            ),
+            fixed_contracts=fixed,
             shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS") else None,
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
         )

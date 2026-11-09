@@ -548,3 +548,15 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   $827 per 2 wk (median year $13,500, bust 54%), 100K $692 (median $9,228, bust 55%); worst trade = 33% of the MLL.
   Research-best alternatives shown to the user: 150K 4 micros + brake (cushion < 50% → 2): $952 / $23,706 / bust 27%;
   150K 3 micros; 100K 2 micros. Change back in config/rules/lucid_pro_{100k,150k}.yaml (strategy.*_cfg.contracts).
+
+## D63 (2026-11-09): automatic size per account (replaces D62/D62b plan-wide micros)
+- User: "set the different risk automatically for the different account sizes". Asked which table → no preference →
+  research-best table (docs/results/session10/README.md §21–22), in every Pro/Flex plan under strategy.size_table:
+  25K → 1 micro · 50K → 2 (cushion < 50% of MLL → 1) · 100K → 2 (< 30% → 1) · 150K → 4 (< 50% → 2).
+- Pure app/risk/strategy_sizing.py (100% covered): tier = largest row ≤ the account's own size (Account.starting_balance,
+  plan account_size when unknown); brake when cushion (equity − current MLL) < brake_below × the row's MLL. Applied to
+  NOISE and PM_FADE in the controller before the pre-trade checks (which still cap at firm/internal max and check the
+  worst case vs DLL / MLL room); audited as trade.auto_size. Other strategies keep their fixed contracts.
+- Dashboard income card: "Micros each" defaults to "Auto (by account size)" and shows the chosen size + brake.
+- Caveat: the app loads ONE plan for all accounts (MLL/DLL/payout rules). Accounts of different sizes are sized
+  correctly, but their firm rules come from the loaded plan — select the plan that matches the accounts.

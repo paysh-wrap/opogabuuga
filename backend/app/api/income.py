@@ -13,16 +13,40 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.api.deps import Principal, current_user
 from app.backtest.income_projection import project, rules_view
 from app.config import load_rules
+from app.risk.strategy_sizing import SizeTier, tier_for
 
 router = APIRouter(prefix="/api")
 
 
 @lru_cache(maxsize=64)
 def _cached(path: str, mtime: float, accounts: int, micros: int, cadence: int, grow: int) -> dict[str, Any]:
+    """micros = 0 → D63 automatic size from the plan's size_table (tier for the plan's account size + brake)."""
     r = load_rules(Path(path)).rules
     g = Decimal(grow) if grow else None
-    p = project(rules_view(r), accounts=accounts, micros=micros, cadence=cadence, grow_per=g)
-    return {k: (str(v) if v is not None and not isinstance(v, int) else v) for k, v in asdict(p).items()}
+    brake: tuple[Decimal, int] | None = None
+    auto = None
+    if micros == 0:
+        if r.strategy.size_table:
+            t = tier_for(
+                r.account_size,
+                [
+                    SizeTier(x.account_size, x.mll, x.contracts, x.brake_below, x.brake_contracts)
+                    for x in r.strategy.size_table
+                ],
+            )
+            micros = t.contracts
+            if t.brake_below is not None and t.brake_contracts is not None:
+                brake = (t.brake_below, t.brake_contracts)
+            auto = {
+                "contracts": t.contracts,
+                "brake_below": None if t.brake_below is None else str(t.brake_below),
+                "brake_contracts": t.brake_contracts,
+            }
+        else:
+            micros = r.strategy.noise_cfg.contracts
+    p = project(rules_view(r), accounts=accounts, micros=micros, cadence=cadence, grow_per=g, brake=brake)
+    out = {k: (str(v) if v is not None and not isinstance(v, int) else v) for k, v in asdict(p).items()}
+    return {**out, "auto": auto}
 
 
 @router.get("/income/projection")
@@ -31,7 +55,7 @@ def income_projection(
     _: Principal = Depends(current_user),
     plan: str | None = None,
     accounts: int = Query(5, ge=1, le=5),
-    micros: int = Query(1, ge=1, le=5),
+    micros: int = Query(0, ge=0, le=6),  # 0 = automatic (D63 size_table)
     cadence: int = Query(10, ge=5, le=20),
     grow: int = Query(0, ge=0, le=10000),  # D60: +1 micro per `grow` $ of cushion above the trailing MLL (0 = fixed)
 ) -> dict[str, Any]:

@@ -299,6 +299,31 @@ class PmFadeCfg(_M):
     paper_only: bool = True
 
 
+class SizeTierCfg(_M):
+    """D63: one row of the automatic size table (account size → micros, drawdown brake)."""
+
+    account_size: D
+    mll: D
+    contracts: int
+    brake_below: D | None = None
+    brake_contracts: int | None = None
+
+    @model_validator(mode="after")
+    def _valid(self) -> SizeTierCfg:
+        if self.account_size <= 0 or self.mll <= 0 or self.contracts < 1:
+            raise ValueError("size_table: account_size, mll > 0 and contracts ≥ 1")
+        if (self.brake_below is None) != (self.brake_contracts is None):
+            raise ValueError("size_table: brake_below and brake_contracts go together")
+        bad_brake = (
+            self.brake_below is not None
+            and self.brake_contracts is not None
+            and (not (D(0) < self.brake_below < D(1)) or not (1 <= self.brake_contracts < self.contracts))
+        )
+        if bad_brake:
+            raise ValueError("size_table: 0 < brake_below < 1 and 1 ≤ brake_contracts < contracts")
+        return self
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
     they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
@@ -316,6 +341,8 @@ class StrategyCfg(_M):
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
+    # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
+    size_table: list[SizeTierCfg] = []
 
 
 class ScoreCfg(_M):

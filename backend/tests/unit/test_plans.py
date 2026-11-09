@@ -102,7 +102,7 @@ def test_strategy_buttons_d55(plan):
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
-    assert n.contracts == {"lucid_pro_150k": 6, "lucid_pro_100k": 4}.get(plan, 1)  # D62b: user sizing
+    assert n.contracts == 1  # fallback; D63 size_table sizes each account
     assert s.open_drive_cfg.paper_only
 
 
@@ -111,20 +111,26 @@ def test_legacy_daily_plan_keeps_lunqfx_only():
     assert s.lunqfx and not s.noise and not s.open_drive
 
 
-def test_big_pro_plans_size_main_strategy_per_user():  # D62b: 150K = 6 micros, 100K = 4
+def test_size_table_validation_and_plans():  # D63
     from pathlib import Path
 
-    from app.config import load_rules
+    from pydantic import ValidationError
 
+    from app.config import SizeTierCfg, load_rules
+
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(0), mll=D(1000), contracts=1)
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, brake_below=D("0.5"))
+    with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, brake_below=D("0.5"), brake_contracts=2)
     root = Path(__file__).resolve().parents[3] / "config" / "rules"
-    st = load_rules(root / "lucid_pro_150k.yaml").rules.strategy
-    assert st.noise_cfg.contracts == 6 and st.pm_fade_cfg.contracts == 6 and st.noise and st.pm_fade
-    assert st.noise_cfg.emergency_stop_usd == D(250)  # per contract → $1,500 worst case at 6 micros
-    hundred = load_rules(root / "lucid_pro_100k.yaml").rules
-    assert hundred.strategy.noise_cfg.contracts == 4 and hundred.strategy.pm_fade_cfg.contracts == 4
-    assert (
-        hundred.internal.internal_max_micros >= 4
-        and load_rules(root / "lucid_pro_150k.yaml").rules.internal.internal_max_micros >= 6
-    )
-    small = load_rules(root / "lucid_pro_25k.yaml").rules.strategy
-    assert small.noise_cfg.contracts == 1 and small.pm_fade_cfg.contracts == 1
+    for f in sorted(root.glob("lucid_*.yaml")):
+        st = load_rules(f).rules.strategy
+        if f.stem.startswith(("lucid_pro", "lucid_flex")):
+            assert [(t.account_size, t.contracts) for t in st.size_table] == [
+                (D(25000), 1),
+                (D(50000), 2),
+                (D(100000), 2),
+                (D(150000), 4),
+            ]

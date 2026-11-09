@@ -6,6 +6,7 @@ import { api } from "../lib/api";
 // chosen plan's own funded payout rules (server: app/backtest/income_projection.py). A projection, not live data.
 export interface IncomeResp {
   plan: string; plans: string[]; current_plan: string; basis: string; grow?: number;
+  auto?: { contracts: number; brake_below: string | null; brake_contracts: number | null } | null;
   accounts: number; micros: number; cadence_sessions: number; starts: number; horizon_sessions: number;
   year_mean: string; year_median: string; year_p25: string; year_p75: string; week_mean: string; per_paycheck_mean: string;
   any_payout_pct: string; bust_pct: string; max_payouts_pct: string; median_sessions_to_first: number | null; max_possible_year: string;
@@ -18,7 +19,7 @@ const label = (p: string) => p.replace("lucid_", "Lucid ").replace(/_(\d+k)$/, "
 export default function IncomeProjection() {
   const [plan, setPlan] = useState<string | null>(null);
   const [accounts, setAccounts] = useState(5);
-  const [micros, setMicros] = useState(1);
+  const [micros, setMicros] = useState(0); // 0 = automatic size for the plan (D63 size table + drawdown brake)
   const [cadence, setCadence] = useState(10);
   const [grow, setGrow] = useState(0); // D60: +1 micro per $grow of cushion above the trailing MLL (0 = fixed size)
   const qs = new URLSearchParams({ accounts: String(accounts), micros: String(micros), cadence: String(cadence), grow: String(grow), ...(plan ? { plan } : {}) });
@@ -36,7 +37,8 @@ export default function IncomeProjection() {
           {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
         </select></label>
         <label>Micros each <select aria-label="Micros" className={sel} value={micros} onChange={(e) => setMicros(Number(e.target.value))}>
-          {[1, 2, 3].map((n) => <option key={n} value={n}>{n}</option>)}
+          <option value={0}>Auto (by account size)</option>
+          {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{n}</option>)}
         </select></label>
         <label>Payout <select aria-label="Payout cadence" className={sel} value={cadence} onChange={(e) => setCadence(Number(e.target.value))}>
           <option value={5}>weekly</option><option value={10}>every 2 weeks</option>
@@ -61,6 +63,11 @@ export default function IncomeProjection() {
             <dt>Funded account busts in year 1</dt><dd className="text-gold" data-testid="income-bust">{d.bust_pct}%</dd>
             <dt>Typical wait for 1st payout</dt><dd className="text-gold">{d.median_sessions_to_first == null ? "—" : `${d.median_sessions_to_first} trading days`}</dd>
           </dl>
+          {d.auto && (
+            <p className="mt-2 text-sm" data-testid="income-auto">Auto size: <b className="text-gold">{d.auto.contracts} micro{d.auto.contracts > 1 ? "s" : ""}</b> per account
+              {d.auto.brake_below && <> · drops to <b className="text-gold">{d.auto.brake_contracts}</b> when the cushion is below {Math.round(Number(d.auto.brake_below) * 100)}% of the loss limit</>}
+            </p>
+          )}
           <p className="mt-2 text-xs text-blue">{d.basis} {d.starts} start dates. All accounts take the same trades — they pay and bust together.</p>
         </>
       )}
