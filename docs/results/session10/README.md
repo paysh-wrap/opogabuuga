@@ -48,3 +48,16 @@ Tests: 592 passed, risk/management/phases coverage 100%.
 NOISE's last year was weaker than its 2024–26 held-out average (PF 1.16 vs 1.33). Opening-drive and last-half-hour are
 small positives on this one year but failed the multi-year test in session 9 (in-sample PF 1.00 / sign flips) → not
 promoted. ORB loses again. Per-trade CSVs are reproducible with the script.
+
+## 6. Add-ons that never overlap NOISE, 1 year (addons_1y.py, MNQ 2025-11-03 → 2026-10-30, 1 micro)
+| Set | trades/day | win | $/tr | total | PF | max DD | Pro 25K eval pass / bust |
+|---|---|---|---|---|---|---|---|
+| NOISE alone | 0.62 | 45.1% | +15.15 | +$2,319 | 1.16 | −$2,214 | 48% / 47% |
+| Overnight Asia-range breakout | 0.79 | 45.7% | −3.22 | −$634 | 0.96 | −$3,751 | 30% / 70% |
+| **PM fade (NOISE-free days only)** | 0.37 | **57.1%** | +30.38 | +$2,765 | **1.56** | −$903 | 75% / 0% (only 91 trades) |
+| **NOISE + PM fade** | **0.98** | 49.6% | +20.83 | **+$5,084** | 1.26 | −$2,914 | **51% / 45%** |
+| NOISE + overnight | 1.41 | 45.4% | +4.81 | +$1,685 | 1.06 | −$3,453 | 19% / 81% |
+| NOISE + both | 1.78 | 47.8% | +10.09 | +$4,450 | 1.13 | −$2,627 | 29% / 71% |
+Funded columns of sim25k are meaningless on one year (runs are cut off) → only eval pass/bust shown. ONE year only:
+the session-9 VWAP-band fade (all days) failed 2019–2026; "only on days NOISE didn't trade" is new and unverified →
+needs the multi-year test (pick 2019–2023, judge 2024–2026) before it may trade anything but paper.
