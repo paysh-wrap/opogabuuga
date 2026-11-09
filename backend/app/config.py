@@ -264,6 +264,20 @@ class OpenDriveCfg(_M):
     paper_only: bool = True
 
 
+class AiBiasCfg(_M):
+    """D56 (user button, 2026-11-09): trade ONLY the daily TradingAgents + Vibe-Trading call on MNQ — NOT verified.
+    The LLM tools cannot be back-tested (spec §15); the hindsight ceiling is in docs/results/session10. Enters at the
+    09:30 bar close only when BOTH tools agree strongly on a side; holds to 16:00 with a broker stop. Paper only."""
+
+    symbol: str = "MNQ"
+    entry_time: str = "09:31"  # decided on the close of the first RTH minute bar (≈ the 09:30 open)
+    stop_pct: D = D("0.005")  # 0.5% of price (≈ $276 per micro): 1% was break-even even with perfect calls
+    take_profit_pct: D = D("0.10")  # far safety target; the 16:00 flat exits
+    flat_at: str = "16:00"
+    contracts: int = 1
+    paper_only: bool = True
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
     they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
@@ -271,8 +285,10 @@ class StrategyCfg(_M):
     lunqfx: bool = True
     noise: bool = False
     open_drive: bool = False
+    ai_bias: bool = False
     noise_cfg: NoiseCfg = NoiseCfg()
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
+    ai_bias_cfg: AiBiasCfg = AiBiasCfg()
 
 
 class ScoreCfg(_M):

@@ -307,3 +307,10 @@ Known edge: exit+reverse on the same check may skip the new entry (position stil
   (09-03 +$367 flat 16:00; 09-04 −$326 trail) vs ≈ 25 expected from research → FIRST TASK next session: find why
   later NOISE signals did not execute (check Signal rows MNQ-NOISE-* status/skip_reason and trade.pretrade audit
   reasons: account paused/day stop/attestation/one_position/worst_case). Do not go live until this matches research.
+
+## START HERE — session 11 (from session 10, 2026-11-09) — branch claude/laughing-feynman-1f0fm5
+- e2e NOISE mystery SOLVED (docs/results/session10/README.md §1): Pillar §9 `RISK_BASE_BELOW_PAUSE` (<$500) blocks entries after
+  ≈ −$540 on a $1,000-MLL Pro 25K account. Needs a USER decision (keep, or relax for NOISE) — nothing changed.
+- D56 built: AI-only button `strategy.ai_bias` (paper only, default OFF) + hindsight 1y table (ai_only_bound.py). Backend 591 tests,
+  mypy/ruff clean. Frontend tests NOT run this session (no node_modules in the cloud box): run `npm test`, tsc, eslint.
+- Not done: per-month fresh-account e2e backtests for the true NOISE trade count; AI ledger UI for ai_bias; DECISIONS.md D56 entry.

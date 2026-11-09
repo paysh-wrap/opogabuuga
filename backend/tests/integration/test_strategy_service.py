@@ -252,3 +252,32 @@ def test_load_days_groups_rth_sessions(db):
         s.commit()
         days = SS.load_days(s, "MNQ", d0 + timedelta(hours=8))
         assert [x.day for x in days] == [date(2026, 10, 12).isoformat()] and len(days[0].bars) == 390
+
+
+def test_ai_bias_trades_only_when_both_tools_agree(db, loaded_rules):
+    from datetime import date
+
+    from app.models import BiasDecision
+
+    rules = _rules(loaded_rules, ai_bias=True)
+    today = _sessions(2)[-1]
+    sess = date(today.year, today.month, today.day)
+    with db() as s:
+        _add_day(s, today, {k: D(20000) for k in range(5)})  # bar k=0 closes at 09:30 + 1 min
+        s.commit()
+        at = today + timedelta(minutes=1)
+
+        def go(label=None, when=at):
+            if label:
+                s.add(BiasDecision(session_date=sess, proxy="QQQ", raw_rating=label, mapped="NEUTRAL", version="t"))
+                s.commit()
+            return SS.run(s, rules=rules, clock=FixedClock(when), calendar=lambda _d: [], symbol="MNQ", tf="1", at=when)
+
+        out = go()
+        assert out.updates == []  # no AI call → no trade
+        assert go("BUY·VT SHORT 85").updates == []  # tools disagree → no trade
+        out = go("SELL·VT SHORT 85")  # both strongly SHORT
+        assert len(out.updates) == 1
+        sig = s.get(Signal, out.updates[0].signal_id)
+        plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
+        assert sig.direction == "SHORT" and plan.mode == "AI_BIAS" and plan.stop > plan.entry

@@ -58,4 +58,22 @@ CATALOG: list[dict[str, object]] = [
         "note": "R:R ≈ 0.95 (below 1.5). At 1 micro most evals neither pass nor bust within 120 days. "
         "Trades paper accounts only until it proves itself.",
     },
+    {
+        "key": "ai_bias",
+        "name": "AI only — TradingAgents + Vibe-Trading (MNQ) — paper only",
+        "source": "D56: both tools must agree strongly on the day's side; enter 09:31, 0.5% stop, flat 16:00",
+        "verified": False,
+        "status": "PAPER ONLY",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": 1.35,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "NOT back-testable (LLMs can't be run on past dates). Hindsight 1y MNQ, 1 micro, per trade: "
+        "perfect call +$267 (PF 5.3) · 70% +$111 · 60% +$59 · 55% +$33 · 50% +$8. Real LLM accuracy ≈ 50–55%.",
+        "note": "Only trades on days both tools agree (~27% of days). Real results build in the AI ledger; "
+        "paper accounts only until the ledger proves ≥ 60% accuracy.",
+    },
 ]

@@ -18,13 +18,14 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import ledger
+from app.bias.policy import Policy, combine
 from app.clock import ET, Clock
 from app.config import RulesConfig
 from app.engine import noise as N
 from app.engine import open_drive as OD
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
-from app.models import Bar, Signal, SignalGate, TradePlanRow
+from app.models import Bar, BiasDecision, Signal, SignalGate, TradePlanRow
 from app.signals.service import CalendarProvider, SignalUpdate
 
 HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing days
@@ -289,6 +290,56 @@ def run_open_drive(
     return out
 
 
+def run_ai_bias(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
+) -> StrategyOutput:
+    """D56: the day's TradingAgents + Vibe-Trading call is the ONLY input. Trades when both tools agree strongly."""
+    cfg = rules.strategy.ai_bias_cfg
+    out = StrategyOutput()
+    k = N.minute_index(at)
+    day = at.astimezone(ET).date().isoformat()
+    if k == N.hhmm_to_k(cfg.flat_at):
+        for x in _today_signals(s, cfg.symbol, "AI", day):
+            if x.features.get("state") == "OPEN":
+                _close(x, "AI_FLAT_1600", at, clock)
+                out.exits.append((x.id, "AI_FLAT_1600"))
+        return out
+    if k != N.hhmm_to_k(cfg.entry_time) or _today_signals(s, cfg.symbol, "AI", day):
+        return out
+    inst = rules.instrument(cfg.symbol)
+    rows = s.execute(
+        select(BiasDecision)
+        .where(BiasDecision.proxy == inst.bias_proxy, BiasDecision.session_date == at.astimezone(ET).date())
+        .order_by(BiasDecision.id)
+    ).scalars()
+    last = list(rows)[-1:]
+    if not last:
+        return out  # no AI call today → no trade
+    ta, vd, vc = ledger.parse_label(last[0].raw_rating)
+    call = combine(ta, vd, vc, Policy(bias_matters=True))
+    if not call.agree_strong or call.direction == 0:
+        return out  # tools disagree / not strong → no trade
+    direction = Direction.LONG if call.direction > 0 else Direction.SHORT
+    days = load_days(s, cfg.symbol, at)
+    bar = days[-1].bars.get(k) if days and days[-1].day == day else None
+    if bar is None:
+        return out
+    p = N.plan(direction, bar.c, inst.tick, cfg.stop_pct, cfg.take_profit_pct)
+    new = _new_signal(
+        s,
+        clock,
+        symbol=cfg.symbol,
+        key=f"{cfg.symbol}-AI-{day}",
+        direction=direction,
+        at=at,
+        gate=_gate(rules, cfg.symbol, at, calendar),
+        features={"label": last[0].raw_rating, "prob_up": call.prob_up, "paper_only": cfg.paper_only},
+        plan=("AI_BIAS", p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
+    )
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session, *, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, symbol: str, tf: str, at: datetime
 ) -> StrategyOutput:
@@ -303,6 +354,10 @@ def run(
         out.exits += r.exits
     if st.open_drive and symbol == st.open_drive_cfg.symbol:
         r = run_open_drive(s, rules, clock, calendar, at)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.ai_bias and symbol == st.ai_bias_cfg.symbol:
+        r = run_ai_bias(s, rules, clock, calendar, at)
         out.updates += r.updates
         out.exits += r.exits
     s.commit()

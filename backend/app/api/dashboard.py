@@ -300,7 +300,12 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     st = request.app.state
     r, now = st.rules.rules, st.clock.now()
     sess = session_date(now)
-    on = {"noise": r.strategy.noise, "lunqfx": r.strategy.lunqfx, "open_drive": r.strategy.open_drive}
+    on = {
+        "noise": r.strategy.noise,
+        "lunqfx": r.strategy.lunqfx,
+        "open_drive": r.strategy.open_drive,
+        "ai_bias": r.strategy.ai_bias,
+    }
     nc = r.strategy.noise_cfg
     stored = [
         d for d in load_days(db, nc.symbol, now) if len(d.bars) >= nc.min_bars_per_day and d.day < sess.isoformat()

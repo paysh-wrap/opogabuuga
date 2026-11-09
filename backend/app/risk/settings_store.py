@@ -68,6 +68,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.lunqfx",  # D55: strategy buttons (parameters stay in the plan file)
         "strategy.noise",
         "strategy.open_drive",
+        "strategy.ai_bias",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(
