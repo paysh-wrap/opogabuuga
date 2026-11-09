@@ -532,3 +532,9 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   Dashboard card "Projected weekly income": per week, per payout, year average / median / middle half, max possible,
   ≥1-payout %, bust %, wait for the 1st payout, with plan / accounts / micros / weekly-or-2-weeks selectors.
   Labelled as a research projection (same trades on all accounts, no open-trade drawdown / news, no eval fees).
+
+## D60 (user 2026-11-09): account growth in the income projection
+- income_projection.size_for: base micros, +1 per `grow` $ of cushion above the trailing MLL beyond the first `grow`,
+  max 5, shrinks again with the cushion; applied at the start of each session. Eval replay eval_path (plan's eval
+  target / MLL / lock / soft DLL / consistency / profitable days). Dashboard card: "Account growth" selector.
+  Projection only — the live sizing for NOISE / PM_FADE stays fixed (strategy.*_cfg.contracts) until the user decides.

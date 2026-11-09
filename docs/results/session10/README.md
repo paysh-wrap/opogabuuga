@@ -160,3 +160,22 @@ stops ($350–400) pay more per pass ($1,240 per eval) but bust 37–38%. Built:
 | Pro 50K | 3 | $463 | $12,041 / $0 | $0 – $20,250 | 47% | 63% | 45 days |
 50K at 1 micro: same average as 25K but far safer (bust 21%), slower first payout ($52,100 buffer). 50K at 2 micros: best
 average; risk like 25K at 1. 3 micros: worse. Eval fees not subtracted; 5 accounts take the same trades.
+
+## 16. Pro 25K vs Pro 50K, two stop sets, fixed size vs D60 account growth (five_year/sizing_plans.py, 5 years)
+Eval = 120-session window, rolling starts (pass + bust < 100%: the rest is still open after 120 sessions). Funded = 5
+accounts, payout every 2 weeks, first 12 months. Growth = +1 micro per $X of cushion above the trailing MLL (max 5).
+| set | plan | sizing | eval pass / bust | 5 funded: per 2 wk | year avg / median | ≥1 payout | funded bust yr 1 |
+|---|---|---|---|---|---|---|---|
+| $250 / $250 | Pro 25K | 1 micro | 63% / 35% | $317 | $8,232 / $4,500 | 58% | 57% |
+| $250 / $250 | Pro 25K | 2 micros | 46% / 54% | $203 | $5,271 / $0 | 36% | 73% |
+| $250 / $250 | Pro 25K | **grow +1 per $1,000** | 63% / 35% | **$348** | **$9,049** / $4,500 | 58% | 56% |
+| $250 / $250 | Pro 50K | 1 micro | 46% / 14% | $317 | $8,248 / $7,617 | 70% | 21% |
+| $250 / $250 | Pro 50K | **2 micros** | **60%** / 37% | **$595** | **$15,457** / $9,000 | 61% | 52% |
+| $250 / $250 | Pro 50K | grow +1 per $1,000 | 39% / 17% | $436 | $11,337 / $7,550 | 64% | 29% |
+| $350 / $100 | Pro 25K | 1 micro | 62% / 37% | $304 | $7,915 / $4,500 | 58% | 56% |
+| $350 / $100 | Pro 25K | grow +1 per $1,000 | 62% / 37% | $281 | $7,318 / $4,500 | 57% | 55% |
+| $350 / $100 | Pro 50K | 1 micro | 50% / **6%** | $324 | $8,429 / **$8,544** | 67% | 22% |
+| $350 / $100 | Pro 50K | 2 micros | 60% / 38% | $563 | $14,647 / $9,000 | 59% | 54% |
+Notes: the 25K eval here is 63% / 35% (Dashboard engine, requires 1 profitable day, starts up to 130 sessions before the
+end) vs 66% / 32% in sim25k.py — same trades, slightly different start window. $40,000/yr from 5 accounts is NOT
+reached by any setting: best average is 5 × 50K at 2 micros ≈ $15,500 (typical year $9,000).

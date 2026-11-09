@@ -5,7 +5,7 @@ import { api } from "../lib/api";
 // D59: projected weekly income from FUNDED accounts — the MAIN strategy's 5-year research results replayed through the
 // chosen plan's own funded payout rules (server: app/backtest/income_projection.py). A projection, not live data.
 export interface IncomeResp {
-  plan: string; plans: string[]; current_plan: string; basis: string;
+  plan: string; plans: string[]; current_plan: string; basis: string; grow?: number;
   accounts: number; micros: number; cadence_sessions: number; starts: number; horizon_sessions: number;
   year_mean: string; year_median: string; year_p25: string; year_p75: string; week_mean: string; per_paycheck_mean: string;
   any_payout_pct: string; bust_pct: string; max_payouts_pct: string; median_sessions_to_first: number | null; max_possible_year: string;
@@ -20,8 +20,9 @@ export default function IncomeProjection() {
   const [accounts, setAccounts] = useState(5);
   const [micros, setMicros] = useState(1);
   const [cadence, setCadence] = useState(10);
-  const qs = new URLSearchParams({ accounts: String(accounts), micros: String(micros), cadence: String(cadence), ...(plan ? { plan } : {}) });
-  const q = useQuery({ queryKey: ["income-projection", plan, accounts, micros, cadence], queryFn: () => api<IncomeResp>(`/api/income/projection?${qs}`), staleTime: 3_600_000 });
+  const [grow, setGrow] = useState(0); // D60: +1 micro per $grow of cushion above the trailing MLL (0 = fixed size)
+  const qs = new URLSearchParams({ accounts: String(accounts), micros: String(micros), cadence: String(cadence), grow: String(grow), ...(plan ? { plan } : {}) });
+  const q = useQuery({ queryKey: ["income-projection", plan, accounts, micros, cadence, grow], queryFn: () => api<IncomeResp>(`/api/income/projection?${qs}`), staleTime: 3_600_000 });
   const d = q.data;
   const sel = "rounded-md border border-border bg-card px-2 py-1 text-sm text-blue";
   return (
@@ -39,6 +40,10 @@ export default function IncomeProjection() {
         </select></label>
         <label>Payout <select aria-label="Payout cadence" className={sel} value={cadence} onChange={(e) => setCadence(Number(e.target.value))}>
           <option value={5}>weekly</option><option value={10}>every 2 weeks</option>
+        </select></label>
+        <label>Account growth <select aria-label="Account growth" className={sel} value={grow} onChange={(e) => setGrow(Number(e.target.value))}>
+          <option value={0}>off (fixed size)</option>
+          {[500, 1000, 1500, 2000, 3000].map((g) => <option key={g} value={g}>+1 micro per ${g.toLocaleString()} cushion</option>)}
         </select></label>
       </div>
       {q.isLoading && <p role="status" className="mt-2 text-sm">Calculating…</p>}

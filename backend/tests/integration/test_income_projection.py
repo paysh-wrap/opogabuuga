@@ -108,3 +108,25 @@ def test_income_endpoint(authed):
     assert authed.get("/api/income/projection", params={"plan": "../../etc/passwd"}).status_code == 422
     assert authed.get("/api/income/projection", params={"accounts": 9}).status_code == 422
     assert authed.get("/api/income/projection").status_code == 200  # current plan
+    g = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "grow": 1000}).json()
+    assert (
+        g["grow"] == 1000 and g["year_mean"] == "9049.28"
+    )  # D60 growth (table: $9,049; shipped file is rounded to cents)
+
+
+def test_account_growth_sizing_and_eval_path():
+    from app.backtest.income_projection import EvalRulesView, eval_path, size_for
+
+    assert size_for(1, D(900), None, 5) == 1
+    assert size_for(1, D(999), D(1000), 5) == 1 and size_for(1, D(2000), D(1000), 5) == 2
+    assert size_for(1, D(9000), D(1000), 5) == 5 and size_for(2, D(500), D(1000), 5) == 2  # cap / never below base
+    grown = funded_path([(D(400),)] * 10, PRO25, 1, 10, grow_per=D(1000))
+    fixed = funded_path([(D(400),)] * 10, PRO25, 1, 10)
+    assert grown.paid >= fixed.paid
+    ev = EvalRulesView(D(25000), D(1250), D(1000), D(26100), D(25100), None, None, 1)
+    assert eval_path([(D(700),), (D(700),)], ev, 1) == ("PASS", 2)
+    assert eval_path([(D(-1000),)], ev, 1) == ("BUST", 1)
+    assert eval_path([(D(0),)] * 5, ev, 1) == ("OPEN", 5)
+    cons = EvalRulesView(D(25000), D(1250), D(1000), D(26100), D(25100), D(600), D(40), 3)
+    assert eval_path([(D(1300),)], cons, 1)[0] == "OPEN"  # one day = 100% of the profit > 40%
+    assert eval_path([(D(-500), D(-500))], cons, 1) == ("OPEN", 1)  # soft DLL stops the day at −600

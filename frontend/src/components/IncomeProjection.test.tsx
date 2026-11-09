@@ -27,4 +27,6 @@ test("projected income card shows weekly / paycheck numbers and re-queries on pl
   await waitFor(() => expect(urls.some((u) => u.includes("plan=lucid_pro_50k") && u.includes("accounts=5"))).toBe(true));
   await userEvent.selectOptions(screen.getByLabelText("Micros"), "2");
   await waitFor(() => expect(urls.some((u) => u.includes("micros=2"))).toBe(true));
+  await userEvent.selectOptions(screen.getByLabelText("Account growth"), "1000");
+  await waitFor(() => expect(urls.some((u) => u.includes("grow=1000"))).toBe(true));
 });

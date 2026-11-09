@@ -97,14 +97,32 @@ def payout_amount(r: FundedRulesView, balance: Decimal, cycle: Sequence[Decimal]
     return amt.quantize(CENT) if amt >= r.min_request else ZERO
 
 
-def funded_path(days: Sequence[Sequence[Decimal]], r: FundedRulesView, qty: int, cadence: int) -> Path1:
+def size_for(base: int, cushion: Decimal, grow_per: Decimal | None, max_micros: int) -> int:
+    """D60 account growth: base micros, +1 for every `grow_per` dollars of cushion (balance − trailing MLL floor) beyond
+    the first `grow_per`; never above max_micros; None = fixed size. Shrinks again as the cushion shrinks."""
+    if grow_per is None or grow_per <= 0:
+        return base
+    extra = int(cushion // grow_per) - 1
+    return max(base, min(max_micros, base + max(0, extra)))
+
+
+def funded_path(
+    days: Sequence[Sequence[Decimal]],
+    r: FundedRulesView,
+    qty: int,
+    cadence: int,
+    grow_per: Decimal | None = None,
+    max_micros: int = 5,
+) -> Path1:
     bal = peak = r.start
     floor = r.start - r.mll
     cycle: list[Decimal] = []
     paid = ZERO
     pays: list[tuple[int, Decimal]] = []
+    base = qty
     for n, trades in enumerate(days):
         day = ZERO
+        qty = size_for(base, bal - floor, grow_per, max_micros)  # sized at the start of each session
         for p in trades:
             p *= qty
             if r.dll is not None and day + p <= -r.dll:
@@ -132,6 +150,69 @@ def funded_path(days: Sequence[Sequence[Decimal]], r: FundedRulesView, qty: int,
         if r.max_payouts is not None and len(pays) >= r.max_payouts:
             return Path1(paid, tuple(pays), "MAX_PAYOUTS", n + 1)
     return Path1(paid, tuple(pays), "OPEN", len(days))
+
+
+@dataclass(frozen=True)
+class EvalRulesView:
+    start: Decimal
+    target: Decimal
+    mll: Decimal
+    lock_trigger: Decimal
+    lock_level: Decimal
+    dll: Decimal | None
+    consistency_pct: Decimal | None
+    min_profitable_days: int
+
+
+def eval_view(r: RulesConfig) -> EvalRulesView:
+    e = r.eval
+    return EvalRulesView(
+        r.account_size,
+        e.profit_target,
+        e.max_loss_limit,
+        e.lock_trigger,
+        e.lock_level,
+        e.daily_loss_limit,
+        e.consistency_max_day_pct,
+        e.min_profitable_days,
+    )
+
+
+def eval_path(
+    days: Sequence[Sequence[Decimal]],
+    r: EvalRulesView,
+    qty: int,
+    grow_per: Decimal | None = None,
+    max_micros: int = 5,
+    horizon: int = 120,
+) -> tuple[str, int]:
+    """("PASS" | "BUST" | "OPEN", sessions) for one evaluation started on days[0]."""
+    bal = peak = r.start
+    floor = r.start - r.mll
+    pos: list[Decimal] = []
+    for n, trades in enumerate(days[:horizon]):
+        day = ZERO
+        q = size_for(qty, bal - floor, grow_per, max_micros)
+        for p in trades:
+            p *= q
+            if r.dll is not None and day + p <= -r.dll:
+                p = -r.dll - day
+            bal += p
+            day += p
+            if bal <= floor:
+                return "BUST", n + 1
+            if r.dll is not None and day <= -r.dll:
+                break
+        if trades:
+            pos.append(day)
+        peak = max(peak, bal)
+        floor = r.lock_level if peak >= r.lock_trigger else max(floor, peak - r.mll)
+        prof = bal - r.start
+        target_hit = prof >= r.target and sum(1 for x in pos if x > 0) >= r.min_profitable_days
+        consistent = r.consistency_pct is None or max(pos, default=ZERO) <= r.consistency_pct / 100 * prof
+        if target_hit and consistent:
+            return "PASS", n + 1
+    return "OPEN", min(horizon, len(days))
 
 
 @lru_cache(maxsize=1)
@@ -190,12 +271,14 @@ def project(
     horizon: int = 260,
     step: int = 2,
     days: Sequence[Sequence[Decimal]] | None = None,
+    grow_per: Decimal | None = None,
+    max_micros: int = 5,
 ) -> Projection:
     if accounts < 1 or micros < 1 or cadence < 1 or horizon < cadence:
         raise ValueError("accounts, micros ≥ 1 and horizon ≥ cadence")
     all_days = list(days) if days is not None else list(research_days()[1])
     starts = range(0, max(1, len(all_days) - horizon), step)
-    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence) for i in starts]
+    paths = [funded_path(all_days[i : i + horizon], r, micros, cadence, grow_per, max_micros) for i in starts]
     paid = [p.paid * accounts for p in paths]
     firsts = [p.payouts[0][0] for p in paths if p.payouts]
     n = len(paths)

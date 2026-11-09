@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -17,9 +18,10 @@ router = APIRouter(prefix="/api")
 
 
 @lru_cache(maxsize=64)
-def _cached(path: str, mtime: float, accounts: int, micros: int, cadence: int) -> dict[str, Any]:
+def _cached(path: str, mtime: float, accounts: int, micros: int, cadence: int, grow: int) -> dict[str, Any]:
     r = load_rules(Path(path)).rules
-    p = project(rules_view(r), accounts=accounts, micros=micros, cadence=cadence)
+    g = Decimal(grow) if grow else None
+    p = project(rules_view(r), accounts=accounts, micros=micros, cadence=cadence, grow_per=g)
     return {k: (str(v) if v is not None and not isinstance(v, int) else v) for k, v in asdict(p).items()}
 
 
@@ -31,6 +33,7 @@ def income_projection(
     accounts: int = Query(5, ge=1, le=5),
     micros: int = Query(1, ge=1, le=5),
     cadence: int = Query(10, ge=5, le=20),
+    grow: int = Query(0, ge=0, le=10000),  # D60: +1 micro per `grow` $ of cushion above the trailing MLL (0 = fixed)
 ) -> dict[str, Any]:
     st = request.app.state
     folder: Path = st.settings.rules_path.parent
@@ -39,10 +42,11 @@ def income_projection(
     if name not in plans:  # whitelist: only plan files in the rules folder (no paths from the client)
         raise HTTPException(422, f"unknown plan {name!r}")
     path = folder / f"{name}.yaml"
-    out = _cached(str(path), path.stat().st_mtime, accounts, micros, cadence)
+    out = _cached(str(path), path.stat().st_mtime, accounts, micros, cadence, grow)
     return {
         **out,
         "plan": name,
+        "grow": grow,
         "plans": plans,
         "current_plan": st.rules.plan,
         "basis": "MAIN strategy (NOISE $250 + afternoon fade $250), Databento MNQ 2021-11 → 2026-10, replayed through "
