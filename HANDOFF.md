@@ -303,3 +303,7 @@ User approved items 1–4 + Opening-drive button + win/pass rates next to button
 PENDING: end-to-end app backtest (scratchpad e2e_bt.py, MNQ Aug–Oct 2026, Pro 25K plan) was still running; engine agent
 (LunqFX filters) still running. NOISE needs 10 sessions of TradingView 1m MNQ heartbeats before it trades.
 Known edge: exit+reverse on the same check may skip the new entry (position still closing).
+- E2E app backtest result (MNQ 2026-08-15→10-31, Pro 25K plan, TIGHT only): only 2 NOISE trades executed
+  (09-03 +$367 flat 16:00; 09-04 −$326 trail) vs ≈ 25 expected from research → FIRST TASK next session: find why
+  later NOISE signals did not execute (check Signal rows MNQ-NOISE-* status/skip_reason and trade.pretrade audit
+  reasons: account paused/day stop/attestation/one_position/worst_case). Do not go live until this matches research.
