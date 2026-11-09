@@ -478,3 +478,21 @@ def test_fixed_size_blocked_by_dll_and_mll_room():
     assert not r.ok and r.reason == "STOP_TOO_WIDE"
     r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))  # consistency
     assert not r.ok and r.reason == "CONSISTENCY_CAP"
+
+
+def test_fixed_size_scales_stop_down_with_drawdown_instead_of_pausing():  # D57
+    sh = _fixed(shrink_fraction=D("0.6"))
+    # base $460 (< $500 pause floor): old rule → RISK_BASE_BELOW_PAUSE; D57 → tighter emergency stop, trade goes on
+    low = dict(acct_equity=D(24460), acct_base=D(460), acct_dll=None)
+    assert run(plan=NOISE_PLAN, lim=_fixed(), consistency=None, **low).reason == "RISK_BASE_BELOW_PAUSE"
+    r = run(plan=NOISE_PLAN, lim=sh, consistency=None, **low)
+    assert r.ok and r.contracts == 1 and r.new_stop is not None
+    assert (NOISE_PLAN.entry - r.new_stop) * NOISE_PLAN.direction.sign < NOISE_PLAN.risk_pts
+    assert r.worst_case_usd <= D("360") * D("0.6")  # ≤ 60% of the room (equity − MLL − kill distance)
+    assert any(c["check"] == "drawdown_scale" and c["ok"] is True for c in r.checks)
+    # fresh account: the plan's own stop fits 60% of the room → untouched
+    ok = run(plan=NOISE_PLAN, lim=sh, consistency=None, acct_dll=None)
+    assert ok.ok and ok.new_stop is None
+    # too deep: the scaled stop would be < min % of price → skip with its own reason
+    deep = run(plan=NOISE_PLAN, lim=_fixed(shrink_fraction=D("0.6"), shrink_min_pct=D("0.05")), consistency=None, **low)
+    assert not deep.ok and deep.reason == "DRAWDOWN_TOO_DEEP"

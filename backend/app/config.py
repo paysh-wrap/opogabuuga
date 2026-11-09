@@ -286,6 +286,10 @@ class StrategyCfg(_M):
     noise: bool = False
     open_drive: bool = False
     ai_bias: bool = False
+    # D57: NOISE / AI_BIAS scale their emergency stop down as the account draws down instead of pausing at the pause
+    # floor: worst case ≤ this fraction of the room (DLL left / distance to MLL − kill distance); None = old pause.
+    drawdown_shrink: D | None = D("0.6")
+    drawdown_min_stop_pct: D = D("0.002")  # a stop tighter than 0.2% of price is noise → skip DRAWDOWN_TOO_DEEP
     noise_cfg: NoiseCfg = NoiseCfg()
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()

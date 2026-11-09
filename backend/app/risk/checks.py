@@ -4,7 +4,7 @@ its values in the returned result (§9 "Pre-trade checks (logged with values)").
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from decimal import Decimal
+from decimal import ROUND_DOWN, Decimal
 from typing import Any
 
 from app.engine.trade_plan import TradePlan
@@ -95,6 +95,12 @@ class TradeLimits:
     # (their broker stop is an emergency stop far beyond the typical loss); the worst case at that stop must still fit
     # the DLL left and the distance to the MLL minus the kill-switch distance (checks below), like every trade.
     fixed_contracts: int | None = None
+    # D57 (user 2026-11-09): instead of pausing a fixed-size strategy below the pause floor, SCALE ITS RISK DOWN as the
+    # account draws down: the emergency stop is tightened so the worst case is at most `shrink_fraction` of the room
+    # (min of DLL left and distance to the MLL minus the kill-switch distance). Below `shrink_min_pct` of price the
+    # stop would be noise → skip DRAWDOWN_TOO_DEEP. None = off (pause floor applies). Same-code in live/backtest.
+    shrink_fraction: Decimal | None = None
+    shrink_min_pct: Decimal = Decimal("0.002")
 
 
 @dataclass
@@ -102,6 +108,7 @@ class PreTrade:
     ok: bool
     reason: str | None
     contracts: int = 0
+    new_stop: Decimal | None = None  # D57: tightened emergency stop the caller must use instead of the plan's stop
     risk_pct: Decimal | None = None
     risk_usd: Decimal | None = None
     worst_case_usd: Decimal | None = None
@@ -150,7 +157,14 @@ def pretrade(
         return fail("POSITION_OPEN")
     if not r.log("hedge_lock", not hedge_conflict):
         return fail("HEDGE_LOCK")
-    if not r.log("pause_floor", acct.base >= lim.pause_below_base, base=acct.base, floor=lim.pause_below_base):
+    scaled = lim.fixed_contracts is not None and lim.shrink_fraction is not None  # D57: scale instead of pause
+    if not r.log(
+        "pause_floor",
+        scaled or acct.base >= lim.pause_below_base,
+        base=acct.base,
+        floor=lim.pause_below_base,
+        scaled=scaled,
+    ):
         return fail("RISK_BASE_BELOW_PAUSE")
     dist = acct.equity - acct.mll
     if not r.log("kill_distance", dist > lim.kill_switch_distance, distance=dist):
@@ -163,6 +177,21 @@ def pretrade(
     if lim.fixed_contracts is not None:
         n = min(lim.fixed_contracts, lim.firm_max, lim.internal_max)
         usd = money(n * per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks))
+        if lim.shrink_fraction is not None and n > 0:
+            room0 = min(x for x in (dll_left, dist - lim.kill_switch_distance) if x is not None)
+            allowed = room0 * lim.shrink_fraction
+            if usd > allowed:
+                per_ticks = ((allowed / n - lim.fee_rt) / lim.tick_value - lim.slippage_ticks).to_integral_value(
+                    rounding=ROUND_DOWN
+                )
+                new_pts = per_ticks * lim.tick
+                if not r.log(
+                    "drawdown_scale", new_pts >= plan.entry * lim.shrink_min_pct, allowed=allowed, stop_pts=new_pts
+                ):
+                    return fail("DRAWDOWN_TOO_DEEP")
+                stop_ticks = per_ticks
+                r.new_stop = plan.entry - plan.direction.sign * new_pts
+                usd = money(n * per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks))
         r.risk_usd = usd
         if not r.log("fixed_size", n > 0, contracts=n, worst=usd, cap_not_applied=rcfg.max_risk_usd):
             return fail("STOP_TOO_WIDE")

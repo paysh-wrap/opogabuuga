@@ -28,3 +28,23 @@ Worst single trade −$314 (> $140 eval-mode risk cap and ≈ 1/3 of the $1,000 
 (MNQ drifted up; a coin flip earns that drift). With a 1% stop even a coin flip is negative (−$975). Published LLM next-day
 index accuracy ≈ 50–55% → realistic edge ≈ the drift, minus the days both tools disagree (≈ 73% of days no trade).
 Real evidence = the live calibration ledger (Strategy page); gate stays paper-only until Wilson LB ≥ 60%.
+
+## 4. D57 — scale risk down in drawdown instead of pausing (user 2026-11-09: "lower risk as account goes into drawdown")
+Fixed-size strategies NOISE and AI_BIAS no longer stop at the $500 pause floor. Pure `risk/checks.pretrade`: when the
+worst case at the plan's emergency stop exceeds `strategy.drawdown_shrink` (0.6) × room (room = min(DLL left, equity −
+MLL − $100 kill distance)), the emergency stop is tightened to fit; below `drawdown_min_stop_pct` (0.2% of price) →
+skip `DRAWDOWN_TOO_DEEP`. Fresh Pro 25K: room $900 → $540 allowed ≥ $520 at 1% → unchanged. Base $460: room $360 → stop
+≈ 0.41% (research: 0.3–0.5% stops still profitable held-out, PF 1.18). Base ≈ $270 → 0.2% → stops trading. Kill switch,
+DLL, MLL, one-position, hedge lock unchanged. OPEN_DRIVE keeps the pause floor (its stop is structural). LunqFX unchanged.
+Tests: 592 passed, risk/management/phases coverage 100%.
+
+## 5. One year, NOISE vs the next three strategies (one_year_compare.py, MNQ 2025-11-03 → 2026-10-30, 248 sessions, 1 micro)
+| Strategy | trades | win | $/trade | total | PF | max DD | worst trade | trades/wk |
+|---|---|---|---|---|---|---|---|---|
+| **NOISE (on)** | 153 | 45.1% | +15.15 | **+$2,319** | 1.16 | −$2,214 | −$610 | 3.1 |
+| Opening-drive pullback (paper button) | 45 | **55.6%** | +13.11 | +$590 | 1.18 | −$1,104 | −$236 | 0.9 |
+| Last-half-hour momentum | 226 | 46.0% | +5.19 | +$1,173 | 1.13 | −$1,937 | −$306 | 4.6 |
+| ORB 15-min, 1.5R | 226 | 43.4% | −13.58 | −$3,068 | 0.90 | −$8,526 | −$656 | 4.6 |
+NOISE's last year was weaker than its 2024–26 held-out average (PF 1.16 vs 1.33). Opening-drive and last-half-hour are
+small positives on this one year but failed the multi-year test in session 9 (in-sample PF 1.00 / sign flips) → not
+promoted. ORB loses again. Per-trade CSVs are reproducible with the script.

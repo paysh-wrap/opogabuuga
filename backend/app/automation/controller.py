@@ -7,7 +7,7 @@ checklist (§1.5) and a verified broker adapter — until then every account is 
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -431,6 +431,8 @@ class Controller:
                 if strategy
                 else None
             ),
+            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS") else None,
+            shrink_min_pct=r.strategy.drawdown_min_stop_pct,
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
         pt = pretrade(
@@ -456,6 +458,22 @@ class Controller:
         )
         if not pt.ok:
             return AccountResult(a.id, False, pt.reason, checks=pt.checks)
+        if pt.new_stop is not None:  # D57: drawdown-scaled emergency stop (strategy trades exit by their own rules)
+            risk_pts = (plan.entry - pt.new_stop) * plan.direction.sign
+            plan = replace(
+                plan,
+                stop=pt.new_stop,
+                risk_pts=risk_pts,
+                rr=(plan.take_profit - plan.entry) * plan.direction.sign / risk_pts,
+            )
+            audit.record(
+                s,
+                self.clock,
+                actor,
+                "trade.stop_scaled",
+                a.broker_account_id,
+                {"signal": sig.id, "stop": str(pt.new_stop)},
+            )
         if "invalid" not in sig.features or "t2" not in sig.features:
             return AccountResult(a.id, False, "SIGNAL_MISSING_MODEL_LEVELS", checks=pt.checks)
         rr_window = (
