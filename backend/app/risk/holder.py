@@ -92,7 +92,8 @@ class RulesHolder:
         ov = get_setting(s, "payouts.settings")
         if not isinstance(ov, dict):
             return
-        keys = {k: ov[k] for k in ("skim_mode", "frequency") if k in ov}
+        allowed = ("skim_mode", "frequency", "mode", "min_sessions_between", "min_pct_of_cap")  # D65
+        keys = {k: ov[k] for k in allowed if k in ov}
         pc = PayoutsCfg.model_validate({**self.rules.payouts.model_dump(), **keys})
         self.rules = self.rules.model_copy(update={"payouts": pc})
 

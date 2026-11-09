@@ -250,11 +250,15 @@ automation:
   auto_resume_after_recovery: {paper: true, live: false}
 
 payouts:
-  frequency: weekly                    # weekly (Fri) | on_demand
+  frequency: every_n_sessions          # D65 (user 2026-11-09): try for a payout every 2–3 days (Lucid Pro: any day once eligible)
   check_time: "Fri 17:05"
   sweep_above: 28100
   skim_mode: half                      # half | off
   block_trading_while_pending: true
+  mode: max_eligible                   # D65: largest allowed payout = balance − buffer, capped; 40% consistency per cycle
+  min_sessions_between: 2              # D65: at least 2 sessions after the last processed payout
+  session_check_time: "17:05"          # D65: daily check after the flat
+  min_pct_of_cap: null                 # D65: 0.5 = wait for ≥ 50% of the cap (study: most take-home on 100K/150K Regular)
 
 purchase_gate: {min_trades: 100, min_e_net_r: 0.20, min_pf: 1.4, max_violations: 0, demo_days: 2, semi_auto_sessions: 5}
 

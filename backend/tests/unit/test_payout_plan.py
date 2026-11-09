@@ -56,3 +56,27 @@ def test_flex_half_of_profit_and_profitable_days():
     assert p(30000, 3000, cycle=D(1500), profitable_days=4, **kw).reason == "NOT_ENOUGH_PROFITABLE_DAYS"
     assert p(30000, 3000, cycle=D(1500), profitable_days=5, **kw).amount == D(750)
     assert p(30000, 3000, cycle=D(900), profitable_days=5, **kw).reason == "CAPPED_BELOW_MIN_REQUEST"
+
+
+def test_max_eligible_mode_lucid_pro():  # D65
+    kw = {
+        "mode": "max_eligible",
+        "consistency_pct": D(40),
+        "max_first": D(1000),
+        "max_next": D(1500),
+        "min_cycle_profit": D(250),
+    }
+    r = p("27000", 0, locked=False, cycle=D(900), largest_day=D(300), **kw)
+    assert r.kind == "max" and r.amount == D(900) and r.net == D(810)  # balance − buffer, any day once eligible
+    assert p("28000", 0, cycle=D(1900), largest_day=D(700), **kw).amount == D(1000)  # first-payout cap
+    assert p("28000", 0, cycle=D(1900), largest_day=D(700), payout_no=2, **kw).amount == D(1500)
+    assert p("27000", 0, cycle=D(900), largest_day=D(500), **kw).reason == "CONSISTENCY"  # 500 > 40% × 900
+    assert p("26400", 0, cycle=D(300), largest_day=D(100), **kw).reason == "BELOW_BUFFER"
+    assert p("27000", 0, cycle=D(100), largest_day=D(30), **kw).reason == "NO_PROFIT_SINCE_LAST_PAYOUT"
+    wait = {**kw, "min_pct_of_cap": D("0.5")}
+    assert p("26700", 0, cycle=D(600), largest_day=D(200), payout_no=2, **wait).reason == "WAIT_FOR_LARGER"  # 600 < 750
+    assert (
+        p("26700", 0, cycle=D(600), largest_day=D(200), **{**wait, "min_pct_of_cap": D("0.5"), "max_first": None}).kind
+        == "max"
+    )
+    assert p("26600", 0, cycle=D(600), largest_day=D(200), **{**kw, "consistency_pct": None}).amount == D(500)

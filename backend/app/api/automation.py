@@ -355,6 +355,7 @@ def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decim
         buffer=pr.buffer,
         min_request=pr.min_request,
         live_trigger=r.funded.max_daily_profit_live_trigger,
+        session_check_time=r.payouts.session_check_time,
     )
     funded = a.stage == "FUNDED"
     return {

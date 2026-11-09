@@ -31,3 +31,16 @@ def test_live_and_on_demand():
     now = datetime(2026, 11, 6, 22, 0, tzinfo=UTC)
     c = payout_clock(stage="LIVE", balance=D(26100), today_pnl=D(0), now=now, **{**KW, "frequency": "on_demand"})
     assert c.next_check is None and c.seconds_left is None and c.live_trigger_left is None and c.needed == D(500)
+
+
+def test_every_n_sessions_next_check():  # D65
+    from app.phases.payout_clock import next_session_check
+
+    thu = datetime(2026, 11, 5, 15, 0, tzinfo=UTC)  # Thu 10:00 ET → today 17:05
+    assert next_session_check(thu, "17:05") == datetime(2026, 11, 5, 17, 5, tzinfo=ET)
+    fri_late = datetime(2026, 11, 6, 17, 6, tzinfo=ET)  # after Friday's check → Monday
+    assert next_session_check(fri_late, "17:05") == datetime(2026, 11, 9, 17, 5, tzinfo=ET)
+    c = payout_clock(
+        stage="FUNDED", balance=D(26700), today_pnl=D(0), now=thu, **{**KW, "frequency": "every_n_sessions"}
+    )
+    assert c.next_check == datetime(2026, 11, 5, 17, 5, tzinfo=ET) and c.eligible == D(600)

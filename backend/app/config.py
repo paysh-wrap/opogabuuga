@@ -565,11 +565,20 @@ class AutomationCfg(_M):
 
 
 class PayoutsCfg(_M):
-    frequency: Literal["weekly", "on_demand"]
+    frequency: Literal["weekly", "on_demand", "every_n_sessions"]
     check_time: str
     sweep_above: D
     skim_mode: Literal["half", "off"]
     block_trading_while_pending: bool
+    # D65 (user 2026-11-09, Lucid Pro: no payout window, request any day once eligible): "max_eligible" plans the
+    # largest allowed payout (balance − buffer, capped) when the cycle profit ≥ min_cycle_profit and the largest day ≤
+    # the funded consistency %; "every_n_sessions" checks once per session at session_check_time, at least
+    # min_sessions_between sessions after the last payout. min_pct_of_cap: wait until the payout is ≥ this × the cap
+    # (study: 0.5 = most take-home on 100K / 150K Regular); null = request as soon as eligible.
+    mode: Literal["sweep_skim", "max_eligible"] = "sweep_skim"
+    min_sessions_between: int = Field(2, ge=1, le=20)
+    session_check_time: str = "17:05"
+    min_pct_of_cap: D | None = Field(None, gt=0, le=1)
 
 
 class PurchaseGate(_M):

@@ -37,6 +37,16 @@ def next_check(now: datetime, check_time: str) -> datetime:
     return cand
 
 
+def next_session_check(now: datetime, hm: str) -> datetime:
+    """D65: next weekday at hm (ET) after now."""
+    h, m = (int(x) for x in hm.split(":"))
+    local = now.astimezone(ET)
+    cand = datetime.combine(local.date(), time(h, m), ET)
+    while cand <= local or cand.weekday() >= 5:
+        cand = datetime.combine(cand.date() + timedelta(days=1), time(h, m), ET)
+    return cand
+
+
 def payout_clock(
     *,
     stage: str,
@@ -48,8 +58,15 @@ def payout_clock(
     buffer: Decimal,
     min_request: Decimal,
     live_trigger: Decimal | None,
+    session_check_time: str = "17:05",
 ) -> PayoutClock:
-    nxt = next_check(now, check_time) if frequency == "weekly" else None
+    nxt = (
+        next_check(now, check_time)
+        if frequency == "weekly"
+        else next_session_check(now, session_check_time)
+        if frequency == "every_n_sessions"
+        else None
+    )
     secs = int((nxt - now).total_seconds()) if nxt else None
     over = balance - buffer
     eligible = over if over >= min_request else Decimal(0)

@@ -567,3 +567,14 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   · 100K 3 (< 50% → 1) · 150K 4 (< 50% → 2). Brake in both, applied live by risk/strategy_sizing (D63); audit
   trade.auto_size carries the profile. NOISE trailing exit and $250-per-micro stop unchanged. Dashboard income card:
   "Size profile" selector (active / Regular / High risk). Numbers: docs/results/session10/README.md §24.
+
+## D65 (user 2026-11-09): Lucid Pro payouts — largest allowed, every 2–3 days
+- Confirmed from Lucid's help page (user screenshots): no payout window, request any day once eligible; per cycle:
+  profit ≥ $250/$500/$750/$1,000, largest day ≤ 40% of the cycle, balance stays ≥ buffer (MLL + $100), min $500.
+- payouts.mode "max_eligible" (pure phases/payout_plan): balance − buffer, capped (1st / next), consistency per cycle;
+  payouts.frequency "every_n_sessions": daily check at session_check_time (17:05 ET), ≥ min_sessions_between (2)
+  sessions after the last processed payout, one open payout at a time. All Pro plans set to this (user: "try to get a
+  payout every 2–3 days"). Option payouts.min_pct_of_cap (Payouts page "Wait for ≥ 50% of the cap") — agent study:
+  most take-home on 100K / 150K Regular (150K: $1,003 per 2 wk vs $881 every 10 sessions, same bust); 25K / 50K /
+  150K High do best with slower requests (every 10 / every 5). Lucid has no API: the app plans + notifies, the user
+  requests in Lucid's dashboard; trading blocks while a submitted payout is pending (trade as if already deducted).

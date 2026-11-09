@@ -310,3 +310,14 @@ Lucid's real minimum time between Pro payout requests must be VERIFIED before re
 - 4 (staggered starts): tail-risk cut CONFIRMED (150K P(total $0) 25% → 6%, all-5-bust 24% → 5%), but the HIGHER MEAN
   was an artifact of comparing different start-date windows: on the same window same-day starts average $27,073 vs
   $25,090 staggered → staggering costs ≈ 7% of the average and buys a much safer distribution.
+
+## 26. Payout timing (agent study, payout_timing_report.md) — D65 built: largest allowed payout, check every session
+| plan | every 10 | every 2–3 days (= as soon as eligible) | wait for ≥ 50% of cap | best |
+|---|---|---|---|---|
+| 25K 1 | $317 · bust 57% | $334 · 63% | $336 · 61% | every 10 (others raise 2024+ bust) |
+| 50K 2 | $564 · 44% | $599 · 48% | $625 · 48% | every 10 (bust) |
+| 100K 2 | $643 · 26% (median $16,025) | $695 · 26% | $709 · 26% (median $18,985) | ≥ 50% of cap |
+| 150K Reg 3 | $881 · 24% (median $21,072) | $973 · 25% | **$1,003 · 24% (median $23,879)** | ≥ 50% of cap |
+| 150K High 4 | $952 · 27% | $1,113 · 30% | $1,152 · 31% | every 5 ($1,064 · 28%) |
+The $250–$1,000 cycle-profit minimum already makes "every 2–3 days" equal to "as soon as eligible" (≈ 2.4 payouts per
+account per year). Volatility sizing (vol_sizing_report.md): no improvement.

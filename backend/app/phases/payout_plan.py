@@ -4,7 +4,9 @@ Rules (numbers from the rules file):
 - balance ≥ sweep_above + min_request → SWEEP down to sweep_above.
 - else if MLL locked and skim_mode == half → SKIM 50% of this week's profit, if ≥ min_request and the balance stays
   ≥ buffer afterwards.
-- else none. Never plans a payout that leaves the balance below `buffer`, or with < min_cycle_profit since the last one.
+- else none. D65 mode "max_eligible" (Lucid Pro): balance − buffer (capped) once the cycle profit ≥ min_cycle_profit
+  and the largest day ≤ consistency % of the cycle profit (optionally only once ≥ min_pct_of_cap × the cap).
+Never plans a payout that leaves the balance below `buffer`, or with < min_cycle_profit since the last one.
 """
 
 from __future__ import annotations
@@ -41,6 +43,10 @@ def plan_payout(
     max_pct_of_profit: Decimal | None = None,
     profitable_days: int = 0,
     min_profitable_days: int = 0,
+    mode: str = "sweep_skim",
+    largest_day: Decimal = Decimal(0),
+    consistency_pct: Decimal | None = None,
+    min_pct_of_cap: Decimal | None = None,
 ) -> PayoutPlan:
     def plan(kind: str, amt: Decimal, why: str) -> PayoutPlan:
         cap = max_first if payout_no <= 1 else max_next
@@ -57,6 +63,15 @@ def plan_payout(
         return PayoutPlan(None, Decimal(0), Decimal(0), "NO_PROFIT_SINCE_LAST_PAYOUT")
     if profitable_days < min_profitable_days:
         return PayoutPlan(None, Decimal(0), Decimal(0), "NOT_ENOUGH_PROFITABLE_DAYS")
+    if mode == "max_eligible":  # D65 Lucid Pro: largest allowed payout, any day once eligible
+        if consistency_pct is not None and largest_day > consistency_pct / 100 * cycle_profit:
+            return PayoutPlan(None, Decimal(0), Decimal(0), "CONSISTENCY")
+        if balance - buffer < min_request:
+            return PayoutPlan(None, Decimal(0), Decimal(0), "BELOW_BUFFER")
+        cap = max_first if payout_no <= 1 else max_next
+        if min_pct_of_cap is not None and cap is not None and balance - buffer < min_pct_of_cap * cap:
+            return PayoutPlan(None, Decimal(0), Decimal(0), "WAIT_FOR_LARGER")
+        return plan("max", balance - buffer, f"largest payout above the {buffer} buffer")
     if balance >= sweep_above + min_request:
         return plan("sweep", balance - sweep_above, f"balance above {sweep_above}")
     if locked and skim_mode == "half":

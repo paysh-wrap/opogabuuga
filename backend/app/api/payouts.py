@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.models import Account, Payout
-from app.payouts.service import weekly_check
+from app.payouts.service import session_check, weekly_check
 
 router = APIRouter(prefix="/api")
 NEXT = {"ready": {"submitted", "cancelled"}, "submitted": {"processed", "cancelled"}}
@@ -42,7 +42,9 @@ def list_payouts(_: Principal = Depends(current_user), db: Session = Depends(get
 @router.post("/payouts/check")
 async def run_check(request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     st = request.app.state
-    made = await weekly_check(db, st.controller, st.rules.rules, st.clock.now())
+    r = st.rules.rules
+    check = session_check if r.payouts.frequency == "every_n_sessions" else weekly_check  # D65
+    made = await check(db, st.controller, r, st.clock.now())
     db.commit()
     return {"created": [_row(x, db.get(Account, x.account_id)) for x in made]}
 

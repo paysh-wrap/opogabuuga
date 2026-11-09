@@ -11,7 +11,7 @@ from decimal import ROUND_DOWN, Decimal
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -63,7 +63,10 @@ def account_eval_pace(
 # ---------- payout settings ----------
 class PayoutSettingsIn(BaseModel):
     skim_mode: Literal["half", "off"]  # off = sweep only
-    frequency: Literal["weekly", "on_demand"]
+    frequency: Literal["weekly", "on_demand", "every_n_sessions"]
+    mode: Literal["sweep_skim", "max_eligible"] | None = None  # D65; None = keep the plan's
+    min_sessions_between: int | None = Field(None, ge=1, le=20)
+    min_pct_of_cap: Decimal | None = Field(None, gt=0, le=1)  # D65: None = request as soon as eligible
 
 
 def _settings(request: Request) -> dict[str, Any]:
@@ -74,6 +77,10 @@ def _settings(request: Request) -> dict[str, Any]:
         "check_time": pc.check_time,
         "sweep_above": str(pc.sweep_above),
         "buffer": str(request.app.state.rules.rules.funded.payout.buffer),
+        "mode": pc.mode,
+        "min_sessions_between": pc.min_sessions_between,
+        "session_check_time": pc.session_check_time,
+        "min_pct_of_cap": None if pc.min_pct_of_cap is None else str(pc.min_pct_of_cap),
     }
 
 
@@ -88,11 +95,14 @@ async def put_payout_settings(
 ) -> dict[str, Any]:
     st = request.app.state
     before = {"skim_mode": st.rules.rules.payouts.skim_mode, "frequency": st.rules.rules.payouts.frequency}
-    stt.set_setting(db, "payouts.settings", body.model_dump(), st.clock.now())
-    audit.record(db, st.clock, p.user.username, "payouts.settings", "", {"before": before, "after": body.model_dump()})
+    after = body.model_dump(mode="json", exclude_none=True)
+    if body.min_pct_of_cap is None:
+        after["min_pct_of_cap"] = None  # explicit "as soon as eligible"
+    stt.set_setting(db, "payouts.settings", after, st.clock.now())
+    audit.record(db, st.clock, p.user.username, "payouts.settings", "", {"before": before, "after": after})
     db.commit()
     st.rules.refresh(db)
-    st.bus.publish("risk.settings_changed", {"payouts": body.model_dump()})
+    st.bus.publish("risk.settings_changed", {"payouts": after})
     return _settings(request)
 
 

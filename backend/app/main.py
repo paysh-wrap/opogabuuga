@@ -213,7 +213,8 @@ async def _refresh_calendar(app: FastAPI, s: Session, now: datetime) -> None:
 async def _scheduler(app: FastAPI) -> None:
     """In-process jobs (one app process). Each job runs once per period; failures never silent."""
     from app.automation import state as stt
-    from app.payouts.service import due, week_key, weekly_check
+    from app.clock import session_date
+    from app.payouts.service import due, session_check, session_due, week_key, weekly_check
 
     st = app.state
     while True:
@@ -224,6 +225,14 @@ async def _scheduler(app: FastAPI) -> None:
                 if pc.frequency == "weekly" and due(now, pc.check_time, stt.get_setting(s, "job.payouts.week")):  # type: ignore[arg-type]
                     await weekly_check(s, st.controller, st.rules.rules, now)
                     stt.set_setting(s, "job.payouts.week", week_key(now), now)
+                    s.commit()
+                elif pc.frequency == "every_n_sessions" and session_due(  # D65
+                    now,
+                    pc.session_check_time,
+                    stt.get_setting(s, "job.payouts.day"),  # type: ignore[arg-type]
+                ):
+                    await session_check(s, st.controller, st.rules.rules, now)
+                    stt.set_setting(s, "job.payouts.day", session_date(now).isoformat(), now)
                     s.commit()
                 await _refresh_calendar(app, s, now)
                 await _inactivity(app, s, now)

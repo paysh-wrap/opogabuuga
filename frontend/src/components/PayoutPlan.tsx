@@ -3,7 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { etDateTime } from "../lib/time";
 
-interface Settings { skim_mode: "half" | "off"; frequency: "weekly" | "on_demand"; check_time: string; sweep_above: string; buffer: string }
+interface Settings {
+  skim_mode: "half" | "off"; frequency: "weekly" | "on_demand" | "every_n_sessions"; check_time: string; sweep_above: string; buffer: string;
+  mode?: "sweep_skim" | "max_eligible"; min_sessions_between?: number; session_check_time?: string; min_pct_of_cap?: string | null;
+}
+type SaveBody = Pick<Settings, "skim_mode" | "frequency"> & { mode?: Settings["mode"]; min_sessions_between?: number; min_pct_of_cap?: string | null };
 interface PlanResp {
   tracker: { year: number; ytd_gross: string; ytd_net: string; target_net: string; floor_net: string; target_pct: string; floor_pct: string; payouts_processed: number };
   projection: { basis: string; monthly_net: string; months: { month: string; net: string; cumulative: string }[] };
@@ -20,7 +24,7 @@ export function PayoutSettings() {
   const q = useQuery({ queryKey: ["payout-settings"], queryFn: () => api<Settings>("/api/payouts/settings") });
   const [err, setErr] = useState("");
   const save = useMutation({
-    mutationFn: (b: Pick<Settings, "skim_mode" | "frequency">) => api<Settings>("/api/payouts/settings", { method: "PUT", body: JSON.stringify(b) }),
+    mutationFn: (b: SaveBody) => api<Settings>("/api/payouts/settings", { method: "PUT", body: JSON.stringify(b) }),
     onMutate: () => setErr(""),
     onSuccess: () => ["payout-settings", "payout-plan"].forEach((k) => void qc.invalidateQueries({ queryKey: [k] })),
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Save failed"),
@@ -35,18 +39,33 @@ export function PayoutSettings() {
       {s && (
         <div className="mt-2 flex flex-wrap items-end gap-4 text-sm">
           <label className="flex min-w-0 max-w-full flex-col">Mode
-            <select aria-label="Payout mode" value={s.skim_mode} disabled={save.isPending}
-              onChange={(e) => save.mutate({ skim_mode: e.target.value as Settings["skim_mode"], frequency: s.frequency })}>
+            <select aria-label="Payout mode" value={s.mode === "max_eligible" ? "max" : s.skim_mode} disabled={save.isPending}
+              onChange={(e) => {
+                const v = e.target.value;
+                save.mutate(v === "max"
+                  ? { skim_mode: s.skim_mode, frequency: s.frequency, mode: "max_eligible", min_pct_of_cap: s.min_pct_of_cap ?? null }
+                  : { skim_mode: v as Settings["skim_mode"], frequency: s.frequency, mode: "sweep_skim", min_pct_of_cap: s.min_pct_of_cap ?? null });
+              }}>
+              <option value="max">Largest allowed (Lucid Pro: balance − buffer, capped)</option>
               <option value="half">Sweep + skim (half of week profit once MLL is locked)</option>
               <option value="off">Sweep only</option>
             </select></label>
           <label className="flex min-w-0 max-w-full flex-col">Frequency
             <select aria-label="Payout frequency" value={s.frequency} disabled={save.isPending}
-              onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: e.target.value as Settings["frequency"] })}>
+              onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: e.target.value as Settings["frequency"], min_pct_of_cap: s.min_pct_of_cap ?? null })}>
+              <option value="every_n_sessions">Every {s.min_sessions_between ?? 2}–3 days when eligible ({s.session_check_time ?? "17:05"} ET)</option>
               <option value="weekly">Weekly ({s.check_time} ET)</option>
               <option value="on_demand">On demand (Check now only)</option>
             </select></label>
-          <p className="text-xs">Sweep down to {usd(s.sweep_above)}; never below the {usd(s.buffer)} buffer. Changes are audited.</p>
+          {s.mode === "max_eligible" && (
+            <label className="flex min-w-0 max-w-full flex-col">Size
+              <select aria-label="Payout size" value={s.min_pct_of_cap ? "half" : "any"} disabled={save.isPending}
+                onChange={(e) => save.mutate({ skim_mode: s.skim_mode, frequency: s.frequency, min_pct_of_cap: e.target.value === "half" ? "0.5" : null })}>
+                <option value="any">As soon as eligible</option>
+                <option value="half">Wait for ≥ 50% of the cap (most take-home on 100K/150K)</option>
+              </select></label>
+          )}
+          <p className="text-xs">{s.mode === "max_eligible" ? "Largest payout Lucid allows" : `Sweep down to ${usd(s.sweep_above)}`}; never below the {usd(s.buffer)} buffer; 40% consistency per cycle. Lucid has no API — the app tells you when to request in your Lucid dashboard. Changes are audited.</p>
         </div>
       )}
     </section>

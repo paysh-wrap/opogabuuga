@@ -86,6 +86,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         ),
         "payouts.frequency",
         "payouts.skim_mode",
+        "payouts.min_pct_of_cap",  # D65
+        "payouts.min_sessions_between",
         "automation.auto_resume_after_recovery",
     }
 )
