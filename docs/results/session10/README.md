@@ -330,3 +330,7 @@ account per year). Volatility sizing (vol_sizing_report.md): no improvement.
 | **100K** | **2 → +1 per $1,200 cushion (max 4) + stop the day at ≥ 33% of remaining target** | 68% / 24% (was 65 / 24) | **88 (was 102)** | 105% |
 | **150K** | **4 micros, brake < 50% → 2** | 68% / 26% (was 67 / 23) | **84 (was 103)** | 102% |
 The margin on 100K / 150K is modest (single sample of ~15 rules) — re-check on live / fresh data.
+
+## 28. Second market for NOISE (agent, second_market_report.md, ≈ $16.55 Databento)
+MCL held-out PF 0.71 (in-sample 0.97), M6E 0.54 (0.78) → FAIL; 10Y untestable (half the minute bars empty). Both
+uncorrelated with MNQ (≈ 0.0) but losing → no diversification. M2K / MYM skipped (budget; index twins of MNQ).
