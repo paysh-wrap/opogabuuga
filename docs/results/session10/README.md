@@ -206,3 +206,18 @@ not reached by any setting.
 | Pro 100K | 4 / 5 micros | 51% / 48% · 46% / 54% | $692 · $561 | $17,992 · $14,596 | 53% · 46% | 55% · 64% |
 Best risk/return: 100K at 2 micros (typical year ≈ $19,000 for 5 accounts ≈ $3,800 each, bust 30%). 3 micros has the
 highest average but a much lower typical year. Eval at 2 micros: 45% pass in 120 days, 18% bust, rest still running.
+
+## 19. 5 accounts on every Pro size + detail for 5 × Pro 50K at 2 micros (five_year/pro50k_2micro_detail.py)
+| 5 accounts | size | eval pass / bust | per 2 wk | year avg / median | ≥1 payout | funded bust yr 1 |
+|---|---|---|---|---|---|---|
+| Pro 25K | 1 micro | 63% / 35% | $317 | $8,232 / $4,500 | 58% | 57% |
+| Pro 25K | 1 micro + grow/$1,000 | 63% / 35% | $348 | $9,049 / $4,500 | 58% | 56% |
+| Pro 50K | 1 micro | 46% / 14% | $317 | $8,248 / $7,617 | 70% | 21% |
+| **Pro 50K** | **2 micros** | **60% / 37%** | **$595** | **$15,457 / $9,000** | 61% | 52% |
+| Pro 100K | 2 micros | 45% / 18% | $686 | $17,838 / $19,048 | 73% | 30% |
+5 × Pro 50K at 2 micros, per funded account: payouts in year 1 → 0: 39% · 1: 14% · 2: 10% · 3: 16% · 4: 16% · 5: 6%.
+Median 60 trading days to the 1st payout (≈ $1,249 to you). Busted accounts bust after a median 55 trading days; only
+25% of them paid anything first. By START year (5-account first-year take-home, avg / median): 2021 $11,550 / $16,702 ·
+2022 $24,418 / $30,793 · 2023 $11,199 / $4,509 · 2024 $24,265 / $28,011 · **2025 $88 / $0** (starts in 2025 ran into
+the weak Jan / Jul 2026 months and almost all busted). Average income by month of the funded year (5 accounts): m1 $243,
+m2 $927, then ≈ $1,300–1,900 a month in m3–m10.
