@@ -636,11 +636,13 @@ class Controller:
             )
             t.profile, t.signal_id, t.strategy = sig.profile, sig.id, strategy
             if duo is not None:  # D85: break-even / profit lock / trail on every Duo position, each on its own
-                trig, lock = duo.lock_pts[sig.symbol]  # type: ignore[index]
+                step = duo.step_trail.get(sig.symbol)  # type: ignore[call-overload]
+                lk = None if step else duo.lock_pts[sig.symbol]  # type: ignore[index]
                 ai = (sig.features or {}).get("lock_price")  # the AI setup's own lock level (research setups)
                 t.manage = ManageCfg(
-                    duo.be_r, trig, lock, duo.trail_start_r, duo.trail_r,
+                    duo.be_r, lk[0] if lk else None, lk[1] if lk else None, duo.trail_start_r, duo.trail_r,
                     fee_cover_ticks(inst.fee_rt, inst.tick_value), Decimal(str(ai)) if ai else None,
+                    step[0] if step else None, step[1] if step else None,
                 )  # fmt: skip
             nc = r.strategy.noise_cfg
             if strategy == "NOISE" and nc.profit_lock_trigger_pts is not None and nc.profit_lock_pts is not None:
@@ -770,9 +772,10 @@ class Controller:
         inst = r.instrument(t.symbol)
         slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
         for leg in t.legs:
-            if leg.entry is None or leg.closed:
+            if leg.closed:
                 continue
-            dist = max((leg.entry - leg.stop) * t.d.sign, Decimal(0))
+            entry = leg.entry if leg.entry is not None else t.plan.entry  # an unfilled entry still carries its risk
+            dist = max((entry - leg.stop) * t.d.sign, Decimal(0))
             total += leg.qty * (dist / t.tick * t.tick_value + inst.fee_rt + slip * t.tick_value)
         return total
 

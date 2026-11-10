@@ -87,10 +87,13 @@ def dump(t: OpenTrade) -> dict[str, Any]:
         "manage": None
         if t.manage is None
         else {
+            **{k: str(getattr(t.manage, k)) for k in ("be_r", "trail_start_r", "trail_r")},
             **{
-                k: str(getattr(t.manage, k))
-                for k in ("be_r", "lock_trigger_pts", "lock_pts", "trail_start_r", "trail_r")
+                k: None if getattr(t.manage, k) is None else str(getattr(t.manage, k))
+                for k in ("lock_trigger_pts", "lock_pts")
             },
+            "step_ticks": t.manage.step_ticks,
+            "raise_ticks": t.manage.raise_ticks,
             "fee_cover_ticks": t.manage.fee_cover_ticks,
             "ai_lock_price": None if t.manage.ai_lock_price is None else str(t.manage.ai_lock_price),
         },
@@ -100,12 +103,14 @@ def dump(t: OpenTrade) -> dict[str, Any]:
 def _manage(m: dict[str, Any]) -> ManageCfg:
     return ManageCfg(
         Decimal(m["be_r"]),
-        Decimal(m["lock_trigger_pts"]),
-        Decimal(m["lock_pts"]),
+        None if m.get("lock_trigger_pts") is None else Decimal(m["lock_trigger_pts"]),
+        None if m.get("lock_pts") is None else Decimal(m["lock_pts"]),
         Decimal(m["trail_start_r"]),
         Decimal(m["trail_r"]),
         int(m["fee_cover_ticks"]),
         None if m.get("ai_lock_price") is None else Decimal(m["ai_lock_price"]),
+        m.get("step_ticks"),
+        m.get("raise_ticks"),
     )
 
 

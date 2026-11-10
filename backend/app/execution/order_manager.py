@@ -325,7 +325,11 @@ class OrderManager:
     def _closing_fill(self, f: Fill) -> list[Event]:
         """Exit fill of a flatten order (no bracket id, e.g. CrossTrade polling): books the real exit price on the
         trade that is waiting in 'closing'. Partial fills accumulate until the whole open quantity is out."""
-        for t in self.trades.values():
+        remaining = f.qty
+        events: list[Event] = []
+        for t in list(self.trades.values()):  # several positions on one account (AI Duo 150K): fill the trades in turn
+            if remaining <= 0:
+                break
             if not t.closing or t.account != f.account_id or t.symbol != f.symbol:
                 continue
             if f.side != ("SELL" if t.d is Direction.LONG else "BUY"):
@@ -333,17 +337,22 @@ class OrderManager:
             open_legs = [x for x in t.legs if x.entry is not None and not x.closed]
             if not open_legs:
                 continue
-            t.exit_qty += f.qty
-            t.exit_notional += f.price * f.qty
-            t.exit_fee += f.fee
+            need = sum(x.qty for x in open_legs) - t.exit_qty
+            take = min(remaining, need)
+            if take <= 0:
+                continue
+            remaining -= take
+            t.exit_qty += take
+            t.exit_notional += f.price * take
+            t.exit_fee += f.fee * take / f.qty if f.qty else f.fee
             if t.exit_qty < sum(x.qty for x in open_legs):
-                return []
+                continue
             avg = t.exit_notional / t.exit_qty
             for i, leg in enumerate(open_legs):
                 leg.exit, leg.fee, leg.closed = avg, (t.exit_fee if i == 0 else Decimal(0)), True
             del self.trades[t.trade_id]
-            return [Event("CLOSED", t, "FLATTEN")]
-        return []
+            events.append(Event("CLOSED", t, "FLATTEN"))
+        return events
 
     async def _stop_already_done(self, t: OpenTrade, leg: Leg) -> bool:
         """True only when the broker shows this leg's stop order no longer working (filled, or cancelled by its OCO
@@ -388,14 +397,17 @@ class OrderManager:
                 break  # stop-modify failure: flattening, nothing more to move
         return out
 
-    async def _profit_lock(self, t: OpenTrade) -> list[Event]:
-        """D82 / D75-P1: after +trigger pts the stop of every open leg moves to entry + lock pts (ratchet only)."""
+    async def _profit_lock(self, t: OpenTrade, last: Decimal | None = None) -> list[Event]:
+        """D82 / D75-P1: after +trigger pts the stop of every open leg moves to entry + lock pts (ratchet only, and
+        never at or through the current price: pulled back to one tick behind it, review fix)."""
         assert t.profit_lock is not None
         out: list[Event] = []
         for leg in [x for x in t.legs if x.entry is not None and not x.closed]:
             new = lock_stop(t.d, leg.entry or Decimal(0), t.best or Decimal(0), *t.profit_lock, t.tick)
             if new is None:
                 continue
+            if last is not None and (new - (last - t.d.sign * t.tick)) * t.d.sign > 0:
+                new = last - t.d.sign * t.tick
             ev = await self._move_stop(t, leg, new, PROFIT_LOCK_REASON)
             out += ev
             if any(e.kind == "STOP_MOVED" for e in ev):
@@ -412,10 +424,11 @@ class OrderManager:
                 continue
             fav = high if t.d is Direction.LONG else low
             t.best = fav if t.best is None or (fav - t.best) * t.d.sign > 0 else t.best
+            last = close if close is not None else low  # the controller always passes the close: the cap is exact
             if t.profit_lock is not None and not t.closing:
-                out += await self._profit_lock(t)
+                out += await self._profit_lock(t, last)
             if t.manage is not None and not t.closing:
-                out += await self._managed(t, close if close is not None else low)
+                out += await self._managed(t, last)
             trail = t.runner_trail or (self.trail_r if t.guard_on else None)
             if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")

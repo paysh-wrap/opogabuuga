@@ -402,3 +402,25 @@ async def test_stop_lookup_error_still_pauses(env):
     sim.fail_next.update({"modify_stop", "get_orders"})
     ev = await pump(sim, om, 20010, 20031, 20005, 20028)
     assert ("PAUSE", "STOP_MODIFY_FAILED") in [(e.kind, e.detail) for e in ev]
+
+
+async def test_flatten_fill_is_shared_between_trades_of_one_account_by_quantity(env):
+    """Review fix: two positions on one account (AI Duo 150K) closed by ONE flatten fill (no bracket id) — the fill
+    is split by quantity, each trade books its own exit, neither takes the other's contracts."""
+    from app.execution.adapters.base import Fill
+
+    sim, om, _ = env
+    sim.add_account("B", D(150000))
+    ts = []
+    for qty in (1, 2):
+        plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+        ts.append(await om.open_trade("A", "MNQ", plan, qty, False, T, TV, AT, WIN))
+        for f in sim.drain_fills():
+            await om.on_fill(f)
+    for t in ts:
+        t.closing = "KILL_SWITCH"
+    fill = Fill("A", "x", None, "EXIT", "MNQ", "SELL", 3, D(19990), AT, D(3))
+    ev = await om.on_fill(fill)
+    assert [e.kind for e in ev] == ["CLOSED", "CLOSED"] and not om.trades
+    assert [t.exit_qty for t in ts] == [1, 2] and all(t.legs[0].exit == D(19990) for t in ts)
+    assert sum(t.exit_fee for t in ts) == D(3)

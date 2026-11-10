@@ -347,8 +347,11 @@ class AiDuoCfg(_M):
     trail_r: D = D("1.0")
     # profit lock per market, points: (trigger, lock) — once +trigger pts the stop moves to entry +lock pts, or to the
     # AI setup's own lock level when it gave one. User 2026-11-10: MNQ +100 → +50 (NOISE keeps its tested +100 → +10).
-    # MGC # VERIFY: proportional by price (≈ 0.48% / 0.24% of ~2,700) — not tested, the user must confirm.
-    lock_pts: dict[Literal["MNQ", "MGC"], tuple[D, D]] = {"MNQ": (D(100), D(50)), "MGC": (D(13), D("6.5"))}
+    lock_pts: dict[Literal["MNQ", "MGC"], tuple[D, D]] = {"MNQ": (D(100), D(50))}
+    # step trail per market, ticks: (step, raise) — for every `step` ticks of open profit the stop is raised by `raise`
+    # ticks above the ORIGINAL stop (ratchet only, never through the market). User-set 2026-11-10 (D85 addendum):
+    # MGC 60 → 20. A market with a step trail does not use lock_pts; the AI setup's own level still replaces it.
+    step_trail: dict[Literal["MNQ", "MGC"], tuple[int, int]] = {"MGC": (60, 20)}
 
     @model_validator(mode="after")
     def _valid(self) -> AiDuoCfg:
@@ -358,8 +361,10 @@ class AiDuoCfg(_M):
             raise ValueError("ai_duo: 0 < brake_below ≤ 1")
         if self.be_r <= 0 or any(not (D(0) <= lock < trig) for trig, lock in self.lock_pts.values()):
             raise ValueError("ai_duo: be_r > 0 and each lock_pts needs 0 ≤ lock < trigger")
-        if any(m not in self.lock_pts for m in self.markets):
-            raise ValueError("ai_duo: every market needs lock_pts")
+        if any(m not in self.lock_pts and m not in self.step_trail for m in self.markets):
+            raise ValueError("ai_duo: every market needs lock_pts or step_trail")
+        if any(not (0 < raise_ticks <= step) for step, raise_ticks in self.step_trail.values()):
+            raise ValueError("ai_duo: step_trail needs 0 < raise_ticks ≤ step_ticks")
         if self.trail_start_r <= 0 or self.trail_r <= 0:
             raise ValueError("ai_duo: trail_start_r and trail_r > 0")
         if self.rr_min < D("1.5") or self.rr_target < self.rr_min:

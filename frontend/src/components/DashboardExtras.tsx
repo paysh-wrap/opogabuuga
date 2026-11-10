@@ -40,7 +40,7 @@ export function PlanProgress() {
       </div>
       <div className="mt-3 text-sm" data-testid="next-payout">
         <b className="text-gold">Next payout estimate {usd(n.total)}</b>
-        {n.check_at ? <> · check {new Date(n.check_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} {etTime(n.check_at)} ET</> : <> · {n.frequency}</>}
+        {n.check_at ? <> · check {new Date(n.check_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} {etTime(n.check_at)}</> : <> · {n.frequency}</>}
         {n.accounts.length === 0 && <p className="text-xs">No FUNDED accounts yet.</p>}
         {n.accounts.map((a) => (
           <p key={a.account_id} className="text-xs">{a.label}: {a.error ? `⚠ ${a.error}` : a.kind ? `${a.kind} ${usd(a.amount)}` : `none (${a.reason?.replace(/_/g, " ").toLowerCase()})`}</p>

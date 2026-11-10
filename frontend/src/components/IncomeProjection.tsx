@@ -56,7 +56,7 @@ export default function IncomeProjection() {
       {q.error && <p role="alert" className="mt-2 text-sm text-goldLight">⚠ Cannot load the projection.</p>}
       {d && (
         <>
-          <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-sm sm:grid-cols-3">
+          <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
             <dt>Per week (average)</dt><dd className="text-lg font-semibold text-gold" data-testid="income-week">▲ {usd(d.week_mean)}</dd>
             <dt>Per {d.cadence_sessions === 5 ? "weekly" : "2-week"} payout</dt><dd className="text-gold" data-testid="income-paycheck">▲ {usd(d.per_paycheck_mean)}</dd>
             <dt>First year: average</dt><dd className="text-gold">{usd(d.year_mean)}</dd>

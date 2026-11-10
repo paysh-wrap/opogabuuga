@@ -501,9 +501,10 @@ def test_150k_account_holds_mnq_and_mgc_together_a_25k_account_only_one(authed, 
     mine = [t for t in st.controller.om.trades.values() if t.account == ext]
     assert {t.symbol for t in mine} == {"MNQ", "MGC"} and all(t.legs[0].stop for t in mine)  # own stop bracket each
     assert all(t.manage is not None for t in mine)  # break-even / lock / trail attached to each position
-    by = {t.symbol: t.manage for t in mine}  # D85 lock per market: MNQ +100 → +50 pts; MGC (VERIFY) 13 → 6.5
+    by = {t.symbol: t.manage for t in mine}  # D85 lock per market: MNQ +100 → +50 pts; MGC step trail 60 → 20 ticks
     assert (by["MNQ"].lock_trigger_pts, by["MNQ"].lock_pts) == (D(100), D(50))
-    assert (by["MGC"].lock_trigger_pts, by["MGC"].lock_pts) == (D(13), D("6.5"))
+    assert (by["MGC"].step_ticks, by["MGC"].raise_ticks) == (60, 20)  # D85 addendum: MGC step trail (user-set)
+    assert by["MGC"].lock_trigger_pts is None and by["MGC"].lock_pts is None
     assert by["MNQ"].ai_lock_price is None
     assert all(t.qty <= 4 for t in mine)  # 4 is a cap
 
@@ -530,3 +531,22 @@ def test_the_ai_setup_lock_level_reaches_the_position(authed, clock):
     assert asyncio.run(st.controller.execute(sid, "automation"))[0].ok
     (t,) = st.controller.om.trades.values()
     assert t.manage.ai_lock_price == D(2712)
+
+
+def test_open_risk_counts_an_unfilled_entry_and_a_stop_past_break_even_keeps_only_fees(authed, clock):
+    """Review fix: a position whose entry has not filled yet already carries its full stop risk in the aggregate
+    check (otherwise two signals in the same minute could together exceed the DLL/MLL room)."""
+    import asyncio
+
+    st, _ids, at = _multi_setup(authed, clock, [("big", "150000")])
+    s1 = _duo_sig(st, at, "MNQ", MNQ_PLAN)
+    asyncio.run(st.controller.execute(s1, "automation"))
+    (t,) = st.controller.om.trades.values()
+    leg = t.legs[0]
+    leg.entry = None  # as if the entry were still working
+    pending = st.controller._open_risk(t)
+    leg.entry = t.plan.entry
+    filled = st.controller._open_risk(t)
+    assert pending == filled > 0
+    leg.stop = t.plan.entry + t.d.sign * 5  # stop beyond break-even: only fee + slippage remain
+    assert 0 < st.controller._open_risk(t) < filled
