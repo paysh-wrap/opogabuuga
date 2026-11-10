@@ -365,3 +365,12 @@ P3 25K High-risk recover mode · P4 cushion sizing on funded (trade-off) · seco
 OPEN: user approval for P1–P4; session-10 items 2, 3, 5, 7, 8 unchanged; clean test of 150K eval at 3 micros; verify with Lucid: consistency on Pro evals, reset/eval prices;
 connect the AI key before live eval trading; review the other UI pages. Raw bars (MNQ/MES/MYM/M2K) are cached only in the container (gitignored) — re-download via the scripts.
 TESTS at last run: backend 619 passed (risk/management/phases 100%), frontend 54, ruff/mypy/eslint/tsc clean, vite build OK. Data scripts need system python3 (numpy), not .venv.
+
+## FULL RECORD OF SESSION 12 (2026-11-10) — read this first in session 13
+Branch claude/laughing-feynman-1f0fm5, all committed + pushed. Results: docs/results/session12/README.md + LUNQFX.md; decision D76.
+User asked: add order blocks (OB) + SMT divergence (MNQ vs MES) to BOTH strategies, as a filter and as an OB stop/exit anchor.
+RESULTS (all wired in, default OFF, shadow-logged):
+- NOISE + fade baseline, held-out: 727 trades, 51.0% win, $15,982. OB filter: 50.7%, $16,274 (win rate fell → rejected). SMT filter: blocked 17–84% of trades, profit −23 to −100%. OB stop/exit anchor: win rate −1 to −9 pts, profit −2 to −25%.
+- LunqFX (22 sampled months), held-out: baseline 53.9%, −$27,322. OB filter 62.9%, −$5,724 (better, still losing). SMT worse. OB anchor made no difference (R:R went above 3.0).
+OPEN: D75 proposals P1–P4 still await the user; Lucid checks (consistency on Pro evals, reset/eval prices, payout spacing) and the AI key are still open; session-10/11 open items unchanged.
+NOTE: a 40 MB days.pkl is in history at commit 62252ba (untracked now) — makes the bundle large.
