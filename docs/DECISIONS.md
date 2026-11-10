@@ -634,3 +634,8 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Open: (a) the user's TradingAgents/LLM key is not connected — no calls are recorded until it is; (b) PM_FADE is not
   gated by the ledger (a fade trades against the intraday move, so its required accuracy is unknown — needs a study
   before wiring); (c) TradingAgents self-learning loop / OpenBB input still not built.
+
+## D73 (study 2026-11-10, awaiting user): PM_FADE under D57 stop-shrink — measured, NOT adopted
+- User: "yes, especially if it helps". Measured (docs/results/session11/pm_fade_d57_study.md): covering PM_FADE lowers eval
+  pass in 2021–23 on every plan (−4 to −8 pts on 50K+), no gain in 2024–26, funded income never higher, bust 0% both.
+  Fails the held-out rule → controller.py keeps shrink for NOISE/AI_BIAS only; PM_FADE keeps the pause floor + $250 stop.
