@@ -235,6 +235,7 @@ def run_noise(
     if close is None:
         return out
     entries = len(sigs)
+    lock_exit = any(x.features.get("lock_exit") for x in sigs)  # D82: a locked-stop exit ends NOISE for the day
     inst = rules.instrument(cfg.symbol)
     for a in N.decide(
         k=k,
@@ -244,7 +245,7 @@ def run_noise(
         position=position,
         entries_today=entries,
         max_entries=cfg.max_entries_per_day,
-        allow_entry=check and not exits_only,
+        allow_entry=check and not exits_only and not lock_exit,
     ):
         if a.kind == "EXIT" and open_sig is not None:
             _close(s, open_sig, a.reason, at, clock)

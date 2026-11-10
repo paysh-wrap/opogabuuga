@@ -429,6 +429,42 @@ def _lunqfx_flags(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def _presets(r: Any) -> dict[str, Any]:
+    """D82: NOISE strategy presets (config/strategy_presets.yaml) — static research labels + what each one sets."""
+    from app.config import SizeTierCfg, load_presets
+
+    rows = []
+    for key, p in load_presets().items():
+        ov = p["overlay"]
+        nc = ov.get("noise_cfg", {})
+        trig, lock = nc.get("profit_lock_trigger_pts"), nc.get("profit_lock_pts")
+        rows.append(
+            {
+                "key": key,
+                "label": p["label"],
+                "summary": p["summary"],
+                "account": p["account"],
+                "study": p["study"],
+                "pass_pct": p["pass_pct"],
+                "bust_pct": p["bust_pct"],
+                "held_out": p["held_out"],
+                "recommended": p["recommended"],
+                "warning": p["warning"],
+                "fade": bool(ov.get("pm_fade")),
+                "stop_usd": None if nc.get("emergency_stop_usd") is None else str(nc["emergency_stop_usd"]),
+                "profit_lock": None if trig is None else {"trigger_pts": str(trig), "lock_pts": str(lock)},
+                "size": [_tier(SizeTierCfg.model_validate(x)) for x in ov["size_table"]],
+                "matches_plan": any(Decimal(str(x["account_size"])) == r.account_size for x in ov["size_table"]),
+            }
+        )
+    return {
+        "active": r.strategy.preset,
+        "setting": "strategy.preset",
+        "plan_account_size": str(r.account_size),
+        "rows": rows,
+    }
+
+
 @router.get("/strategies")
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
@@ -463,6 +499,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "ready": len(stored) >= nc.min_history_days,
         },
         "ai_ledger": ledgers,
+        "presets": _presets(r),
         "gate_chain": _gate_chain(r),
         "lunqfx_flags": _lunqfx_flags(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},

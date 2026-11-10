@@ -1,0 +1,60 @@
+# D82 (user 2026-11-10, "Yes build abc"): NOISE strategy presets for MNQ. Selected by the My Settings key strategy.preset
+# (Strategy page selector). A preset ONLY sets NOISE parameters, the afternoon-fade button and the size table; it never
+# touches kill switch, risk checks, DLL/MLL, consistency or any other safety rule. Every preset keeps: a stop loss on every
+# trade, the hourly band/VWAP trailing exits and the 16:00 flat. Numbers: docs/results/session10/README.md (A, B) and
+# docs/results/session15/README.md (C). Changing a number here = unverified until the study is re-run.
+presets:
+  pro25k_classic:
+    label: "Pro 25K classic"
+    summary: "NOISE $250 stop + afternoon fade ON, 1 micro"
+    account: "Pro 25K"
+    study: "Session 10"
+    pass_pct: 63
+    bust_pct: 36
+    held_out: false
+    recommended: false
+    warning: "older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
+    overlay:
+      noise: true
+      pm_fade: true
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null}
+      size_table:
+        - {account_size: 25000, mll: 1000, contracts: 1}
+      size_table_high:
+        - {account_size: 25000, mll: 1000, contracts: 1}
+  pro100k_low_risk:
+    label: "Pro 100K low risk"
+    summary: "NOISE + afternoon fade ON, 3 micros, 1 micro while the cushion is under 50% of the loss limit"
+    account: "Pro 100K"
+    study: "Session 10"
+    pass_pct: 63
+    bust_pct: 22
+    held_out: false
+    recommended: false
+    warning: "older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
+    overlay:
+      noise: true
+      pm_fade: true
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null}
+      size_table:
+        - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+      size_table_high:
+        - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+  pro150k_low_risk:
+    label: "Pro 150K low risk"
+    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), fade OFF, 3 micros, 1 micro while the cushion is under $2,250"
+    account: "Pro 150K"
+    study: "Session 15"
+    pass_pct: 77
+    bust_pct: 18
+    held_out: true
+    recommended: true
+    warning: null
+    overlay:
+      noise: true
+      pm_fade: false
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: 100, profit_lock_pts: 10}
+      size_table:
+        - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+      size_table_high:
+        - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 1}

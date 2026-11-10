@@ -25,7 +25,14 @@ export interface StrategiesResp {
   lunqfx_flags?: LunqFlag[];
   markets: Record<string, boolean>;
   size_profiles?: SizeProfiles;
+  presets?: PresetsResp;
 }
+export interface PresetRow {
+  key: string; label: string; summary: string; account: string; study: string; pass_pct: number; bust_pct: number;
+  held_out: boolean; recommended: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
+  profit_lock: { trigger_pts: string; lock_pts: string } | null; size: SizeTierRow[]; matches_plan: boolean;
+}
+export interface PresetsResp { active: string | null; setting: string; plan_account_size: string; rows: PresetRow[] }
 export interface SizeTierRow {
   account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
   taper_below_remaining?: string | null; taper_contracts?: number | null; stop_usd?: string | null;

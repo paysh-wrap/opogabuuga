@@ -81,6 +81,8 @@ def dump(t: OpenTrade) -> dict[str, Any]:
         "profile": t.profile,
         "signal_id": t.signal_id,
         "strategy": t.strategy,
+        "profit_lock": None if t.profit_lock is None else [str(x) for x in t.profit_lock],
+        "profit_locked": t.profit_locked,
     }
 
 
@@ -141,4 +143,8 @@ def load(d: dict[str, Any]) -> OpenTrade:
         profile=d["profile"],
         signal_id=d["signal_id"],
         strategy=d["strategy"],
+        profit_lock=None
+        if d.get("profit_lock") is None
+        else (Decimal(d["profit_lock"][0]), Decimal(d["profit_lock"][1])),
+        profit_locked=bool(d.get("profit_locked", False)),
     )

@@ -32,6 +32,7 @@ from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager, OrphanedPosition
 from app.indicators.bars import tf_minutes
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
+from app.management.profit_lock import PROFIT_LOCK_REASON
 from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
@@ -602,6 +603,9 @@ class Controller:
                 trade_id=f"P-{sig.id}-{a.id}",  # deterministic: unique across restarts, broker clOrdId derives from it
             )
             t.profile, t.signal_id, t.strategy = sig.profile, sig.id, strategy
+            nc = r.strategy.noise_cfg
+            if strategy == "NOISE" and nc.profit_lock_trigger_pts is not None and nc.profit_lock_pts is not None:
+                t.profit_lock = (nc.profit_lock_trigger_pts, nc.profit_lock_pts)  # D82 / D75-P1 (preset C)
         except OrphanedPosition as e:
             # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
             # pause the account for good (never auto-resumes) and raise the banner (§1.8)
@@ -718,6 +722,26 @@ class Controller:
                                 await self._flatten_account(s, a, reason)
                 await self._retry_strategy_exits(s)
                 self._commit(s)
+
+    def _mark_lock_exit(self, s: Session, signal_id: int | None) -> None:
+        """D82 / D75-P1: a locked-stop exit ends NOISE for the day (strategy_service reads `lock_exit`).
+        The signal turns CLOSED once its last trade is closed."""
+        sig = s.get(Signal, signal_id) if signal_id is not None else None
+        if sig is None:
+            return
+        feats = {**(sig.features or {}), "lock_exit": True}
+        none_open = (
+            s.execute(select(Trade.id).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).first() is None
+        )
+        if none_open and feats.get("state") == "OPEN":
+            feats = {
+                **feats,
+                "state": "CLOSED",
+                "exit_reason": PROFIT_LOCK_REASON,
+                "exit_at": self.clock.now().isoformat(),
+            }
+        sig.features = feats
+        sig.updated_at = self.clock.now()
 
     def _mark_signal_closed(self, s: Session, signal_id: int | None, reason: str) -> None:
         """A strategy signal whose exit was requested turns CLOSED only now, when its last trade is really closed."""
@@ -953,6 +977,8 @@ class Controller:
         self._exit_alerted.discard(t.trade_id)
         s.flush()
         self._mark_signal_closed(s, t.signal_id, reason)
+        if reason == PROFIT_LOCK_REASON:
+            self._mark_lock_exit(s, t.signal_id)
         self.notify("info", "Trade closed", f"{a.label}: {pnl} ({row.net_r}R)", "trade")
         self.publish("position.updated", {"account": a.id})
         self.publish("account.updated", {"id": a.id})

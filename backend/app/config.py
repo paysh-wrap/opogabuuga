@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from decimal import Decimal
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
@@ -34,6 +35,19 @@ def load_yaml_decimal(text: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError("rules YAML must be a mapping")
     return data
+
+
+PRESETS_PATH = Path(__file__).resolve().parents[2] / "config" / "strategy_presets.yaml"
+
+
+@lru_cache(maxsize=1)
+def load_presets() -> dict[str, dict[str, Any]]:
+    """D82: the NOISE strategy presets (config/strategy_presets.yaml), keyed by preset id."""
+    data = load_yaml_decimal(PRESETS_PATH.read_text(encoding="utf-8"))
+    presets = data.get("presets")
+    if not isinstance(presets, dict) or not presets:
+        raise ValueError("strategy_presets.yaml needs a non-empty `presets` mapping")
+    return presets
 
 
 _KEY_RE = re.compile(r"^(\s*)([A-Za-z0-9_]+)\s*:(.*)$")
@@ -247,6 +261,19 @@ class NoiseCfg(_M):
     max_entries_per_day: int = 3
     contracts: int = 1  # fixed size (user: Pro 25K at 1 micro); still subject to every pre-trade risk check
     roll_gap_pct: D = D("0.015")  # |RTH open / prior RTH close − 1| above this → contract roll or shock: no trades
+    # D82 (preset C, D75-P1): once a trade is trigger pts in profit the stop moves to entry + lock pts (ratchet); a
+    # locked-stop exit ends NOISE for the day. None = no lock. Both set together (management/profit_lock.py).
+    profit_lock_trigger_pts: D | None = None
+    profit_lock_pts: D | None = None
+
+    @model_validator(mode="after")
+    def _lock_valid(self) -> NoiseCfg:
+        if (self.profit_lock_trigger_pts is None) != (self.profit_lock_pts is None):
+            raise ValueError("noise profit lock: profit_lock_trigger_pts and profit_lock_pts go together")
+        locked = self.profit_lock_trigger_pts is not None and self.profit_lock_pts is not None
+        if locked and not (D(0) <= (self.profit_lock_pts or D(0)) < (self.profit_lock_trigger_pts or D(0))):
+            raise ValueError("noise profit lock: 0 ≤ profit_lock_pts < profit_lock_trigger_pts")
+        return self
 
 
 class OpenDriveCfg(_M):
@@ -389,6 +416,9 @@ class StrategyCfg(_M):
     they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
 
     lunqfx: bool = True
+    # D82: Strategy preset (config/strategy_presets.yaml) — overlays noise_cfg stop/profit lock, noise, pm_fade and the
+    # size tables before validation. None = "custom" (the plan file's own values).
+    preset: str | None = None
     noise: bool = False
     open_drive: bool = False
     ai_bias: bool = False
@@ -425,6 +455,20 @@ class StrategyCfg(_M):
     # D66: Evaluation Mode (EVAL stage only, non-negotiable 10) sizes NOISE / PM_FADE from this table when present
     size_table_eval: list[SizeTierCfg] = []
     size_table_eval_high: list[SizeTierCfg] = []  # D69: Evaluation Mode when the High-risk button is on
+
+    @model_validator(mode="before")
+    @classmethod
+    def _apply_preset(cls, data: Any) -> Any:
+        if not isinstance(data, dict) or not data.get("preset"):
+            return data
+        presets = load_presets()
+        key = str(data["preset"])
+        if key not in presets:
+            raise ValueError(f"unknown strategy preset {key!r} (known: {', '.join(sorted(presets))})")
+        out = dict(data)
+        for k, v in presets[key]["overlay"].items():
+            out[k] = {**(out.get(k) or {}), **v} if isinstance(v, dict) else v
+        return out
 
     def active_eval_table(self) -> list[SizeTierCfg]:
         return self.size_table_eval_high if self.high_risk and self.size_table_eval_high else self.size_table_eval

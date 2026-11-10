@@ -707,3 +707,19 @@ D79 addendum (session 13): TradingView connected (webhook secret in indicator + 
 - Measured (docs/results/session14/causal_projections.md): 5y profit $25.3k -> $18.5k (-27%), win 50.0 -> 48.8%, fade alone PF 0.99 (-$432); Dashboard funded income -40..-47%, eval pass -8..-21 pts (25K Regular 56 -> 45%).
 - Decisions D70 / D71 / D73 / D74 / D75-P3 hold; D75-P2 reset threshold for 100K no longer safe (IS pass -7 pts) - do not use it. Open: the fade has no demonstrated edge as live trades it (separate decision); P1 profit lock and P4 cushion sizing not re-run; paper-day parity test (item 14 step 5) not done.
 
+
+## D82 (user 2026-11-10, "Yes build abc", session 16): NOISE strategy presets + profit lock
+- User approved three presets (Strategy page selector, My Settings key `strategy.preset`, definitions in `config/strategy_presets.yaml`):
+  A "Pro 25K classic" (NOISE $250 stop + afternoon fade ON, 1 micro; 63%/36%, Session 10), B "Pro 100K low risk" (NOISE + fade, 3 micros,
+  1 micro while cushion < 50% of the loss limit; 63%/22%, Session 10) - both carry the badge "older, likely optimistic (fade measured with
+  hindsight ~27% rosy; honest ~57%/42%)" - and C "Pro 150K low risk" (recommended; NOISE + D75-P1 profit lock, fade OFF, 3 micros, 1 micro
+  while cushion < $2,250; 77%/18%, held-out 2024-26, Session 15).
+- A preset overlays ONLY noise_cfg (stop $, profit lock), strategy.noise / pm_fade and the size tables (size_table, size_table_high) before
+  validation. Kill switch, risk checks, DLL/MLL, consistency, Evaluation-Mode tables and every other safety rule are untouched (tested).
+  Default = no preset ("custom", the plan file's own values); C is shown as recommended and preselected in the UI but is applied only on click.
+  Selecting is a versioned, audited My Settings save; mode stays PAPER (live gates unchanged).
+- Profit lock (D75-P1) is new code: `management/profit_lock.py` (pure, Decimal), wired in the order manager: at +100 pt the stop of every open
+  leg moves to entry +10 pt (ratchet; stop-modify failure = existing flatten + pause); a locked-stop exit is booked as `PROFIT_LOCK` and sets
+  `lock_exit` on the NOISE signal, which stops new NOISE entries that day. Config `noise_cfg.profit_lock_trigger_pts / profit_lock_pts`.
+- Known gaps: the preset size row applies to every account regardless of its size (UI warns when the plan size differs); D74 AI sizing (+1 micro,
+  proven ledger only) still applies on top. Details + tests: docs/results/session16/presets_build.md.

@@ -22,6 +22,7 @@ from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill
 from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerError, Fill, Side
 from app.management.drawdown_guard import ratchet, runner_stop, split_legs
 from app.management.exits import adverse_half_due, early_exit_allowed, exit_allowed_now
+from app.management.profit_lock import PROFIT_LOCK_REASON, lock_stop
 
 
 @dataclass
@@ -66,6 +67,8 @@ class OpenTrade:
     profile: str = ""  # signal profile (TIGHT/STD): the half-off defence reads this timeframe's MSO (D37)
     signal_id: int | None = None  # D55: strategy exits find their trades by signal
     strategy: str = ""  # D55: "" = LunqFX; NOISE / OPEN_DRIVE trades are exited by their own rules
+    profit_lock: tuple[Decimal, Decimal] | None = None  # D82: (trigger_pts, lock_pts) — NOISE profit lock (D75-P1)
+    profit_locked: bool = False  # the stop has been moved to entry + lock_pts
 
     @property
     def d(self) -> Direction:
@@ -256,7 +259,8 @@ class OrderManager:
                 out += await self._move_stop(t, b, be, "BREAKEVEN")
         if t.closed:
             del self.trades[t.trade_id]
-            out.append(Event("CLOSED", t, f.role))
+            locked_exit = f.role == "STOP" and t.profit_locked
+            out.append(Event("CLOSED", t, PROFIT_LOCK_REASON if locked_exit else f.role))
         return out
 
     async def _entries_done(self, t: OpenTrade) -> list[Event]:
@@ -367,6 +371,22 @@ class OrderManager:
         leg.stop = new
         return [Event("STOP_MOVED", t, f"{why} {new}")]
 
+    async def _profit_lock(self, t: OpenTrade) -> list[Event]:
+        """D82 / D75-P1: after +trigger pts the stop of every open leg moves to entry + lock pts (ratchet only)."""
+        assert t.profit_lock is not None
+        out: list[Event] = []
+        for leg in [x for x in t.legs if x.entry is not None and not x.closed]:
+            new = lock_stop(t.d, leg.entry or Decimal(0), t.best or Decimal(0), *t.profit_lock, t.tick)
+            if new is None:
+                continue
+            ev = await self._move_stop(t, leg, new, PROFIT_LOCK_REASON)
+            out += ev
+            if any(e.kind == "STOP_MOVED" for e in ev):
+                t.profit_locked = True
+            if t.closing:
+                break  # stop-modify failure: flattening, nothing more to move
+        return out
+
     # ---------- price ----------
     async def on_bar(self, symbol: str, high: Decimal, low: Decimal) -> list[Event]:
         out: list[Event] = []
@@ -375,6 +395,8 @@ class OrderManager:
                 continue
             fav = high if t.d is Direction.LONG else low
             t.best = fav if t.best is None or (fav - t.best) * t.d.sign > 0 else t.best
+            if t.profit_lock is not None and not t.closing:
+                out += await self._profit_lock(t)
             trail = t.runner_trail or (self.trail_r if t.guard_on else None)
             if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")

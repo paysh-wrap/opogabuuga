@@ -71,6 +71,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_bias",
         "strategy.pm_fade",
         "strategy.high_risk",
+        "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
         # D80: gate toggles shown on the Strategy page (all default OFF / unproven; each is a pure filter that can only block)  # noqa: E501
         "strategy.structure_filters.enabled",
         "strategy.structure_filters.ob_filter",

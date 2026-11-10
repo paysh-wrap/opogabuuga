@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import StrategyButtons from "../components/StrategyButtons";
+import StrategyPresets from "../components/StrategyPresets";
 import GateChain from "../components/GateChain";
 import AiLedger from "../components/AiLedger";
 import LunqFlags from "../components/LunqFlags";
@@ -29,6 +30,7 @@ export default function Strategy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
+      <StrategyPresets />
       <StrategyButtons />
       <GateChain />
       <AiLedger />
