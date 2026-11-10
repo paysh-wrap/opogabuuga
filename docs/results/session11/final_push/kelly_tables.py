@@ -61,4 +61,4 @@ for s in ("base", "lock"):
             if p == "25K" and kel is None: continue
             e = get("E", p, s, kel); f = get("F", p, s, kel); a = f["all"]
             W(f"| {p} @ {lab} | {s} | {fe(e,'all')} | {fe(e,'e1')} | {fe(e,'e2')} | {ff(f,'all')} | {ff(f,'e1')} | {ff(f,'e2')} | {a['inc'] / max(a['bust'], 1):.1f} |")
-open("kelly_tables_body.md", "w").write("\n".join(L) + "\n"); print("\n".join(L))
+print("\n".join(L))
