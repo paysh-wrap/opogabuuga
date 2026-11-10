@@ -380,3 +380,5 @@ Results: docs/results/session13/README.md; decision D77. Branch claude/laughing-
 No gate was proven useful (windows/hours/cooldown/band, MSO structure, MSO divergence, LunqFX fractal all fail the held-out win-rate AND profit rule). Hindsight finding: the fade's
 NOISE-free-day rule is look-ahead; causal version = ~-25% profit, +10 pts bust -> rebuild main_strategy_5y.csv and projections (OPEN). AI gate stays advisory;
 threshold is config strategy.ai_gate_min_accuracy (0.70). UI: Strategy page "Gates for NOISE + afternoon fade" card from /api/strategies.gate_chain. Tests: 631 backend (100% cov), 55 UI.
+D78 (session 13): AI backfill button on the Strategy page (fast-track the AI ledger). BACKFILL rows NEVER count toward the 70% proof (only live rows do); daily ledger fixes shipped. The bias job runs 02:40 ET per D34. Results: docs/results/session13/AI_LEDGER.md; decision D78 in docs/DECISIONS.md.
+TradingView heartbeat finding (session 13): the user's alerts were rejected STALE 603 s = 10-minute delayed CME data on TradingView. Fix = buy the TradingView CME Group real-time data subscription. (The webhook secret had also been missing earlier.)
