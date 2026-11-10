@@ -73,3 +73,26 @@ Account-level result of the NOISE family (session 15, held-out bootstrap, NOISE+
 
 ## Caveats
 Rows mix different data (Yahoo 22 sessions vs Databento 5-7y), periods, plans and cost models; compare PF and win rate only within the same source. "Eval pass / bust" definitions differ between sessions 9, 10, 14 and 15 (bootstrap vs rolling start; session 15 counts intraday touch and frozen accounts as dead). News blackouts, eval fees and gap slippage are not modelled in most records. Row 2 IS net $ for session 9 was not stated as a total in the record (only +$15.28/tr), so it is left as per-trade only.
+
+## 4. Most-recent-1-year view (2025-11..2026-10, 1 micro; all HO / SMALL = one regime)
+Only records that cover this window are shown with 1-year figures. "1-yr n/a" = records have only multi-year totals (shown instead, see section 1).
+
+| Strategy | Markets | 1-yr trades | Win % | PF | Net $ | Max DD | Pro 25K pass / bust | Status | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| NOISE ($250 fixed stop) | MNQ | 160 | 43.8 | 1.21 | +$2,948 | -$2,228 | 45 / 56 | LIVE | session10/README.md s9 |
+| NOISE (1% stop) | MNQ | 153 | 45.1 | 1.16 | +$2,319 | -$2,214 | 48 / 47 | LIVE (older stop) | session10/README.md s5 |
+| NOISE + PM fade, HINDSIGHT rule (optimistic) | MNQ | n/a (0.98/day) | 49.6 | 1.26 | +$5,084 | -$2,914 | 51 / 45 | refuted by causal re-test | session10/README.md s6 |
+| NOISE + profit lock | MNQ | 1-yr n/a (HO 2024-26: 424 tr, 52.1%, PF 1.38, +$10,259) | | | | | 1-yr n/a | PROPOSED | session15/README.md |
+| NOISE + causal PM fade | MNQ | 1-yr n/a (HO: 740 tr, 50.0%, PF 1.24, +$12,270) | | | | | 1-yr n/a | LIVE (fade to be OFF) | session14 |
+| Opening-drive pullback | MNQ | 45 | 55.6 | 1.18 | +$590 | -$1,104 | n/a | paper only | session10/README.md s5 |
+| Last-half-hour momentum | MNQ | 226 | 46.0 | 1.13 | +$1,173 | -$1,937 | n/a | failed multi-year | session10/README.md s5 |
+| ORB 15-min 1.5R | MNQ | 226 | 43.4 | 0.90 | -$3,068 | -$8,526 | n/a | failed | session10/README.md s5 |
+| Overnight Asia breakout | MNQ | ~0.79/day | 45.7 | 0.96 | -$634 | -$3,751 | 30 / 70 | failed | session10/README.md s6 |
+| LunqFX engine, D52 Normal (MNQ, every setup) | MNQ | 169 | 36 | 1.12 | +$562 | n/a | n/a | shadow/legacy | 2026-11-06_backtests.md T |
+| LunqFX engine, D52 Normal (MGC, trend filter) | MGC | 47 | 32 | 1.16 | +$215 | n/a | n/a | legacy | 2026-11-06_backtests.md T |
+| LunqFX Lower-risk (MNQ+MGC) | both | 226 | MNQ 34 / MGC 33 | 1.03 / 1.22 | +$391 | n/a | n/a | option | 2026-11-06_backtests.md T |
+| Original spec | MNQ | 13 | 46 | 2.22 | +$458 | worst day -$65 | n/a | too rare | 2026-11-06_backtests.md S |
+| AI-only (hindsight bound, not a backtest) | MNQ | 248 sessions | 39 (50% acc) / 54 (70%) | 1.05 / 1.94 | +$1,866 / +$27,601 | n/a | n/a | paper only | session10/README.md s3 |
+| D49 trend-aligned 1.5-2.5R, D47, "58%" plan, Scalp, 1:1, Squeeze, trend filters, NOISE on MES/MGC, mean reversion, gold, ORB multi-year | various | 1-yr n/a (see section 1 multi-year figures) | | | | | | retired / failed | section 1 |
+
+1-year ranking by net $: NOISE $250 (+$2,948) > NOISE 1% (+$2,319) > LHH (+$1,173) > Opening drive (+$590, best win rate 55.6%) > LunqFX MNQ (+$562) > ORB/overnight (losers). The last year was NOISE's weakest (PF 1.16-1.21 vs 1.31-1.33 HO average), and its 45-56% bust rate on Pro 25K at 1 micro stands. Same one-year conclusion as the multi-year view: only NOISE is both profitable and the largest earner.
