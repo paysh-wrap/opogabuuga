@@ -44,7 +44,7 @@ def boot_paths(days_, n_paths, length, block=10, seed=7):
     return out
 
 
-def eval_boot(tab, R, cfg, era, n_paths=600, cap=750):
+def eval_boot(tab, R, cfg, era, n_paths=1000, cap=750):
     res = [lib.eval_run(p, R, cfg, cap) for p in boot_paths(era_days(tab, era), n_paths, cap)]
     ps = [s for o, s in res if o == "PASS"]
     return dict(pass_=100 * sum(o == "PASS" for o, _ in res) / len(res), bust=100 * sum(o == "BUST" for o, _ in res) / len(res),
@@ -52,7 +52,7 @@ def eval_boot(tab, R, cfg, era, n_paths=600, cap=750):
                 p80=float(np.percentile(ps, 80)) if ps else float("nan"))
 
 
-def funded_boot(tab, R, cfg, era, n_paths=600, horizon=260, cadence=10):
+def funded_boot(tab, R, cfg, era, n_paths=1000, horizon=260, cadence=10):
     res = [lib.funded_run(p, R, cfg, cadence) for p in boot_paths(era_days(tab, era), n_paths, horizon, seed=11)]
     paid = [x["paid"] for x in res]
     return dict(bust=100 * sum(x["status"] == "BUST" for x in res) / len(res), any_pay=100 * sum(x["npay"] > 0 for x in res) / len(res),

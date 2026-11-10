@@ -1,6 +1,7 @@
 """Step 3c: the last fixed candidates.  N4/N5 = the unchanged NOISE rules on MES and MGC (same $250 emergency stop, hourly checks);
 O3 = classic 5-minute opening-range breakout (Zarattini/Aziz style: trade in the direction of the first 5-minute candle at 09:35, stop = other end of
-that candle, no fixed target, flat 15:55; skip if the candle is < 0.04% or > 0.4% of price).  Same strict test as candidates.py."""
+that candle, no fixed target, flat 15:55; skip if the candle is < 0.04% or > 0.4% of price).
+N6/N7 = NOISE checked every 30 minutes instead of hourly (the original paper's cadence), without / with the D75-P1 profit lock.  Same strict test as candidates.py."""
 import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
@@ -32,6 +33,8 @@ if __name__ == "__main__":
         if sym != "MNQ":
             C.append((f"N{4 if sym == 'MES' else 5} NOISE rules unchanged on {sym} ($250 stop)", sym, None, lib.noise_stream(sym)))
         C.append((f"O3 5-minute opening-range breakout, stop = candle, flat 15:55 ({sym})", sym, None, orb5(sym)))
+    C.append(("N6 NOISE with 30-minute checks (as in the original paper) (MNQ)", "MNQ", None, lib.noise_stream("MNQ", step=30)))
+    C.append(("N7 NOISE 30-minute checks + profit lock (MNQ)", "MNQ", None, lib.noise_stream("MNQ", step=30, lock=(100, 10))))
     rows = []
     for name, sym, rr, t in C:
         if len(t) == 0: print("EMPTY", name); continue
