@@ -162,9 +162,10 @@ def _qty(cfg, bal, floor, mll, risk):
     q = cfg["q"]
     br = cfg.get("brake")
     if br and bal - floor < br[0] * mll: q = min(q, br[1])
-    fit, kill = cfg.get("fit"), cfg.get("kill", 0.0)
+    fit, kill = cfg.get("fit"), cfg.get("kill")
     cush = bal - floor
-    while q >= 1 and ((fit and q * risk > fit * cush) or (cush - q * risk < kill)): q -= 1
+    if fit is None and kill is None: return q
+    while q >= 1 and ((fit is not None and q * risk > fit * cush) or (kill is not None and cush - q * risk < kill)): q -= 1
     return q
 
 
@@ -188,20 +189,97 @@ def _day(trades, bal, floor, dll, cfg, mll):
     return bal, False, traded
 
 
+def _payout(r, bal, cyc, npaid):
+    cp = sum(cyc)
+    if cp < r.mincyc or cp <= 0: return 0.0
+    if r.cons is not None and max(cyc) > r.cons / 100 * cp: return 0.0
+    if r.mpd and sum(1 for x in cyc if x >= r.mdp) < r.mpd: return 0.0
+    amt = bal - r.buffer
+    if r.pct is not None: amt = min(amt, r.pct * cp)
+    cap = r.maxfirst if npaid == 0 else r.maxnext
+    if cap is not None: amt = min(amt, cap)
+    return round(amt, 2) if amt >= r.minreq else 0.0
+
+
 def funded_run(tab, R, cfg, cadence=10):
-    """tab = list of per-day trade lists. -> dict(paid, status, n, pays, first, dead) ; 'dead' = alive but no trade possible for 40 sessions at the end."""
+    """tab = list of per-day trade lists (1 micro). -> dict(paid (to trader), status BUST|MAX|OPEN, n, npay, first, frozen)
+    frozen = account alive at the end with no trade taken in the last 40 sessions (the 'freeze' failure of the D57 rules)."""
     r = R.f
     bal = peak = R.start; floor = R.start - r.mll; cyc = []; paid = 0.0; pays = []; idle = 0
     for n, trades in enumerate(tab):
+        b0 = bal
         bal, bust, traded = _day(trades, bal, floor, r.dll, cfg, r.mll)
-        if bust: return dict(paid=paid, status="BUST", n=n + 1, pays=pays, dead=False)
-        day_pnl = None
+        if bust: return dict(paid=paid, status="BUST", n=n + 1, npay=len(pays), first=pays[0] if pays else None, frozen=False)
         idle = 0 if traded else idle + 1
-        cyc.append(bal)  # placeholder, replaced below
-        cyc.pop()
+        if traded: cyc.append(bal - b0)
         peak = max(peak, bal)
         floor = r.ll if peak >= r.lt else max(floor, peak - r.mll)
-        _d = cfg["_dayrec"] = None
-        # cycle day P&L tracked via balance difference
-        cfg_cycle = cfg.setdefault("_c", None)
-    return None
+        if (n + 1) % cadence == 0 and (r.maxpay is None or len(pays) < r.maxpay):
+            amt = _payout(r, bal, cyc, len(pays))
+            if amt > 0:
+                bal -= amt; paid += amt * r.split; pays.append(n + 1); cyc = []
+                if r.lockpay: floor = max(floor, r.ll)
+        if r.maxpay is not None and len(pays) >= r.maxpay:
+            return dict(paid=paid, status="MAX", n=n + 1, npay=len(pays), first=pays[0], frozen=False)
+    return dict(paid=paid, status="OPEN", n=len(tab), npay=len(pays), first=pays[0] if pays else None, frozen=idle >= 40)
+
+
+def eval_run(tab, R, cfg, horizon=120):
+    """-> (PASS|BUST|OPEN, sessions)."""
+    e = R.e
+    bal = peak = R.start; floor = R.start - e.mll; pos = []
+    for n, trades in enumerate(tab[:horizon]):
+        b0 = bal
+        bal, bust, traded = _day(trades, bal, floor, e.dll, cfg, e.mll)
+        if bust: return "BUST", n + 1
+        if traded: pos.append(bal - b0)
+        peak = max(peak, bal)
+        floor = e.ll if peak >= e.lt else max(floor, peak - e.mll)
+        prof = bal - R.start
+        if prof >= e.target and sum(1 for x in pos if x > 0) >= e.mpd and (e.cons is None or max(pos, default=0) <= e.cons / 100 * prof):
+            return "PASS", n + 1
+    return "OPEN", min(horizon, len(tab))
+
+
+def era_starts(tab, length, step=2):
+    """start indexes by era: 'IS' windows end by 2023-12-31, 'HO' windows start 2024-01-01 or later, 'ALL' every start."""
+    dates = [d for d, _ in tab]
+    i_split = next(i for i, d in enumerate(dates) if d > SPLIT)
+    n = len(tab)
+    allr = list(range(0, max(1, n - length), step))
+    return dict(ALL=allr, IS=[i for i in allr if i + length <= i_split], HO=[i for i in allr if i >= i_split])
+
+
+def funded_stats(tab, R, cfg, era="ALL", horizon=260, cadence=10, step=2):
+    days_ = [t for _, t in tab]
+    idx = era_starts(tab, horizon, step)[era]
+    res = [funded_run(days_[i:i + horizon], R, cfg, cadence) for i in idx]
+    n = len(res)
+    per2w = float(np.mean([x["paid"] for x in res])) / (horizon / 10) if n else float("nan")
+    return dict(n=n, bust=100 * sum(x["status"] == "BUST" for x in res) / n, any_pay=100 * sum(x["npay"] > 0 for x in res) / n,
+                frozen=100 * sum(x["frozen"] for x in res) / n, per2w=per2w, year=per2w * 26,
+                year_median=float(np.median([x["paid"] for x in res])), npay=float(np.mean([x["npay"] for x in res])))
+
+
+def eval_stats(tab, R, cfg, era="ALL", horizon=120, step=2):
+    days_ = [t for _, t in tab]
+    idx = era_starts(tab, horizon, step)[era]
+    res = [eval_run(days_[i:i + horizon], R, cfg, horizon) for i in idx]
+    n = len(res)
+    ps = [s for o, s in res if o == "PASS"]
+    return dict(n=n, pass_=100 * sum(o == "PASS" for o, _ in res) / n, bust=100 * sum(o == "BUST" for o, _ in res) / n,
+                open_=100 * sum(o == "OPEN" for o, _ in res) / n, med_sessions=float(np.median(ps)) if ps else float("nan"))
+
+
+def stream_stats(t, era="ALL"):
+    """win rate / PF / profit / trades per year / max closed-trade drawdown for a trades df (1 micro)."""
+    if era == "IS": t = t[t.d <= SPLIT]
+    elif era == "HO": t = t[t.d > SPLIT]
+    if not len(t): return dict(n=0, win=float("nan"), pf=float("nan"), profit=0.0, per_year=0.0, maxdd=0.0)
+    w = t.pnl > 0
+    gl = -t.pnl[~w].sum()
+    yrs = (pd.Timestamp(t.d.max()) - pd.Timestamp(t.d.min())).days / 365.25
+    yrs = {"IS": 2.17, "HO": 2.83, "ALL": 5.0}[era]
+    cum = t.pnl.cumsum().values
+    dd = float(np.max(np.maximum.accumulate(np.concatenate([[0], cum])) - np.concatenate([[0], cum])))
+    return dict(n=len(t), win=100 * w.mean(), pf=(t.pnl[w].sum() / gl) if gl > 0 else float("inf"), profit=float(t.pnl.sum()), per_year=len(t) / yrs, maxdd=dd)
