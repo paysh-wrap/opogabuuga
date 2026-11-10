@@ -25,3 +25,6 @@ android/.sdk/
 android/.keystore/
 android/build/
 build/
+!backend/app/backtest/data/
+backend/app/backtest/data/*
+!backend/app/backtest/data/main_strategy_5y.csv
