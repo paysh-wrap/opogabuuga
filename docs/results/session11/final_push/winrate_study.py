@@ -13,10 +13,10 @@ PV, TICK, FEE, PTS = 2.0, 0.25, 1.0, (250 - 2) / 2
 
 def hm(k): return f"{9 + (30 + k) // 60:02d}:{(30 + k) % 60:02d}"
 
-def noise_t(days, be=None, lock=0.0, part=None, look=14, maxtr=3):
+def noise_t(days, be=None, lock=0.0, part=None, look=14, maxtr=3, step=60, confirm=0, norefire=False):
     """be: pts of close-profit that moves stop to entry+lock; part: (pts) -> 2 micros, one takes +pts limit, then rest stop->entry"""
     moves = np.array([np.abs(a["close"] / a["open"][0] - 1) for _, a in days])
-    checks = set(range(29, 360, 60)); out = []; last_exit = {}
+    checks = set(range(29, 360, step)); out = []; last_exit = {}
     for i in range(look, len(days)):
         d, a = days[i]
         if d < START or d > END: continue
@@ -39,6 +39,7 @@ def noise_t(days, be=None, lock=0.0, part=None, look=14, maxtr=3):
             pos = st["pos"]
             if pos:
                 if (pos > 0 and l[k] <= st["hs"]) or (pos < 0 and h[k] >= st["hs"]):
+                    if norefire and (st["hs"] - st["entry"]) * pos >= 0: ntr = maxtr   # locked/BE stop-out -> done for the day
                     close_trade((min(st["hs"], o[k]) if pos > 0 else max(st["hs"], o[k])) - pos * TICK, k)
                 elif part and st["legs"] == 2:
                     tg = st["entry"] + pos * part
@@ -58,6 +59,9 @@ def noise_t(days, be=None, lock=0.0, part=None, look=14, maxtr=3):
                         close_trade((o[nk] if nk < 390 and not np.isnan(o[nk]) else c[k]) - pos * TICK, nk)
                 if st["pos"] == 0 and ntr < maxtr:
                     side = 1 if c[k] > ub[k] else (-1 if c[k] < lb[k] else 0)
+                    if side and confirm and k >= confirm:   # last `confirm` closed 1-min bars must all be beyond the band too
+                        seg = c[k - confirm:k]; bnd = (ub if side > 0 else lb)[k - confirm:k]
+                        if not np.all((seg - bnd) * side > 0): side = 0
                     if side: pending, ntr = side, ntr + 1
     return out, last_exit
 
@@ -76,13 +80,13 @@ def walk(s, e, stop, tgt, H, L, O, C, j0, j1, half=False, be=None):
         if be is not None and (C[j] - e) * s >= be: nstop = e if (nstop - e) * s < 0 else nstop
     return (bank + legs * ((C[j1 - 1] - s * TICK - e) * s * PV - FEE)) / n, j1 - 1
 
-def pm_fade(days, noise_days, last_exit, band=2.0, k0=210, k1=359, maxf=1, after_noise=False, half=False, be=None):
+def pm_fade(days, noise_days, last_exit, band=2.0, k0=210, k1=359, maxf=1, after_noise=False, half=False, be=None, ok_days=None):
     out = []
     for d, a in days:
         if d < START or d > END: continue
         ks = k0
         if d in noise_days:
-            if not after_noise: continue
+            if not after_noise or (ok_days is not None and d not in ok_days): continue
             ks = max(k0, last_exit[d] + 1)
         o, h, l, c, vw = a["open"], a["high"], a["low"], a["close"], a["vwap"]
         nf = 0; k = ks
@@ -104,9 +108,15 @@ def stats(t):
     return dict(n=len(t), win=w.mean() * 100, pf=t.pnl[w].sum() / -t.pnl[~w].sum(), usd=t.pnl.sum(),
                 dd=(eq.cummax().clip(lower=0) - eq).max(), wd=dly.min())
 
-def build(days, nkw={}, fkw={}):
+def build(days, nkw={}, fkw={}, after_if=None):
+    """after_if: 'win' -> fade after NOISE only on days whose closed NOISE trades net > 0 (known at fade time: fade starts after last NOISE exit)"""
     nt, le = noise_t(days, **nkw)
-    ft = pm_fade(days, {x[0] for x in nt}, le, **fkw)
+    ok = None
+    if after_if:
+        dp = {}
+        for x in nt: dp[x[0]] = dp.get(x[0], 0) + x[1]
+        ok = {d for d, p in dp.items() if p > 0}
+    ft = pm_fade(days, {x[0] for x in nt}, le, ok_days=ok, **fkw)
     return pd.DataFrame(nt + ft, columns=["date", "pnl", "strategy", "entry_time"]).sort_values(["date", "entry_time"]).reset_index(drop=True)
 
 def halves(t): return stats(t[t.date <= SPLIT]), stats(t[t.date > SPLIT])
