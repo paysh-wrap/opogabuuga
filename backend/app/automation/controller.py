@@ -20,6 +20,7 @@ from app.automation import state as st
 from app.automation.account_selector import Candidate
 from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
+from app.bias import ledger as bias_ledger
 from app.clock import Clock, parse_hhmm, to_et
 from app.engine.filters import news_flatten_due
 from app.engine.noise import stop_pts_for_usd
@@ -37,7 +38,7 @@ from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_o
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
-from app.risk.strategy_sizing import SizeTier, auto_contracts
+from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size
 from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
@@ -460,6 +461,17 @@ class Controller:
             )
             fixed = auto.contracts
             row = next((t for t in table if t.account_size == auto.tier), None)
+            ai_call = 0
+            if r.strategy.ai_sizing and row is not None and size >= r.strategy.ai_sizing_min_account:
+                ai_call = bias_ledger.sizing_call(
+                    s,
+                    inst.bias_proxy,
+                    sig.symbol,
+                    to_et(now).date(),
+                    float(r.strategy.ai_sizing_min_accuracy),
+                    r.strategy.ai_sizing_min_calls,
+                )
+                fixed = bias_size(fixed, row.contracts, plan.direction.sign, ai_call)  # D74 (proven record only)
             if (
                 row is not None and row.stop_usd is not None
             ):  # D70: row-specific emergency stop (e.g. 25K high-risk eval)
@@ -487,6 +499,8 @@ class Controller:
                 {
                     "signal": sig.id,
                     "contracts": auto.contracts,
+                    "ai_call": ai_call,
+                    "contracts_final": fixed,
                     "tier": str(auto.tier),
                     "braked": auto.braked,
                     "profile": "EVAL" if eval_sizing else "HIGH" if r.strategy.high_risk else "REGULAR",

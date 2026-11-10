@@ -61,3 +61,13 @@ def auto_contracts(
     if t.brake_below is not None and t.brake_contracts is not None and cushion < t.brake_below * t.mll:
         return AutoSize(min(n, t.brake_contracts), t.account_size, True)
     return AutoSize(n, t.account_size, False)
+
+
+def bias_size(contracts: int, base_contracts: int, side: int, call: int) -> int:
+    """D74 AI-bias sizing ("version B"). side = trade direction (+1/−1), call = proven AI call (+1/−1/0).
+    Agree: +1 micro but never above the tier's base size + 1; disagree: −1 (min 1); no call: unchanged."""
+    if call == 0 or side == 0:
+        return contracts
+    if call == side:
+        return min(contracts + 1, base_contracts + 1)
+    return max(1, contracts - 1)

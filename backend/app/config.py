@@ -366,6 +366,15 @@ class StrategyCfg(_M):
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
     size_table: list[SizeTierCfg] = []
+    # D74 (user 2026-11-10): AI-bias SIZING (study docs/results/session11/ai_bias_sizing_study.md, version B): when the
+    # daily AI call agrees with the trade side +1 micro (never above the tier's base size + 1), disagrees −1 (min 1).
+    # Only accounts of size ≥ ai_sizing_min_account (100K/150K) and only once the live ledger is proven:
+    # ≥ min_calls scored calls with observed hit rate ≥ ai_sizing_min_accuracy. Never blocks.
+    # DLL / D57 / worst-case checks still apply.
+    ai_sizing: bool = True
+    ai_sizing_min_account: D = D("100000")
+    ai_sizing_min_accuracy: D = D("0.60")
+    ai_sizing_min_calls: int = 60
     # D64: Strategy-page button "High risk" switches NOISE / PM_FADE sizing to size_table_high (same brake system)
     high_risk: bool = False
     size_table_high: list[SizeTierCfg] = []

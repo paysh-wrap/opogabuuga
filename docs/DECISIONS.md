@@ -639,3 +639,12 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - User: "yes, especially if it helps". Measured (docs/results/session11/pm_fade_d57_study.md): covering PM_FADE lowers eval
   pass in 2021–23 on every plan (−4 to −8 pts on 50K+), no gain in 2024–26, funded income never higher, bust 0% both.
   Fails the held-out rule → controller.py keeps shrink for NOISE/AI_BIAS only; PM_FADE keeps the pause floor + $250 stop.
+
+## D74 (user 2026-11-10): AI-bias SIZING "version B" on 100K/150K — built, gated by the live record
+- Study: docs/results/session11/ai_bias_sizing_study.md (70 seeds/cell; bust 0% everywhere). B = agree +1 micro (cap = tier base + 1),
+  disagree −1 (min 1), never blocks. Pays on 100K/150K at ≥ ~60% accuracy; loses on 25K at every accuracy; 2024–26 gains are 2–3× smaller.
+- Code: strategy.ai_sizing (default on), ai_sizing_min_account 100000, ai_sizing_min_accuracy 0.60, ai_sizing_min_calls 60;
+  risk/strategy_sizing.bias_size (pure), bias/ledger.sizing_call (0 until ≥ 60 scored calls with observed hit rate ≥ 60%, Brier < 0.25),
+  wired in automation/controller.py after auto_contracts. Audit "trade.auto_size" logs ai_call + contracts_final.
+  DLL / D57 / worst-case / firm-max checks still apply after it. 25K and 50K never change. No calls recorded yet (AI key not connected) → no effect today.
+- Note: observed hit rate over 60 calls is noisy (a true 55% tool can pass ~25% of the time); the study shows a 55% tool roughly breaks even on 100K, so the downside is small.

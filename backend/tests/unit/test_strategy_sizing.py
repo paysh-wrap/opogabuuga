@@ -52,3 +52,15 @@ def test_eval_taper_sprint_then_protect():  # D69
     assert auto_contracts(D(25000), D(1000), t, None).contracts == 4  # no target info (funded) → no taper
     both = [SizeTier(D(25000), D(1000), 4, D("0.5"), 2, None, None, D("0.5"), 1)]
     assert auto_contracts(D(25000), D(400), both, D("0.8")).contracts == 2  # brake still applies on top
+
+
+def test_bias_size_d74() -> None:
+    from app.risk.strategy_sizing import bias_size
+
+    assert bias_size(2, 2, 1, 1) == 3  # agree: +1 (base 2 + 1 cap)
+    assert bias_size(3, 2, 1, 1) == 3  # never above base + 1
+    assert bias_size(1, 2, 1, 1) == 2  # braked size restored one step
+    assert bias_size(2, 2, 1, -1) == 1  # disagree: -1
+    assert bias_size(1, 2, -1, 1) == 1  # never below 1
+    assert bias_size(2, 2, 1, 0) == 2  # no proven call: unchanged
+    assert bias_size(2, 2, 0, 1) == 2

@@ -100,6 +100,21 @@ def may_block(s: Session, proxy: str, symbol: str, today: date, direction: int, 
     return "BIAS_PROVEN_AGAINST" if proven(st, pol, min_acc) else None
 
 
+def sizing_call(s: Session, proxy: str, symbol: str, today: date, min_acc: float, min_calls: int) -> int:
+    """D74: today's AI call direction (+1/−1) for SIZING, only when the live record is proven
+    (≥ min_calls scored calls, observed hit rate ≥ min_acc, Brier < 0.25); else 0 (no effect)."""
+    pol = Policy(bias_matters=True)
+    calls = _calls(s, proxy, today, today)
+    if not calls:
+        return 0
+    ta, vd, vc = parse_label(calls[-1].raw_rating)
+    call = combine(ta, vd, vc, pol)
+    st = LedgerStats(**ledger(s, proxy, symbol, today, pol)["stats"])
+    if st.n < min_calls or st.hit_rate < min_acc or st.brier >= 0.25:
+        return 0
+    return call.direction
+
+
 def status(s: Session, proxy: str, symbol: str, today: date, min_acc: float) -> dict[str, Any]:
     pol = Policy(bias_matters=True)
     led = ledger(s, proxy, symbol, today, pol)
