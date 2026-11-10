@@ -625,3 +625,12 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   worst-case check / D57 stop-tightening → fewer frozen accounts, more room per trade, thinner safety margin
   (a slippage gap > $50 could now breach the limit). Measured (kill_distance_report.md): pass +0–4 pts, bust 0%, income +$6–45, win rate unchanged;
   extra risk only under a +$100 stop-out slippage stress (0.5–6% bust). PM_FADE is not tightened by D57 (controller passes shrink only for NOISE/AI_BIAS).
+
+## D72 (user 2026-11-10): AI bias joins the strategy when live evaluation trading starts — record first, then switch on
+- User chose "record, then switch on": from the first live EVAL session the daily AI call (TradingAgents + Vibe-Trading) is
+  stored and scored in the calibration ledger (bias/ledger.py). It may BLOCK a NOISE entry only once proven
+  (≥ 30 scored calls, Wilson lower bound ≥ 70%, Brier < 0.25, both tools agree strongly) — already wired in
+  signals/strategy_service.py (ledger.may_block). Until then ADVISORY; no filter, no sizing change.
+- Open: (a) the user's TradingAgents/LLM key is not connected — no calls are recorded until it is; (b) PM_FADE is not
+  gated by the ledger (a fade trades against the intraday move, so its required accuracy is unknown — needs a study
+  before wiring); (c) TradingAgents self-learning loop / OpenBB input still not built.
