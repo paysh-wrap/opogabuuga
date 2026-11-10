@@ -32,6 +32,7 @@ def parse_label(label: str) -> tuple[str, str | None, int | None]:
 
 def session_outcome(s: Session, symbol: str, day: date) -> bool | None:
     """True = the RTH session closed above its 09:30 open; None = bars missing (not scored)."""
+
     # D78: tolerate a few missing 1-minute bars at the edges (first bar within 09:31-09:35, last within 15:56-16:00)
     def at(h: int, m: int) -> datetime:
         return datetime(day.year, day.month, day.day, h, m, tzinfo=ET)
@@ -150,3 +151,26 @@ def status(
     led["state"] = "PROVEN" if ok else ("WARMUP" if st.n < pol.min_calls else "UNPROVEN")
     led["badge"] = "MAY BLOCK (proven)" if ok else "ADVISORY"
     return led
+
+
+def coverage(s: Session, proxy: str, symbol: str, today: date, days: int = 30) -> list[dict[str, Any]]:
+    """D78: one row per recent weekday — did the daily job produce a call from BOTH tools, and was it scored?
+    Gaps (missing / TradingAgents-only / unscored) are what the user must see; weekends are not listed."""
+    by_day = {d.session_date: d for d in _calls(s, proxy, today - timedelta(days=days + 10), today)}
+    out: list[dict[str, Any]] = []
+    d = today
+    while len(out) < days:
+        if d.weekday() < 5:
+            row = by_day.get(d)
+            ta, vd, _ = parse_label(row.raw_rating) if row else ("", None, None)
+            ta_ok = ta not in ("", "ERROR", "NOT_CONFIGURED")
+            out.append(
+                {
+                    "day": d.isoformat(),
+                    "ta": ta_ok,
+                    "vt": vd is not None,
+                    "scored": d < today and ta_ok and session_outcome(s, symbol, d) is not None,
+                }
+            )
+        d -= timedelta(days=1)
+    return out

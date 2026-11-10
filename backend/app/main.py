@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
+from app.api.ai_ledger import router as ai_ledger_router
 from app.api.automation import router as automation_router
 from app.api.backtest import router as backtest_router
 from app.api.dashboard import router as dashboard_router
@@ -169,8 +170,16 @@ async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
 
     st = app.state
     sess = session_date(now)
-    if not bias.due(now, st.rules.rules.schedule.bias, stt.get_setting(s, "job.bias.session"), sess):  # type: ignore[arg-type]
-        return
+    last = stt.get_setting(s, "job.bias.session")
+    if not bias.due(now, st.rules.rules.schedule.bias, last, sess):  # type: ignore[arg-type]
+        # D78: already ran today, but a proxy failed → retry every 30 min until 09:25 ET (never silent)
+        if last != sess.isoformat() or not bias.retry_due(
+            now,
+            str(stt.get_setting(s, "job.bias.retry") or "") or None,
+            bool(bias.missing_proxies(s, st.rules.rules, sess)),
+        ):
+            return
+        stt.set_setting(s, "job.bias.retry", now.isoformat(), now)
     vault = Vault(st.settings.master_key.get_secret_value())
     await bias.run_bias(
         s,
@@ -444,6 +453,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(automation_router)
     app.include_router(live_router)
     app.include_router(dashboard_router)
+    app.include_router(ai_ledger_router)
     app.include_router(income_router)
     app.include_router(plan_router)  # before payouts: /payouts/settings must not hit /payouts/{pid}
     app.include_router(payouts_router)

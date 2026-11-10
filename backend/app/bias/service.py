@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -92,6 +92,11 @@ async def run_bias(
                 note += f" — VT: {outlook.reason}"
             else:
                 note += f" ({status})"
+                notify(
+                    "warn",
+                    f"Vibe-Trading gave no call for {proxy}",
+                    f"{status} — today's ledger call is TradingAgents only",
+                )
         s.add(
             BiasDecision(
                 session_date=sess,
@@ -130,6 +135,29 @@ def openbb_context(state: Any) -> dict[str, Any]:
             "closes_10d": series[-10:],
         }
     return out
+
+
+RETRY_EVERY_MIN = 30
+RETRY_UNTIL = "09:25"  # no point retrying once the morning window is about to open
+
+
+def retry_due(now: datetime, last_try: str | None, any_missing: bool) -> bool:
+    """D78: a proxy that failed this morning (ERROR / NO_TRADE) is retried every 30 min until 09:25 ET."""
+    from app.clock import to_et
+
+    if not any_missing:
+        return False
+    local = to_et(now)
+    h, m = (int(x) for x in RETRY_UNTIL.split(":"))
+    if local.weekday() >= 5 or (local.hour, local.minute) >= (h, m):
+        return False
+    if last_try is None:
+        return True
+    return now - datetime.fromisoformat(last_try) >= timedelta(minutes=RETRY_EVERY_MIN)
+
+
+def missing_proxies(s: Session, rules: Any, sess: date) -> list[str]:
+    return [p for p in proxies(rules) if not _done(s, sess, p)]
 
 
 def due(now: datetime, at: str, last: str | None, sess: date) -> bool:

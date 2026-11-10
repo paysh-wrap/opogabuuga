@@ -53,7 +53,7 @@ def score(prob_up: float, direction: int, outcome_up: bool) -> tuple[int | None,
     return hit, round((prob_up - y) ** 2, 6)
 
 
-def wilson_lower(hits: int, n: int, z: float = 1.645) -> float:
+def wilson_lower(hits: float, n: int, z: float = 1.645) -> float:
     if n == 0:
         return 0.0
     ph = hits / n

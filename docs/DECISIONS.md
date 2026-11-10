@@ -676,3 +676,12 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - AI gate: ADVISORY by default; threshold now config `strategy.ai_gate_min_accuracy` (default 0.70, range 0.55-0.95). Simulated 55-70% accuracy: a light block (~5-12% of trades)
   moves held-out win rate by at most +0.5 pt with mixed profit/bust; heavy blocks cut trades 20-45% and profit. No real ledger data exists (AI key not connected).
 - Built: `strategy.structure_filters.mso_div_filter` (OFF), `/api/strategies.gate_chain`, GateChain UI on the Strategy page.
+
+## D78 (user 2026-11-10, session 13): AI ledger fast-track backfill + live-ledger fixes
+- Backfill (Strategy page button, /api/ai-ledger/backfill): TradingAgents + Vibe-Trading run as-of each of the last N (default
+  60) MNQ sessions through the existing subprocess runners; stored as proxy `QQQ.BF` / version `BACKFILL:`; shown only as
+  "estimate (possible hindsight)"; NEVER counts toward the D55 live proof (all live readers filter on the plain proxy).
+  Rate-limited, stops on 3 errors in a row with banner, cancellable, resumable.
+- Live ledger: failed proxies retried every 30 min until 09:25 ET; Vibe-Trading failure warns; scoring tolerant to missing edge
+  bars; today scored after 16:01 ET; 30-day coverage list; "calls still needed" for the proof. Bias time is 02:40 ET (D34).
+- Details: docs/results/session13/AI_LEDGER.md.
