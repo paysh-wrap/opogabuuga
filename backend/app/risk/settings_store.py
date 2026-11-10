@@ -83,6 +83,9 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_gate_min_accuracy",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
+        "reliability.feed_guard_enabled",
+        "reliability.feed_warn_min",
+        "reliability.feed_flatten_min",
         *(
             f"eval_mode.{k}"
             for k in (

@@ -188,6 +188,39 @@ class SimAdapter:
             self._fill_entry(acct, b, last + sign * self.slip * inst.tick)  # adverse slippage
         return BracketAck(bid, b.entry_id, b.stop_id, b.tp_id)
 
+    def restore_bracket(
+        self,
+        acct: str,
+        bid: str,
+        stop_id: str,
+        req: BracketRequest,
+        entry_price: Decimal | None,
+        stop: Decimal,
+    ) -> None:
+        """Restart recovery (paper): re-create one bracket exactly as it stood (entry fill, current stop). The
+        in-memory simulator lost it; ids are kept so the order manager's legs still match, and the id counter is moved
+        past them so new brackets never collide."""
+        import re
+
+        a = self._acct(acct)
+        top = max([int(m) for x in (bid, stop_id) if (m := re.sub(r"\D", "", x))] + [0])
+        self._ids = itertools.count(max(top, next(self._ids)) + 1)
+        b = _Bracket(bid, acct, req, self._id("O"), stop_id, self._id("O"), stop=stop)
+        exit_side = _opp(req.side)
+        filled = entry_price is not None
+        a.orders[b.entry_id] = Order(
+            b.entry_id, acct, req.symbol, req.side, req.qty, req.entry_type,
+            entry_price if filled else req.limit_price, "FILLED" if filled else "WORKING", bid, "ENTRY",
+        )  # fmt: skip
+        a.orders[b.stop_id] = Order(
+            b.stop_id, acct, req.symbol, exit_side, req.qty, "STOP", stop, "WORKING", bid, "STOP"
+        )
+        a.orders[b.tp_id] = Order(
+            b.tp_id, acct, req.symbol, exit_side, req.qty, "LIMIT", req.take_profit, "WORKING", bid, "TP"
+        )
+        b.entry_filled, b.entry_price = filled, entry_price
+        a.brackets[bid] = b
+
     async def modify_stop(self, acct: str, order_id: str, price: Decimal) -> bool:
         if "modify_stop" in self.fail_next:
             self.fail_next.discard("modify_stop")

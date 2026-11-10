@@ -169,11 +169,14 @@ class OrderManager:
         rr_window: tuple[Decimal, Decimal, Decimal, Decimal, int, int],
         entry_mode: Literal["market", "limit_cisd"] = "market",
         limit_deadline: datetime | None = None,
+        trade_id: str | None = None,
     ) -> OpenTrade:
+        """trade_id: the controller passes the deterministic `P-{signal_id}-{account_id}` (unique across restarts, and
+        the broker client order id derives from it, so a re-run is rejected broker-side too). Tests may omit it."""
         limit = entry_mode == "limit_cisd"
         side: Side = "BUY" if plan.direction is Direction.LONG else "SELL"
         t = OpenTrade(
-            f"T{next(self._ids)}",
+            trade_id or f"T{next(self._ids)}",
             account,
             symbol,
             plan,
@@ -220,6 +223,10 @@ class OrderManager:
         except BrokerError:
             return False
         return True
+
+    def restore(self, t: OpenTrade) -> None:
+        """Restart recovery: put a rebuilt trade back under management."""
+        self.trades[t.trade_id] = t
 
     def _find(self, bracket_id: str | None) -> tuple[OpenTrade, Leg] | None:
         for t in self.trades.values():

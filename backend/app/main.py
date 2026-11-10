@@ -267,6 +267,14 @@ async def watchdog_once(app: FastAPI) -> None:
         log.error("watchdog.calendar_error", error=type(e).__name__)
         st.controller.notify("error", "Watchdog could not read the news calendar", type(e).__name__)
     await st.controller.watchdog_tick(events)
+    from app.signals import recovery
+
+    try:  # lost signals: replay unprocessed heartbeats, flag a missed NOISE check minute (never silent)
+        await recovery.reprocess_unprocessed(app)
+        recovery.alert_missed_checks(app)
+    except Exception as e:
+        log.error("watchdog.replay_error", error=type(e).__name__)
+        st.controller.notify("error", "Lost-signal check failed", type(e).__name__)
 
 
 async def _watchdog(app: FastAPI) -> None:
@@ -396,6 +404,18 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         app.state.http = http_client(settings.http_timeout_s)
         log.info("paytience.start", mode="LIVE" if settings.allow_live else "PAPER")
         bg = _start_live(app) if settings.allow_live else []
+        try:  # restart recovery: rebuild order management from the stored open trades + broker positions
+            await app.state.controller.recover_open_trades()
+        except Exception as e:  # never silent (§1.8)
+            log.error("recovery.failed", error=type(e).__name__)
+            app.state.controller.notify("error", "Restart recovery failed", type(e).__name__, "restart")
+        try:
+            from app.signals import recovery
+
+            await recovery.reprocess_unprocessed(app)
+        except Exception as e:
+            log.error("recovery.replay_failed", error=type(e).__name__)
+            app.state.controller.notify("error", "Lost-signal replay failed", type(e).__name__, "replay")
         from app.econ_calendar.forexfactory import CalendarStore
 
         with app.state.sessionmaker() as s:
@@ -435,6 +455,8 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.market = MarketStateStore()
     app.state.ws_throttle = {}
     app.state.signal_locks = {}
+    app.state.inflight_events = set()  # event ids whose background processing is running (replay skips them)
+    app.state.replay_attempts = {}
     app.state.calendar = no_calendar
     app.state.stats_cache = StatsCache()
     sim = SimAdapter(

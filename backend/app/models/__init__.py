@@ -200,6 +200,8 @@ class Trade(_Row, Base):
     profile: Mapped[str | None] = mapped_column(String(8), nullable=True)
     legs: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     exit_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # snapshot of the live OpenTrade (plan, legs, stops, flags): lets a restart rebuild order management
+    om_state: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class DailyAccountStats(_Row, Base):
@@ -284,6 +286,8 @@ class Event(_Row, Base):
     direction: Mapped[str] = mapped_column(String(6), default="NONE", server_default="NONE")
     bar_time: Mapped[datetime] = mapped_column(UTCDateTime, index=True)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    # set once the strategy/management run for this event finished; NULL = accepted but maybe never processed
+    processed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True, index=True)
 
 
 class BacktestRun(_Row, Base):

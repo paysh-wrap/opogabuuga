@@ -411,7 +411,8 @@ class StrategyCfg(_M):
     # ≥ min_calls scored calls with observed hit rate ≥ ai_sizing_min_accuracy. Never blocks.
     # DLL / D57 / worst-case checks still apply.
     ai_sizing: bool = True
-    # D77: accuracy the AI record must PROVE (Wilson lower bound) before the AI call may BLOCK a NOISE entry. Shipped default
+    # D77: accuracy the AI record must PROVE (Wilson lower bound) before the AI call may BLOCK a NOISE entry.
+    # Shipped default
     # 0.70 (D55); the user may choose 0.60/0.65 after reading docs/results/session13/README.md. Allowed 0.55-0.95.
     ai_gate_min_accuracy: D = Field(default=D("0.70"), ge=D("0.55"), le=D("0.95"))
     ai_sizing_min_account: D = D("100000")
@@ -616,6 +617,22 @@ class WebhookCfg(_M):
     stale_after_bar_multiple: int = Field(ge=1, le=10)
 
 
+class ReliabilityCfg(_M):
+    """Restart / lost-signal / feed-loss protection (session 14). Thresholds are rules config, never hardcoded."""
+
+    feed_guard_enabled: bool = True  # position open + no 1-minute bar: warn, then flatten (FEED_LOST)
+    feed_warn_min: int = Field(default=3, ge=1, le=30)  # no bar for this long → error alert + new entries blocked
+    feed_flatten_min: int = Field(default=6, ge=2, le=60)  # no bar for this long → flatten (protective, no hold)
+    reprocess_window_min: int = Field(default=5, ge=1, le=30)  # unprocessed heartbeats this recent are replayed
+    missed_check_alert_s: int = Field(default=90, ge=30, le=600)  # NOISE check minute without a stored bar
+
+    @model_validator(mode="after")
+    def _order(self) -> ReliabilityCfg:
+        if self.feed_flatten_min <= self.feed_warn_min:
+            raise ValueError("reliability: feed_flatten_min must be greater than feed_warn_min")
+        return self
+
+
 class ScheduleCfg(_M):
     reconcile_reset: str
     eod_update: str = "16:50"
@@ -720,6 +737,7 @@ class RulesConfig(_M):
     smt: SmtCfg
     indicators: IndicatorsCfg
     webhook: WebhookCfg
+    reliability: ReliabilityCfg = ReliabilityCfg()
     schedule: ScheduleCfg
     automation: AutomationCfg
     payouts: PayoutsCfg

@@ -270,3 +270,11 @@ plan:
 self_improvement: {enabled: true, auto_promote_paper: false, cooldown_days: 14, min_oos_trades: 100, min_improvement_r: 0.03, max_param_step_pct: 25}
 
 scalp_mode: {enabled: false, target_r: 0.5, max_hold_s: 60, runner_r: 2.0, trail_r: 0.5}   # user button: quick trades (1:1 filters + time limit)
+
+
+reliability:                           # session 14: restart recovery, lost-signal replay, feed-loss protection
+  feed_guard_enabled: true             # position open + no 1-minute bar: warn, then flatten (reason FEED_LOST)
+  feed_warn_min: 3                     # no bar for this long -> error alert + new entries blocked
+  feed_flatten_min: 6                  # no bar for this long -> flatten (protective exit, never waits)
+  reprocess_window_min: 5              # unprocessed heartbeats this recent are replayed (exits/management only)
+  missed_check_alert_s: 90             # NOISE check minute with no stored bar this long after it closed -> alert

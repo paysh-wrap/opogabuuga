@@ -7,10 +7,11 @@ checklist (§1.5) and a verified broker adapter — until then every account is 
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
@@ -25,12 +26,13 @@ from app.clock import Clock, parse_hhmm, to_et
 from app.engine.filters import news_flatten_due
 from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
+from app.execution import trade_state
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager, OrphanedPosition
 from app.indicators.bars import tf_minutes
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
-from app.models import Account, Order, Payout, Signal, Trade, TradePlanRow
+from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
@@ -44,6 +46,7 @@ from app.risk.tiers import FloorRules, RiskCfg
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
 STRATEGY_MODES = ("NOISE", "OPEN_DRIVE", "AI_BIAS", "PM_FADE")  # D55: TradePlan modes of the fixed-size strategies
+RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
 
@@ -99,11 +102,16 @@ class Controller:
     _bar_feeds: dict[str, dict[int, datetime]] = field(default_factory=dict)  # symbol → {tf minutes: last bar seen}
     _pending_exits: dict[str, str] = field(default_factory=dict)  # D55 strategy exits still inside the minimum hold
     bus: Any = None  # app.events.EventBus: stored notifications + WS events (§19)
+    feed_state: dict[str, str] = field(default_factory=dict)  # symbol → WARN | LOST (position open, no 1-minute bar)
+    _exposure_since: dict[str, datetime] = field(default_factory=dict)  # symbol → first seen with an open position
+    _exit_alerted: set[str] = field(default_factory=set)  # trade ids whose failed strategy exit already alerted
+    _recovery_pending: set[int] = field(default_factory=set)  # account ids restart recovery could not verify yet
+    _missed_alerted: set[str] = field(default_factory=set)  # "SYMBOL@close-iso" check minutes already alerted
 
     # ---------- setup ----------
     def load_accounts(self) -> None:
-        """Register paper accounts with the simulator (balance = start + closed P&L). Open paper trades cannot
-        survive a restart (the simulator is in memory) → they are closed as SIM_RESTART and reconciled flat."""
+        """Register paper accounts with the simulator (balance = start + closed P&L). The simulator is in memory:
+        open paper trades with a stored snapshot are rebuilt by recover_open_trades(); older rows close SIM_RESTART."""
         with self.sessionmaker() as s:
             for a in s.execute(select(Account).where(Account.is_sim)).scalars():
                 closed = sum(
@@ -126,8 +134,9 @@ class Controller:
                 )
                 self.adapter.add_account(a.broker_account_id, (a.starting_balance or Decimal(0)) + closed - paid)
                 for t in s.execute(select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_(None))).scalars():
-                    t.closed_at, t.exit_reason, t.pnl_usd = self.clock.now(), "SIM_RESTART", Decimal(0)
-            s.commit()
+                    if t.om_state is None:  # no snapshot (pre-session-14 row): cannot be rebuilt → close, as before
+                        t.closed_at, t.exit_reason, t.pnl_usd = self.clock.now(), "SIM_RESTART", Decimal(0)
+            self._commit(s)
 
     def notify(self, level: str, title: str, detail: str = "", kind: str = "general") -> None:
         self.notices.append({"level": level, "title": title, "detail": detail, "at": self.clock.now().isoformat()})
@@ -287,6 +296,8 @@ class Controller:
             sig = s.get(Signal, signal_id)
             if sig is None or sig.status != "PASS":
                 return [AccountResult(0, False, "SIGNAL_NOT_TRADEABLE")]
+            if self.feed_state.get(sig.symbol):
+                return [AccountResult(0, False, "FEED_LOST")]  # position open + no price bars: no NEW entries
             plan0 = self._plan(s, sig)
             if plan0 is None:
                 return [AccountResult(0, False, "NO_PLAN")]
@@ -328,7 +339,7 @@ class Controller:
                 assert a is not None
                 res = await self._one(s, a, sig, plan0, inst, std, evm, fl, actor)
                 out.append(res)
-            s.commit()
+            self._commit(s)
         return out
 
     async def _one(
@@ -588,6 +599,7 @@ class Controller:
                 rr_window,
                 ("limit_cisd" if strategy == "OPEN_DRIVE" else "market") if strategy else r.entry.mode,
                 self._strategy_deadline(sig) if strategy else self._limit_deadline(sig, now),
+                trade_id=f"P-{sig.id}-{a.id}",  # deterministic: unique across restarts, broker clOrdId derives from it
             )
             t.profile, t.signal_id, t.strategy = sig.profile, sig.id, strategy
         except OrphanedPosition as e:
@@ -627,7 +639,14 @@ class Controller:
         async with self.lock:
             with self.sessionmaker() as s:
                 for t in [t for t in self.om.trades.values() if t.signal_id == signal_id and not t.closing]:
-                    ev = await self.om.strategy_exit(t.trade_id, reason, self.clock.now())
+                    try:
+                        ev = await self.om.strategy_exit(t.trade_id, reason, self.clock.now())
+                    except (
+                        BrokerError
+                    ) as e:  # never silent, never lost: the exit marker stays, retried every bar/minute
+                        self._pending_exits[t.trade_id] = reason
+                        self._exit_failed(s, t, reason, e)
+                        continue
                     if ev is None:
                         self._pending_exits[t.trade_id] = reason
                         continue
@@ -637,16 +656,106 @@ class Controller:
                     await self._handle_events(s, ev)
                 for f in self.adapter.drain_fills():
                     await self._handle_events(s, await self.om.on_fill(f))
-                s.commit()
+                self._commit(s)
         return done
+
+    def _exit_failed(self, s: Session, t: OpenTrade, reason: str, e: Exception) -> None:
+        if t.trade_id in self._exit_alerted:
+            return  # the retry keeps running quietly; the first failure already raised the banner
+        self._exit_alerted.add(t.trade_id)
+        audit.record(
+            s, self.clock, "automation", "trade.exit_failed", t.account, {"reason": reason, "error": str(e)[:200]}
+        )
+        self.notify(
+            "error",
+            "Exit order failed - retrying",
+            f"{t.account} {t.symbol}: {reason} ({type(e).__name__}). The app keeps retrying; Flatten if it persists.",
+            "exit",
+        )
 
     async def _retry_strategy_exits(self, s: Session) -> None:
         for tid, reason in list(self._pending_exits.items()):
-            ev = await self.om.strategy_exit(tid, reason, self.clock.now())
+            t = self.om.trades.get(tid)
+            if t is None or t.closing:
+                del self._pending_exits[tid]  # closed / already flattening: nothing left to retry
+                continue
+            try:
+                ev = await self.om.strategy_exit(tid, reason, self.clock.now())
+            except BrokerError as e:
+                self._exit_failed(s, t, reason, e)
+                continue
             if ev is None:
                 continue
             del self._pending_exits[tid]
+            self._exit_alerted.discard(tid)
             await self._handle_events(s, ev)
+
+    async def exit_watchdog(self) -> None:
+        """Watchdog step: a strategy exit was REQUESTED (marker on the signal) but the trade is not closed. Re-issue it
+        until the broker confirms the flat (the signal turns CLOSED only in _close_trade). Covers a crash after the
+        request, an exit lost inside the 6 s hold, and a failed flatten. The 16:44 hard flat stays the backstop."""
+        async with self.lock:
+            with self.sessionmaker() as s:
+                since = self.clock.now() - timedelta(days=3)
+                for sig in s.execute(select(Signal).where(Signal.status == "PASS", Signal.bar_time >= since)).scalars():
+                    mark = (sig.features or {}).get("exit_requested")
+                    if not mark or sig.features.get("state") != "OPEN":
+                        continue
+                    reason = str(mark.get("reason", "EXIT_REQUESTED"))
+                    rows = list(
+                        s.execute(select(Trade).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).scalars()
+                    )
+                    if not rows:
+                        self._mark_signal_closed(s, sig.id, reason)
+                        continue
+                    for row in rows:
+                        t = self.om.trades.get(row.trade_ref or "")
+                        if t is not None and not t.closing and t.trade_id not in self._pending_exits:
+                            self._pending_exits[t.trade_id] = reason
+                        elif t is None:  # not under management (never recovered): flatten its account directly
+                            a = s.get(Account, row.account_id)
+                            if a is not None and a.broker_account_id in self.adapter.accounts:
+                                await self._flatten_account(s, a, reason)
+                await self._retry_strategy_exits(s)
+                self._commit(s)
+
+    def _mark_signal_closed(self, s: Session, signal_id: int | None, reason: str) -> None:
+        """A strategy signal whose exit was requested turns CLOSED only now, when its last trade is really closed."""
+        sig = s.get(Signal, signal_id) if signal_id is not None else None
+        if sig is None or not (sig.features or {}).get("exit_requested") or sig.features.get("state") != "OPEN":
+            return
+        if s.execute(select(Trade.id).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).first() is not None:
+            return  # another account's trade of this signal is still open
+        mark = sig.features["exit_requested"]
+        sig.features = {
+            **sig.features,
+            "state": "CLOSED",
+            "exit_reason": str(mark.get("reason", reason)),
+            "exit_at": self.clock.now().isoformat(),
+        }
+        sig.updated_at = self.clock.now()
+
+    # ---------- persistence of the live trades (restart recovery) ----------
+    def _commit(self, s: Session) -> None:
+        self._save_states(s)
+        s.commit()
+
+    def _save_states(self, s: Session) -> None:
+        """Snapshot every tracked trade onto its Trade row so a restart can rebuild order management."""
+        for t in self.om.trades.values():
+            row = self._trade_row(s, t.trade_id, t.account)
+            if row is not None:
+                snap = trade_state.dump(t)
+                if row.om_state != snap:
+                    row.om_state = snap
+
+    def _trade_row(self, s: Session, ref: str, account_ext: str | None = None) -> Trade | None:
+        """The OPEN trade row for a trade ref (newest first). Old rows (refs restarted at T1 after every restart) and
+        closed rows never match, so a lookup can no longer raise MultipleResultsFound."""
+        q = select(Trade).where(Trade.trade_ref == ref, Trade.closed_at.is_(None))
+        if account_ext is not None:
+            q = q.where(Trade.account_id.in_(select(Account.id).where(Account.broker_account_id == account_ext)))
+        return s.execute(q.order_by(Trade.id.desc())).scalars().first()
 
     def _limit_deadline(self, sig: Signal, now: datetime) -> datetime | None:
         """limit_cisd: the entry may work for limit_timeout_bars bars of the signal's (LTF) timeframe."""
@@ -728,7 +837,7 @@ class Controller:
                 await self._retry_strategy_exits(s)
                 await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
-                s.commit()
+                self._commit(s)
 
     async def process_live_fills(self) -> None:
         """Live (CrossTrade) fills arrive from a background poller; apply them promptly (stop→BE moves etc.)."""
@@ -740,7 +849,7 @@ class Controller:
                 for f in fills:
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._monitor(s)
-                s.commit()
+                self._commit(s)
 
     async def _scalp_time_stop(self, s: Session, symbol: str) -> None:
         """Scalp mode: a quick trade still open after max_hold_s is closed at market (app exit, ≥ 6 s hold)."""
@@ -769,7 +878,7 @@ class Controller:
             elif e.kind == "CANCELLED":
                 self._drop_unfilled_trade(s, e.trade, e.detail)
             elif e.kind == "ENTRY_TRIMMED":
-                row = s.execute(select(Trade).where(Trade.trade_ref == e.trade.trade_id)).scalar_one_or_none()
+                row = self._trade_row(s, e.trade.trade_id)
                 if row is not None:
                     row.qty = e.trade.qty
                     row.legs = [{"name": x.name, "qty": x.qty, "tp": str(x.take_profit)} for x in e.trade.legs]
@@ -788,7 +897,7 @@ class Controller:
         """A limit entry that never filled (timeout / flatten / news): NOT a trade — no P&L, no win/loss, no count
         towards max_trades_per_day. The persisted row is removed and the audit log keeps the record."""
         a = self._acct(s, t.account)
-        row = s.execute(select(Trade).where(Trade.trade_ref == t.trade_id)).scalar_one_or_none()
+        row = self._trade_row(s, t.trade_id)
         if row is not None:
             s.delete(row)
         for o in s.execute(
@@ -802,6 +911,9 @@ class Controller:
                 s, self.clock, "automation", "trade.limit_cancelled", t.account, {"ref": t.trade_id, "reason": reason}
             )
             self.notify("info", "Limit entry cancelled", f"{a.label}: {reason}")
+        self._pending_exits.pop(t.trade_id, None)
+        s.flush()
+        self._mark_signal_closed(s, t.signal_id, reason)
 
     async def limit_timeout_check(self) -> None:
         """Wall-clock watchdog step: cancel limit entries past their timeout (also retries a failed cancel)."""
@@ -810,10 +922,10 @@ class Controller:
         async with self.lock:
             with self.sessionmaker() as s:
                 await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
-                s.commit()
+                self._commit(s)
 
     def _close_trade(self, s: Session, t: OpenTrade, reason: str) -> None:
-        row = s.execute(select(Trade).where(Trade.trade_ref == t.trade_id)).scalar_one_or_none()
+        row = self._trade_row(s, t.trade_id, t.account)
         a = self._acct(s, t.account)
         if row is None or a is None or row.closed_at is not None:
             return
@@ -837,6 +949,10 @@ class Controller:
             ds.win_streak += 1
         if self.om.trades.get(t.trade_id):
             del self.om.trades[t.trade_id]
+        self._pending_exits.pop(t.trade_id, None)
+        self._exit_alerted.discard(t.trade_id)
+        s.flush()
+        self._mark_signal_closed(s, t.signal_id, reason)
         self.notify("info", "Trade closed", f"{a.label}: {pnl} ({row.net_r}R)", "trade")
         self.publish("position.updated", {"account": a.id})
         self.publish("account.updated", {"id": a.id})
@@ -926,7 +1042,7 @@ class Controller:
                         {"balance": str(bal), "mll_before": str(before), "mll": str(a.mll), "locked": a.mll_locked},
                     )
                     n += 1
-                s.commit()
+                self._commit(s)
         return n
 
     def eod_update(self, s: Session, a: Account, settled_balance: Decimal) -> None:
@@ -995,7 +1111,7 @@ class Controller:
                     raise LookupError("no such account")
                 await self._flatten_account(s, a, reason)
                 audit.record(s, self.clock, actor, "account.flatten", a.broker_account_id, {"reason": reason})
-                s.commit()
+                self._commit(s)
 
     async def flatten_all(self, actor: str, reason: str = "FLATTEN_ALL") -> None:
         async with self.lock:
@@ -1004,7 +1120,7 @@ class Controller:
                     if a.broker_account_id in self.adapter.accounts:
                         await self._flatten_account(s, a, reason)
                 audit.record(s, self.clock, actor, "flatten_all", "", {"reason": reason})
-                s.commit()
+                self._commit(s)
 
     async def kill_switch(self, actor: str) -> None:
         """Flatten + cancel + disarm all + automation OFF (§13). Never auto-resumes."""
@@ -1016,7 +1132,7 @@ class Controller:
             self.approvals.clear()
             st.set_setting(s, "automation.mode", "OFF", self.clock.now())
             audit.record(s, self.clock, actor, "kill_switch", "", {})
-            s.commit()
+            self._commit(s)
         self.notify("error", "KILL SWITCH", f"by {actor}: all flat, all disarmed, automation OFF", "kill_switch")
         self.publish("risk.alert", {"kill_switch": True, "by": actor})
         self.publish("automation.changed", {"mode": "OFF", "kill_switch": True})
@@ -1040,7 +1156,7 @@ class Controller:
                     hit = reason
                     if not await self._flatten_account(s, a, reason) and hard and a.paused_reason != "FLATTEN_FAILED":
                         self._pause(s, a.broker_account_id, "FLATTEN_FAILED")
-                s.commit()
+                self._commit(s)
         return hit
 
     async def news_check(self, events: list[Any] | None) -> str | None:
@@ -1065,7 +1181,7 @@ class Controller:
                         if await self._flatten_account(s, a, "NEWS"):
                             self.notify("warn", "Flattened for news", f"{a.label}: {ev.title}")
                         hit = "NEWS"
-                s.commit()
+                self._commit(s)
         return hit
 
     async def monitor_accounts(self) -> None:
@@ -1073,7 +1189,7 @@ class Controller:
         async with self.lock:
             with self.sessionmaker() as s:
                 await self._monitor(s)
-                s.commit()
+                self._commit(s)
 
     async def retry_closing(self) -> None:
         """Trades waiting in 'closing' (flatten requested, exit fill not seen): still in the market → flatten again;
@@ -1096,7 +1212,262 @@ class Controller:
                     elif (now - t.closing_since).total_seconds() >= CLOSE_GRACE_S:
                         self.notify("error", "Exit fill missing — P&L unverified", f"{a.label}: {reason}")
                         self._close_trade(s, t, reason)
-                s.commit()
+                self._commit(s)
+
+    # ---------- restart recovery (session 14, item 1) ----------
+    async def recover_open_trades(self, only: set[int] | None = None) -> None:
+        """Startup (and after the live adapter attached): rebuild order management from the open Trade rows + broker
+        positions. Paper: the in-memory simulator is re-seeded from the snapshot. Live: the snapshot must match the
+        broker position; anything unmatched is flattened, the account paused and a banner raised (never silent)."""
+        async with self.lock:
+            with self.sessionmaker() as s:
+                await self._recover(s, only)
+                self._commit(s)
+
+    async def retry_recovery(self) -> None:
+        if self._recovery_pending:
+            await self.recover_open_trades(set(self._recovery_pending))
+
+    async def _recover(self, s: Session, only: set[int] | None) -> None:
+        rows = list(s.execute(select(Trade).where(Trade.closed_at.is_(None))).scalars())
+        restored = 0
+        for a in s.execute(select(Account)).scalars():
+            if (only is not None and a.id not in only) or a.broker_account_id not in self.adapter.accounts:
+                continue
+            ext = a.broker_account_id
+            tracked: list[OpenTrade] = []
+            for row in (r for r in rows if r.account_id == a.id):
+                t = self._load_snapshot(row)
+                if t is None:  # no usable snapshot
+                    if a.is_sim:
+                        row.closed_at, row.exit_reason, row.pnl_usd = self.clock.now(), "SIM_RESTART", Decimal(0)
+                    else:
+                        row.closed_at, row.exit_reason, row.pnl_usd = self.clock.now(), "RESTART_UNTRACKED", Decimal(0)
+                        self.notify(
+                            "error", "Restart: trade P&L unverified", f"{a.label}: {row.symbol} {row.trade_ref}"
+                        )
+                    continue
+                tracked.append(t)
+            try:
+                if a.is_sim:
+                    for t in tracked:
+                        self._restore_sim(ext, t)
+                        self.om.restore(t)
+                        restored += 1
+                    self._recovery_pending.discard(a.id)
+                    continue
+                restored += await self._recover_live(s, a, tracked)
+                self._recovery_pending.discard(a.id)
+            except BrokerError as e:
+                for t in tracked:  # keep managing what we know while the broker cannot be read
+                    self.om.restore(t)
+                if a.id not in self._recovery_pending:
+                    self._recovery_pending.add(a.id)
+                    self._pause(s, ext, "RESTART_UNVERIFIED")
+                    self.notify(
+                        "error",
+                        "Restart recovery could not read the broker",
+                        f"{a.label}: {e}. Entries are blocked; the app retries every minute.",
+                        "restart",
+                    )
+        if restored:
+            self.notify("info", "Restart recovery", f"{restored} open trade(s) put back under management", "restart")
+
+    @staticmethod
+    def _load_snapshot(row: Trade) -> OpenTrade | None:
+        if not row.om_state:
+            return None
+        try:
+            t = trade_state.load(row.om_state)
+        except (KeyError, ValueError, TypeError, ArithmeticError):
+            return None
+        return t if t.trade_id == row.trade_ref else None
+
+    def _restore_sim(self, ext: str, t: OpenTrade) -> None:
+        from app.execution.adapters.base import BracketRequest
+
+        side: Literal["BUY", "SELL"] = "BUY" if t.d is Direction.LONG else "SELL"
+        limit = t.pending_until is not None and any(x.entry is None for x in t.legs)
+        for leg in t.legs:
+            if leg.closed or not leg.bracket_id:
+                continue
+            req = BracketRequest(
+                f"{t.trade_id}-{leg.name}",
+                t.symbol,
+                side,
+                leg.qty,
+                t.plan.stop,
+                leg.take_profit,
+                "LIMIT" if limit and leg.entry is None else "MARKET",
+                t.plan.entry if limit and leg.entry is None else None,
+            )
+            self.adapter.sim.restore_bracket(ext, leg.bracket_id, leg.stop_order_id, req, leg.entry, leg.stop)
+
+    async def _recover_live(self, s: Session, a: Account, tracked: list[OpenTrade]) -> int:
+        ext, now = a.broker_account_id, self.clock.now()
+        positions = {p.symbol: p.qty for p in await self.adapter.get_positions(ext)}
+        working = {o.order_id for o in await self.adapter.get_orders(ext)}
+        bad: list[str] = []
+        kept = 0
+        expected: dict[str, int] = {}
+        for t in tracked:
+            filled = [x for x in t.legs if x.entry is not None and not x.closed]
+            if not filled:  # never filled: keep only while its entry still works at the broker
+                if any(x.bracket_id in working for x in t.legs):
+                    self.om.restore(t)
+                    kept += 1
+                else:
+                    row = self._trade_row(s, t.trade_id, ext)
+                    if row is not None:
+                        self._drop_unfilled_trade(s, t, "RESTART_ENTRY_GONE")
+                continue
+            expected[t.symbol] = expected.get(t.symbol, 0) + sum(x.qty for x in filled) * t.d.sign
+            self.om.restore(t)
+            kept += 1
+        for sym in set(expected) | set(positions):
+            have, want = positions.get(sym, 0), expected.get(sym, 0)
+            if have == want:
+                continue
+            if have == 0:  # closed at the broker while we were down: exit fill unknown → closes as "unverified"
+                for t in self.om.trades.values():
+                    if t.account == ext and t.symbol == sym and not t.closing:
+                        t.closing, t.closing_since = "RESTART_FLAT", now
+                continue
+            bad.append(f"{sym} broker {have} vs managed {want}")
+        if bad:
+            self._pause(s, ext, RESTART_UNMANAGED)
+            self.notify(
+                "error",
+                "Restart found an unmanaged position",
+                f"{a.label}: {'; '.join(bad)}. Flattened and the account is paused - check Tradovate.",
+                "restart",
+            )
+            await self._flatten_account(s, a, RESTART_UNMANAGED)
+        return kept
+
+    # ---------- feed-loss protection (session 14, item 5) ----------
+    async def feed_guard(self) -> None:
+        """Position open AND no 1-minute bar for > feed_warn_min → error alert + new entries blocked; for >
+        feed_flatten_min → flatten (FEED_LOST), a protective exit that never waits for the hold. Broker positions are
+        the truth for "open"; the broker's own open P&L keeps feeding the MLL/DLL monitor without TradingView."""
+        cfg = self.rules.rules.reliability
+        if not cfg.feed_guard_enabled:
+            self.feed_state.clear()
+            self._exposure_since.clear()
+            return
+        now = self.clock.now()
+        async with self.lock:
+            with self.sessionmaker() as s:
+                exposed = await self._exposed_by_symbol(s)
+                for sym in [k for k in self._exposure_since if k not in exposed]:
+                    del self._exposure_since[sym]
+                    if self.feed_state.pop(sym, None):
+                        self.notify("info", "Price feed is back", f"{sym}: no open position any more", "feed")
+                for sym, accts in exposed.items():
+                    since = self._exposure_since.setdefault(sym, self._opened_at(sym) or now)
+                    last, extra = self._last_bar(s, sym)
+                    ref = max(x for x in (last, since) if x is not None)
+                    age = (now - ref).total_seconds() / 60
+                    if age >= cfg.feed_flatten_min + extra:
+                        state = "LOST"
+                    elif age >= cfg.feed_warn_min + extra:
+                        state = "WARN"
+                    else:
+                        state = ""
+                    before = self.feed_state.get(sym, "")
+                    if state:
+                        self.feed_state[sym] = state
+                    else:
+                        self.feed_state.pop(sym, None)
+                        if before:
+                            self.notify("info", "Price feed is back", f"{sym}: bars are arriving again", "feed")
+                    if state and state != before:
+                        self.notify(
+                            "error",
+                            "Price feed lost while in a position",
+                            f"{sym}: no 1-minute bar for {int(age)} min. New entries are blocked"
+                            + (
+                                "; flattening (FEED_LOST)."
+                                if state == "LOST"
+                                else f"; flattens after {cfg.feed_flatten_min} min."
+                            ),
+                            "feed",
+                        )
+                    if state == "LOST":
+                        for a in accts:
+                            await self._flatten_account(s, a, "FEED_LOST")
+                self._commit(s)
+
+    def _last_bar(self, s: Session, symbol: str) -> tuple[datetime | None, int]:
+        """Latest price bar of the symbol: the 1-minute feed when it is alive, else the finest slower feed (extra =
+        its extra minutes, so a 5-minute-only profile does not alarm between its bars)."""
+        from sqlalchemy import func
+
+        floor = self.clock.now() - timedelta(days=1)
+        one = s.execute(
+            select(func.max(Bar.close_time)).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time > floor)
+        ).scalar_one_or_none()
+        if one is not None:
+            return one, 0
+        best: tuple[datetime | None, int] = (None, 0)
+        for tf, at in s.execute(
+            select(Bar.tf, func.max(Bar.close_time))
+            .where(Bar.symbol == symbol, Bar.close_time > floor)
+            .group_by(Bar.tf)
+        ):
+            try:
+                m = tf_minutes(tf)
+            except ValueError:
+                continue
+            if at is not None and (best[0] is None or at > best[0]):
+                best = (at, m - 1)
+        return best
+
+    def _opened_at(self, symbol: str) -> datetime | None:
+        """Earliest open time of the tracked trades in a symbol (the feed clock starts when the position did)."""
+        times = [t.opened_at for t in self.om.trades.values() if t.symbol == symbol]
+        return min(times) if times else None
+
+    async def _exposed_by_symbol(self, s: Session) -> dict[str, list[Account]]:
+        out: dict[str, list[Account]] = {}
+        for a in s.execute(select(Account)).scalars():
+            ext = a.broker_account_id
+            if ext not in self.adapter.accounts:
+                continue
+            syms = {
+                t.symbol
+                for t in self.om.trades.values()
+                if t.account == ext and any(x.entry is not None and not x.closed for x in t.legs)
+            }
+            with contextlib.suppress(BrokerError):  # unreadable broker: the tracked trades still count
+                syms |= {p.symbol for p in await self.adapter.get_positions(ext) if p.qty != 0}
+            for sym in syms:
+                out.setdefault(sym, []).append(a)
+        return out
+
+    def safety_status(self, s: Session) -> dict[str, Any]:
+        """Everything the UI banners need (plain-language states for session 14 safety fixes)."""
+        now = self.clock.now()
+        unmanaged = [
+            {"account": a.label or a.broker_account_id, "reason": a.paused_reason}
+            for a in s.execute(
+                select(Account).where(Account.paused_reason.in_([RESTART_UNMANAGED, "RESTART_UNVERIFIED"]))
+            ).scalars()
+        ]
+        pending: list[dict[str, Any]] = []
+        for sig in s.execute(
+            select(Signal).where(Signal.status == "PASS", Signal.bar_time >= now - timedelta(days=3))
+        ).scalars():
+            mark = (sig.features or {}).get("exit_requested")
+            if mark and sig.features.get("state") == "OPEN":
+                pending.append(
+                    {"signal_id": sig.id, "symbol": sig.symbol, "reason": mark.get("reason"), "since": mark.get("at")}
+                )
+        return {
+            "unmanaged": unmanaged,
+            "feed": [{"symbol": k, "state": v} for k, v in self.feed_state.items()],
+            "pending_exits": pending,
+        }
 
     async def watchdog_tick(self, news_events: list[Any] | None) -> None:
         """Wall-clock safety loop, independent of TradingView webhooks (a stalled feed must not stop the flatten)."""
@@ -1106,6 +1477,9 @@ class Controller:
             ("monitor", self.monitor_accounts()),
             ("closing", self.retry_closing()),
             ("limit_timeout", self.limit_timeout_check()),
+            ("exits", self.exit_watchdog()),
+            ("feed", self.feed_guard()),
+            ("recovery", self.retry_recovery()),
         ]
         for name, coro in steps:
             try:
@@ -1146,7 +1520,7 @@ class Controller:
                         self.notify("warn", "Half-off defence", f"{t.symbol}: {e.detail}")
                     for f in self.adapter.drain_fills():
                         await self._handle_events(s, await self.om.on_fill(f))
-                s.commit()
+                self._commit(s)
 
     def entries_blocked_by_time(self) -> bool:
         r = self.rules.rules

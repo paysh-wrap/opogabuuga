@@ -52,6 +52,8 @@ def test_flat_time_is_quiet_when_flat_or_outside_window(authed, clock):
 
 def test_failed_auto_flatten_is_retried_next_tick(authed, clock):
     run(authed, clock, "EVAL")
+    # this test is about the flat-time retry: keep the feed guard (a second flatten path) out of it
+    authed.put("/api/risk/settings", json={"changes": {"reliability.feed_guard_enabled": False}})
     ctl = authed.app.state.controller
     ctl.adapter.sim.fail_next.add("flatten")
     clock.set(FLAT)

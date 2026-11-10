@@ -372,11 +372,33 @@ def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decim
     }
 
 
+@router.get("/safety")
+def safety(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Session 14 safety states in plain language for the banners: unmanaged position after a restart, feed lost,
+    missed NOISE check minutes, exits waiting for the broker."""
+    from app.signals import recovery
+
+    st = request.app.state
+    out: dict[str, Any] = _ctl(request).safety_status(db)
+    out["missed_checks"] = recovery.missed_checks(db, st.rules.rules, st.clock.now())
+    return out
+
+
 @router.get("/positions")
 async def positions(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
     c = _ctl(request)
+    marks = {p["signal_id"]: p["reason"] for p in c.safety_status(db)["pending_exits"]}
+
+    def pending_exit(ext: str, symbol: str) -> str | None:
+        for t in c.om.trades.values():
+            if t.account == ext and t.symbol == symbol:
+                why = t.closing or c._pending_exits.get(t.trade_id) or marks.get(t.signal_id)
+                if why:
+                    return str(why)
+        return None
+
     out = []
     for a in db.execute(select(Account)).scalars():
         if a.broker_account_id not in c.adapter.accounts:
@@ -395,7 +417,15 @@ async def positions(
                 "balance": str(bal),
                 "open_pnl": str(opnl),
                 "mll": str(a.mll),
-                "positions": [{"symbol": x.symbol, "qty": x.qty, "avg": str(x.avg_price)} for x in pos],
+                "positions": [
+                    {
+                        "symbol": x.symbol,
+                        "qty": x.qty,
+                        "avg": str(x.avg_price),
+                        "exit_pending": pending_exit(a.broker_account_id, x.symbol),
+                    }
+                    for x in pos
+                ],
                 "payout": _payout(request, db, a, bal, opnl),
             }
         )

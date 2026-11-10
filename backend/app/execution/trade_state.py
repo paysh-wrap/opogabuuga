@@ -1,0 +1,144 @@
+"""JSON snapshot of an OpenTrade (restart recovery, session 14). Pure: no I/O. Decimals travel as strings."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from decimal import Decimal
+from typing import Any
+
+from app.engine.trade_plan import Direction, TradePlan
+from app.execution.order_manager import Leg, OpenTrade
+
+
+def _d(x: Decimal | None) -> str | None:
+    return None if x is None else str(x)
+
+
+def _ld(x: Any) -> Decimal | None:
+    return None if x is None else Decimal(str(x))
+
+
+def _dt(x: datetime | None) -> str | None:
+    return None if x is None else x.isoformat()
+
+
+def _ldt(x: Any) -> datetime | None:
+    return None if x is None else datetime.fromisoformat(str(x))
+
+
+def dump(t: OpenTrade) -> dict[str, Any]:
+    p = t.plan
+    return {
+        "v": 1,
+        "trade_id": t.trade_id,
+        "account": t.account,
+        "symbol": t.symbol,
+        "plan": {
+            "direction": p.direction.value,
+            "entry": _d(p.entry),
+            "stop": _d(p.stop),
+            "take_profit": _d(p.take_profit),
+            "risk_pts": _d(p.risk_pts),
+            "rr": _d(p.rr),
+            "partial_price": _d(p.partial_price),
+            "breakeven_price": _d(p.breakeven_price),
+            "lock_price": _d(p.lock_price),
+            "mode": p.mode,
+        },
+        "guard_on": t.guard_on,
+        "tick": _d(t.tick),
+        "tick_value": _d(t.tick_value),
+        "opened_at": _dt(t.opened_at),
+        "rr_window": [str(x) for x in t.rr_window],
+        "legs": [
+            {
+                "name": x.name,
+                "qty": x.qty,
+                "take_profit": _d(x.take_profit),
+                "bracket_id": x.bracket_id,
+                "stop_order_id": x.stop_order_id,
+                "stop": _d(x.stop),
+                "entry": _d(x.entry),
+                "exit": _d(x.exit),
+                "fee": _d(x.fee),
+                "closed": x.closed,
+            }
+            for x in t.legs
+        ],
+        "best": _d(t.best),
+        "partial_done": t.partial_done,
+        "locked": t.locked,
+        "half_used": t.half_used,
+        "runner_trail": _d(t.runner_trail),
+        "closing": t.closing,
+        "closing_since": _dt(t.closing_since),
+        "orphan": t.orphan,
+        "exit_qty": t.exit_qty,
+        "exit_notional": _d(t.exit_notional),
+        "exit_fee": _d(t.exit_fee),
+        "pending_until": _dt(t.pending_until),
+        "cancel_alerted": t.cancel_alerted,
+        "profile": t.profile,
+        "signal_id": t.signal_id,
+        "strategy": t.strategy,
+    }
+
+
+def load(d: dict[str, Any]) -> OpenTrade:
+    p = d["plan"]
+    plan = TradePlan(
+        Direction(p["direction"]),
+        Decimal(p["entry"]),
+        Decimal(p["stop"]),
+        Decimal(p["take_profit"]),
+        Decimal(p["risk_pts"]),
+        Decimal(p["rr"]),
+        _ld(p["partial_price"]),
+        _ld(p["breakeven_price"]),
+        _ld(p["lock_price"]),
+        p["mode"],
+    )
+    inv, t2, rmin, rmax, buf, mst = d["rr_window"]
+    legs = [
+        Leg(
+            x["name"],
+            int(x["qty"]),
+            Decimal(x["take_profit"]),
+            x["bracket_id"],
+            x["stop_order_id"],
+            Decimal(x["stop"]),
+            _ld(x["entry"]),
+            _ld(x["exit"]),
+            Decimal(x["fee"]),
+            bool(x["closed"]),
+        )
+        for x in d["legs"]
+    ]
+    return OpenTrade(
+        d["trade_id"],
+        d["account"],
+        d["symbol"],
+        plan,
+        bool(d["guard_on"]),
+        Decimal(d["tick"]),
+        Decimal(d["tick_value"]),
+        datetime.fromisoformat(d["opened_at"]),
+        legs,
+        (Decimal(inv), Decimal(t2), Decimal(rmin), Decimal(rmax), int(buf), int(mst)),
+        best=_ld(d["best"]),
+        partial_done=bool(d["partial_done"]),
+        locked=bool(d["locked"]),
+        half_used=bool(d["half_used"]),
+        runner_trail=_ld(d["runner_trail"]),
+        closing=d["closing"],
+        closing_since=_ldt(d["closing_since"]),
+        orphan=bool(d["orphan"]),
+        exit_qty=int(d["exit_qty"]),
+        exit_notional=Decimal(d["exit_notional"]),
+        exit_fee=Decimal(d["exit_fee"]),
+        pending_until=_ldt(d["pending_until"]),
+        cancel_alerted=bool(d["cancel_alerted"]),
+        profile=d["profile"],
+        signal_id=d["signal_id"],
+        strategy=d["strategy"],
+    )

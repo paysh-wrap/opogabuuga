@@ -28,7 +28,7 @@ from app.engine import structure_filter as SF
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
 from app.indicators.bars import Bar as IBar
-from app.models import Bar, BiasDecision, Signal, SignalGate, TradePlanRow
+from app.models import Bar, BiasDecision, Signal, SignalGate, Trade, TradePlanRow
 from app.signals.service import CalendarProvider, SignalUpdate
 
 HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing days
@@ -144,8 +144,15 @@ def _new_signal(
     return sig
 
 
-def _close(sig: Signal, reason: str, at: datetime, clock: Clock) -> None:
-    sig.features = {**sig.features, "state": "CLOSED", "exit_reason": reason, "exit_at": at.isoformat()}
+def _close(s: Session, sig: Signal, reason: str, at: datetime, clock: Clock) -> None:
+    """Strategy exit decided. Session 14: the signal does NOT turn CLOSED while a trade of it is still open - it keeps
+    state OPEN with an `exit_requested` marker (reason + time) until the controller books the real close
+    (controller._close_trade). The watchdog re-issues the exit for any such marker. No open trade → CLOSED now."""
+    open_trade = s.execute(select(Trade.id).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).first()
+    if open_trade is None:
+        sig.features = {**sig.features, "state": "CLOSED", "exit_reason": reason, "exit_at": at.isoformat()}
+    elif "exit_requested" not in sig.features:
+        sig.features = {**sig.features, "exit_requested": {"reason": reason, "at": at.isoformat()}}
     sig.updated_at = clock.now()
 
 
@@ -194,7 +201,9 @@ def structure_check(
     return gate, feats
 
 
-def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime) -> StrategyOutput:
+def run_noise(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
     cfg = rules.strategy.noise_cfg
     out = StrategyOutput()
     k = N.minute_index(at)
@@ -212,7 +221,7 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
     position = Direction(open_sig.direction) if open_sig is not None else None
     if k == flat_k:
         if open_sig is not None:
-            _close(open_sig, "NOISE_FLAT_1600", at, clock)
+            _close(s, open_sig, "NOISE_FLAT_1600", at, clock)
             out.exits.append((open_sig.id, "NOISE_FLAT_1600"))
         return out
     prior = next((d.session().last_close for d in reversed(history) if d.session().last_close is not None), None)
@@ -235,13 +244,15 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
         position=position,
         entries_today=entries,
         max_entries=cfg.max_entries_per_day,
-        allow_entry=check,
+        allow_entry=check and not exits_only,
     ):
         if a.kind == "EXIT" and open_sig is not None:
-            _close(open_sig, a.reason, at, clock)
+            _close(s, open_sig, a.reason, at, clock)
             out.exits.append((open_sig.id, a.reason))
             open_sig = None
         elif a.kind == "ENTER" and a.direction is not None:
+            if any(x.bar_time == at for x in sigs):
+                continue  # this bar was already decided (replay after a crash): never a second entry for one bar
             p = N.plan(
                 a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules)
             )
@@ -284,7 +295,7 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
 
 
 def run_open_drive(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
 ) -> StrategyOutput:
     cfg = rules.strategy.open_drive_cfg
     out = StrategyOutput()
@@ -293,10 +304,10 @@ def run_open_drive(
     if k == N.hhmm_to_k(cfg.time_stop):
         for x in _today_signals(s, cfg.symbol, "OD", day):
             if x.features.get("state") == "OPEN":
-                _close(x, "OD_TIME_STOP", at, clock)
+                _close(s, x, "OD_TIME_STOP", at, clock)
                 out.exits.append((x.id, "OD_TIME_STOP"))
         return out
-    if k != N.hhmm_to_k(cfg.signal_time) or _today_signals(s, cfg.symbol, "OD", day):
+    if exits_only or k != N.hhmm_to_k(cfg.signal_time) or _today_signals(s, cfg.symbol, "OD", day):
         return out
     days = load_days(s, cfg.symbol, at)
     if not days or days[-1].day != day:
@@ -358,7 +369,7 @@ def noise_stop_pts(rules: RulesConfig) -> Decimal | None:
 
 
 def run_pm_fade(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
 ) -> StrategyOutput:
     """D58: afternoon VWAP-band fade, only on a day NOISE has not traded (no NOISE PASS signal yet), 1 per day."""
     cfg = rules.strategy.pm_fade_cfg
@@ -368,10 +379,10 @@ def run_pm_fade(
     if k == N.hhmm_to_k(cfg.flat_at):
         for x in _today_signals(s, cfg.symbol, "FADE", day):
             if x.features.get("state") == "OPEN":
-                _close(x, "FADE_FLAT_1555", at, clock)
+                _close(s, x, "FADE_FLAT_1555", at, clock)
                 out.exits.append((x.id, "FADE_FLAT_1555"))
         return out
-    if not N.hhmm_to_k(cfg.first_signal) <= k <= N.hhmm_to_k(cfg.last_signal):
+    if exits_only or not N.hhmm_to_k(cfg.first_signal) <= k <= N.hhmm_to_k(cfg.last_signal):
         return out
     if _today_signals(s, cfg.symbol, "FADE", day):
         return out  # one per day (a skipped signal also ends the day)
@@ -440,7 +451,7 @@ def run_pm_fade(
 
 
 def run_ai_bias(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
 ) -> StrategyOutput:
     """D56: the day's TradingAgents + Vibe-Trading call is the ONLY input. Trades when both tools agree strongly."""
     cfg = rules.strategy.ai_bias_cfg
@@ -450,10 +461,10 @@ def run_ai_bias(
     if k == N.hhmm_to_k(cfg.flat_at):
         for x in _today_signals(s, cfg.symbol, "AI", day):
             if x.features.get("state") == "OPEN":
-                _close(x, "AI_FLAT_1600", at, clock)
+                _close(s, x, "AI_FLAT_1600", at, clock)
                 out.exits.append((x.id, "AI_FLAT_1600"))
         return out
-    if k != N.hhmm_to_k(cfg.entry_time) or _today_signals(s, cfg.symbol, "AI", day):
+    if exits_only or k != N.hhmm_to_k(cfg.entry_time) or _today_signals(s, cfg.symbol, "AI", day):
         return out
     inst = rules.instrument(cfg.symbol)
     rows = s.execute(
@@ -490,27 +501,36 @@ def run_ai_bias(
 
 
 def run(
-    s: Session, *, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, symbol: str, tf: str, at: datetime
+    s: Session,
+    *,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    symbol: str,
+    tf: str,
+    at: datetime,
+    exits_only: bool = False,
 ) -> StrategyOutput:
-    """Entry point after a 1-minute HEARTBEAT has been stored. Commits."""
+    """Entry point after a 1-minute HEARTBEAT has been stored. Commits. exits_only: a replayed (late) heartbeat may
+    only EXIT / manage - a stale bar must never open a new position."""
     out = StrategyOutput()
     if tf != "1":
         return out
     st = rules.strategy
     if st.noise and symbol == st.noise_cfg.symbol:
-        r = run_noise(s, rules, clock, calendar, at)
+        r = run_noise(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.open_drive and symbol == st.open_drive_cfg.symbol:
-        r = run_open_drive(s, rules, clock, calendar, at)
+        r = run_open_drive(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.pm_fade and symbol == st.pm_fade_cfg.symbol:
-        r = run_pm_fade(s, rules, clock, calendar, at)
+        r = run_pm_fade(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.ai_bias and symbol == st.ai_bias_cfg.symbol:
-        r = run_ai_bias(s, rules, clock, calendar, at)
+        r = run_ai_bias(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     s.commit()

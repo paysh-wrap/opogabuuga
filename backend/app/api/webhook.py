@@ -36,13 +36,38 @@ async def _run_sync(st: Any, fn: Any) -> Any:
     return await run_in_threadpool(fn)
 
 
+def _mark_processed(st: Any, event_id: str) -> None:
+    from sqlalchemy import update
+
+    with st.sessionmaker() as s:
+        s.execute(update(Event).where(Event.event_id == event_id).values(processed_at=st.clock.now()))
+        s.commit()
+
+
 async def _after_accept(request: Request, acc: Accepted) -> None:
-    st = request.app.state
+    await after_accept(request.app, acc)
+
+
+async def after_accept(app: Any, acc: Accepted, replay: bool = False) -> None:
+    """Process one stored event. replay=True (watchdog / startup replay of a heartbeat that was accepted but never
+    processed): market state and LunqFX gates are left alone and strategies may only EXIT - a late bar never opens a
+    position - but fills / stops / strategy exits on that bar still run."""
+    st = app.state
+    p = acc.payload
+    st.inflight_events.add(p.id)
+    try:
+        await _process(app, acc, replay)
+    finally:
+        st.inflight_events.discard(p.id)
+
+
+async def _process(app: Any, acc: Accepted, replay: bool) -> None:
+    st = app.state
     p = acc.payload
     key = f"{acc.symbol}-{p.profile}"
     lock = st.signal_locks.setdefault(key, asyncio.Lock())
     async with lock:  # one evaluation at a time per symbol+profile (webhooks for one bar arrive concurrently)
-        state = st.market.apply(acc.symbol, p)
+        state = st.market.states.get((acc.symbol, p.profile)) if replay else st.market.apply(acc.symbol, p)
 
         def work() -> list[SignalUpdate]:
             with st.sessionmaker() as s:
@@ -74,11 +99,12 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
                     symbol=acc.symbol,
                     tf=p.tf,
                     at=datetime.fromtimestamp(p.bar_time_ms / 1000, tz=UTC),
+                    exits_only=replay,
                 )
 
         exits: list[tuple[int, str]] = []
         try:
-            updates = await _run_sync(st, work)
+            updates = [] if replay else await _run_sync(st, work)
             if p.event == "HEARTBEAT" and p.price is not None:
                 strat = await _run_sync(st, strategies)
                 updates = [*updates, *strat.updates]
@@ -91,22 +117,35 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
             )
             st.controller.notify("error", "Signal processing failed", f"{key}: {type(e).__name__}", "risk")
             updates = []
+            failed = True
+        else:
+            failed = False
+    if not failed:  # a crash between here and the exits is covered by the persisted exit markers (exit_watchdog)
+        await _run_sync(st, lambda: _mark_processed(st, p.id))
     now = time.monotonic()
     if p.event != "HEARTBEAT" or now - st.ws_throttle.get(key, 0.0) > 15:
         st.ws_throttle[key] = now
         await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
     ctl = st.controller
     for sid, why in exits:  # D55 strategy exits (trailing / 16:00 flat / time stop) before any new entry
-        n = await ctl.strategy_exit(sid, why)
+        try:
+            n = await ctl.strategy_exit(sid, why)
+        except Exception as e:  # never silent; the exit marker stays on the signal and the watchdog retries it
+            log.error("strategy.exit_failed", signal=sid, error=type(e).__name__)
+            ctl.notify("error", "Strategy exit failed - retrying", f"signal {sid}: {type(e).__name__}", "exit")
+            continue
         await st.hub.broadcast("order.updated", {"signal": sid, "exit": why, "trades": n})
     if p.event == "HEARTBEAT" and p.price is not None:
         finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
         if finest:
             await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
+        if replay:
+            return
         await ctl.flat_time_check()
         from app.clock import session_date
 
         await ctl.news_check(st.calendar(session_date(st.clock.now())))
+        await ctl.feed_guard()
         ss = st.market.states.get((acc.symbol, p.profile))
         if ss is not None and finest:
             by_profile = {
@@ -158,7 +197,7 @@ async def tradingview(request: Request, background: BackgroundTasks) -> JSONResp
     res = await _run_sync(st, work)
     if isinstance(res, Accepted):
         if not res.duplicate:
-            background.add_task(_after_accept, request, res)
+            background.add_task(after_accept, request.app, res)
         return JSONResponse({"ok": True, "duplicate": res.duplicate})
     return JSONResponse({"ok": False, "code": res.code, "detail": res.detail}, status_code=res.status)
 

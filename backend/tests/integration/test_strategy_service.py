@@ -346,3 +346,55 @@ def test_pm_fade_skips_when_noise_traded_or_target_too_close(db, loaded_rules):
             ).updates
             == []
         )
+
+
+def test_exit_keeps_signal_open_with_marker_while_a_trade_is_open(db, loaded_rules):
+    """Session 14: a strategy exit is only REQUESTED; the signal turns CLOSED when the trade really closes."""
+    from app.models import Account, Trade
+
+    rules = _rules(loaded_rules, noise=True)
+    days = _sessions(12)
+    today = days[-1]
+    clock = FixedClock(today + timedelta(minutes=30))
+    with db() as s:
+        _history(s, days[:-1])
+        _add_day(s, today, {k: D(20000) + 3 * k for k in range(30)})
+        s.commit()
+        at = today + timedelta(minutes=30)
+        out = SS.run(s, rules=rules, clock=clock, calendar=lambda _d: [], symbol="MNQ", tf="1", at=at)
+        sig = s.get(Signal, out.updates[0].signal_id)
+        # replaying the same bar never decides a second entry; exits_only never enters at all
+        again = SS.run(s, rules=rules, clock=clock, calendar=lambda _d: [], symbol="MNQ", tf="1", at=at)
+        assert again.updates == []
+        a = Account(broker_account_id="A", label="A", stage="EVAL", drawdown_type="eod", starting_balance=D(25000))
+        s.add(a)
+        s.flush()
+        s.add(Trade(account_id=a.id, signal_id=sig.id, symbol="MNQ", direction="LONG", qty=1, entry=D(1), risk_usd=D(1),
+                    opened_at=at, trade_ref="P-1-1"))  # fmt: skip
+        s.commit()
+        SS._close(s, sig, "NOISE_TRAIL", at, clock)
+        assert sig.features["state"] == "OPEN" and sig.features["exit_requested"]["reason"] == "NOISE_TRAIL"
+        SS._close(s, sig, "OTHER", at, clock)  # a later request never overwrites the first marker
+        assert sig.features["exit_requested"]["reason"] == "NOISE_TRAIL"
+
+
+def test_exits_only_replay_never_opens_a_position(db, loaded_rules):
+    rules = _rules(loaded_rules, noise=True)
+    days = _sessions(12)
+    today = days[-1]
+    clock = FixedClock(today + timedelta(minutes=30))
+    with db() as s:
+        _history(s, days[:-1])
+        _add_day(s, today, {k: D(20000) + 3 * k for k in range(30)})
+        s.commit()
+        out = SS.run(
+            s,
+            rules=rules,
+            clock=clock,
+            calendar=lambda _d: [],
+            symbol="MNQ",
+            tf="1",
+            at=today + timedelta(minutes=30),
+            exits_only=True,
+        )
+        assert out.updates == [] and s.query(Signal).count() == 0
