@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/home/user/opogabuuga/.claude/worktrees/agent-a749b892d88c6e507/docs/results/session11/pm_fade_d57_study.py", line 14, in <module>
+    import numpy as np
+ModuleNotFoundError: No module named 'numpy'

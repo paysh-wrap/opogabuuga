@@ -1,13 +1,17 @@
-"""Rebuild backend/app/backtest/data/main_strategy_5y.csv = MAIN strategy (NOISE $250 fixed 124-pt stop + PM fade, fixed
+"""Rebuild backend/app/backtest/data/main_strategy_5y.csv (CAUSAL, session 14) and main_strategy_5y_hindsight.csv (old D77 rule) = MAIN strategy (NOISE $250 fixed 124-pt stop + PM fade, fixed
 124-pt stop, 1 micro MNQ, 2021-11-01 -> 2026-10-30), same rules as docs/results/session10/five_year/stops_250.py
 ("NOISE $250 + fade fixed $250"). Raw Databento MNQ.v.0 1m bars are cached in backend/app/backtest/data/raw/ (reused).
+CAUSAL rule (live rule, strategy_service.run_pm_fade): a fade signal at minute k (13:00-15:29 ET) is allowed only if NO NOISE entry
+signal has fired at a check <= k that day; a NOISE entry whose entry bar falls while the fade is open is dropped (one position per account).
+HINDSIGHT rule (old file): the fade only trades on days NOISE never trades all day (unknowable live).
 usage: rebuild_main_csv.py   (needs curl + proxy-injected Databento credentials; dummy key is fine)"""
 import os, subprocess, sys
 import numpy as np, pandas as pd
 
-ROOT = "/home/user/opogabuuga"
+ROOT = os.environ.get("PAYTIENCE_ROOT", os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 RAW = f"{ROOT}/backend/app/backtest/data/raw"
 OUT = f"{ROOT}/backend/app/backtest/data/main_strategy_5y.csv"
+OUT_HIND = f"{ROOT}/backend/app/backtest/data/main_strategy_5y_hindsight.csv"
 MNQ = f"{RAW}/mnq_5y.csv"
 START, END = "2021-11-01", "2026-10-30"
 PV, TICK, FEE, PTS = 2.0, 0.25, 1.0, (250 - 2) / 2
@@ -40,6 +44,10 @@ def download():
     d[["timestamp", "open", "high", "low", "close", "volume"]].to_csv(MNQ, index=False)
 
 
+def hm(k):
+    return f"{9 + (30 + k) // 60:02d}:{(30 + k) % 60:02d}"
+
+
 def noise_t(days, hard_pts, look=14, step=60, maxtr=3):
     moves = np.array([np.abs(a["close"] / a["open"][0] - 1) for _, a in days])
     checks = set(range(29, 360, step)); out = []
@@ -50,46 +58,53 @@ def noise_t(days, hard_pts, look=14, step=60, maxtr=3):
         if np.isnan(pc) or abs(o[0] / pc - 1) > 0.015: continue
         sig = np.nanmean(moves[i - look:i], axis=0)
         ub = max(o[0], pc) * (1 + sig); lb = min(o[0], pc) * (1 - sig)
-        st = dict(pos=0, entry=None); ntr = pending = 0; hs = None
-        def close_trade(px):
-            out.append((d, (px - st["entry"]) * st["pos"] * PV - FEE)); st["pos"] = 0
+        st = dict(pos=0, entry=None, ek=None); ntr = pending = 0; hs = None
+        def close_trade(px, xk):
+            out.append((d, (px - st["entry"]) * st["pos"] * PV - FEE, st["ek"], xk)); st["pos"] = 0
         for k in range(390):
             if np.isnan(c[k]): continue
             if pending and st["pos"] == 0:
-                st["entry"] = o[k] + pending * TICK; st["pos"], pending = pending, 0
+                st["entry"] = o[k] + pending * TICK; st["pos"], pending = pending, 0; st["ek"] = k
                 hs = st["entry"] - st["pos"] * hard_pts
             pos = st["pos"]
             if pos and ((pos > 0 and l[k] <= hs) or (pos < 0 and h[k] >= hs)):
-                close_trade((min(hs, o[k]) if pos > 0 else max(hs, o[k])) - pos * TICK)
-            if st["pos"] and k == 389: close_trade(c[k] - st["pos"] * TICK)
+                close_trade((min(hs, o[k]) if pos > 0 else max(hs, o[k])) - pos * TICK, k)
+            if st["pos"] and k == 389: close_trade(c[k] - st["pos"] * TICK, k)
             if k in checks:
                 pos = st["pos"]
                 if pos:
                     trail = max(ub[k], vw[k]) if pos > 0 else min(lb[k], vw[k])
                     if (pos > 0 and c[k] < trail) or (pos < 0 and c[k] > trail):
                         nk = k + 1
-                        close_trade((o[nk] if nk < 390 and not np.isnan(o[nk]) else c[k]) - pos * TICK)
+                        close_trade((o[nk] if nk < 390 and not np.isnan(o[nk]) else c[k]) - pos * TICK, min(nk, 389))
                 if st["pos"] == 0 and ntr < maxtr:
                     side = 1 if c[k] > ub[k] else (-1 if c[k] < lb[k] else 0)
                     if side: pending, ntr = side, ntr + 1
-    return pd.DataFrame(out, columns=["d", "pnl"])
+    return pd.DataFrame(out, columns=["d", "pnl", "ek", "xk"])
 
 
-def walk(s, e, stop, tgt, H, L, O, C, j0, j1):
+def walk(s, e, stop, tgt, H, L, O, C, j0, j1, with_exit=False):
     for j in range(j0, j1):
         if (s > 0 and L[j] <= stop) or (s < 0 and H[j] >= stop):
-            return ((min(stop, O[j]) if s > 0 else max(stop, O[j])) - s * TICK - e) * s * PV - FEE
+            r = ((min(stop, O[j]) if s > 0 else max(stop, O[j])) - s * TICK - e) * s * PV - FEE
+            return (r, j) if with_exit else r
         if (s > 0 and H[j] >= tgt) or (s < 0 and L[j] <= tgt):
-            return (tgt - e) * s * PV - FEE
-    return (C[j1 - 1] - s * TICK - e) * s * PV - FEE
+            r = (tgt - e) * s * PV - FEE
+            return (r, j) if with_exit else r
+    r = (C[j1 - 1] - s * TICK - e) * s * PV - FEE
+    return (r, j1 - 1) if with_exit else r
 
 
-def pm_fade(days, noise_days):
+def pm_fade(days, noise_days, causal_noise=None):
+    """noise_days: HINDSIGHT set (days NOISE trades at all). causal_noise: {day: [(entry_bar ek, exit bar xk)]} -> CAUSAL rule."""
     out = []
     for d, a in days:
-        if d < START or d > END or d in noise_days: continue
+        if d < START or d > END: continue
+        if causal_noise is None and d in noise_days: continue
+        sigk = min((ek - 1 for ek, _ in causal_noise.get(d, [])), default=10**9) if causal_noise is not None else None
         o, h, l, c, vw = a["open"], a["high"], a["low"], a["close"], a["vwap"]
         for k in range(210, 359):
+            if sigk is not None and sigk <= k: break   # a NOISE signal already fired today -> no fade (live rule)
             if np.isnan(c[k]) or np.isnan(vw[k]): continue
             sd = np.nanstd(c[:k + 1] - vw[:k + 1])
             if sd <= 0: continue
@@ -97,8 +112,29 @@ def pm_fade(days, noise_days):
             if not s: continue
             e = o[k + 1] + s * TICK
             if (vw[k] - e) * s < 4 * TICK: break
-            out.append((d, walk(s, e, e - s * PTS, vw[k], h, l, o, c, k + 1, 386))); break
-    return pd.DataFrame(out, columns=["d", "pnl"])
+            p, xk = walk(s, e, e - s * PTS, vw[k], h, l, o, c, k + 1, 386, True)
+            out.append((d, p, k + 1, xk)); break
+    return pd.DataFrame(out, columns=["d", "pnl", "ek", "xk"])
+
+
+def build(days, causal):
+    """-> DataFrame d,pnl,strategy,entry_time,causal (sorted by day, entry bar)."""
+    f = lambda t: t[(t.d >= START) & (t.d <= END)]
+    nt = f(noise_t(days, PTS))
+    if causal:
+        sig = {d: list(zip(g.ek, g.xk)) for d, g in nt.groupby("d")}
+        fd = pm_fade(days, set(), causal_noise=sig)
+        keep = np.ones(len(nt), bool)   # a NOISE entry while a fade is open is dropped
+        for _, r in fd.iterrows():
+            keep &= ~((nt.d == r.d) & (nt.ek >= r.ek) & (nt.ek <= r.xk)).values
+        nt = nt[keep]
+    else:
+        fd = pm_fade(days, set(nt.d))
+    t = pd.concat([nt.assign(strategy="NOISE"), fd.assign(strategy="FADE")])
+    t = t.sort_values(["d", "ek"], kind="stable").reset_index(drop=True)
+    t["entry_time"] = t.ek.map(hm)
+    t["causal"] = int(causal)
+    return t[["d", "pnl", "strategy", "entry_time", "causal"]]
 
 
 if __name__ == "__main__":
@@ -106,11 +142,11 @@ if __name__ == "__main__":
     download()
     days, nb = NG.load_days(MNQ)
     assert nb == 390
-    f = lambda t: t[(t.d >= START) & (t.d <= END)]
-    nt = f(noise_t(days, PTS))
-    t = pd.concat([nt, pm_fade(days, set(nt.d))]).sort_values("d", kind="stable").reset_index(drop=True)
-    w = t.pnl > 0
-    print(f"trades {len(t)} win {w.mean():.1%} PF {t.pnl[w].sum() / -t.pnl[~w].sum():.2f} total ${t.pnl.sum():.2f}")
-    with open(OUT, "w") as fh:
-        fh.write("# MAIN strategy (NOISE $250 + PM fade $250), MNQ 1 micro, Databento MNQ.v.0, 2021-11-01..2026-10-30, net of costs\n")
-        t.assign(pnl=t.pnl.round(2)).to_csv(fh, index=False)
+    for causal, out in ((False, OUT_HIND), (True, OUT)):
+        t = build(days, causal)
+        w = t.pnl > 0
+        print(f"{'causal' if causal else 'hindsight'}: trades {len(t)} win {w.mean():.1%} PF {t.pnl[w].sum() / -t.pnl[~w].sum():.2f} total ${t.pnl.sum():.2f}")
+        with open(out, "w") as fh:
+            rule = "CAUSAL fade (no NOISE signal yet)" if causal else "HINDSIGHT fade (NOISE-free days, D77)"
+            fh.write(f"# MAIN strategy (NOISE $250 + PM fade $250), {rule}, MNQ 1 micro, Databento MNQ.v.0, 2021-11-01..2026-10-30, net of costs\n")
+            t.assign(pnl=t.pnl.round(2)).to_csv(fh, index=False)

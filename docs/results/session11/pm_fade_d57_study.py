@@ -3,10 +3,12 @@ vs V1 = fade covered like NOISE (stop tightened by checks.pretrade rule: allowed
 scaled -> pause floor bypassed), same VWAP target. Engine = copy of session10/five_year/kill_study.py (itself a copy of eval25k_total_risk.py's verified per-trade
 1-minute simulator) with: 100K plan, Eval-Mode size tables (grow / brake / taper / day lock-in), fade-only skip counters.
 usage: pm_fade_d57_study.py verify | run"""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", ".."))
+import sys as _s; _s.path.insert(0, ROOT + "/docs/results/session14"); import causal_fade as CF   # FADE_RULE=hindsight reproduces the old numbers
 import sys, json, math
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/user/opogabuuga/backend")
-sys.path.insert(0, "/home/user/opogabuuga/docs/results/session11")
+sys.path.insert(0, ROOT + "/backend")
+sys.path.insert(0, ROOT + "/docs/results/session11")
 from multiprocessing import Pool
 from pathlib import Path
 import numpy as np
@@ -17,7 +19,7 @@ OUT = B.OUT
 SHRINK = 0.6
 STALL_N = 20
 ERA_SPLIT = "2023-12-31"
-RULES_DIR = Path("/home/user/opogabuuga/config/rules")
+RULES_DIR = Path(ROOT + "/config/rules")
 
 # ------------------------------------------------------------ stats vector layout
 (I_SIG, I_SKIP, I_STOPSUM, I_TAKEN, I_QSUM) = range(5)
@@ -117,6 +119,7 @@ def day_sim(D, bal, floor, q, cfg, kill, st, slipx=0.0):
             side = D.side.get(k, 0)
             if side == 0: idx += 1; continue
             ntr += 1
+            if CF.noise_blocked(D, k): idx += 1; continue   # session 14: causal fade open -> NOISE signal dropped
             ek = next((j for j in range(k + 1, 390) if not np.isnan(c[j])), None)
             if ek is None: idx += 1; continue
             entry = o[ek] + side * TICK
@@ -153,7 +156,7 @@ def day_sim(D, bal, floor, q, cfg, kill, st, slipx=0.0):
             if kind == "check": idx = CHECKS.index(xb); kstart = xb
             elif kind == "stop": kstart = xb; idx = next((i for i in range(n) if CHECKS[i] >= xb), n)
             else: break
-    if taken == 0 and D.fade is not None and not dll_hit():
+    if CF.fade_allowed(D, taken) and not dll_hit():
         k, s, e, tgt = D.fade
         take, pts, why, tight = decide(A.bal, floor, q, e, bp, kill, dll_left(), rule, True, fm)
         st[I_SIG] += 1; st[I_FSIG] += 1

@@ -28,5 +28,6 @@ build/
 !backend/app/backtest/data/
 backend/app/backtest/data/*
 !backend/app/backtest/data/main_strategy_5y.csv
+!backend/app/backtest/data/main_strategy_5y_hindsight.csv
 docs/results/session12/*.pkl
 docs/results/session13/*.pkl

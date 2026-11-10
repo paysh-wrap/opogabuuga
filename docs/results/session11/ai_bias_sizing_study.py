@@ -4,14 +4,15 @@ eval brake/grow tables, D68 payout cadence) with day_sim patched to size per tra
 Modes: A = cap at the day's table size (agree can only restore a braked/tapered size -> effectively "-1 on disagree");
        B = agree may exceed the table by 1 (cap = base q0 + 1; DLL/D57 stop-tightening/worst-case checks still apply).
 usage: python3 ai_bias_sizing_study.py run [seeds=200] | python3 ai_bias_sizing_study.py report"""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", ".."))
 import sys, re, inspect, json
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/user/opogabuuga/backend"); sys.path.insert(0, "/home/user/opogabuuga/docs/results/session11")
+sys.path.insert(0, ROOT + "/backend"); sys.path.insert(0, ROOT + "/docs/results/session11")
 from multiprocessing import Pool
 import numpy as np
 import pm_fade_d57_study as P
 
-OUT = "/home/user/opogabuuga/docs/results/session11/out/ai_bias_sizing.json"
+OUT = (_os.environ.get("STUDY_OUT") or ROOT + "/docs/results/session11/out") + "/ai_bias_sizing.json"
 ACCS = [0.52, 0.55, 0.60, 0.65, 0.70]
 STEP = 10
 EV = [("25K", "25K Regular (1x$250)"), ("50K", "50K"), ("100K", "100K"), ("150K", "150K")]
@@ -105,7 +106,7 @@ def report():
             r = row(agg(res, "B", a)[0], tag, "all"); cells.append(f"{r[3]-b[3]:+.0f} / {r[2]-b[2]:+.1f} / {r[1]-b[1]:+.1f}")
         L.append(f"| {tag} | " + " | ".join(cells) + " |")
     n = agg(res, "B", 0.6)[1]; L.append(f"\nseeds per cell: {n}")
-    open("/home/user/opogabuuga/docs/results/session11/out/ai_bias_tables.md", "w").write("\n".join(L)); print("\n".join(L))
+    open(OUT.replace("ai_bias_sizing.json", "ai_bias_tables.md"), "w").write("\n".join(L)); print("\n".join(L))
 
 if __name__ == "__main__":
     a = sys.argv[1:]

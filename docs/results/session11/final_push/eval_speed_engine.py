@@ -3,9 +3,11 @@ Extends docs/results/session11/pm_fade_d57_study.py (the engine that reproduces 
  checks step (60/30 min), maxtr, opening-drive (od_t copied from session10/five_year/run_b.py; keeps pause floor + structural stop),
  shrink / min_pct, unfreeze tier (fixed $ stop when DRAWDOWN_TOO_DEEP), recover (retry with fewer micros), sizer paths,
  day cap, optional consistency requirement. Defaults == live rules (verified: `eval_speed_engine.py verify`)."""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", "..", ".."))
+import sys as _s; _s.path.insert(0, ROOT + "/docs/results/session14"); import causal_fade as CF   # FADE_RULE=hindsight reproduces the old numbers
 import sys, math
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/user/opogabuuga/backend"); sys.path.insert(0, "/home/user/opogabuuga/docs/results/session11")
+sys.path.insert(0, ROOT + "/backend"); sys.path.insert(0, ROOT + "/docs/results/session11")
 import numpy as np
 import base_sim as B
 import pm_fade_d57_study as P
@@ -110,6 +112,7 @@ def day_sim(D, bal, floor, q, cfg, lockv):
                         kstart = r[1]; continue
                 od = None
             ntr += 1
+            if CF.noise_blocked(D, k): idx += 1; continue   # session 14: causal fade open -> NOISE signal dropped
             ek = next((j for j in range(k + 1, 390) if not np.isnan(c[j])), None)
             if ek is None: idx += 1; continue
             entry = o[ek] + side * TICK
@@ -142,7 +145,7 @@ def day_sim(D, bal, floor, q, cfg, lockv):
             if r:
                 tk_all += 1
                 if r[0]: return S[0], True, tk_all
-    if taken == 0 and D.fade is not None and not stopday():
+    if CF.fade_allowed(D, taken) and not stopday():
         k, s, e, tgt = D.fade
         take, pts, nq = decide_q(S[0] - floor, q, e, cfg.get("fade_bp", bp), dll_left(), cfg, True)
         if not take: return S[0], False, tk_all

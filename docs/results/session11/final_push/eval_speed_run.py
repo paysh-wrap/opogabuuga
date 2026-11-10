@@ -1,4 +1,5 @@
 """eval_speed_run.py stage1|stage2 - runs variant grids, writes eval_speed_<stage>.json. Variants = overrides on the LIVE cfg."""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", "..", ".."))
 import sys, json
 sys.dont_write_bytecode = True
 from multiprocessing import Pool

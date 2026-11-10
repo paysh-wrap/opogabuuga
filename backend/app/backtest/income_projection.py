@@ -1,7 +1,8 @@
 """D59 projected income from FUNDED Lucid accounts (dashboard). PURE: no I/O except reading the shipped research file.
 
-Replays the MAIN strategy's real per-trade results (app/backtest/data/main_strategy_5y.csv: D58 NOISE + afternoon fade,
-Databento MNQ 2021-11 → 2026-10, 1 micro, net of costs) through a funded account with the plan's OWN funded rules
+Replays the MAIN strategy's real per-trade results (app/backtest/data/main_strategy_5y.csv: D58 NOISE + CAUSAL
+afternoon fade, session 14; the old hindsight set is main_strategy_5y_hindsight.csv; Databento MNQ 2021-11 → 2026-10,
+1 micro, net of costs) through a funded account with the plan's OWN funded rules
 (RulesConfig.funded: EOD trailing MLL + lock, soft DLL, payout buffer / minimum / cycle profit / caps / consistency /
 max payouts / split, LucidFlex 50%-of-profit + profitable-days + MLL lock on payout). Rolling starts every `step`
 sessions; each start is followed for `horizon` sessions or until bust / max payouts. A payout is requested every

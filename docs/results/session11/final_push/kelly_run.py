@@ -1,4 +1,5 @@
 """kelly_run.py - runs tasks A/B/C of the Kelly sizing study -> kelly_results.json.  usage: python3 kelly_run.py"""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", "..", ".."))
 import sys, json
 sys.dont_write_bytecode = True
 from multiprocessing import Pool

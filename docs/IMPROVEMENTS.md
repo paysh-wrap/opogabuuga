@@ -113,6 +113,7 @@ Paths are under `backend/app/`. Priority: P1 = fix before any LIVE order, P2 = b
 ## P2 — D77 hindsight fade: causal rebuild plan
 
 **14. Rebuild `main_strategy_5y.csv` and projections from the causal generator.**
+- **STATUS 2026-11-10 (session 14, user-approved): steps 1-4 DONE** - causal CSV shipped (hindsight kept as `main_strategy_5y_hindsight.csv`), income_projection + Dashboard/Today notice on the causal numbers, D70/D71/D73/D74/D75 re-run. Result: profit -27%, fade PF 0.99, funded income -40..-49%; only D75 P2 for 100K changes. See `docs/results/session14/causal_projections.md`. Step 5 (paper-day parity test) still open.
 - Problem: the live app is already causal (`strategy_service.run_pm_fade` skips only if a NOISE PASS signal exists *so far*, `strategy_service.py:~390`), but `app/backtest/data/main_strategy_5y.csv` (rebuilt by `docs/results/session11/rebuild_main_csv.py`) and `backtest/income_projection.py` use "NOISE never trades all day". Session 13 `causal.py` shows -25% profit and +10 pts bust: pass rates, income and risk numbers shown on Dashboard/Today and used in D70-D75 decisions are optimistic.
 - Fix (all steps are offline, no live-code change):
   1. Extend `rebuild_main_csv.py` to import the causal rule from `docs/results/session13/causal.py`: for each day, simulate NOISE minute by minute; a fade at 13:00-15:29 is allowed iff no NOISE entry has fired before that minute; once a fade is open NOISE entries later that day are blocked only if live blocks them (check `controller` rule: one open position per account, max 1 per account).

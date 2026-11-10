@@ -1,0 +1,6 @@
+calendar 2021-11-01 2026-10-30 1305 days with data 1245
+E25 Regular fade=tighten kill 100: pass 44.5% bust 0.0% frozen 55.5% med 34 win 49.0% fadeWR 55.0%  [report: 55.5% / 0 / 43.7% med 35]
+E25 Regular fade=tighten kill 50: pass 45.2% bust 0.0% frozen 54.8% med 35 win 48.9% fadeWR 55.2%  [report: 56.0%]
+E25 Regular fade=code kill 100: pass 44.5% bust 0.0% frozen 55.5% med 35 win 48.3% fadeWR 55.7%  [report: 49.7%]
+E25 Regular fade=code kill 50: pass 45.9% bust 0.0% frozen 51.9% med 34 win 48.0% fadeWR 55.8%  [report: 56.2%]
+no rule: 51.3% / 48.2% win 48.8% [study 63.4/34.4, 50.5%]

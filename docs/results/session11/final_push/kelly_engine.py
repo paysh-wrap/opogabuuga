@@ -8,9 +8,11 @@ and adds two knobs, nothing else:
 Funded "bust" here = DEAD account = balance <= MLL (hard) OR frozen (kill switch $50 above the MLL: 20 sessions with no trade possible, never recovers).
 In this engine nearly every death is the frozen kind (the kill switch stops trading before the MLL is touched). Survivor = not dead.
 With neither knob, day_sim / sizes are the unmodified live ones (P.day_sim is called directly)."""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", "..", ".."))
+import sys as _s; _s.path.insert(0, ROOT + "/docs/results/session14"); import causal_fade as CF   # FADE_RULE=hindsight reproduces the old numbers
 import sys, math
 sys.dont_write_bytecode = True
-sys.path.insert(0, "/home/user/opogabuuga/docs/results/session11")
+sys.path.insert(0, ROOT + "/docs/results/session11")
 import numpy as np
 import pm_fade_d57_study as P
 import base_sim as B
@@ -64,6 +66,7 @@ def day_sim(D, bal, floor, q, cfg, kill, st, log=None):
             side = D.side.get(k, 0)
             if side == 0: idx += 1; continue
             ntr += 1
+            if CF.noise_blocked(D, k): idx += 1; continue   # session 14: causal fade open -> NOISE signal dropped
             ek = next((j for j in range(k + 1, 390) if not np.isnan(c[j])), None)
             if ek is None: idx += 1; continue
             entry = o[ek] + side * TICK
@@ -79,7 +82,7 @@ def day_sim(D, bal, floor, q, cfg, kill, st, log=None):
             if kind == "check": idx = CHECKS.index(xb); kstart = xb
             elif kind == "stop": kstart = xb; idx = next((i for i in range(n) if CHECKS[i] >= xb), n)
             else: break
-    if taken == 0 and D.fade is not None and not dll_hit():
+    if CF.fade_allowed(D, taken) and not dll_hit():
         k, s, e, tgt = D.fade
         take, pts, why, tight = decide(S["bal"], floor, q, e, bp, kill, dll_left(), rule, True, fm)
         st[I_SIG] += 1
@@ -193,7 +196,7 @@ def verify():
         df = pd.DataFrame(rows, columns=["date", "strategy", "pnl"])
         print("lock" if lk else "base", "replay: n", len(df), "win %.1f%%" % (100 * (df.pnl > 0).mean()), "mean %.2f sd %.1f sum %.0f" % (df.pnl.mean(), df.pnl.std(), df.pnl.sum()))
         if fn:
-            ref = pd.read_csv("/home/user/opogabuuga/docs/results/session11/final_push/" + fn)
+            ref = pd.read_csv(ROOT + "/docs/results/session11/final_push/" + fn)
             print("  csv: n", len(ref), "win %.1f%%" % (100 * (ref.pnl_per_micro > 0).mean()), "mean %.2f sd %.1f sum %.0f" % (ref.pnl_per_micro.mean(), ref.pnl_per_micro.std(), ref.pnl_per_micro.sum()))
             a = df.groupby("date").pnl.sum(); b = ref.groupby("date").pnl_per_micro.sum()
             j = a.to_frame("a").join(b.to_frame("b"), how="outer").fillna(0)

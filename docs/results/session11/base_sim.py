@@ -1,11 +1,12 @@
 """base_sim.py - rebuilt (the session-10 agent scratchpad copy is gone) from docs/results/session10/five_year/eval25k_total_risk.py:
 prep / calendar / first_hit / trade_stop_exit are copied UNCHANGED. Only the CSV path and OUT differ (CSV = merged MNQ.v.0 1-minute bars)."""
+import os as _os; ROOT = _os.environ.get("PAYTIENCE_ROOT") or _os.path.abspath(_os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "..", "..", ".."))
 import sys
 import numpy as np, pandas as pd
-sys.path[:0] = ["/home/user/opogabuuga/docs/results/tools"]
+sys.path[:0] = [ROOT + "/docs/results/tools"]
 import noise_area as NA
-CSV = "/home/user/opogabuuga/backend/app/backtest/data/raw/mnq_5y.csv"
-OUT = "/home/user/opogabuuga/docs/results/session11/out"
+CSV = ROOT + "/backend/app/backtest/data/raw/mnq_5y.csv"
+OUT = _os.environ.get("STUDY_OUT") or ROOT + "/docs/results/session11/out"
 START, END = "2021-11-01", "2026-10-30"
 PV, TICK, FEE, TV, SLIP = 2.0, 0.25, 1.0, 0.5, 1
 MARGIN, MIN_PCT = 40.0, 0.002

@@ -701,3 +701,9 @@ D79 addendum (session 13): TradingView connected (webhook secret in indicator + 
   strategy.ai_gate_min_accuracy. Unproven toggles show a gold "unproven" badge + confirm before ON. New Strategy-page card for LunqFX D76 flags.
 - Connections: CrossTrade note (needed for automated orders, reads back positions); TradersPost REMOVED from the app entirely (user: registry card, adapter, tests; live_gate broker_reads_back unchanged); ngrok card already existed (D79).
 - Dashboard + Today: notice that projections assume the hindsight fade rule (D77, ~25% optimistic) until the causal rebuild is decided. Risk page: stale D52 main-strategy text replaced.
+
+## D81 (user-approved item 14, session 14 2026-11-10): projections rebuilt on the CAUSAL afternoon-fade rule
+- `main_strategy_5y.csv` now = NOISE + fade where the fade (13:00-15:29) trades only if no NOISE signal fired yet (live rule); columns d,pnl,strategy,entry_time,causal. Old stream kept as `main_strategy_5y_hindsight.csv`. Test: `tests/unit/test_main_strategy_causal.py`.
+- Measured (docs/results/session14/causal_projections.md): 5y profit $25.3k -> $18.5k (-27%), win 50.0 -> 48.8%, fade alone PF 0.99 (-$432); Dashboard funded income -40..-47%, eval pass -8..-21 pts (25K Regular 56 -> 45%).
+- Decisions D70 / D71 / D73 / D74 / D75-P3 hold; D75-P2 reset threshold for 100K no longer safe (IS pass -7 pts) - do not use it. Open: the fade has no demonstrated edge as live trades it (separate decision); P1 profit lock and P4 cushion sizing not re-run; paper-day parity test (item 14 step 5) not done.
+
