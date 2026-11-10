@@ -311,15 +311,16 @@ class AiBiasCfg(_M):
 class AiDuoCfg(_M):
     """D83 (user button 2026-11-10, beside ai_bias): trade only when TradingAgents AND Vibe-Trading pick the same side
     (Vibe-Trading is an opinion only, never trades); enter on the first 5-minute VWAP pullback close in that direction
-    inside the entry window (03:00 London open → 11:30 ET, 09:30–09:35 excluded); structure stop capped at the NOISE
+    inside the entry window (09:36–11:30 ET per market, D86); structure stop capped at the NOISE
     dollar stop; target rr_target R (floor 1.5R); 1 micro. Markets: MNQ and/or MGC (AI Duo only; NOISE stays MNQ).
     NOT back-testable → PAPER only (paper_only can only be True until the live ledger proves ≥ 70% and the user approves
     a code change). Design: docs/results/session16/ai_combined_strategy_design.md."""
 
     markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
-    # entry window per market, ET (user 2026-11-10): MGC from the London open, MNQ around the US open. The window start
+    # entry window per market, ET (D86, user 2026-11-10: back to the best-tested hours; 03:00 starts lost,
+    # see docs/results/session16/ai_duo_window). The window start
     # is also the session-VWAP anchor; the last bar close in the window that may trigger ends it (NO_PULLBACK skip).
-    windows: dict[Literal["MNQ", "MGC"], tuple[str, str]] = {"MGC": ("03:00", "11:30"), "MNQ": ("08:00", "12:00")}
+    windows: dict[Literal["MNQ", "MGC"], tuple[str, str]] = {"MGC": ("09:36", "11:30"), "MNQ": ("09:36", "11:30")}
     # per-market account (Account.id; max 1 position per account stays): MGC and MNQ may run on different accounts.
     # A market without an entry uses any selected/armed account not assigned to the other market.
     accounts: dict[Literal["MNQ", "MGC"], int | None] = {}

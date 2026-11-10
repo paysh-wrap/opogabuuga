@@ -90,7 +90,7 @@ def test_no_trade_cases_log_one_skip_with_reason_code(db, loaded_rules, label, c
 
 
 def test_no_pullback_by_window_end_is_a_logged_skip(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _setup(s, "BUY·VT LONG 85", {k: D(20000) for k in range(160)})
         assert _run(s, rules, today + timedelta(minutes=60)).updates == []  # nothing yet, still waiting
@@ -254,6 +254,11 @@ def _with_duo(rules, **kw):
     return rules.model_copy(update={"strategy": rules.strategy.model_copy(update={"ai_duo_cfg": cfg})})
 
 
+def _early(rules):
+    """The pre-D86 windows (MGC 03:00-11:30, MNQ 08:00-12:00) for tests timed outside the 09:36 default."""
+    return _with_duo(rules, windows={"MGC": ("03:00", "11:30"), "MNQ": ("08:00", "12:00")})
+
+
 def _london(today):
     return today - timedelta(hours=6, minutes=30)  # 03:00 ET
 
@@ -290,7 +295,7 @@ def test_the_0930_0935_bar_never_triggers(db, loaded_rules):
 
 
 def test_mgc_long_entry_plan_uses_the_mgc_tick_and_cap(db, loaded_rules):  # MGC switch is off, Duo still trades it
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     pull = {**{k: D(2700) for k in range(5)}, **{k: D(2690) for k in range(5, 9)}, 9: D(2701)}
     with db() as s:
         today = _sessions(2)[-1]
@@ -322,7 +327,7 @@ def test_market_not_in_the_markets_setting_is_ignored(db, loaded_rules):
 
 def test_mgc_signal_does_not_clash_with_noise_on_mnq(db, loaded_rules):
     """METALS and EQUITY_INDEX are separate hedge groups; NOISE only trades MNQ, so no cross-market lock."""
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     pull = {**{k: D(2700) for k in range(5)}, **{k: D(2690) for k in range(5, 9)}, 9: D(2701)}
     with db() as s:
         today = _sessions(2)[-1]
@@ -373,7 +378,7 @@ def test_per_market_windows_default_and_validation():
     from app.config import AiDuoCfg
 
     c = AiDuoCfg()
-    assert c.window_for("MGC") == ("03:00", "11:30") and c.window_for("MNQ") == ("08:00", "12:00")
+    assert c.window_for("MGC") == ("09:36", "11:30") and c.window_for("MNQ") == ("09:36", "11:30")
     assert c.excluded == [("09:30", "09:35")] and c.accounts == {}
     with pytest.raises(ValueError, match="starts before"):
         AiDuoCfg(windows={"MGC": ("12:00", "03:00"), "MNQ": ("08:30", "12:00")})

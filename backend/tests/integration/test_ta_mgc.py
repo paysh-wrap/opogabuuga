@@ -15,7 +15,7 @@ from app.bias.tradingagents_adapter import RunnerResult
 from app.clock import FixedClock
 from app.models import AuditLog, BiasDecision, Signal, TradePlanRow
 from app.signals import strategy_service as SS
-from tests.integration.test_ai_duo import _bars, _london, _noise_signal
+from tests.integration.test_ai_duo import _bars, _early, _london, _noise_signal
 from tests.integration.test_bias_job import save_creds
 from tests.integration.test_strategy_service import _rules, _sessions
 
@@ -49,7 +49,7 @@ def _day(s, base=D(2701)):
 
 
 def test_setup_in_zone_with_vibe_agreement_becomes_a_paper_plan(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)
         _research(s, today)
@@ -66,7 +66,7 @@ def test_setup_in_zone_with_vibe_agreement_becomes_a_paper_plan(db, loaded_rules
 
 
 def test_between_1_5r_and_2r_is_allowed_and_tagged(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)
         _research(s, today, {**SETUP, "target": 2721})  # 20 pts over 11.4 risk = 1.75R
@@ -96,7 +96,7 @@ def test_between_1_5r_and_2r_is_allowed_and_tagged(db, loaded_rules):
     ],
 )
 def test_every_refusal_is_one_logged_skip_with_a_reason_code(db, loaded_rules, kw, code):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)
         _research(s, today, **kw)
@@ -107,7 +107,7 @@ def test_every_refusal_is_one_logged_skip_with_a_reason_code(db, loaded_rules, k
 
 
 def test_stop_too_wide_vs_the_noise_dollar_stop(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)
         _research(s, today, {**SETUP, "invalidation": 2650, "target": 2850})  # 51 pts risk > the 24.6 pt cap
@@ -115,7 +115,7 @@ def test_stop_too_wide_vs_the_noise_dollar_stop(db, loaded_rules):
 
 
 def test_price_already_through_the_invalidation(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s, D(2685))  # already below the invalidation
         _research(s, today)
@@ -123,7 +123,7 @@ def test_price_already_through_the_invalidation(db, loaded_rules):
 
 
 def test_price_above_the_zone_waits_then_skips_at_window_end(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _sessions(2)[-1]
         _bars(s, "MGC", _london(today), {}, D(2715), n=600)  # above the zone
@@ -133,7 +133,7 @@ def test_price_above_the_zone_waits_then_skips_at_window_end(db, loaded_rules):
 
 
 def test_failed_research_waits_for_the_retry_then_skips_at_window_end(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)
         _research(s, today, setup=None, vt=None, error="timeout")
@@ -143,14 +143,14 @@ def test_failed_research_waits_for_the_retry_then_skips_at_window_end(db, loaded
 
 
 def test_without_research_the_normal_duo_path_is_unchanged(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _day(s)  # no research row (key not connected): nothing from the research path
         assert _go(s, rules, today).updates[0].reason == "AI_MISSING"  # the daily-call path asks for its AI call
 
 
 def test_vibe_gate_never_opens_against_an_open_noise_for_mgc_and_excluded_minutes(db, loaded_rules):
-    rules = _rules(loaded_rules, ai_duo=True)
+    rules = _early(_rules(loaded_rules, ai_duo=True))
     with db() as s:
         today = _sessions(2)[-1]  # 09:30 ET
         _bars(s, "MGC", today - timedelta(minutes=30), {}, D(2701), n=60)
