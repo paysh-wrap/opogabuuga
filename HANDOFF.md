@@ -392,3 +392,10 @@ TradingView heartbeat finding (session 13): the user's alerts were rejected STAL
 - Session 13 audit: 21 proposals in docs/IMPROVEMENTS.md awaiting user approval (top: restart recovery, exit marked CLOSED before broker confirms, lost heartbeats/duplicates, feed-lost protection, causal projections rebuild).
 - User is running PAPER.
 - OPEN: D75 P1-P4, Lucid checks, causal rebuild decision, ngrok setup by user.
+
+## RECORD OF SESSION 14 (2026-11-10) — safety fixes + causal projections
+- BUILT (user-approved): restart recovery (Trade.om_state, recover_open_trades; unmanaged -> flatten + pause RESTART_UNMANAGED), exit confirmation (features.exit_requested, signal OPEN until broker close, exit_watchdog re-issues), lost-signal replay (Event.processed_at, replay last 5 min, "missed check minute" alert), feed-lost guard (reliability.* config: warn+block 3 min, flatten FEED_LOST 6 min, Risk page control), deterministic refs P-{signal}-{account}, failed-exit retry + alert. UI: SafetyBanners on every page, exit-pending badge (Trade), FeedGuardSettings (Risk). Note: docs/results/session14/safety_fixes.md. Live recovery tested only vs fake broker.
+- Causal projections (D81): main_strategy_5y.csv is now causal (old kept as _hindsight). Stream $25,345 -> $18,539; the PM fade has NO edge causally (PF 0.99, -$432); NOISE unchanged. Pro 25K x5 yearly $8,232 -> $4,409; eval pass rates down 5-21 pts. D75 P2 100K threshold no longer safe. Write-up: docs/results/session14/causal_projections.md.
+- New review findings N3-N12 in docs/IMPROVEMENTS.md "Session 14 review". MOST URGENT: N6 consistency fit uses NOISE's far 10% TP -> zero NOISE trades on FUNDED/Flex/Daily-EVAL (risk-check change, needs user OK). N3 pre-flight stubs + not scheduled.
+- Tests: 686 backend (100% cov), 62 UI, lint clean.
+- OPEN: N6/N3 approval, whether to turn the PM fade off, D75 P1/P4 re-run on causal data, item-14 paper parity test, Lucid questions, ngrok setup.
