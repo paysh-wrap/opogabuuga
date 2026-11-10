@@ -27,6 +27,15 @@ if __name__ == "__main__":
                 cap0 = (ECAP if kind == "E" else FCAP)[plan]
                 for k in KS:
                     for dc in (0, 1, 2): jobs.append((kind, plan, stream, (k, cap0 + dc)))
-    with Pool(4, initializer=K.init) as p: res = p.map(work, jobs, chunksize=1)
-    json.dump(res, open("kelly_results.json", "w"), indent=0)
-    print(len(res), "jobs done")
+    import os
+    done = [json.loads(l) for l in open("kelly_results.jsonl")] if os.path.exists("kelly_results.jsonl") else []
+    key = lambda kind, plan, stream, kelly: (kind, plan, stream, tuple(kelly) if kelly else None)
+    have = {key(d["kind"], d["plan"], d["stream"], d["kelly"]) for d in done}
+    jobs = [j for j in jobs if key(*j) not in have]
+    jobs.sort(key=lambda j: (j[0] == "F", j[2] == "lock"))
+    print(len(have), "done,", len(jobs), "to run", flush=True)
+    with Pool(4, initializer=K.init) as p, open("kelly_results.jsonl", "a") as f:
+        for r in p.imap_unordered(work, jobs, chunksize=1):
+            f.write(json.dumps(r) + "\n"); f.flush(); done.append(r)
+    json.dump(done, open("kelly_results.json", "w"), indent=0)
+    print(len(done), "jobs done")

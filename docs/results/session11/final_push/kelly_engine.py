@@ -19,7 +19,12 @@ from pm_fade_d57_study import decide, I_TAKEN, I_SIG, I_SKIP, STALL_N, KILL, BP
 CHECKSET = set(CHECKS)
 LOCK = (100.0, 10.0)
 
+_LC = {}
 def lock_exit(D, side, entry, ek, stop, be, lk):
+    key = (id(D), side, ek, stop, be, lk); r = _LC.get(key)
+    if r is None: r = _LC[key] = _lock_exit(D, side, entry, ek, stop, be, lk)
+    return r
+def _lock_exit(D, side, entry, ek, stop, be, lk):
     """-> (pnl_per_micro, bar, kind, locked_stop)"""
     o, h, l, c = D.o, D.h, D.l, D.c; hs = stop; last = None
     for k in range(ek, 390):
