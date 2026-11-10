@@ -308,6 +308,45 @@ class AiBiasCfg(_M):
     paper_only: bool = True
 
 
+class AiDuoCfg(_M):
+    """D83 (user button 2026-11-10, beside ai_bias): trade only when TradingAgents AND Vibe-Trading pick the same side
+    (Vibe-Trading is an opinion only, never trades); enter on the first 5-minute VWAP pullback close in that direction
+    inside the entry window (03:00 London open → 11:30 ET, 09:30–09:35 excluded); structure stop capped at the NOISE
+    dollar stop; target rr_target R (floor 1.5R); 1 micro. Markets: MNQ and/or MGC (AI Duo only; NOISE stays MNQ).
+    NOT back-testable → PAPER only (paper_only can only be True until the live ledger proves ≥ 70% and the user approves
+    a code change). Design: docs/results/session16/ai_combined_strategy_design.md."""
+
+    markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
+    window_start: str = (
+        "03:00"  # entry window opens (also the session-VWAP anchor); first trigger is the next 5-min close
+    )
+    window_end: str = "11:30"  # last 5-minute close that may trigger; no pullback by then → NO_PULLBACK skip
+    excluded: list[tuple[str, str]] = [("09:30", "09:35")]  # no bar touching these minutes may trigger (D11)
+    bar_minutes: int = 5
+    vt_min_conf: int = 60  # Vibe-Trading confidence needed for "strong"
+    stop_buffer_ticks: int = 2
+    rr_target: D = D("2.0")
+    rr_min: D = D("1.5")  # firm floor (CLAUDE.md D49): config refuses lower
+    flat_at: str = "16:00"
+    contracts: int = 1
+    paper_only: Literal[True] = True
+
+    @model_validator(mode="after")
+    def _valid(self) -> AiDuoCfg:
+        if self.rr_min < D("1.5") or self.rr_target < self.rr_min:
+            raise ValueError("ai_duo: rr_min ≥ 1.5 and rr_target ≥ rr_min")
+        if self.bar_minutes < 1 or self.contracts < 1 or self.vt_min_conf < 1 or self.stop_buffer_ticks < 0:
+            raise ValueError("ai_duo: bar_minutes, contracts, vt_min_conf ≥ 1 and stop_buffer_ticks ≥ 0")
+        if not self.markets or len(set(self.markets)) != len(self.markets):
+            raise ValueError("ai_duo: markets needs MNQ and/or MGC, no duplicates")
+        times = [self.window_start, self.window_end, self.flat_at, *(x for w in self.excluded for x in w)]
+        if any(not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", x) for x in times):
+            raise ValueError("ai_duo: times are HH:MM")
+        if not self.window_start < self.window_end:
+            raise ValueError("ai_duo: window_start before window_end")
+        return self
+
+
 class PmFadeCfg(_M):
     """D58 (user 2026-11-09): afternoon VWAP-band fade on MNQ, ONLY when NOISE has not traded today; paper first.
     Rules (docs/results/session10/five_year/stops_250.py, 5y with NOISE: pass 66% / bust 32%): on each 1-minute close
@@ -423,6 +462,7 @@ class StrategyCfg(_M):
     open_drive: bool = False
     ai_bias: bool = False
     pm_fade: bool = False
+    ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     # D57: NOISE / AI_BIAS scale their emergency stop down as the account draws down instead of pausing at the pause
     # floor: worst case ≤ this fraction of the room (DLL left / distance to MLL − kill distance); None = old pause.
     drawdown_shrink: D | None = D("0.6")
@@ -431,6 +471,7 @@ class StrategyCfg(_M):
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
+    ai_duo_cfg: AiDuoCfg = AiDuoCfg()
     structure_filters: StructureFilterCfg = StructureFilterCfg()
     lunqfx_structure: LunqStructureCfg = LunqStructureCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)

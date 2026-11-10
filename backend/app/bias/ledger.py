@@ -9,10 +9,11 @@ Required accuracy: 70% for NOISE (89% of its trades already go with the day; bre
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.bias.policy import Call, LedgerStats, Policy, combine, ledger_stats, score, wilson_lower
@@ -174,3 +175,28 @@ def coverage(s: Session, proxy: str, symbol: str, today: date, days: int = 30) -
             )
         d -= timedelta(days=1)
     return out
+
+
+def duo_decisions(s: Session, symbols: Sequence[str], limit: int = 20) -> list[dict[str, Any]]:
+    """D83: the AI Duo decision log — one row per session: taken (PASS) or skipped with its reason code, next to the
+    AI call (TA rating, VT side + confidence) that was scored. Newest first."""
+    from app.models import Signal
+
+    rows = s.execute(
+        select(Signal)
+        .where(or_(*(Signal.model_key.like(f"{sym}-DUO-%") for sym in symbols)))
+        .order_by(Signal.id.desc())
+        .limit(limit)
+    ).scalars()
+    return [
+        {
+            "symbol": x.symbol,
+            "day": x.model_key.rsplit("-DUO-", 1)[-1],
+            "status": x.status,
+            "code": x.skip_reason or "TAKEN",
+            "direction": x.direction,
+            "label": (x.features or {}).get("label"),
+            "agrees_with_noise": (x.features or {}).get("agrees_with_noise"),
+        }
+        for x in rows
+    ]

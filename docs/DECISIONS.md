@@ -723,3 +723,17 @@ D79 addendum (session 13): TradingView connected (webhook secret in indicator + 
   `lock_exit` on the NOISE signal, which stops new NOISE entries that day. Config `noise_cfg.profit_lock_trigger_pts / profit_lock_pts`.
 - Known gaps: the preset size row applies to every account regardless of its size (UI warns when the plan size differs); D74 AI sizing (+1 micro,
   proven ledger only) still applies on top. Details + tests: docs/results/session16/presets_build.md.
+
+## D83 (user 2026-11-10, session 16): "AI Duo" strategy button (beside ai_bias, PAPER only, default OFF)
+- Side: TradingAgents AND Vibe-Trading must both pick the same side (TA BUY/SELL, VT same side, confidence >= 60). Vibe-Trading only gives an
+  opinion (LONG/SHORT/NEUTRAL + confidence), never trades. Any disagreement, failure, NEUTRAL or weak call = no trade with a reason code
+  (AI_MISSING, AI_TA_MISSING, AI_VT_MISSING, AI_NEUTRAL, AI_DISAGREE, AI_NOT_STRONG).
+- Entry: first 5-minute VWAP pullback close in the AI direction inside the entry window 03:00 (London open) -> 11:30 ET (My Settings
+  `strategy.ai_duo_cfg.window_start/window_end`; 09:30-09:35 stays excluded; session VWAP anchored at window_start). Stop = beyond the pullback swing, capped at
+  the NOISE dollar stop (config); target 2.0R (config refuses < 1.5R); fixed 1 micro. Markets MNQ and MGC (`strategy.ai_duo_cfg.markets`, AI Duo only; NOISE stays MNQ;
+  an AI call is also produced for the MGC proxy GLD while Duo is on). Each market decides once a day: one trade or one SKIP row (direction NONE) with its code,
+  plus an `ai_duo.decision` audit entry; `ledger.duo_decisions` / Strategy page list them.
+- Hedge lock unchanged (household, EQUITY_INDEX / METALS): NOISE open opposite -> Duo Skip HEDGE_LOCK; Duo open first -> NOISE Skip HEDGE_LOCK; same-bar tie -> NOISE wins
+  (it runs first); same direction allowed and flagged `agrees_with_noise`. A stopped-out signal no longer holds the lock. MGC never clashes with NOISE (different group).
+- PAPER only: `paper_only` is `Literal[True]` in config and the controller refuses AI_DUO on any non-simulator account (PAPER_ONLY_STRATEGY). Untested strategy (LLM calls
+  cannot be back-tested): no historical win rate is claimed. Details: docs/results/session16/ai_duo_build.md.

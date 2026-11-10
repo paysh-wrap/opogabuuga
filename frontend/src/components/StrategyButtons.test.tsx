@@ -14,6 +14,10 @@ const resp: StrategiesResp = {
   noise_warmup: { sessions: 3, needed: 10, ready: false },
   ai_ledger: [{ proxy: "QQQ", symbol: "MNQ", state: "WARMUP", badge: "ADVISORY", required_accuracy: 0.7, min_calls: 30, stats: { n: 0, hit_rate: 0, brier: 0.25, wilson_lb: 0 } }],
   markets: { MNQ: true, MGC: false },
+  ai_duo_log: [
+    { day: "2026-11-09", status: "SKIP", code: "AI_DISAGREE", direction: "NONE", label: "BUY·VT SHORT 85", agrees_with_noise: null },
+    { day: "2026-11-06", status: "PASS", code: "TAKEN", direction: "LONG", label: "BUY·VT LONG 80", agrees_with_noise: true },
+  ],
   size_profiles: {
     active: "regular", setting: "strategy.high_risk",
     regular: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 2 }],
@@ -39,6 +43,9 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("noise-warmup")).toHaveTextContent("3/10");
   expect(screen.getByTestId("ai-ledger")).toHaveTextContent("ADVISORY");
   expect(screen.getByText(/MGC \(gold\) is off/)).toBeInTheDocument();
+  expect(screen.getByTestId("duo-log")).toHaveTextContent("NO TRADE · AI_DISAGREE");
+  expect(screen.getByTestId("duo-log")).toHaveTextContent("TRADE LONG · TAKEN");
+  expect(screen.getByTestId("duo-log")).toHaveTextContent("same side as NOISE");
   const btn = screen.getByRole("button", { name: /OFF · LunqFX/ });
   expect(btn).toHaveAttribute("aria-pressed", "false");
   await userEvent.click(btn);

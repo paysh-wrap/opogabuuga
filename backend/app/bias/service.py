@@ -23,7 +23,8 @@ OK = ("LONG_ONLY", "SHORT_ONLY", "NEUTRAL")
 
 
 def proxies(rules: Any) -> list[str]:
-    return sorted({i.bias_proxy for i in rules.instruments.values() if i.enabled})
+    duo = set(rules.strategy.ai_duo_cfg.markets) if rules.strategy.ai_duo else set()  # D83: AI Duo markets
+    return sorted({i.bias_proxy for k, i in rules.instruments.items() if i.enabled or k in duo})
 
 
 def _done(s: Session, sess: date, proxy: str) -> bool:
@@ -79,7 +80,15 @@ async def run_bias(
             except (ValueError, KeyError) as e:
                 outlook, status = None, f"credentials: {type(e).__name__}"
             else:
-                sym = next((k for k, i in rules.instruments.items() if i.enabled and i.bias_proxy == proxy), proxy)
+                sym = next(
+                    (
+                        k
+                        for k, i in rules.instruments.items()
+                        if (i.enabled or (rules.strategy.ai_duo and k in rules.strategy.ai_duo_cfg.markets))
+                        and i.bias_proxy == proxy
+                    ),
+                    proxy,
+                )
                 outlook, status = await vt.run(
                     vt.executable(Path(vt_root)),
                     venv,

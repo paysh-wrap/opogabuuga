@@ -69,6 +69,10 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.noise",
         "strategy.open_drive",
         "strategy.ai_bias",
+        "strategy.ai_duo",  # D83
+        "strategy.ai_duo_cfg.markets",
+        "strategy.ai_duo_cfg.window_start",
+        "strategy.ai_duo_cfg.window_end",
         "strategy.pm_fade",
         "strategy.high_risk",
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)

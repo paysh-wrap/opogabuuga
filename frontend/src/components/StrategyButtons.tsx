@@ -26,7 +26,9 @@ export interface StrategiesResp {
   markets: Record<string, boolean>;
   size_profiles?: SizeProfiles;
   presets?: PresetsResp;
+  ai_duo_log?: DuoRow[];
 }
+export interface DuoRow { day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null }
 export interface PresetRow {
   key: string; label: string; summary: string; account: string; study: string; pass_pct: number; bust_pct: number;
   held_out: boolean; recommended: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
@@ -129,6 +131,16 @@ export default function StrategyButtons() {
             })}
           </div>
           <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit and $250-per-micro emergency stop in both profiles.</p>
+        </div>
+      )}
+      {d.ai_duo_log && d.ai_duo_log.length > 0 && (
+        <div className="mt-3 text-sm" data-testid="duo-log">
+          <b className="text-gold">AI Duo decisions (paper only) — one per day, with the reason code:</b>
+          <ul className="text-blue">
+            {d.ai_duo_log.map((r) => (
+              <li key={r.day}>{r.day}: <b className="text-gold">{r.status === "PASS" ? `TRADE ${r.direction}` : "NO TRADE"}</b> · {r.code} · AI call {r.label || "none"}{r.agrees_with_noise != null && (r.agrees_with_noise ? " · same side as NOISE" : "")}</li>
+            ))}
+          </ul>
         </div>
       )}
       <div className="mt-3 text-sm" data-testid="ai-ledger">

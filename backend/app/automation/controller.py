@@ -46,7 +46,13 @@ from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
-STRATEGY_MODES = ("NOISE", "OPEN_DRIVE", "AI_BIAS", "PM_FADE")  # D55: TradePlan modes of the fixed-size strategies
+STRATEGY_MODES = (
+    "NOISE",
+    "OPEN_DRIVE",
+    "AI_BIAS",
+    "PM_FADE",
+    "AI_DUO",
+)  # D55: TradePlan modes of the fixed-size strategies
 RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
@@ -369,6 +375,7 @@ class Controller:
             "OPEN_DRIVE": r.strategy.open_drive_cfg.paper_only,
             "AI_BIAS": r.strategy.ai_bias_cfg.paper_only,
             "PM_FADE": r.strategy.pm_fade_cfg.paper_only,
+            "AI_DUO": r.strategy.ai_duo_cfg.paper_only,  # D83: not back-testable → paper accounts only
         }
         if paper_only.get(strategy) and not a.is_sim:
             return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # D55/D56: not verified → paper accounts only
@@ -435,6 +442,7 @@ class Controller:
                 "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
                 "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
                 "PM_FADE": r.strategy.pm_fade_cfg.contracts,
+                "AI_DUO": r.strategy.ai_duo_cfg.contracts,
             }[strategy]
             if strategy
             else None
@@ -531,7 +539,7 @@ class Controller:
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
             fixed_contracts=fixed,
-            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS") else None,
+            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)

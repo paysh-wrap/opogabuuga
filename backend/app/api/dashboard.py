@@ -469,7 +469,7 @@ def _presets(r: Any) -> dict[str, Any]:
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
     progress and the AI calibration ledger (advisory until proven)."""
-    from app.bias.ledger import status
+    from app.bias.ledger import duo_decisions, status
     from app.engine.strategy_catalog import CATALOG
     from app.signals.strategy_service import load_days
 
@@ -481,6 +481,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "lunqfx": r.strategy.lunqfx,
         "open_drive": r.strategy.open_drive,
         "ai_bias": r.strategy.ai_bias,
+        "ai_duo": r.strategy.ai_duo,
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
     }
     nc = r.strategy.noise_cfg
@@ -500,6 +501,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         },
         "ai_ledger": ledgers,
         "presets": _presets(r),
+        "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
         "gate_chain": _gate_chain(r),
         "lunqfx_flags": _lunqfx_flags(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},

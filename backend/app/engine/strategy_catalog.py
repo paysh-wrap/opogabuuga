@@ -95,4 +95,27 @@ CATALOG: list[dict[str, object]] = [
         "note": "Only trades on days both tools agree (~27% of days). Real results build in the AI ledger; "
         "paper accounts only until the ledger proves ≥ 60% accuracy.",
     },
+    {
+        "key": "ai_duo",
+        "name": "AI Duo — both AIs agree, VWAP pullback entry (MNQ + MGC) — paper only",
+        "source": "D83: TradingAgents + Vibe-Trading must pick the same side (Vibe only gives an opinion); first "
+        "5-min VWAP pullback close 03:00–11:30 ET (09:30–09:35 excluded); structure stop capped at the NOISE $ "
+        "stop; 2.0R target (floor 1.5R); 1 micro; MNQ and MGC",
+        "verified": False,
+        "status": "PAPER ONLY",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": 1.35,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "NOT back-testable (LLM calls can't be run on past dates). Needs ~27% of days where both agree; "
+        "break-even win rate at 2R is about 38%.",
+        "note": "Window 03:00 (London open) → 11:30 ET and markets MNQ / MGC are editable in My Settings (MGC: AI "
+        "Duo only, NOISE stays MNQ). Never trades when the AIs disagree, either fails or says NEUTRAL; never "
+        "opposite a NOISE position (hedge lock: NOISE open → Duo skips, Duo open first → NOISE blocked, same-bar "
+        "tie → NOISE wins). Every day logs a decision with a reason code. Paper accounts only until the AI "
+        "ledger proves ≥ 70%.",
+    },
 ]

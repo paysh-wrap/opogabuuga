@@ -21,6 +21,7 @@ from app.bias import ledger
 from app.bias.policy import Policy, combine
 from app.clock import ET, Clock
 from app.config import RulesConfig
+from app.engine import ai_duo as DU
 from app.engine import noise as N
 from app.engine import open_drive as OD
 from app.engine import pm_fade as PF
@@ -73,10 +74,13 @@ def _today_signals(s: Session, symbol: str, tag: str, day: str) -> list[Signal]:
     return list(s.execute(select(Signal).where(Signal.model_key.like(f"{prefix}%")).order_by(Signal.id)).scalars())
 
 
-def _gate(rules: RulesConfig, symbol: str, at: datetime, calendar: CalendarProvider) -> tuple[bool, str, str]:
-    """G1 for strategy entries: instrument on, trading window, calendar present, no news blackout."""
+def _gate(
+    rules: RulesConfig, symbol: str, at: datetime, calendar: CalendarProvider, enabled: bool | None = None
+) -> tuple[bool, str, str]:
+    """G1 for strategy entries: instrument on, trading window, calendar present, no news blackout.
+    `enabled` overrides the instrument's own switch (AI Duo trades the markets in its own markets list)."""
     inst = rules.instrument(symbol)
-    if not inst.enabled:
+    if not (inst.enabled if enabled is None else enabled):
         return False, "INSTRUMENT_DISABLED", ""
     if not in_windows(at, inst.windows or rules.internal.windows):
         return False, "OUTSIDE_WINDOW", ""
@@ -259,6 +263,8 @@ def run_noise(
             )
             entries += 1
             gate = _gate(rules, cfg.symbol, at, calendar)
+            if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, a.direction) is not None:
+                gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
             gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
             if gate[0]:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
                 why = ledger.may_block(
@@ -501,6 +507,181 @@ def run_ai_bias(
     return out
 
 
+def _holds_position(s: Session, sig: Signal) -> bool:
+    """A strategy signal that still holds (or is about to hold) a position: state OPEN and either no trade was
+    booked yet (pending execution) or a trade of it is still open. A stopped-out trade no longer holds the lock."""
+    if sig.features.get("state") != "OPEN":
+        return False
+    rows = list(s.execute(select(Trade.closed_at).where(Trade.signal_id == sig.id)).scalars())
+    return not rows or any(c is None for c in rows)
+
+
+def hedge_lock_vs(s: Session, symbol: str, tag: str, day: str, direction: Direction) -> Signal | None:
+    """D83: an OPEN position/signal of strategy `tag` (NOISE / DUO) today in the OPPOSITE direction → HEDGE_LOCK.
+    Same direction is allowed. This mirrors the household hedge lock (risk/hedge_lock, unchanged) at signal level."""
+    for x in _today_signals(s, symbol, tag, day):
+        if x.direction != direction.value and x.direction in ("LONG", "SHORT") and _holds_position(s, x):
+            return x
+    return None
+
+
+def _duo_log(s: Session, clock: Clock, day: str, code: str, detail: dict[str, object]) -> None:
+    """Every Duo decision (taken or skipped) is audited with its reason code (ledger.duo_decisions lists them)."""
+    audit.record(s, clock, "engine", "ai_duo.decision", f"DUO-{day}", {"code": code, **detail})
+
+
+def _duo_skip(
+    s: Session, clock: Clock, symbol: str, day: str, at: datetime, code: str, detail: dict[str, object]
+) -> StrategyOutput:
+    """A Duo day with no trade: one SKIP signal (direction NONE) carrying the reason code. No plan, never executed."""
+    out = StrategyOutput()
+    sig = Signal(
+        symbol=symbol,
+        profile="TIGHT",
+        direction="NONE",
+        model_key=f"{symbol}-DUO-{day}",
+        bar_time=at,
+        status="SKIP",
+        passed=False,
+        skip_reason=code,
+        features={**detail, "strategy": "AI_DUO", "state": "SKIPPED"},
+        updated_at=clock.now(),
+    )
+    s.add(sig)
+    s.flush()
+    s.add(SignalGate(signal_id=sig.id, gate="G1", passed=False, detail={"code": code, "hard": True, "detail": ""}))
+    _duo_log(s, clock, day, code, {"symbol": symbol, **detail})
+    out.updates.append(SignalUpdate(sig.id, sig.model_key, "SKIP", code, None))
+    return out
+
+
+def _mod(hhmm: str) -> int:
+    h, m = (int(x) for x in hhmm.split(":"))
+    return h * 60 + m
+
+
+def _bars_by_minute(s: Session, symbol: str, at: datetime) -> dict[int, Bar]:
+    """Today's (ET) 1-minute bars from midnight to `at`, keyed by the minute of day at which each bar CLOSES."""
+    et = at.astimezone(ET)
+    start = et.replace(hour=0, minute=0, second=0, microsecond=0)
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time > start, Bar.close_time <= at)
+        .order_by(Bar.close_time)
+    ).scalars()
+    return {(b.close_time.astimezone(ET).hour * 60 + b.close_time.astimezone(ET).minute): b for b in rows}
+
+
+def run_ai_duo(
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    at: datetime,
+    symbol: str,
+    exits_only: bool = False,
+) -> StrategyOutput:
+    """D83 AI Duo on one market: both AIs must pick the same side; entry on the first 5-minute VWAP pullback close in
+    that direction inside the entry window (03:00–11:30 ET by default, 09:30–09:35 excluded); one decision per market
+    per day (a trade or one SKIP with a reason code). PAPER only (config + controller)."""
+    cfg = rules.strategy.ai_duo_cfg
+    out = StrategyOutput()
+    et = at.astimezone(ET)
+    m, day = et.hour * 60 + et.minute, et.date().isoformat()  # m = minute of day at which this bar CLOSES
+    if m == _mod(cfg.flat_at):
+        for x in _today_signals(s, symbol, "DUO", day):
+            if x.features.get("state") == "OPEN":
+                _close(s, x, "DUO_FLAT_1600", at, clock)
+                out.exits.append((x.id, "DUO_FLAT_1600"))
+        return out
+    n, first, last = cfg.bar_minutes, _mod(cfg.window_start), _mod(cfg.window_end)
+    if exits_only or not first < m <= last or m % n != 0:
+        return out
+    if any(_mod(a) < m and m - n < _mod(b) for a, b in cfg.excluded):
+        return out  # the bar covers excluded minutes (09:30–09:35): never a trigger
+    if _today_signals(s, symbol, "DUO", day):
+        return out  # one decision per market per day
+    inst = rules.instrument(symbol)
+    last_call = list(
+        s.execute(
+            select(BiasDecision)
+            .where(BiasDecision.proxy == inst.bias_proxy, BiasDecision.session_date == et.date())
+            .order_by(BiasDecision.id)
+        ).scalars()
+    )[-1:]
+    if not last_call:
+        return _duo_skip(s, clock, symbol, day, at, "AI_MISSING", {"label": None})
+    label = last_call[0].raw_rating
+    ta, vd, vc = ledger.parse_label(label)
+    side, code = DU.ai_side(ta, vd, vc, cfg.vt_min_conf)
+    info: dict[str, object] = {"label": label, "ta": ta, "vt": vd, "vt_conf": vc}
+    if side is None:
+        return _duo_skip(s, clock, symbol, day, at, code, info)
+    bars = _bars_by_minute(s, symbol, at)
+    win = [bars.get(i) for i in range(m - n + 1, m + 1)]
+    if any(b is None for b in win):
+        if m >= last:
+            return _duo_skip(s, clock, symbol, day, at, "FEED_GAP", info)
+        return out  # a missing bar: wait for the next 5-minute close
+    cur = [b for b in win if b is not None]
+    since = [b for i, b in sorted(bars.items()) if i > first]  # session VWAP anchored at the window start
+    vw = N.vwap([(b.h, b.l, b.c, b.v) for b in since])
+    bar = DU.aggregate([(b.o, b.h, b.l, b.c) for b in cur])
+    prev_win = [bars.get(i) for i in range(m - 2 * n + 1, m - n + 1)]
+    prev = DU.aggregate([(b.o, b.h, b.l, b.c) for b in prev_win if b is not None]) if None not in prev_win else None
+    if not DU.pullback_trigger(side, bar, vw):
+        if m >= last:
+            return _duo_skip(s, clock, symbol, day, at, "NO_PULLBACK", info)
+        return out
+    nc = rules.strategy.noise_cfg
+    slip = inst.slippage_ticks or rules.trade_plan.slippage_ticks
+    cap = (
+        N.stop_pts_for_usd(nc.emergency_stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+        if nc.emergency_stop_usd
+        else bar.c * nc.emergency_stop_pct
+    )
+    p = DU.plan(
+        side,
+        bar.c,
+        bar,
+        prev,
+        tick=inst.tick,
+        buffer_ticks=cfg.stop_buffer_ticks,
+        min_stop_ticks=inst.min_stop_ticks or rules.trade_plan.min_stop_ticks,
+        cap_pts=cap,
+        rr_target=cfg.rr_target,
+        rr_min=max(cfg.rr_min, rules.trade_plan.rr_min),
+    )
+    if isinstance(p, str):
+        return _duo_skip(s, clock, symbol, day, at, p, info)
+    gate = _gate(rules, symbol, at, calendar, enabled=symbol in cfg.markets)
+    # household hedge lock (unchanged rule): an open NOISE position/signal on the opposite side blocks Duo. NOISE is MNQ
+    # only; on MGC (METALS) there is nothing to clash with. Same-bar tie: NOISE ran first → NOISE wins.
+    if gate[0] and hedge_lock_vs(s, symbol, "NOISE", day, side) is not None:
+        gate = (False, "HEDGE_LOCK", "NOISE holds the opposite side today")
+    agrees = any(x.direction == side.value and x.status == "PASS" for x in _today_signals(s, symbol, "NOISE", day))
+    new = _new_signal(
+        s,
+        clock,
+        symbol=symbol,
+        key=f"{symbol}-DUO-{day}",
+        direction=side,
+        at=at,
+        gate=gate,
+        features={
+            **info,
+            "prob_up": combine(ta, vd, vc, Policy(bias_matters=True)).prob_up,
+            "stop_capped": p.stop_capped,
+            "agrees_with_noise": agrees,
+            "paper_only": cfg.paper_only,
+        },
+        plan=("AI_DUO", p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
+    )
+    _duo_log(s, clock, day, "TAKEN" if gate[0] else gate[1], {"symbol": symbol, **info, "entry": str(p.entry)})
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -532,6 +713,10 @@ def run(
         out.exits += r.exits
     if st.ai_bias and symbol == st.ai_bias_cfg.symbol:
         r = run_ai_bias(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.ai_duo and symbol in st.ai_duo_cfg.markets:  # after NOISE: on a same-bar tie NOISE wins (D83)
+        r = run_ai_duo(s, rules, clock, calendar, at, symbol, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     s.commit()
