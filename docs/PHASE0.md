@@ -23,7 +23,7 @@ paytience/
 │   │   │                 eval_mode.py consistency.py hedge_lock.py                          (PURE)
 │   │   ├── phases/       phase_engine.py mll_tracker.py transitions.py                      (PURE)
 │   │   ├── automation/   controller.py preflight.py pauses.py account_selector.py cooldown.py
-│   │   ├── execution/    order_manager.py adapters/{base,tradovate,traderspost,sim}.py
+│   │   ├── execution/    order_manager.py adapters/{base,tradovate,sim}.py
 │   │   ├── monitor/      pnl_monitor.py kill_switch.py reconcile.py inactivity.py
 │   │   ├── payouts/      payout_engine.py plan_tracker.py
 │   │   ├── bias/         tradingagents_adapter.py
@@ -43,15 +43,14 @@ Note: the package `app/calendar/` shadows Python's stdlib `calendar` only for re
 
 Findings (third-party sources, must be verified by you with Lucid/Tradovate):
 - Lucid reportedly **allows automation/API trading** on eval and funded accounts; bans HFT, microscalping and cross-account hedging; trader is liable for software errors. LucidDaily funded is reportedly intraday drawdown with a "flat 1 min before/after" news rule — matches spec.
-- **Native Tradovate API keys are generally NOT issued for prop-firm accounts** (reports: requires own live account with ~$1,000 equity + ~$25/mo API add-on, and prop accounts have API disabled). Partner-OAuth routes (TradersPost, CrossTrade, PickMyTrade) exist precisely because of this.
+- **Native Tradovate API keys are generally NOT issued for prop-firm accounts** (reports: requires own live account with ~$1,000 equity + ~$25/mo API add-on, and prop accounts have API disabled). Partner-OAuth routes (CrossTrade, PickMyTrade) exist precisely because of this.
 
-Consequence for the architecture: the `BrokerAdapter` needs `get_positions`, `get_balance`, `stream_fills`, `modify_stop`. A webhook-only relay (TradersPost) is mostly **one-way**: we can send brackets, but may not be able to read positions/fills/balance back. Without read-back, the kill switch ($100 from MLL), reconcile, hedge detection and stop-modify confirmation cannot be enforced → the app would be in permanent CONSERVATIVE MODE, and per §1.9 that may block FULL-AUTO entirely.
+Consequence for the architecture: the `BrokerAdapter` needs `get_positions`, `get_balance`, `stream_fills`, `modify_stop`. A webhook-only relay is mostly **one-way**: we can send brackets, but may not be able to read positions/fills/balance back. Without read-back, the kill switch ($100 from MLL), reconcile, hedge detection and stop-modify confirmation cannot be enforced → the app would be in permanent CONSERVATIVE MODE, and per §1.9 that may block FULL-AUTO entirely.
 
 Options:
 | Option | Send orders | Read positions/fills/P&L | Notes |
 |---|---|---|---|
 | A. Tradovate native API (OAuth/partner) | ✅ | ✅ | Best fit for spec; only if Lucid/Tradovate grant API access on your Lucid accounts |
-| B. TradersPost | ✅ | ⚠️ limited/none (verify) | Easy; forces CONSERVATIVE MODE; guard ON (modify_stop) likely unsupported |
 | C. CrossTrade / PickMyTrade-style partner | ✅ | ⚠️ varies | Third-party dependency + fee |
 
 **Recommendation:** ask Lucid support in writing (a) whether API trading via Tradovate is permitted on LucidDaily eval/funded and (b) whether they/Tradovate will enable API access (OAuth) on those account IDs. If yes → Option A primary, Sim for paper. If no → Option B, and I'll implement `capabilities` honestly so SEMI-AUTO works but FULL-AUTO stays blocked until position read-back exists. Phase 1–4 do not depend on this, so we can proceed with Sim while you ask.

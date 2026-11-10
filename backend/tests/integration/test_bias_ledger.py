@@ -94,6 +94,8 @@ def test_gate_chain_and_ai_threshold_from_config(authed):
     d = authed.get("/api/strategies").json()
     ids = {g["id"]: g for g in d["gate_chain"]}
     assert ids["G1"]["on"] and ids["G1"]["locked"] and ids["RISK"]["kind"] == "pillar"
-    assert not ids["G6"]["on"] and not ids["FRACTAL"]["on"] and not ids["G4"]["on"]
-    assert ids["AI"]["on"] and "70%" in ids["AI"]["text"]
+    assert not ids["G6"]["on"] and ids["G6"]["unproven"] and not ids["OB"]["on"]
+    assert ids["FRACTAL"]["state"] == ids["G4"]["state"] == "LUNQFX_ONLY" and ids["G4"]["scope"] == "lunqfx"
+    assert ids["AI"]["state"] == "ADVISORY" and "70%" in ids["AI"]["text"]
+    assert {f["setting"] for f in d["lunqfx_flags"]} >= {"strategy.lunqfx_structure.enabled"}
     assert d["ai_ledger"][0]["required_accuracy"] == 0.7

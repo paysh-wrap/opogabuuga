@@ -13,7 +13,7 @@ class LiveInputs:
     env_allow_live: bool  # PAYTIENCE_ALLOW_LIVE=true on the server
     toggle_on: bool  # Settings toggle (stored, typed phrase required to turn on)
     broker_name: str
-    broker_reads_back: bool  # positions/fills read-back (CrossTrade yes, TradersPost no)
+    broker_reads_back: bool  # positions/fills read-back (CrossTrade yes)
     broker_connected: bool
     parity_sessions: int  # sessions where Python ↔ Pine bridge ↔ original indicators matched
     unconfirmed_verify: int  # rule values still marked VERIFY

@@ -6,7 +6,7 @@ I trade LucidDaily 25K accounts (evaluation and funded) and want to confirm a fe
 automated system:
 
 1. Is fully automated order placement allowed on LucidDaily evaluation AND funded accounts, if the orders are sent
-   through TradersPost (TradingView webhook → Tradovate) or through CrossTrade/NinjaTrader?
+   through CrossTrade (TradingView webhook → Tradovate)?
    Every order would carry a stop-loss and take-profit, hold at least 6 seconds, and never hedge across accounts.
 2. Can API access (Tradovate API / OAuth) be enabled on my Lucid-issued Tradovate account IDs so my software can
    read positions, fills and P&L? If not, which supported route lets software read them?

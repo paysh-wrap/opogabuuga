@@ -25,7 +25,7 @@ Priorities: firm-rule compliance > capital safety > correctness > fully working 
 
 ## 1. NON-NEGOTIABLE RULES
 1.1 Never automate/scrape the TradingView site/trading panel or the Lucid site. Live signals arrive ONLY via TradingView webhooks. Playwright tests OUR app only.
-1.2 Never persist passwords. Prefer broker OAuth or TradersPost. If the Tradovate API needs credentials: one-time modal → memory only → discard; store only the encrypted token (OS keychain preferred); auto-renew.
+1.2 Never persist passwords. Prefer broker OAuth. If the Tradovate API needs credentials: one-time modal → memory only → discard; store only the encrypted token (OS keychain preferred); auto-renew.
 1.3 Lucid has no public API. Lucid account = Tradovate account ID + rule profile + stage (EVAL/FUNDED/LIVE). The "Lucid" button only opens the Lucid dashboard in a new tab.
 1.4 Never disguise automation as manual trading.
 1.5 Default PAPER (Tradovate demo). LIVE needs env PAYTIENCE_ALLOW_LIVE=true + Settings toggle + typed "I ACCEPT LIVE RISK" + completed Live-Readiness Checklist (§21).
@@ -53,7 +53,7 @@ management/(drawdown_guard, runner, exits)
 risk/(risk_base, tiers, sizing, checks, validation, eval_mode, consistency, hedge_lock)
 phases/(phase_engine, mll_tracker, transitions)
 automation/(controller, preflight, pauses, account_selector, cooldown)
-execution/(order_manager, adapters/{base,tradovate,traderspost,sim})
+execution/(order_manager, adapters/{base,tradovate,sim})
 monitor/(pnl_monitor, kill_switch, reconcile, inactivity)
 payouts/(payout_engine, plan_tracker)
 bias/(tradingagents_adapter) calendar/(econ_calendar)
@@ -85,7 +85,7 @@ class BrokerAdapter(Protocol):
     def stream_pnl(self) -> AsyncIterator[PnlUpdate] | None: ...  # None → CONSERVATIVE MODE
     async def health(self) -> AdapterHealth: ...
 ```
-Adapters: TradovateDirect, TradersPost, Sim (fees, slippage, stop-first on ambiguous bars).
+Adapters: TradovateDirect, Sim (fees, slippage, stop-first on ambiguous bars).
 PHASE 0 MUST RESOLVE WITH ME: broker route (incl. Tradovate API access/market-data requirements) + historical data source (+ ES data if SMT enabled).
 CONSERVATIVE MODE: open positions assumed at stop; UI banner. Manual trades made outside the app → reconcile.py counts them in risk; a hedge → loud alert.
 

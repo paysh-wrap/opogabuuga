@@ -42,7 +42,7 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
   hold rule, funded EOD default, 09:30–09:35 exclusion, indicator source access).
 - Lucid facts used (from search results; Lucid's own site is blocked here — VERIFY in your dashboard):
   MGC + MYM approved; commissions $0.50/side (MNQ/MES/MYM), $0.80/side (MGC); microscalping flag if > 50% of profit
-  from trades held ≤ 5 s; automation allowed, HFT banned; TradersPost lists Lucid as a supported prop firm.
+  from trades held ≤ 5 s; automation allowed, HFT banned; 
 
 ### Phase 2 (built)
 - Webhook receiver (secret check, freshness, duplicates, rate limit, < 1 s reply), market state store, feed
@@ -78,7 +78,7 @@ Claude app history. Decisions are formalised in docs/DECISIONS.md; proposals awa
 ### Open items
 - Allow www.tradingview.com in the environment's network settings so the original indicator source can be read
   and verified (only you can change that setting).
-- Read-back of positions/fills for the kill switch: TradersPost sends orders but likely cannot report positions.
+- Read-back of positions/fills is required for the kill switch.
   Options to settle before Phase 5: Tradovate API access on Lucid accounts (ask Lucid) or CrossTrade/NinjaTrader.
 - 1:1 mode: LIVE stage allowed? 40% consistency cap on FUNDED too?
 - Approve the win-rate filters (docs/IMPROVEMENTS.md §E) and self-learning proposals (§A).

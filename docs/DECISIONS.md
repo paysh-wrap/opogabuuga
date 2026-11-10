@@ -693,3 +693,11 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Connections shows https://<domain>/api/webhook/tradingview with "permanent — set once in TradingView" when ngrok is active. Only on Connections (not Dashboard).
 
 D79 addendum (session 13): TradingView connected (webhook secret in indicator + CME real-time data ~$7/mo); user stays PAPER for now. Broker bridge options (not built): CrossTrade Pro ~$49/mo = supported safe option (position read-back required by live gate); Tradovate API add-on ~$30/mo only if Lucid allows (ask); TradersPost cannot read back positions. ngrok path untested against a real account.
+
+## D80 (user 2026-11-10, session 13): UI sync with D72-D79 (no strategy, risk or projection change)
+- Strategy page gate chain (/api/strategies.gate_chain) now lists exactly what applies to NOISE + PM fade: G1, pillar risk checks, OB/SMT filter (OFF, shadow-logged), MSO divergence (OFF),
+  AI gate (ADVISORY, threshold strategy.ai_gate_min_accuracy editable 55-95%), and G2/G3/G4/G5/G7/fractal marked "LunqFX only". Each row: state + plain reason incl. tested result.
+- Toggles added to My Settings allow-list (validated flow): strategy.structure_filters.{enabled,ob_filter,smt_filter,mso_div_filter,shadow_log}, strategy.lunqfx_structure.{enabled,anchor_stop,shadow_log},
+  strategy.ai_gate_min_accuracy. Unproven toggles show a gold "unproven" badge + confirm before ON. New Strategy-page card for LunqFX D76 flags.
+- Connections: CrossTrade note (needed for automated orders, reads back positions); TradersPost REMOVED from the app entirely (user: registry card, adapter, tests; live_gate broker_reads_back unchanged); ngrok card already existed (D79).
+- Dashboard + Today: notice that projections assume the hindsight fade rule (D77, ~25% optimistic) until the causal rebuild is decided. Risk page: stale D52 main-strategy text replaced.

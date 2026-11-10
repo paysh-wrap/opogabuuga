@@ -71,6 +71,16 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_bias",
         "strategy.pm_fade",
         "strategy.high_risk",
+        # D80: gate toggles shown on the Strategy page (all default OFF / unproven; each is a pure filter that can only block)  # noqa: E501
+        "strategy.structure_filters.enabled",
+        "strategy.structure_filters.ob_filter",
+        "strategy.structure_filters.smt_filter",
+        "strategy.structure_filters.mso_div_filter",
+        "strategy.structure_filters.shadow_log",
+        "strategy.lunqfx_structure.enabled",
+        "strategy.lunqfx_structure.anchor_stop",
+        "strategy.lunqfx_structure.shadow_log",
+        "strategy.ai_gate_min_accuracy",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         *(

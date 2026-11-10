@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
+import HindsightNote from "../components/HindsightNote";
 import WhyNoTrade from "../components/WhyNoTrade";
 import { EvalPaceCard } from "../components/DashboardExtras";
 import { ApiError } from "../lib/api";
@@ -106,6 +107,7 @@ export default function Today() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Today</h1>
+      <HindsightNote />
       <p className="text-sm">{d.signals.length} signals · {d.signals.filter((s) => s.status === "PASS").length} passed · {d.trades.length} trades · net{" "}
         <b className="text-gold">{net > 0 ? "▲ +" : net < 0 ? "▼ −" : ""}${Math.abs(net).toFixed(2)}</b></p>
 

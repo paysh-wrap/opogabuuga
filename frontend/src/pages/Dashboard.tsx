@@ -5,6 +5,7 @@ import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
 import WhyNoTrade from "../components/WhyNoTrade";
 import IncomeProjection from "../components/IncomeProjection";
+import HindsightNote from "../components/HindsightNote";
 import RuleMeters from "../components/RuleMeters";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
@@ -70,6 +71,7 @@ export default function Dashboard() {
         <ApprovalQueue />
         <BiasAndBlackouts />
       </div>
+      <HindsightNote />
       <IncomeProjection />
       <WhyNoTrade />
       {d.accounts.length === 0 && <p>No accounts yet — add one on the Automation page.</p>}

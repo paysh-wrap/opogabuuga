@@ -302,67 +302,129 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
 
 
 def _gate_chain(r: Any) -> list[dict[str, object]]:
-    """D77: the gates a NOISE / PM_FADE entry passes (all must pass; a gate can only block). Read from the live config —
-    nothing is hardcoded here, so the UI shows exactly what the engine does."""
+    """D77/D80: the gates a NOISE / PM_FADE entry passes (all must pass; a gate can only block). Read from the live
+    config —
+    nothing is hardcoded here, so the UI shows exactly what the engine does. state: ON | OFF | ADVISORY | LUNQFX_ONLY.
+    setting = My Settings key a toggle may edit (None = not editable); unproven = gold badge + confirm in the UI."""
     sf, st = r.strategy.structure_filters, r.strategy
     inst = r.instrument(st.noise_cfg.symbol)
     win = ", ".join(f"{a}-{b}" for a, b in (inst.windows or r.internal.windows))
+    ob_on = sf.enabled and (sf.ob_filter or sf.smt_filter)
+
+    def row(
+        id_: str,
+        name: str,
+        kind: str,
+        state: str,
+        text: str,
+        setting: str | None = None,
+        unproven: bool = False,
+        locked: bool = False,
+        scope: str = "noise_fade",
+    ) -> dict[str, object]:
+        return {
+            "id": id_,
+            "name": name,
+            "kind": kind,
+            "state": state,
+            "on": state in ("ON", "ADVISORY"),
+            "locked": locked,
+            "text": text,
+            "setting": setting,
+            "unproven": unproven,
+            "scope": scope,
+        }
+
+    lunq = "Applies to the LunqFX engine only - not to NOISE or the afternoon fade."
+    return [
+        row(
+            "G1",
+            "Window / news / calendar / instrument",
+            "firm-safe",
+            "ON",
+            f"Entries only inside {win} ET, no high-impact news within {r.internal.no_entry_before_news_min} min, calendar must be loaded, instrument enabled.",  # noqa: E501
+            locked=True,
+        ),
+        row(
+            "RISK",
+            "Risk, sizing, DLL/MLL, kill switch, hedge lock",
+            "pillar",
+            "ON",
+            "Pillar checks (G8): never tuned by strategy studies; they can only block or shrink.",
+            locked=True,
+        ),
+        row(
+            "OB",
+            "Order-block / SMT structure filter (D76)",
+            "study",
+            "ON" if ob_on else "OFF",
+            "Tested 2024-26 on NOISE + fade: no win-rate and profit gain (SMT cut 17-84% of trades) - off. Verdicts are shadow-logged, nothing is blocked.",  # noqa: E501
+            setting="strategy.structure_filters.enabled",
+            unproven=True,
+        ),
+        row(
+            "G6",
+            "MSO divergence filter (D77)",
+            "study",
+            "ON" if sf.enabled and sf.mso_div_filter else "OFF",
+            f"Blocks an entry if an opposing MSO divergence printed in the last {sf.mso_div_minutes} min ({sf.mso_tf_min}-min bars). Tested 2024-26: noise-level (about 1% of trades), no gain - off.",  # noqa: E501
+            setting="strategy.structure_filters.mso_div_filter",
+            unproven=True,
+        ),
+        row(
+            "AI",
+            "AI bias: TradingAgents + Vibe-Trading",
+            "ai",
+            "ADVISORY",
+            f"Records one call per day and scores it. It may block an entry only when BOTH tools agree strongly and the live record proves >= {float(st.ai_gate_min_accuracy):.0%} (strategy.ai_gate_min_accuracy). Until then it only advises. Simulated 55-70% accuracy moved held-out win rate by at most +0.5 pt.",  # noqa: E501
+            setting="strategy.ai_gate_min_accuracy",
+        ),
+        row("G2", "Daily bias gate (G2)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
+        row("G3", "Model valid + C1 range (G3)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
+        row(
+            "G4",
+            "Big Beluga MSO structure agrees (G4)",
+            "lunqfx",
+            "LUNQFX_ONLY",
+            lunq + " Tested as a filter on NOISE + fade: cut 5-40% of trades and held-out win rate and profit fell.",
+            scope="lunqfx",
+        ),
+        row("G5", "CHoCH / BoS after sweep (G5)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
+        row("G7", "Valid TradePlan + score (G7)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
+        row(
+            "FRACTAL",
+            "LunqFX fractal agreement",
+            "lunqfx",
+            "LUNQFX_ONLY",
+            "LunqFX only. Tested as a filter on NOISE + fade: kept 30-50% of trades, profit fell 55-80% - off. LunqFX stays a SHADOW strategy.",  # noqa: E501
+            scope="lunqfx",
+        ),
+    ]
+
+
+def _lunqfx_flags(r: Any) -> list[dict[str, object]]:
+    """D76/D80: the LunqFX structure-filter flags (all unproven; the OB filter was the best candidate, still a loss)."""
+    lf = r.strategy.lunqfx_structure
+    f = lf.filter
     return [
         {
-            "id": "G1",
-            "name": "Window / news / calendar / instrument",
-            "kind": "firm-safe",
-            "on": True,
-            "locked": True,
-            "text": f"Entries only inside {win} ET, no high-impact news within {r.internal.no_entry_before_news_min} min, calendar must be loaded.",
+            "setting": "strategy.lunqfx_structure.enabled",
+            "name": "Structure filter (OB / SMT) blocks LunqFX entries",
+            "on": lf.enabled,
+            "text": "Tested 2024-26: OB filter lifted win rate 53.9% to 62.9% but still lost money; SMT was worse.",
         },
         {
-            "id": "RISK",
-            "name": "Risk, sizing, DLL/MLL, kill switch, hedge lock",
-            "kind": "pillar",
-            "on": True,
-            "locked": True,
-            "text": "Pillar checks (§9/§10): never tuned by strategy studies; they can only block or shrink.",
+            "setting": "strategy.lunqfx_structure.anchor_stop",
+            "name": "Order-block stop anchor",
+            "on": lf.anchor_stop,
+            "text": "Tested: no effect (a tighter stop almost never keeps R:R at or below 3.0) - off.",
         },
         {
-            "id": "G4",
-            "name": "Big Beluga MSO structure (G4/G5)",
-            "kind": "study",
-            "on": False,
-            "locked": False,
-            "text": "Measured on NOISE + fade: cuts trades 5-40% and held-out win rate / profit fall. Not available as a filter for these strategies (LunqFX engine only).",
-        },
-        {
-            "id": "G6",
-            "name": "Big Beluga MSO divergence",
-            "kind": "study",
-            "on": sf.enabled and sf.mso_div_filter,
-            "locked": False,
-            "text": f"Blocks an entry if an opposing MSO divergence printed in the last {sf.mso_div_minutes} min ({sf.mso_tf_min}-min bars). Measured: noise-level (about 1% of trades) - OFF.",
-        },
-        {
-            "id": "FRACTAL",
-            "name": "LunqFX fractal agreement",
-            "kind": "study",
-            "on": False,
-            "locked": False,
-            "text": "Measured: keeps only 30-50% of trades, profit falls 55-80% - OFF. LunqFX stays a SHADOW strategy.",
-        },
-        {
-            "id": "OB",
-            "name": "Order-block / SMT filter (D76)",
-            "kind": "study",
-            "on": sf.enabled and (sf.ob_filter or sf.smt_filter),
-            "locked": False,
-            "text": "Measured in session 12: no held-out gain - OFF (shadow-logged).",
-        },
-        {
-            "id": "AI",
-            "name": "AI bias: TradingAgents + Vibe-Trading (advisory until proven)",
-            "kind": "ai",
-            "on": True,
-            "locked": False,
-            "text": f"Records one call per day and scores it. It may block an entry only when BOTH tools agree strongly and the record proves >= {float(st.ai_gate_min_accuracy):.0%} (config strategy.ai_gate_min_accuracy). Until then it only advises.",
+            "setting": "strategy.lunqfx_structure.shadow_log",
+            "name": "Shadow-log the verdicts",
+            "on": lf.shadow_log,
+            "text": "Stores what the filter would have blocked without blocking it "
+            f"(OB {'on' if f.ob_filter else 'off'}, SMT {'on' if f.smt_filter else 'off'}).",
         },
     ]
 
@@ -402,6 +464,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         },
         "ai_ledger": ledgers,
         "gate_chain": _gate_chain(r),
+        "lunqfx_flags": _lunqfx_flags(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
         "size_profiles": {  # D64: Regular / High risk buttons (each account sized by its own size + drawdown brake)
             "active": "high" if r.strategy.high_risk else "regular",

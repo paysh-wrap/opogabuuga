@@ -219,20 +219,12 @@ PROVIDERS: tuple[Provider, ...] = (
             Link("API docs", "https://crosstrade.io/docs/api/tradovate/overview"),
         ),
         fields=(FieldSpec("token", "Secret key (My Account → Security → Reveal)"),),
+        note="Needed for automated orders on any Lucid account. It reads positions back, which the live-readiness gate requires.",  # noqa: E501
         steps=(
             "Subscribe to CrossTrade Pro (the REST API needs Pro).",
             "Link your Lucid Tradovate login inside CrossTrade.",
             "Paste the secret key here → Save & Test (read-only check, places no order).",
         ),
-    ),
-    Provider(
-        id="traderspost",
-        name="TradersPost (alternative order route)",
-        category="broker",
-        testable=False,
-        purpose="Webhook relay to Tradovate. Cannot be tested without sending an order, so it shows 'Saved'.",
-        links=(Link("Log in", "https://app.traderspost.io/login"), Link("Sign up", "https://traderspost.io/")),
-        fields=(FieldSpec("webhook_url", "Strategy webhook URL"),),
     ),
     Provider(
         id="lucid",

@@ -19,7 +19,6 @@ def test_lists_every_service_with_links(authed, mock_http):
         "tradingview",
         "tradingagents",
         "tradovate",
-        "traderspost",
         "lucid",
         "databento",
         "fincept",
@@ -94,15 +93,6 @@ def test_validation_errors(authed, mock_http):
     assert v["status"] == "failed"
     v = authed.put("/api/connections/tradingagents", json={"values": {"llm_provider": "notreal", "api_key": "k" * 20}})
     assert v.status_code == 422
-
-
-def test_untestable_broker_shows_saved_not_connected(authed, mock_http):
-    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
-    v = authed.put(
-        "/api/connections/traderspost",
-        json={"values": {"webhook_url": "https://webhooks.traderspost.io/trading/webhook/abc/def"}},
-    ).json()
-    assert v["status"] == "saved"  # we never send a test order
 
 
 def test_tunnel_reacts_when_reachable(authed, mock_http):
