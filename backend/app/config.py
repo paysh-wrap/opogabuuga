@@ -347,6 +347,25 @@ class SizeTierCfg(_M):
         return self
 
 
+class StructureFilterCfg(_M):
+    """D76: order-block (OB) + SMT (MNQ vs MES) FILTER for NOISE / PM_FADE. Default OFF: nothing blocks;
+    with shadow_log the verdict (what it WOULD have blocked, and the OB anchor stop) is stored on the signal.
+    A filter can only block.
+    Study (docs/results/session12): no variant improved both win rate and profit held-out -> keep enabled=false."""
+
+    enabled: bool = False  # true = a blocked entry becomes a SKIP (OB_BLOCK / SMT_BLOCK)
+    shadow_log: bool = True
+    ob_filter: bool = True
+    ob_tf_min: int = 1
+    ob_body_atr: D = D("1.5")
+    ob_swing_bars: int = 10
+    ob_dist_pts: D = D("25")
+    smt_filter: bool = False  # needs MES 1-minute bars in the feed; skipped when absent
+    smt_lookback: int = 20
+    smt_valid_bars: int = 15
+    anchor_buffer_pts: D = D("2")  # shadow only: where an OB-anchored stop would sit (never applied live)
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
     they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
@@ -364,6 +383,7 @@ class StrategyCfg(_M):
     open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
+    structure_filters: StructureFilterCfg = StructureFilterCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
     size_table: list[SizeTierCfg] = []
     # D74 (user 2026-11-10): AI-bias SIZING (study docs/results/session11/ai_bias_sizing_study.md, version B): when the

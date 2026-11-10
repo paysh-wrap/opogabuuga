@@ -24,8 +24,10 @@ from app.config import RulesConfig
 from app.engine import noise as N
 from app.engine import open_drive as OD
 from app.engine import pm_fade as PF
+from app.engine import structure_filter as SF
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
+from app.indicators.bars import Bar as IBar
 from app.models import Bar, BiasDecision, Signal, SignalGate, TradePlanRow
 from app.signals.service import CalendarProvider, SignalUpdate
 
@@ -147,6 +149,51 @@ def _close(sig: Signal, reason: str, at: datetime, clock: Clock) -> None:
     sig.updated_at = clock.now()
 
 
+def _ibars(rows: list[Bar]) -> list[IBar]:
+    out = []
+    for b in rows:
+        ms = int(b.close_time.timestamp() * 1000)
+        out.append(IBar(ms - 60_000, ms, b.o, b.h, b.l, b.c, b.v))
+    return out
+
+
+def structure_check(
+    s: Session,
+    rules: RulesConfig,
+    symbol: str,
+    at: datetime,
+    today_bars: dict[int, Bar],
+    k: int,
+    direction: Direction,
+    price: Decimal,
+    fixed_stop: Decimal,
+    gate: tuple[bool, str, str],
+) -> tuple[tuple[bool, str, str], dict[str, object]]:
+    """D76 OB/SMT FILTER. Default OFF: returns the gate unchanged; with shadow_log the verdict is stored on the signal.
+    A veto can only turn a passing gate into a skip (never adds a trade)."""
+    cfg = rules.strategy.structure_filters
+    if not (cfg.enabled or cfg.shadow_log):
+        return gate, {}
+    mnq = _ibars([b for kk, b in sorted(today_bars.items()) if kk <= k])
+    mes_rows = list(
+        s.execute(
+            select(Bar)
+            .where(Bar.symbol == "MES", Bar.tf == "1", Bar.close_time > at - timedelta(minutes=len(mnq) + 1))
+            .where(Bar.close_time <= at)
+            .order_by(Bar.close_time)
+        ).scalars()
+    )
+    v = SF.evaluate(
+        cfg, direction.sign, price, fixed_stop, rules.instrument(symbol).tick, mnq, _ibars(mes_rows) or None
+    )
+    feats: dict[str, object] = {
+        "structure": {"would_block": v.veto, "ob_anchor_stop": None if v.anchor_stop is None else str(v.anchor_stop)}
+    }
+    if cfg.enabled and v.veto and gate[0]:
+        gate = (False, v.veto, "order block / SMT structure is against this side (D76 filter)")
+    return gate, feats
+
+
 def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime) -> StrategyOutput:
     cfg = rules.strategy.noise_cfg
     out = StrategyOutput()
@@ -200,6 +247,7 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
             )
             entries += 1
             gate = _gate(rules, cfg.symbol, at, calendar)
+            gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
             if gate[0]:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
                 why = ledger.may_block(
                     s, inst.bias_proxy, cfg.symbol, at.astimezone(ET).date(), a.direction.sign, ledger.NOISE_MIN_ACC
@@ -222,6 +270,7 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
                     "vwap": None if vw is None else str(vw),
                     "close": str(close),
                     "k": k,
+                    **sf,
                 },
                 plan=("NOISE", p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
             )
@@ -360,6 +409,9 @@ def run_pm_fade(
         s.flush()
         out.updates.append(SignalUpdate(sig.id, sig.model_key, sig.status, sig.skip_reason, None))
         return out
+    fgate, sf = structure_check(
+        s, rules, cfg.symbol, at, days[-1].bars, k, d.direction, close, d.stop, _gate(rules, cfg.symbol, at, calendar)
+    )
     new = _new_signal(
         s,
         clock,
@@ -367,8 +419,15 @@ def run_pm_fade(
         key=f"{cfg.symbol}-FADE-{day}",
         direction=d.direction,
         at=at,
-        gate=_gate(rules, cfg.symbol, at, calendar),
-        features={"vwap": str(d.vwap), "sd": str(d.sd), "close": str(close), "k": k, "paper_only": cfg.paper_only},
+        gate=fgate,
+        features={
+            "vwap": str(d.vwap),
+            "sd": str(d.sd),
+            "close": str(close),
+            "k": k,
+            "paper_only": cfg.paper_only,
+            **sf,
+        },
         plan=("PM_FADE", d.entry, d.stop, d.take_profit, d.risk_pts, d.rr),
     )
     out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))

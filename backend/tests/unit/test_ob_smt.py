@@ -71,3 +71,23 @@ def test_smt():
     assert find_smt(flat(25), flat(25), SmtConfig()) == []
     with pytest.raises(ValueError):
         find_smt(flat(25), flat(26)[1:], SmtConfig())
+
+
+def test_structure_filter_verdict():
+    from app.config import StructureFilterCfg
+    from app.engine.structure_filter import evaluate
+
+    bars = flat(14) + [bar(14, 100, 102, 99.5, 101), bar(15, 101, 101, 94, 95)]
+    cfg = StructureFilterCfg(ob_body_atr=D(2), ob_swing_bars=5, ob_dist_pts=D(5))
+    assert evaluate(cfg, 1, D(99), D(60), D("0.25"), bars, None).veto == "OB_BLOCK"
+    v = evaluate(cfg, -1, D(95), D(120), D("0.25"), bars, None)
+    assert v.veto is None and v.anchor_stop == D(104)
+    assert evaluate(cfg, -1, D(95), D(100), D("0.25"), bars, None).anchor_stop is None
+    # SMT: A new high, B not -> long blocked
+    a = flat(25)
+    b = flat(25)
+    a[24] = bar(24, 100, 106, 100, 105)
+    c2 = StructureFilterCfg(ob_filter=False, smt_filter=True)
+    assert evaluate(c2, 1, D(105), D(50), D("0.25"), a, b).veto == "SMT_BLOCK"
+    assert evaluate(c2, -1, D(105), D(50), D("0.25"), a, b).veto is None
+    assert evaluate(c2, 1, D(105), D(50), D("0.25"), a, None).veto is None

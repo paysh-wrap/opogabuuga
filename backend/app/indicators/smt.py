@@ -1,6 +1,7 @@
 """SMT divergence between two correlated instruments (MNQ vs MES). PURE, Decimal, closed bars only.
 
-Bars of both instruments must be aligned (same open_ms). At bar i (confirmed on ITS close — event time = that bar's close_ms):
+Bars of both instruments must be aligned (same open_ms). At bar i (confirmed on ITS close;
+event time = that bar's close_ms):
   bearish SMT: A closes a new `lookback`-bar high while B does not (or the reverse)  -> weakness, blocks LONGs
   bullish SMT: A closes a new `lookback`-bar low while B does not (or the reverse)   -> strength, blocks SHORTs
 "new high" = close_i > max(close of the previous `lookback` bars) (only past bars are used).
@@ -45,7 +46,9 @@ def find_smt(a: Sequence[Bar], b: Sequence[Bar], cfg: SmtConfig) -> list[SmtSign
     return out
 
 
-def blocked_by_smt(direction_sign: int, signals: Sequence[SmtSignal], last_index: int, cfg: SmtConfig) -> SmtSignal | None:
+def blocked_by_smt(
+    direction_sign: int, signals: Sequence[SmtSignal], last_index: int, cfg: SmtConfig
+) -> SmtSignal | None:
     """FILTER: LONG blocked by a recent bearish SMT, SHORT by a recent bullish SMT."""
     for s in reversed(signals):
         if last_index - s.index > cfg.valid_bars:

@@ -1,8 +1,8 @@
 """Order blocks (OB). PURE, Decimal, closed bars only, no lookahead.
 
 Definition (all numbers from config, see ObConfig):
-  displacement bar = a bar whose body >= body_atr * ATR(atr_period) AND whose close breaks the highest high (bull) / lowest
-  low (bear) of the previous `swing_bars` bars.
+  displacement bar = a bar whose body >= body_atr * ATR(atr_period) AND whose close breaks the highest high
+  (bull) / lowest low (bear) of the previous `swing_bars` bars.
   bullish OB = the last BEARISH bar before a bullish displacement (zone = its [low, high]); bearish OB = mirror.
   The OB is CONFIRMED on the close of the displacement bar (event time = that bar's close_ms, never the OB bar's).
   Mitigated (dead) once any later closed bar closes through the far edge of the zone (below the low of a bull OB,
@@ -85,8 +85,8 @@ def blocked_by_opposing(
 def anchor_stop(
     direction_sign: int, entry: Decimal, stop: Decimal, blocks: Sequence[OrderBlock], buffer: Decimal, tick: Decimal
 ) -> Decimal:
-    """STOP ANCHOR: nearest live same-side OB below (long) / above (short) the entry; stop = its far edge -/+ buffer, tick
-    rounded away from entry. Returned ONLY if it is closer to entry than `stop` (risk never widens); else `stop` is kept."""
+    """STOP ANCHOR: nearest live same-side OB below (long) / above (short) the entry; stop = its far edge -/+ buffer,
+    tick rounded away from entry. Returned ONLY if closer to entry than `stop` (never widens); else `stop` is kept."""
     best: Decimal | None = None
     for ob in blocks:
         if direction_sign > 0 and ob.bullish and ob.low < entry:
