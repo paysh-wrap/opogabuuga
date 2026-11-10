@@ -374,3 +374,9 @@ RESULTS (all wired in, default OFF, shadow-logged):
 - LunqFX (22 sampled months), held-out: baseline 53.9%, −$27,322. OB filter 62.9%, −$5,724 (better, still losing). SMT worse. OB anchor made no difference (R:R went above 3.0).
 OPEN: D75 proposals P1–P4 still await the user; Lucid checks (consistency on Pro evals, reset/eval prices, payout spacing) and the AI key are still open; session-10/11 open items unchanged.
 NOTE: a 40 MB days.pkl is in history at commit 62252ba (untracked now) — makes the bundle large.
+
+## RECORD OF SESSION 13 (2026-11-10) — gate chain for NOISE + fade
+Results: docs/results/session13/README.md; decision D77. Branch claude/laughing-feynman-1f0fm5.
+No gate was proven useful (windows/hours/cooldown/band, MSO structure, MSO divergence, LunqFX fractal all fail the held-out win-rate AND profit rule). Hindsight finding: the fade's
+NOISE-free-day rule is look-ahead; causal version = ~-25% profit, +10 pts bust -> rebuild main_strategy_5y.csv and projections (OPEN). AI gate stays advisory;
+threshold is config strategy.ai_gate_min_accuracy (0.70). UI: Strategy page "Gates for NOISE + afternoon fade" card from /api/strategies.gate_chain. Tests: 631 backend (100% cov), 55 UI.
