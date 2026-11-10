@@ -399,3 +399,15 @@ TradingView heartbeat finding (session 13): the user's alerts were rejected STAL
 - New review findings N3-N12 in docs/IMPROVEMENTS.md "Session 14 review". MOST URGENT: N6 consistency fit uses NOISE's far 10% TP -> zero NOISE trades on FUNDED/Flex/Daily-EVAL (risk-check change, needs user OK). N3 pre-flight stubs + not scheduled.
 - Tests: 686 backend (100% cov), 62 UI, lint clean.
 - OPEN: N6/N3 approval, whether to turn the PM fade off, D75 P1/P4 re-run on causal data, item-14 paper parity test, Lucid questions, ngrok setup.
+
+## RECORD OF SESSION 15 (2026-11-10) — best strategy for Lucid Pro (RESEARCH ONLY, nothing built)
+- Report: docs/results/session15/README.md + Paytience_best_strategy_lucid.pdf (make_pdf.py; replaces the old income PDF on causal numbers).
+- Strict test (causal, fees + 1 tick/side, pick 2021-11..2023-12, judge 2024-01..2026-10, Pro plan rules, bust = dead account, no freeze).
+- 21 ideas besides plain NOISE on MNQ/MES/MGC (45 market tests): NOTHING outside the NOISE family passes. NOISE on MES/MGC fails too.
+- Recommendation (awaiting user approval): NOISE + profit lock (D75-P1: +100 pt -> stop entry+10 pt), fade OFF, smaller sizes:
+  50K 1 micro; 100K 2 micros (1 under $2,100 cushion); 150K 3 micros (1 under $2,250 cushion) = best plan. 25K cannot meet the limits.
+  Held-out: eval pass 77-78%, eval bust 18-23%, funded bust yr1 11-23%, $46 / $61 / $79 per 2 weeks per account (x5 for 5 accounts), 7-9 months per eval.
+  Win rate 48% IS / 52% HO — a 60-70% win rate is not reachable with an edge.
+- Caveat: sizing chosen knowing both periods (IS-only sizing fails held-out: MNQ $ swings +60% since the index is ~68% higher).
+- Raw MES/MGC/MNQ 1-minute files are NOT committed (scratchpad only); build_raw.py documents the Databento download.
+- OPEN: user approval for the lock + size table + fade off; verify with Lucid that a 7-9 month evaluation is allowed and the eval/reset prices; DECISIONS.md entry not written.
