@@ -152,7 +152,7 @@ internal:
   low_risk_max_trades_per_day: 7       # D51 (user): Lower risk mode up to 7/day; normal mode max 3
   max_consecutive_losses_per_day: 2
   internal_max_micros: 10
-  kill_switch_mll_distance: 100
+  kill_switch_mll_distance: 50   # D71 (user 2026-11-10): freeze with $50 left to the loss limit instead of $100
   cushion_target_balance: 28100
   cap_guard_total_above_buffer: 10000
   consistency_day_stop_buffer_pct: 5

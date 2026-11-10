@@ -186,3 +186,16 @@ def test_pro_plans_pay_out_the_maximum_on_their_cadence():  # D67 / D68
             n,
             None,
         ), stem
+
+
+def test_pro_plans_freeze_with_50_left_to_the_loss_limit():  # D71
+    from pathlib import Path
+
+    from app.config import load_rules
+
+    root = Path(__file__).resolve().parents[3] / "config" / "rules"
+    for stem in ("lucid_pro_25k", "lucid_pro_50k", "lucid_pro_100k", "lucid_pro_150k"):
+        assert load_rules(root / f"{stem}.yaml").rules.internal.kill_switch_mll_distance == D(50), stem
+    assert load_rules(root / "lucid_daily_25k.yaml").rules.internal.kill_switch_mll_distance == D(
+        100
+    )  # others keep $100

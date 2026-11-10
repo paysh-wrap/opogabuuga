@@ -618,3 +618,9 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   35 / 59 / $913. Win rate falls with tighter stops (50% → 46% at $150). Total worst case $350–$750 all tie (pass 31–37%);
   $1,000 (4 × $250) is clearly worse. Frozen = the D57 shrink + DRAWDOWN_TOO_DEEP skip after a stop-out (no bust, no trading).
 - Open decision for the user: relax the freeze for EVAL accounts (study assumption: 3 × $150 → 49% pass / 51% bust).
+
+## D71 (user 2026-11-10): freeze with $50 left to the loss limit instead of $100 (Pro plans)
+- internal.kill_switch_mll_distance = 50 in lucid_pro_{25k,50k,100k,150k}.yaml (others keep 100). It is the margin used by the
+  kill switch (flatten + pause when equity − MLL ≤ distance), the pre-trade "NEAR_MLL" check and the room for the
+  worst-case check / D57 stop-tightening → fewer frozen accounts, more room per trade, thinner safety margin
+  (a slippage gap > $50 could now breach the limit). Effect measured by an agent (kill_distance_report.md, pending).
