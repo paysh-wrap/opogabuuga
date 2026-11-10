@@ -322,6 +322,12 @@ class Controller:
             # one entry per model per account: an account that already has an order for this signal never re-enters
             done = set(s.execute(select(Order.account_id).where(Order.signal_id == sig.id)).scalars())
             accts = [a for a in all_accts if override_allows(a.mode_override, actor, mode, manual)]
+            if plan0.mode == "AI_DUO":  # D83: per-market account choice (max 1 position per account is unchanged)
+                mine = r.strategy.ai_duo_cfg.accounts.get(sig.symbol)  # type: ignore[call-overload]
+                others = {i for k, i in r.strategy.ai_duo_cfg.accounts.items() if k != sig.symbol and i}
+                accts = [a for a in accts if (a.id == mine if mine else a.id not in others)]
+                if mine and not accts:
+                    return [AccountResult(mine, False, "DUO_ASSIGNED_ACCOUNT_UNAVAILABLE")]
             out += [
                 AccountResult(a.id, False, "ALREADY_TRADED")
                 for a in accts
@@ -539,7 +545,9 @@ class Controller:
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
             fixed_contracts=fixed,
-            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
+            shrink_fraction=r.strategy.drawdown_shrink
+            if strategy in ("NOISE", "AI_BIAS", "AI_DUO", "TA_MGC")
+            else None,
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)

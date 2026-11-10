@@ -317,10 +317,12 @@ class AiDuoCfg(_M):
     a code change). Design: docs/results/session16/ai_combined_strategy_design.md."""
 
     markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
-    window_start: str = (
-        "03:00"  # entry window opens (also the session-VWAP anchor); first trigger is the next 5-min close
-    )
-    window_end: str = "11:30"  # last 5-minute close that may trigger; no pullback by then → NO_PULLBACK skip
+    # entry window per market, ET (user 2026-11-10): MGC from the London open, MNQ around the US open. The window start
+    # is also the session-VWAP anchor; the last bar close in the window that may trigger ends it (NO_PULLBACK skip).
+    windows: dict[Literal["MNQ", "MGC"], tuple[str, str]] = {"MGC": ("03:00", "11:30"), "MNQ": ("08:30", "12:00")}
+    # per-market account (Account.id; max 1 position per account stays): MGC and MNQ may run on different accounts.
+    # A market without an entry uses any selected/armed account not assigned to the other market.
+    accounts: dict[Literal["MNQ", "MGC"], int | None] = {}
     excluded: list[tuple[str, str]] = [("09:30", "09:35")]  # no bar touching these minutes may trigger (D11)
     bar_minutes: int = 5
     vt_min_conf: int = 60  # Vibe-Trading confidence needed for "strong"
@@ -339,11 +341,40 @@ class AiDuoCfg(_M):
             raise ValueError("ai_duo: bar_minutes, contracts, vt_min_conf ≥ 1 and stop_buffer_ticks ≥ 0")
         if not self.markets or len(set(self.markets)) != len(self.markets):
             raise ValueError("ai_duo: markets needs MNQ and/or MGC, no duplicates")
-        times = [self.window_start, self.window_end, self.flat_at, *(x for w in self.excluded for x in w)]
+        times = [self.flat_at, *(x for w in self.excluded for x in w), *(x for w in self.windows.values() for x in w)]
         if any(not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", x) for x in times):
             raise ValueError("ai_duo: times are HH:MM")
-        if not self.window_start < self.window_end:
-            raise ValueError("ai_duo: window_start before window_end")
+        if any(a >= b for a, b in self.windows.values()):
+            raise ValueError("ai_duo: each window starts before it ends")
+        if any(m not in self.windows for m in self.markets):
+            raise ValueError("ai_duo: every market needs a window")
+        if any(i is not None and i < 1 for i in self.accounts.values()):
+            raise ValueError("ai_duo: account ids are positive")
+        return self
+
+    def window_for(self, symbol: str) -> tuple[str, str]:
+        return self.windows[symbol]  # type: ignore[index]
+
+
+class TaMgcCfg(_M):
+    """D84 (user 2026-11-10; part of the single AI Duo button, MGC): TradingAgents MGC research → one structured gold
+    setup per day (side, confidence, entry zone, invalidation, target, valid-until, reasons), taken only when
+    Vibe-Trading agrees on the side (the shared AI Duo agreement rule). Entry window / exclusions / paper-only /
+    1 micro come from ai_duo_cfg. §7 plan builder: rr floor from trade_plan.rr_min (≥ 1.5R), cap trade_plan.rr_max,
+    preferred rr_preferred (setups between the floor and 2R are allowed and tagged). MGC only, while AI Duo is on."""
+
+    proxy: str = "GLD"
+    research_at: str = "02:45"  # ET, weekdays, once a day (retried every 30 min until the Duo window ends)
+    min_confidence: int = 55  # setup confidence needed (TradingAgents' own number)
+    stop_buffer_ticks: int = 4
+    rr_preferred: D = D("2.0")
+
+    @model_validator(mode="after")
+    def _valid(self) -> TaMgcCfg:
+        if self.rr_preferred < D("1.5") or self.stop_buffer_ticks < 0 or not 0 <= self.min_confidence <= 100:
+            raise ValueError("ta_mgc: rr_preferred ≥ 1.5, stop_buffer_ticks ≥ 0, min_confidence 0-100")
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", self.research_at):
+            raise ValueError("ta_mgc: research_at is HH:MM")
         return self
 
 
@@ -472,6 +503,7 @@ class StrategyCfg(_M):
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
+    ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     structure_filters: StructureFilterCfg = StructureFilterCfg()
     lunqfx_structure: LunqStructureCfg = LunqStructureCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)

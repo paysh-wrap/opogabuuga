@@ -12,12 +12,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import ledger
+from app.bias import ta_mgc_research as TR
 from app.bias.policy import Policy, combine
 from app.clock import ET, Clock
 from app.config import RulesConfig
@@ -26,6 +28,7 @@ from app.engine import noise as N
 from app.engine import open_drive as OD
 from app.engine import pm_fade as PF
 from app.engine import structure_filter as SF
+from app.engine import ta_mgc as TM
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
 from app.indicators.bars import Bar as IBar
@@ -572,6 +575,102 @@ def _bars_by_minute(s: Session, symbol: str, at: datetime) -> dict[int, Bar]:
     return {(b.close_time.astimezone(ET).hour * 60 + b.close_time.astimezone(ET).minute): b for b in rows}
 
 
+def _duo_research(
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    at: datetime,
+    symbol: str,
+    m: int,
+    day: str,
+    data: dict[str, Any] | None,
+) -> StrategyOutput:
+    """D84 AI Duo on MGC from the TradingAgents research setup: validated → Vibe-Trading must agree (shared rule) →
+    enter at the 1-minute close inside the entry zone before valid_until, stop beyond the invalidation, rr 1.5R floor /
+    2R preferred. One decision per day (trade or one SKIP with a reason code); everything stored in the ledger."""
+    cfg, tcfg = rules.strategy.ai_duo_cfg, rules.strategy.ta_mgc_cfg
+    out = StrategyOutput()
+    data = data or {}
+    vtd = data.get("vt") or {}
+    info: dict[str, object] = {
+        "mode": "RESEARCH",
+        "ta_side": (data.get("setup") or {}).get("side") if isinstance(data.get("setup"), dict) else None,
+        "vt": vtd.get("direction"),
+        "vt_conf": vtd.get("confidence"),
+        "vt_note": data.get("vt_note", ""),
+    }
+    if data.get("error"):  # the job retries every 30 min; only the window end turns this into the day's skip
+        if m < _mod(cfg.window_for(symbol)[1]):
+            return out
+        return _duo_skip(s, clock, symbol, day, at, "RESEARCH_FAILED", {**info, "error": str(data["error"])[:200]})
+    setup = TM.parse_setup(data.get("setup"), tcfg.min_confidence)
+    if isinstance(setup, str):
+        return _duo_skip(s, clock, symbol, day, at, setup, info)
+    code = TM.vibe_agrees(setup, vtd.get("direction"), vtd.get("confidence"), cfg.vt_min_conf)
+    if code != "AI_AGREE":
+        return _duo_skip(s, clock, symbol, day, at, code, info)
+    until = TM.valid_until_at(setup.valid_until, day)
+    if until is None:
+        return _duo_skip(s, clock, symbol, day, at, "SETUP_MALFORMED", info)
+    if at > until:
+        return _duo_skip(s, clock, symbol, day, at, "SETUP_EXPIRED", info)
+    last = _mod(cfg.window_for(symbol)[1])
+    bar = _bars_by_minute(s, symbol, at).get(m)
+    if bar is None:
+        return _duo_skip(s, clock, symbol, day, at, "FEED_GAP", info) if m >= last else out
+    code2 = TM.past_levels(setup, bar.c)
+    if code2 is not None:
+        return _duo_skip(s, clock, symbol, day, at, code2, info)
+    if not TM.in_zone(setup, bar.c):
+        return _duo_skip(s, clock, symbol, day, at, "NO_ENTRY_IN_ZONE", info) if m >= last else out
+    inst = rules.instrument(symbol)
+    nc = rules.strategy.noise_cfg
+    slip = inst.slippage_ticks or rules.trade_plan.slippage_ticks
+    cap = (
+        N.stop_pts_for_usd(nc.emergency_stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+        if nc.emergency_stop_usd
+        else bar.c * nc.emergency_stop_pct
+    )
+    sp = TM.build_plan(
+        setup,
+        bar.c,
+        tick=inst.tick,
+        buffer_ticks=tcfg.stop_buffer_ticks,
+        min_stop_ticks=inst.min_stop_ticks or rules.trade_plan.min_stop_ticks,
+        cap_pts=cap,
+        rr_min=max(cfg.rr_min, rules.trade_plan.rr_min),
+        rr_max=rules.trade_plan.rr_max,
+        rr_preferred=tcfg.rr_preferred,
+    )
+    if isinstance(sp, str):
+        return _duo_skip(s, clock, symbol, day, at, sp, info)
+    p = sp.plan
+    gate = _gate(rules, symbol, at, calendar, enabled=symbol in cfg.markets)
+    new = _new_signal(
+        s,
+        clock,
+        symbol=symbol,
+        key=f"{symbol}-DUO-{day}",
+        direction=setup.direction,
+        at=at,
+        gate=gate,
+        features={
+            **info,
+            "confidence": setup.confidence,
+            "zone": [str(setup.entry_low), str(setup.entry_high)],
+            "valid_until": setup.valid_until,
+            "reasons": list(setup.reasons),
+            "below_preferred_2r": sp.below_preferred,  # allowed (>= 1.5R) but under the preferred 2R: tagged
+            "paper_only": cfg.paper_only,
+        },
+        plan=("AI_DUO", p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
+    )
+    _duo_log(s, clock, day, "TAKEN" if gate[0] else gate[1], {"symbol": symbol, **info, "entry": str(p.entry)})
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run_ai_duo(
     s: Session,
     rules: RulesConfig,
@@ -594,8 +693,16 @@ def run_ai_duo(
                 _close(s, x, "DUO_FLAT_1600", at, clock)
                 out.exits.append((x.id, "DUO_FLAT_1600"))
         return out
-    n, first, last = cfg.bar_minutes, _mod(cfg.window_start), _mod(cfg.window_end)
-    if exits_only or not first < m <= last or m % n != 0:
+    n, first, last = cfg.bar_minutes, _mod(cfg.window_for(symbol)[0]), _mod(cfg.window_for(symbol)[1])
+    if exits_only or not first < m <= last:
+        return out
+    if symbol == "MGC" and not _today_signals(s, symbol, "DUO", day):
+        research = TR.latest(s, rules.strategy.ta_mgc_cfg.proxy, et.date())
+        if research is not None:  # D84: the TradingAgents MGC research setup (part of AI Duo) is today's plan
+            if any(_mod(a) < m and m - 1 < _mod(b) for a, b in cfg.excluded):
+                return out
+            return _duo_research(s, rules, clock, calendar, at, symbol, m, day, TR.payload(research))
+    if m % n != 0:
         return out
     if any(_mod(a) < m and m - n < _mod(b) for a, b in cfg.excluded):
         return out  # the bar covers excluded minutes (09:30–09:35): never a trigger
@@ -672,6 +779,7 @@ def run_ai_duo(
             **info,
             "prob_up": combine(ta, vd, vc, Policy(bias_matters=True)).prob_up,
             "stop_capped": p.stop_capped,
+            "below_preferred_2r": p.rr < cfg.rr_target,  # allowed (>= 1.5R) but under the preferred target: tagged
             "agrees_with_noise": agrees,
             "paper_only": cfg.paper_only,
         },

@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import StrategyButtons from "../components/StrategyButtons";
 import StrategyPresets from "../components/StrategyPresets";
+import TaMgcCard from "../components/TaMgcCard";
 import GateChain from "../components/GateChain";
 import AiLedger from "../components/AiLedger";
 import LunqFlags from "../components/LunqFlags";
@@ -32,6 +33,7 @@ export default function Strategy() {
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
       <StrategyPresets />
       <StrategyButtons />
+      <TaMgcCard />
       <GateChain />
       <AiLedger />
       <p className="text-sm"><b className="text-gold">LunqFX engine (below):</b> no single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>

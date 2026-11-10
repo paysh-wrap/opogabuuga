@@ -44,21 +44,30 @@ class DuoPlan:
     stop_capped: bool
 
 
-def ai_side(ta: str, vt_dir: str | None, vt_conf: int | None, min_conf: int) -> tuple[Direction | None, str]:
-    """(side, reason code). A side only when both tools agree strongly; every other case is a stored skip reason."""
-    ta = ta.strip().upper()
-    if not ta:
+def agree(
+    side: int | None, strong: bool, vt_dir: str | None, vt_conf: int | None, min_conf: int
+) -> tuple[Direction | None, str]:
+    """THE shared agreement rule (AI Duo on MNQ/MGC and the TradingAgents MGC setup): a side only when the first
+    tool's side (+1/-1; None = missing, 0 = neutral) and Vibe-Trading's agree, the first tool is strong and Vibe's
+    confidence is at least min_conf. Every other case is a stored skip reason code."""
+    if side is None:
         return None, "AI_TA_MISSING"
     if vt_dir is None:
         return None, "AI_VT_MISSING"
-    t, v = TA_SIDE.get(ta, 0), VT_SIDE.get(vt_dir.upper(), 0)
-    if t == 0 or v == 0:
+    v = VT_SIDE.get(vt_dir.upper(), 0)
+    if side == 0 or v == 0:
         return None, "AI_NEUTRAL"
-    if t != v:
+    if side != v:
         return None, "AI_DISAGREE"
-    if ta not in TA_STRONG or (vt_conf or 0) < min_conf:
+    if not strong or (vt_conf or 0) < min_conf:
         return None, "AI_NOT_STRONG"
-    return (Direction.LONG if t > 0 else Direction.SHORT), "AI_AGREE"
+    return (Direction.LONG if side > 0 else Direction.SHORT), "AI_AGREE"
+
+
+def ai_side(ta: str, vt_dir: str | None, vt_conf: int | None, min_conf: int) -> tuple[Direction | None, str]:
+    """AI Duo: TradingAgents' daily rating (BUY/SELL strong) against Vibe-Trading, via the shared `agree`."""
+    ta = ta.strip().upper()
+    return agree(TA_SIDE.get(ta, 0) if ta else None, ta in TA_STRONG, vt_dir, vt_conf, min_conf)
 
 
 def aggregate(bars: Sequence[tuple[Decimal, Decimal, Decimal, Decimal]]) -> Bar5:

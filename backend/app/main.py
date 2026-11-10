@@ -196,6 +196,43 @@ async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
     s.commit()
 
 
+async def _ta_mgc_research(app: FastAPI, s: Session, now: datetime) -> None:
+    """D84: the MGC research part of AI Duo. Off unless AI Duo is on with MGC. Reuses the existing TradingAgents /
+    Vibe-Trading connections; no key = nothing runs (the Strategy page shows "AI key not connected")."""
+    from app.automation import state as stt
+    from app.bias import service as bias
+    from app.bias import ta_mgc_research as tr
+    from app.clock import session_date, to_et
+    from app.crypto import Vault
+
+    st = app.state
+    r = st.rules.rules
+    if not (r.strategy.ai_duo and "MGC" in r.strategy.ai_duo_cfg.markets):
+        return
+    cfg, sess = r.strategy.ta_mgc_cfg, session_date(now)
+    row = tr.latest(s, cfg.proxy, sess)
+    done = row is not None and not (tr.payload(row) or {}).get("error")
+    last = str(stt.get_setting(s, "job.ta_mgc.try") or "") or None
+    if not tr.research_due(to_et(now), cfg.research_at, last, done, r.strategy.ai_duo_cfg.window_for("MGC")[1]):
+        return
+    if not tr.connected(s):
+        return
+    stt.set_setting(s, "job.ta_mgc.try", to_et(now).isoformat(), now)
+    cal = [f"{e.at.isoformat()} {e.title}" for e in (st.calendar(sess) or [])]
+    await tr.run_research(
+        s,
+        st.ta,
+        Vault(st.settings.master_key.get_secret_value()),
+        r,
+        st.clock,
+        sess,
+        st.controller.notify,
+        vt_root=st.settings.vt_root,
+        context={"openbb": bias.openbb_context(st).get("MGC")},
+        calendar=cal,
+    )
+
+
 async def _refresh_calendar(app: FastAPI, s: Session, now: datetime) -> None:
     """Fetch the week's USD high-impact events when missing or older than 4 h. Failure → banner; trading stays
     blocked only if the session date isn't covered (no data = no trading, §15)."""
@@ -246,6 +283,7 @@ async def _scheduler(app: FastAPI) -> None:
                 await _refresh_calendar(app, s, now)
                 await _inactivity(app, s, now)
                 await _daily_bias(app, s, now)
+                await _ta_mgc_research(app, s, now)
                 await _eod(app, s, now)
                 await _nightly(app, s, now)
                 await _lab(app, s, now)

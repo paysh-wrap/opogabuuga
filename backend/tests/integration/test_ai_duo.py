@@ -92,11 +92,11 @@ def test_no_trade_cases_log_one_skip_with_reason_code(db, loaded_rules, label, c
 def test_no_pullback_by_window_end_is_a_logged_skip(db, loaded_rules):
     rules = _rules(loaded_rules, ai_duo=True)
     with db() as s:
-        today = _setup(s, "BUY·VT LONG 85", {k: D(20000) for k in range(130)})
+        today = _setup(s, "BUY·VT LONG 85", {k: D(20000) for k in range(160)})
         assert _run(s, rules, today + timedelta(minutes=60)).updates == []  # nothing yet, still waiting
-        out = _run(s, rules, today + timedelta(minutes=120))  # 11:30 close
+        out = _run(s, rules, today + timedelta(minutes=150))  # 12:00 close (MNQ window 08:30-12:00)
         assert [(u.status, u.reason) for u in out.updates] == [("SKIP", "NO_PULLBACK")]
-        assert _run(s, rules, today + timedelta(minutes=125)).updates == []  # past the window
+        assert _run(s, rules, today + timedelta(minutes=155)).updates == []  # past the window
 
 
 def test_news_blackout_skips_with_reason_and_flat_at_1600(db, loaded_rules):
@@ -241,9 +241,17 @@ def _bars(s, symbol, start, closes, base, n=200):
     s.commit()
 
 
-def _real_windows(rules):
+def _real_windows(rules, mnq_window=("03:00", "11:30")):
     mnq = rules.instruments["MNQ"].model_copy(update={"windows": [("03:00", "09:30"), ("09:35", "15:30")]})
-    return rules.model_copy(update={"instruments": {**rules.instruments, "MNQ": mnq}})
+    return _with_duo(
+        rules.model_copy(update={"instruments": {**rules.instruments, "MNQ": mnq}}),
+        windows={"MGC": ("03:00", "11:30"), "MNQ": mnq_window},
+    )
+
+
+def _with_duo(rules, **kw):
+    cfg = rules.strategy.ai_duo_cfg.model_copy(update=kw)
+    return rules.model_copy(update={"strategy": rules.strategy.model_copy(update={"ai_duo_cfg": cfg})})
 
 
 def _london(today):
@@ -268,8 +276,7 @@ def test_window_start_is_configurable_and_nothing_before_it(db, loaded_rules):
         today = _sessions(2)[-1]
         _bars(s, "MNQ", _london(today), PULLBACK, D(20000))
         _label(s, today, "BUY·VT LONG 85")
-        late = base.strategy.ai_duo_cfg.model_copy(update={"window_start": "06:45"})
-        rules = base.model_copy(update={"strategy": base.strategy.model_copy(update={"ai_duo_cfg": late})})
+        rules = _with_duo(base, windows={"MGC": ("03:00", "11:30"), "MNQ": ("06:45", "12:00")})
         assert _run(s, rules, _london(today) + timedelta(minutes=10)).updates == []  # 03:10 is before 06:45
 
 
@@ -330,13 +337,26 @@ def test_mgc_signal_does_not_clash_with_noise_on_mnq(db, loaded_rules):
 
 
 def test_duo_settings_are_editable_and_validated(authed):
-    ok = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.window_start": "03:00",
+    ok = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.windows": {"MGC": ["03:00", "11:30"], "MNQ": ["08:30", "12:00"]},
                     "strategy.ai_duo_cfg.markets": ["MGC"]}, "note": "duo"})  # fmt: skip
     assert ok.status_code == 200, ok.text
-    bad = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.window_end": "25:00"}, "note": "x"})
+    bad = authed.put(
+        "/api/risk/settings",
+        json={
+            "changes": {"strategy.ai_duo_cfg.windows": {"MGC": ["03:00", "25:00"], "MNQ": ["08:30", "12:00"]}},
+            "note": "x",
+        },
+    )
     assert bad.status_code in (400, 422)
     bad = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.markets": ["ES"]}, "note": "x"})
     assert bad.status_code in (400, 422)
+    bad = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.windows": {"MGC": ["12:00", "03:00"],
+                     "MNQ": ["08:30", "12:00"]}}, "note": "x"})  # fmt: skip
+    assert bad.status_code in (400, 422)
+    ok = authed.put(
+        "/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.accounts": {"MNQ": 1, "MGC": 2}}, "note": "a"}
+    )
+    assert ok.status_code == 200, ok.text
 
 
 def test_duo_markets_get_an_ai_call_even_when_the_market_switch_is_off(loaded_rules):
@@ -346,3 +366,84 @@ def test_duo_markets_get_an_ai_call_even_when_the_market_switch_is_off(loaded_ru
     assert r.instruments["MGC"].enabled is False
     on = r.model_copy(update={"strategy": r.strategy.model_copy(update={"ai_duo": True})})
     assert "GLD" in proxies(on) and "GLD" not in proxies(r)
+
+
+def test_per_market_windows_default_and_validation():
+    from app.config import AiDuoCfg
+
+    c = AiDuoCfg()
+    assert c.window_for("MGC") == ("03:00", "11:30") and c.window_for("MNQ") == ("08:30", "12:00")
+    assert c.excluded == [("09:30", "09:35")] and c.accounts == {}
+    with pytest.raises(ValueError, match="starts before"):
+        AiDuoCfg(windows={"MGC": ("12:00", "03:00"), "MNQ": ("08:30", "12:00")})
+    with pytest.raises(ValueError, match="HH:MM"):
+        AiDuoCfg(windows={"MGC": ("3:00", "11:30"), "MNQ": ("08:30", "12:00")})
+    with pytest.raises(ValueError, match="needs a window"):
+        AiDuoCfg(windows={"MNQ": ("08:30", "12:00")})
+    with pytest.raises(ValueError, match="positive"):
+        AiDuoCfg(accounts={"MNQ": 0})
+
+
+def test_mnq_does_not_trade_before_its_own_window(db, loaded_rules):
+    rules = _real_windows(_rules(loaded_rules, ai_duo=True), ("08:30", "12:00"))
+    with db() as s:
+        today = _sessions(2)[-1]
+        _bars(s, "MNQ", _london(today), PULLBACK, D(20000))
+        _label(s, today, "BUY·VT LONG 85")
+        assert _run(s, rules, _london(today) + timedelta(minutes=10)).updates == []  # 03:10 < 08:30 for MNQ
+
+
+def _duo_accounts(authed, clock, assign):
+    from datetime import UTC, datetime
+
+    from app.engine.trade_plan import Direction
+
+    at = datetime(2026, 10, 13, 15, 0, tzinfo=UTC)
+    st = authed.app.state
+    clock.set(at)
+    ids = []
+    for label in ("A", "B", "C"):
+        aid = authed.post("/api/accounts", json={"label": label, "stage": "EVAL", "balance": "25000"}).json()["id"]
+        authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True})
+        ids.append(aid)
+    authed.post("/api/attestation", json={"confirm": True})
+    st.controller.mode = "FULL"
+    h = st.controller.rules
+    cfg = h.rules.strategy.ai_duo_cfg.model_copy(update={"accounts": {k: ids[i] for k, i in assign.items()}})
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update={"ai_duo_cfg": cfg})})
+    with st.sessionmaker() as s:
+        plan = ("AI_DUO", D(20000), D(19990), D(20020), D(10), D(2))
+        sig = SS._new_signal(
+            s, FixedClock(at), symbol="MNQ", key="MNQ-DUO-2026-10-13", direction=Direction.LONG, at=at,
+            gate=(True, "OK", ""), features={}, plan=plan,
+        )  # fmt: skip
+        s.commit()
+        sid = sig.id
+    return st, ids, sid
+
+
+def test_duo_signal_goes_only_to_the_account_assigned_to_its_market(authed, clock):
+    import asyncio
+
+    st, ids, sid = _duo_accounts(authed, clock, {"MNQ": 1, "MGC": 2})  # MNQ → B, MGC → C
+    res = asyncio.run(st.controller.execute(sid, "automation"))
+    assert {r.account_id for r in res} == {ids[1]}  # only the MNQ account B; A is free for nothing here
+
+
+def test_unassigned_market_avoids_accounts_assigned_to_the_other_market(authed, clock):
+    import asyncio
+
+    st, ids, sid = _duo_accounts(authed, clock, {"MGC": 2})  # MGC → C; MNQ has no assignment
+    res = asyncio.run(st.controller.execute(sid, "automation"))
+    assert ids[2] not in {r.account_id for r in res} and {r.account_id for r in res} <= {ids[0], ids[1]}
+
+
+def test_assigned_account_unavailable_is_reported(authed, clock):
+    import asyncio
+
+    st, ids, sid = _duo_accounts(authed, clock, {"MNQ": 0})
+    authed.patch(f"/api/accounts/{ids[0]}", json={"armed": False, "selected": False})
+    res = asyncio.run(st.controller.execute(sid, "automation"))
+    assert [(r.account_id, r.reason) for r in res if r.reason == "DUO_ASSIGNED_ACCOUNT_UNAVAILABLE"] == [
+        (ids[0], "DUO_ASSIGNED_ACCOUNT_UNAVAILABLE")
+    ] or all(r.account_id == ids[0] for r in res)

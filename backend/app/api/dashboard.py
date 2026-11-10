@@ -15,7 +15,7 @@ from app.automation import state as stt
 from app.clock import session_date
 from app.execution.adapters.base import BrokerError
 from app.management.drawdown_guard import GuardCfgView, guard_active
-from app.models import Account, Signal, Trade
+from app.models import Account, BiasDecision, Signal, Trade
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
 from app.risk.eval_mode import eval_mode_effective
@@ -429,6 +429,53 @@ def _lunqfx_flags(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def _ta_mgc(db: Session, r: Any, sess: Any) -> dict[str, Any]:
+    """D84: latest TradingAgents MGC research (part of AI Duo) + today's MGC Duo decision, for the Strategy page."""
+    from app.bias import ta_mgc_research as tr
+
+    cfg = r.strategy.ta_mgc_cfg
+    on = bool(r.strategy.ai_duo and "MGC" in r.strategy.ai_duo_cfg.markets)
+    key = tr.connected(db)
+    row = tr.latest(db, cfg.proxy, sess)
+    if row is None:  # show the newest earlier report when today's has not run yet
+        row = db.execute(
+            select(BiasDecision)
+            .where(BiasDecision.proxy == tr.research_proxy(cfg.proxy))
+            .order_by(BiasDecision.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+    data = tr.payload(row) or {}
+    sig = db.execute(
+        select(Signal).where(Signal.model_key.like("MGC-DUO-%")).order_by(Signal.id.desc()).limit(1)
+    ).scalar_one_or_none()
+    return {
+        "enabled": on,
+        "connected": key,
+        "message": None if key else tr.NOT_CONNECTED,
+        "research": None
+        if row is None
+        else {
+            "day": row.session_date.isoformat(),
+            "label": row.raw_rating,
+            "setup": data.get("setup"),
+            "vt": data.get("vt"),
+            "vt_note": data.get("vt_note", ""),
+            "error": data.get("error", ""),
+            "report": str(data.get("report", ""))[:1200],
+        },
+        "decision": None
+        if sig is None
+        else {
+            "day": sig.model_key.rsplit("-DUO-", 1)[-1],
+            "status": sig.status,
+            "code": sig.skip_reason or "TAKEN",
+            "direction": sig.direction,
+            "mode": (sig.features or {}).get("mode", "PULLBACK"),
+            "below_preferred_2r": bool((sig.features or {}).get("below_preferred_2r")),
+        },
+    }
+
+
 def _presets(r: Any) -> dict[str, Any]:
     """D82: NOISE strategy presets (config/strategy_presets.yaml) — static research labels + what each one sets."""
     from app.config import SizeTierCfg, load_presets
@@ -501,6 +548,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         },
         "ai_ledger": ledgers,
         "presets": _presets(r),
+        "ta_mgc": _ta_mgc(db, r, sess),
         "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
         "gate_chain": _gate_chain(r),
         "lunqfx_flags": _lunqfx_flags(r),

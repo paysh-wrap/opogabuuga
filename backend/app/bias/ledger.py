@@ -197,6 +197,8 @@ def duo_decisions(s: Session, symbols: Sequence[str], limit: int = 20) -> list[d
             "direction": x.direction,
             "label": (x.features or {}).get("label"),
             "agrees_with_noise": (x.features or {}).get("agrees_with_noise"),
+            "mode": (x.features or {}).get("mode", "PULLBACK"),  # RESEARCH = TradingAgents MGC setup (D84)
+            "below_preferred_2r": bool((x.features or {}).get("below_preferred_2r")),
         }
         for x in rows
     ]

@@ -27,8 +27,14 @@ export interface StrategiesResp {
   size_profiles?: SizeProfiles;
   presets?: PresetsResp;
   ai_duo_log?: DuoRow[];
+  ta_mgc?: TaMgcResp;
 }
-export interface DuoRow { day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null }
+export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
+export interface TaMgcResp {
+  enabled: boolean; connected: boolean; message: string | null;
+  research: { day: string; label: string; setup: { side?: string; confidence?: number; entry_low?: number; entry_high?: number; invalidation?: number; target?: number; valid_until?: string; reasons?: string[] } | null; vt: { direction: string; confidence: number; reason: string } | null; vt_note: string; error: string; report: string } | null;
+  decision: { day: string; status: string; code: string; direction: string; mode: string; below_preferred_2r: boolean } | null;
+}
 export interface PresetRow {
   key: string; label: string; summary: string; account: string; study: string; pass_pct: number; bust_pct: number;
   held_out: boolean; recommended: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
@@ -138,7 +144,7 @@ export default function StrategyButtons() {
           <b className="text-gold">AI Duo decisions (paper only) — one per day, with the reason code:</b>
           <ul className="text-blue">
             {d.ai_duo_log.map((r) => (
-              <li key={r.day}>{r.day}: <b className="text-gold">{r.status === "PASS" ? `TRADE ${r.direction}` : "NO TRADE"}</b> · {r.code} · AI call {r.label || "none"}{r.agrees_with_noise != null && (r.agrees_with_noise ? " · same side as NOISE" : "")}</li>
+              <li key={`${r.symbol}${r.day}`}>{r.day}{r.symbol ? ` ${r.symbol}` : ""}: <b className="text-gold">{r.status === "PASS" ? `TRADE ${r.direction}` : "NO TRADE"}</b> · {r.code} · {r.mode === "RESEARCH" ? "TradingAgents research setup" : `AI call ${r.label || "none"}`}{r.below_preferred_2r ? " · below preferred 2R" : ""}{r.agrees_with_noise != null && (r.agrees_with_noise ? " · same side as NOISE" : "")}</li>
             ))}
           </ul>
         </div>

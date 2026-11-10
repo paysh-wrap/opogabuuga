@@ -109,3 +109,10 @@ class TradingAgentsAdapter:
         """Daily job: the CURRENT session date. D78 backfill: a past date (TradingAgents takes the trade date; its data
         tools are cut off at that date, news may still leak hindsight → results are flagged BACKFILL)."""
         return await self._call({"cmd": "run", "ticker": ticker, "date": today.isoformat()}, env)
+
+    async def research(
+        self, ticker: str, today: date, env: dict[str, str], market: str, context: dict[str, Any]
+    ) -> RunnerResult:
+        """D84: MGC research run (same venv, same key path as `run`): gold-driver analysis → structured setup JSON."""
+        req = {"cmd": "research", "ticker": ticker, "date": today.isoformat(), "market": market, "context": context}
+        return await self._call(req, env, timeout_s=self.timeout_s * 1.5)
