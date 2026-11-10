@@ -253,14 +253,24 @@ def test_high_risk_eval_taper_on_25k(authed, clock, monkeypatch):  # D69 sprint 
     aid = _eval_account(authed, clock, "25000")
     h = st.controller.rules
     hi = [
-        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D("0.5"), taper_contracts=1)
+        SizeTierCfg(
+            account_size=D(25000),
+            mll=D(1000),
+            contracts=3,
+            stop_usd=D(150),
+            taper_below_remaining=D("0.5"),
+            taper_contracts=1,
+        )
     ]
     reg = [SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=1)]
     strat = h.rules.strategy.model_copy(update={"size_table_eval": reg, "size_table_eval_high": hi, "high_risk": True})
     h.rules = h.rules.model_copy(update={"strategy": strat})
     sid = _signal(st)
     res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
-    assert next(c for c in res[0].checks if c["check"] == "fixed_size")["contracts"] == "4"  # nothing earned yet
+    first = next(c for c in res[0].checks if c["check"] == "fixed_size")
+    # 3 micros × $150 stop would be $448.50, but this test plan has a $600 DLL → room $600 → the live D57 rule
+    # tightens it to 60% of the room = $360 (a real Pro 25K eval has no DLL: room $900 → $540 → no tightening)
+    assert first["contracts"] == "3" and first["worst"] == "360.00"
     real = st.controller._equity
 
     async def ahead(a):  # +$700 earned: 44% of the $1,250 target left → below 50% → protect with 1 micro

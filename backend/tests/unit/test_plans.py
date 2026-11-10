@@ -129,6 +129,8 @@ def test_size_table_validation_and_plans():  # D63
     with pytest.raises(ValidationError):
         SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, day_lock_pct=D(2))
     with pytest.raises(ValidationError):
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=3, stop_usd=D(0))
+    with pytest.raises(ValidationError):
         SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D("0.5"))  # needs both
     with pytest.raises(ValidationError):
         SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=4, taper_below_remaining=D(2), taper_contracts=1)
@@ -154,7 +156,8 @@ def test_size_table_validation_and_plans():  # D63
             assert not st.high_risk and st.active_size_table() is st.size_table
             if f.stem.startswith("lucid_pro"):  # D66: Evaluation Mode table (Pro only — Flex evals were not studied)
                 hi = {t.account_size: t for t in st.size_table_eval_high}  # D69 high-risk evals
-                assert hi[D(25000)].contracts == 4 and hi[D(25000)].taper_contracts == 1
+                assert hi[D(25000)].contracts == 3 and hi[D(25000)].taper_contracts == 1
+                assert hi[D(25000)].stop_usd == D(150)  # D70: 3 micros × $150 = $450 total
                 assert hi[D(25000)].taper_below_remaining == D("0.5") and hi[D(150000)].contracts == 4
                 assert st.active_eval_table() is st.size_table_eval
                 assert st.model_copy(update={"high_risk": True}).active_eval_table() is st.size_table_eval_high

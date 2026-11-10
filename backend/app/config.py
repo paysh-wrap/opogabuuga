@@ -310,11 +310,14 @@ class SizeTierCfg(_M):
     grow_per: D | None = None  # D66 (eval tables): +1 micro per grow_per $ of cushion beyond the first
     max_contracts: int | None = None
     day_lock_pct: D | None = None  # D66 (eval tables): stop for the day once today's profit ≥ x × remaining target
+    stop_usd: D | None = None  # D70 (eval tables): emergency stop per micro for this row (default: the strategy's stop)
     taper_below_remaining: D | None = None  # D69 (eval tables): fraction of the target still to earn
     taper_contracts: int | None = None  # D69: micros once less than that fraction of the target remains
 
     @model_validator(mode="after")
     def _valid(self) -> SizeTierCfg:
+        if self.stop_usd is not None and self.stop_usd <= 0:
+            raise ValueError("size_table: stop_usd > 0")
         if self.grow_per is not None and (
             self.grow_per <= 0 or not self.max_contracts or self.max_contracts < self.contracts
         ):

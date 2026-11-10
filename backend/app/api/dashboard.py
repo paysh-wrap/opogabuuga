@@ -229,6 +229,7 @@ def _tier(t: Any) -> dict[str, Any]:
         "brake_contracts": t.brake_contracts,
         "taper_below_remaining": None if t.taper_below_remaining is None else str(t.taper_below_remaining),
         "taper_contracts": t.taper_contracts,
+        "stop_usd": None if t.stop_usd is None else str(t.stop_usd),
     }
 
 

@@ -22,6 +22,7 @@ from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
 from app.clock import Clock, parse_hhmm, to_et
 from app.engine.filters import news_flatten_due
+from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
@@ -459,6 +460,18 @@ class Controller:
             )
             fixed = auto.contracts
             row = next((t for t in table if t.account_size == auto.tier), None)
+            if (
+                row is not None and row.stop_usd is not None
+            ):  # D70: row-specific emergency stop (e.g. 25K high-risk eval)
+                slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
+                pts = stop_pts_for_usd(row.stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+                risk = pts
+                plan = replace(
+                    plan,
+                    stop=plan.entry - plan.direction.sign * pts,
+                    risk_pts=risk,
+                    rr=(plan.take_profit - plan.entry) * plan.direction.sign / risk,
+                )
             if eval_sizing and row is not None and row.day_lock_pct is not None:  # D66 day lock-in (eval only)
                 day_profit = st.day_stats(s, a, now).day_profit
                 start_profit = bal - day_profit - (a.starting_balance or r.account_size)

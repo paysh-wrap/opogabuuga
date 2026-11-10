@@ -19,7 +19,7 @@ const resp: StrategiesResp = {
     regular: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 2 }],
     high: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 4, brake_below: "0.5", brake_contracts: 2 }],
     eval_regular: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }],
-    eval_high: [{ account_size: "25000", contracts: 4, brake_below: null, brake_contracts: null, taper_below_remaining: "0.5", taper_contracts: 1 }],
+    eval_high: [{ account_size: "25000", contracts: 3, brake_below: null, brake_contracts: null, stop_usd: "150", taper_below_remaining: "0.5", taper_contracts: 1 }],
   },
 };
 
@@ -51,7 +51,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   // D64: size profiles
   expect(screen.getByTestId("size-regular")).toHaveTextContent("150K: 3 micros → 2 when cushion < 50%");
   expect(screen.getByTestId("size-high")).toHaveTextContent("150K: 4 micros");
-  expect(screen.getByTestId("eval-size-high")).toHaveTextContent("25K 4 → 1 once < 50% of the target is left"); // D69
+  expect(screen.getByTestId("eval-size-high")).toHaveTextContent("25K 3 × $150 stop → 1 once < 50% of the target is left"); // D69 / D70
   await userEvent.click(screen.getByRole("button", { name: /OFF · High risk/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
 });

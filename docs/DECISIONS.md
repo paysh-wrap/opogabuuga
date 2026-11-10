@@ -609,3 +609,12 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   NOT built: needs per-stage signals and opening-drive on EVAL accounts (D55: paper only) — needs user approval.
 - BUG FIXED: the D66 controller built SizeTier without grow_per / max_contracts, so 100K eval growth was ignored.
   Test now asserts the growth reaches the sizing (test_eval_growth_row_is_applied_by_the_controller).
+
+## D70 (user 2026-11-09/10): Pro 25K High-risk eval = 3 micros × $150 stop ($450 total), taper to 1 micro (replaces D69's 4 × $250)
+- strategy.size_table_eval_high 25K row: contracts 3, stop_usd 150 (new per-row emergency stop, applied by the controller
+  before the pre-trade checks), taper to 1 micro once < 50% of the $1,250 target remains. Regular eval stays 1 micro × $250.
+- Agent study under the LIVE safety rules (eval25k_total_risk_report.md): 3 × $150 taper: pass 31% / 0% bust / 69%
+  frozen, median 8 sessions to pass, 42 to a first pass counting restarts, value per eval $514 — vs 1 micro × $250 55% /
+  35 / 59 / $913. Win rate falls with tighter stops (50% → 46% at $150). Total worst case $350–$750 all tie (pass 31–37%);
+  $1,000 (4 × $250) is clearly worse. Frozen = the D57 shrink + DRAWDOWN_TOO_DEEP skip after a stop-out (no bust, no trading).
+- Open decision for the user: relax the freeze for EVAL accounts (study assumption: 3 × $150 → 49% pass / 51% bust).

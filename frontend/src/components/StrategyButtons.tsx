@@ -24,7 +24,7 @@ export interface StrategiesResp {
 }
 export interface SizeTierRow {
   account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
-  taper_below_remaining?: string | null; taper_contracts?: number | null;
+  taper_below_remaining?: string | null; taper_contracts?: number | null; stop_usd?: string | null;
 }
 export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[] }
 
@@ -109,7 +109,7 @@ export default function StrategyButtons() {
                     <p className="mt-1 text-xs" data-testid={`eval-size-${p}`}>
                       <b className="text-gold">Evaluations</b> (EVAL accounts, Evaluation Mode on):{" "}
                       {(p === "high" ? d.size_profiles!.eval_high : d.size_profiles!.eval_regular)!.map((t) => (
-                        <span key={t.account_size} className="mr-2">{k$(t.account_size)} {t.contracts}{t.taper_below_remaining ? ` → ${t.taper_contracts} once < ${Math.round(Number(t.taper_below_remaining) * 100)}% of the target is left` : ""}</span>
+                        <span key={t.account_size} className="mr-2">{k$(t.account_size)} {t.contracts}{t.stop_usd ? ` × $${Math.round(Number(t.stop_usd))} stop` : ""}{t.taper_below_remaining ? ` → ${t.taper_contracts} once < ${Math.round(Number(t.taper_below_remaining) * 100)}% of the target is left` : ""}</span>
                       ))}
                     </p>
                   ) : null}
