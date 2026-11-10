@@ -15,10 +15,12 @@ export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;
   stats: { n: number; hit_rate: number; brier: number; wilson_lb: number };
 }
+export interface GateRow { id: string; name: string; kind: string; on: boolean; locked: boolean; text: string }
 export interface StrategiesResp {
   strategies: Strat[];
   noise_warmup: { sessions: number; needed: number; ready: boolean };
   ai_ledger: Ledger[];
+  gate_chain?: GateRow[];
   markets: Record<string, boolean>;
   size_profiles?: SizeProfiles;
 }

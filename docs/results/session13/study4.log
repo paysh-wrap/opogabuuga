@@ -1,0 +1,20 @@
+acc 55 cov 10 | IS block  4.9% win 48.4 $  8589 bust 36.2 | HO block  4.7% n/d0.98 win 51.0 PF1.34 $ 15297 bust 39.5
+acc 55 cov 25 | IS block 12.0% win 48.8 $  8226 bust 28.1 | HO block 11.8% n/d0.91 win 51.3 PF1.41 $ 16680 bust 29.9
+acc 55 cov 50 | IS block 23.0% win 48.9 $  7869 bust 26.9 | HO block 24.3% n/d0.78 win 50.6 PF1.29 $ 10570 bust 40.3
+acc 55 cov100 | IS block 47.9% win 49.8 $  6699 bust 29.7 | HO block 47.9% n/d0.54 win 50.5 PF1.28 $  6515 bust 44.8
+acc 60 cov 10 | IS block  4.7% win 48.6 $  8892 bust 35.8 | HO block  4.4% n/d0.99 win 51.0 PF1.34 $ 15448 bust 40.1
+acc 60 cov 25 | IS block 11.6% win 48.8 $  8320 bust 30.5 | HO block 11.7% n/d0.91 win 51.5 PF1.42 $ 17084 bust 30.1
+acc 60 cov 50 | IS block 22.5% win 49.4 $  8435 bust 27.3 | HO block 23.5% n/d0.79 win 50.6 PF1.33 $ 11920 bust 39.5
+acc 60 cov100 | IS block 47.1% win 50.3 $  7797 bust 30.5 | HO block 47.0% n/d0.55 win 49.6 PF1.24 $  6018 bust 43.0
+acc 65 cov 10 | IS block  4.5% win 48.7 $  9166 bust 35.6 | HO block  4.2% n/d0.99 win 51.0 PF1.35 $ 15670 bust 40.0
+acc 65 cov 25 | IS block 11.5% win 49.0 $  8818 bust 25.1 | HO block 11.4% n/d0.91 win 51.5 PF1.42 $ 17090 bust 29.8
+acc 65 cov 50 | IS block 21.6% win 50.2 $ 10127 bust 21.9 | HO block 22.8% n/d0.80 win 50.8 PF1.35 $ 12791 bust 37.0
+acc 65 cov100 | IS block 45.7% win 51.2 $  9359 bust 17.7 | HO block 46.5% n/d0.55 win 50.3 PF1.33 $  8318 bust 37.8
+acc 70 cov 10 | IS block  4.5% win 48.8 $  9305 bust 35.5 | HO block  4.1% n/d0.99 win 51.0 PF1.35 $ 15671 bust 40.4
+acc 70 cov 25 | IS block 11.0% win 49.2 $  9080 bust 22.5 | HO block 10.8% n/d0.92 win 51.5 PF1.42 $ 17098 bust 29.0
+acc 70 cov 50 | IS block 22.0% win 49.9 $ 10466 bust 24.3 | HO block 23.2% n/d0.79 win 50.7 PF1.37 $ 13474 bust 36.0
+acc 70 cov100 | IS block 44.7% win 52.0 $ 10901 bust  9.1 | HO block 45.4% n/d0.56 win 50.7 PF1.42 $ 10642 bust 33.1
+acc100 cov 10 | IS block  3.5% win 49.0 $ 10206 bust 29.0 | HO block  3.5% n/d0.99 win 51.1 PF1.37 $ 16748 bust 37.4
+acc100 cov 25 | IS block  9.2% win 50.1 $ 11857 bust 19.1 | HO block  9.4% n/d0.93 win 51.4 PF1.44 $ 18221 bust 29.3
+acc100 cov 50 | IS block 21.1% win 51.5 $ 14137 bust  9.6 | HO block 19.3% n/d0.83 win 51.4 PF1.51 $ 18766 bust 25.4
+acc100 cov100 | IS block 40.4% win 57.1 $ 18868 bust  0.0 | HO block 39.6% n/d0.62 win 52.6 PF1.87 $ 22561 bust 17.6

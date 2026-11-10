@@ -29,3 +29,4 @@ build/
 backend/app/backtest/data/*
 !backend/app/backtest/data/main_strategy_5y.csv
 docs/results/session12/*.pkl
+docs/results/session13/*.pkl

@@ -666,3 +666,13 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   SMT hurts (HO win 43-50%, all worse). OB stop anchor: no effect (a tighter OB stop almost never keeps R:R <= 3.0). Wired as
   strategy.lunqfx_structure (enabled=false, anchor_stop=false, shadow_log=true; engine/lunq_structure.py, signals/service.py; tests). Recommendation:
   keep OFF — LunqFX stays a SHADOW strategy; the OB filter is the first candidate if LunqFX is ever revisited (needs the full 60-month run).
+
+## D77 (study 2026-11-10): gate chain for NOISE + PM_FADE re-measured — no gate added, AI threshold made a config value
+- Gates for these two strategies = G1 + (optional OB/SMT/MSO-divergence structure filter) + AI ledger + pillar risk (G8). G2/G3/G5/G7/score belong to LunqFX. Pillars/risk untouched.
+- Measured on 5y MNQ (pick 2021-23, judge 2024-26; docs/results/session13/README.md): window/hour/cooldown/band re-tuning, Big Beluga MSO structure, MSO divergence, LunqFX
+  fractal agreement: none improves held-out win rate AND profit (fractal/structure raise win rate only by cutting 35-55% of trades and most profit). All stay OFF.
+- Finding: the earlier-fade gain is hindsight (the fade's NOISE-free-day set uses the whole day). Causal rule ("no NOISE signal yet") costs about 25% of profit and +10 pts bust
+  vs the validated numbers; the app's projections are optimistic by that much (open: rebuild the stream causally).
+- AI gate: ADVISORY by default; threshold now config `strategy.ai_gate_min_accuracy` (default 0.70, range 0.55-0.95). Simulated 55-70% accuracy: a light block (~5-12% of trades)
+  moves held-out win rate by at most +0.5 pt with mixed profit/bust; heavy blocks cut trades 20-45% and profit. No real ledger data exists (AI key not connected).
+- Built: `strategy.structure_filters.mso_div_filter` (OFF), `/api/strategies.gate_chain`, GateChain UI on the Strategy page.

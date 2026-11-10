@@ -106,5 +106,6 @@ class TradingAgentsAdapter:
         return env
 
     async def run(self, ticker: str, today: date, env: dict[str, str]) -> RunnerResult:
-        """Live-only: callers pass the CURRENT session date. Never re-run for past dates (§15)."""
+        """Daily job: the CURRENT session date. D78 backfill: a past date (TradingAgents takes the trade date; its data
+        tools are cut off at that date, news may still leak hindsight → results are flagged BACKFILL)."""
         return await self._call({"cmd": "run", "ticker": ticker, "date": today.isoformat()}, env)

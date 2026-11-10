@@ -301,11 +301,77 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
     }
 
 
+def _gate_chain(r: Any) -> list[dict[str, object]]:
+    """D77: the gates a NOISE / PM_FADE entry passes (all must pass; a gate can only block). Read from the live config —
+    nothing is hardcoded here, so the UI shows exactly what the engine does."""
+    sf, st = r.strategy.structure_filters, r.strategy
+    inst = r.instrument(st.noise_cfg.symbol)
+    win = ", ".join(f"{a}-{b}" for a, b in (inst.windows or r.internal.windows))
+    return [
+        {
+            "id": "G1",
+            "name": "Window / news / calendar / instrument",
+            "kind": "firm-safe",
+            "on": True,
+            "locked": True,
+            "text": f"Entries only inside {win} ET, no high-impact news within {r.internal.no_entry_before_news_min} min, calendar must be loaded.",
+        },
+        {
+            "id": "RISK",
+            "name": "Risk, sizing, DLL/MLL, kill switch, hedge lock",
+            "kind": "pillar",
+            "on": True,
+            "locked": True,
+            "text": "Pillar checks (§9/§10): never tuned by strategy studies; they can only block or shrink.",
+        },
+        {
+            "id": "G4",
+            "name": "Big Beluga MSO structure (G4/G5)",
+            "kind": "study",
+            "on": False,
+            "locked": False,
+            "text": "Measured on NOISE + fade: cuts trades 5-40% and held-out win rate / profit fall. Not available as a filter for these strategies (LunqFX engine only).",
+        },
+        {
+            "id": "G6",
+            "name": "Big Beluga MSO divergence",
+            "kind": "study",
+            "on": sf.enabled and sf.mso_div_filter,
+            "locked": False,
+            "text": f"Blocks an entry if an opposing MSO divergence printed in the last {sf.mso_div_minutes} min ({sf.mso_tf_min}-min bars). Measured: noise-level (about 1% of trades) - OFF.",
+        },
+        {
+            "id": "FRACTAL",
+            "name": "LunqFX fractal agreement",
+            "kind": "study",
+            "on": False,
+            "locked": False,
+            "text": "Measured: keeps only 30-50% of trades, profit falls 55-80% - OFF. LunqFX stays a SHADOW strategy.",
+        },
+        {
+            "id": "OB",
+            "name": "Order-block / SMT filter (D76)",
+            "kind": "study",
+            "on": sf.enabled and (sf.ob_filter or sf.smt_filter),
+            "locked": False,
+            "text": "Measured in session 12: no held-out gain - OFF (shadow-logged).",
+        },
+        {
+            "id": "AI",
+            "name": "AI bias: TradingAgents + Vibe-Trading (advisory until proven)",
+            "kind": "ai",
+            "on": True,
+            "locked": False,
+            "text": f"Records one call per day and scores it. It may block an entry only when BOTH tools agree strongly and the record proves >= {float(st.ai_gate_min_accuracy):.0%} (config strategy.ai_gate_min_accuracy). Until then it only advises.",
+        },
+    ]
+
+
 @router.get("/strategies")
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
     progress and the AI calibration ledger (advisory until proven)."""
-    from app.bias.ledger import NOISE_MIN_ACC, status
+    from app.bias.ledger import status
     from app.engine.strategy_catalog import CATALOG
     from app.signals.strategy_service import load_days
 
@@ -326,7 +392,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     ledgers = []
     for sym, i in r.instruments.items():
         if i.enabled:
-            ledgers.append({**status(db, i.bias_proxy, sym, sess, NOISE_MIN_ACC), "rows": []})
+            ledgers.append({**status(db, i.bias_proxy, sym, sess, float(r.strategy.ai_gate_min_accuracy)), "rows": []})
     return {
         "strategies": [{**c, "enabled": on[str(c["key"])], "setting": f"strategy.{c['key']}"} for c in CATALOG],
         "noise_warmup": {
@@ -335,6 +401,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "ready": len(stored) >= nc.min_history_days,
         },
         "ai_ledger": ledgers,
+        "gate_chain": _gate_chain(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
         "size_profiles": {  # D64: Regular / High risk buttons (each account sized by its own size + drawdown brake)
             "active": "high" if r.strategy.high_risk else "regular",

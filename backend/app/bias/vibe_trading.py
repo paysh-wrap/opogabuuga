@@ -70,9 +70,15 @@ def env_for(creds: dict[str, str]) -> dict[str, str]:
     }
 
 
-def prompt(proxy: str, market: str, session: str, context: dict[str, Any] | None) -> str:
+def prompt(proxy: str, market: str, session: str, context: dict[str, Any] | None, backfill: bool = False) -> str:
     ctx = json.dumps(context or {}, default=str)[:1500]
-    return (
+    asof = (
+        f" HISTORICAL BACKFILL: act as if it is the morning of {session} before the open. Use ONLY information "
+        f"published on or before {session}; ignore anything later."
+        if backfill
+        else ""
+    )
+    return asof + (
         f"You are a futures day-trading risk desk. Session date {session} (US/Eastern). Market: {market} "
         f"(directional proxy ETF {proxy}). Recent daily data from OpenBB (may be empty): {ctx}. "
         "Using current news, macro calendar and price action, give ONE intraday directional outlook for today's "

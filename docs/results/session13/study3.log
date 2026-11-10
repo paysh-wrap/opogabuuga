@@ -1,0 +1,61 @@
+A                                            IS n 564 1.04/d win 48.6 PF1.30 $   9363 dd 1538 bust 31.5 pass 68.5 | HO n 727 1.03/d win 51.0 PF1.34 $  15982 dd 2591 bust 33.9 pass 66.1
+C MSO structure mso1 agree N                 IS n 531 0.98/d win 49.0 PF1.29 $   8438 dd 1268 bust 33.5 pass 66.5 | HO n 683 0.97/d win 50.5 PF1.33 $  14861 dd 2987 bust 41.1 pass 58.9
+C MSO structure mso1 agree F                 IS n 380 0.70/d win 46.3 PF1.45 $   9213 dd 1204 bust 23.1 pass 76.9 | HO n 470 0.67/d win 45.3 PF1.33 $  11195 dd 2480 bust 38.1 pass 61.9
+C MSO structure mso1 agree B                 IS n 347 0.64/d win 46.7 PF1.43 $   8288 dd  939 bust 16.3 pass 83.7 | HO n 426 0.60/d win 43.9 PF1.31 $  10073 dd 2876 bust 48.1 pass 51.9
+C MSO structure mso1 noopp N                 IS n 531 0.98/d win 49.0 PF1.29 $   8438 dd 1268 bust 33.5 pass 66.5 | HO n 683 0.97/d win 50.5 PF1.33 $  14861 dd 2987 bust 41.1 pass 58.9
+C MSO structure mso1 noopp F                 IS n 380 0.70/d win 46.3 PF1.45 $   9213 dd 1204 bust 23.1 pass 76.9 | HO n 470 0.67/d win 45.3 PF1.33 $  11195 dd 2480 bust 38.1 pass 61.9
+C MSO structure mso1 noopp B                 IS n 347 0.64/d win 46.7 PF1.43 $   8288 dd  939 bust 16.3 pass 83.7 | HO n 426 0.60/d win 43.9 PF1.31 $  10073 dd 2876 bust 48.1 pass 51.9
+C MSO structure mso5 agree N                 IS n 539 1.00/d win 48.2 PF1.24 $   7314 dd 1481 bust 28.3 pass 71.7 | HO n 693 0.98/d win 51.7 PF1.38 $  16896 dd 2644 bust 29.5 pass 70.5
+C MSO structure mso5 agree F                 IS n 389 0.72/d win 45.5 PF1.35 $   7645 dd 1109 bust 33.3 pass 66.7 | HO n 497 0.70/d win 45.9 PF1.31 $  11210 dd 2078 bust 44.5 pass 55.5
+C MSO structure mso5 agree B                 IS n 364 0.67/d win 44.8 PF1.27 $   5596 dd 1336 bust 27.0 pass 73.0 | HO n 463 0.66/d win 46.4 PF1.37 $  12123 dd 2101 bust 39.4 pass 60.6
+C MSO structure mso5 noopp N                 IS n 539 1.00/d win 48.2 PF1.24 $   7314 dd 1481 bust 28.3 pass 71.7 | HO n 693 0.98/d win 51.7 PF1.38 $  16896 dd 2644 bust 29.5 pass 70.5
+C MSO structure mso5 noopp F                 IS n 389 0.72/d win 45.5 PF1.35 $   7645 dd 1109 bust 33.3 pass 66.7 | HO n 497 0.70/d win 45.9 PF1.31 $  11210 dd 2078 bust 44.5 pass 55.5
+C MSO structure mso5 noopp B                 IS n 364 0.67/d win 44.8 PF1.27 $   5596 dd 1336 bust 27.0 pass 73.0 | HO n 463 0.66/d win 46.4 PF1.37 $  12123 dd 2101 bust 39.4 pass 60.6
+C MSO divergence mso1 nodiv15 N              IS n 528 0.98/d win 48.7 PF1.30 $   8735 dd 1287 bust 20.7 pass 79.3 | HO n 698 0.99/d win 51.4 PF1.21 $   9594 dd 3263 bust 35.3 pass 64.7
+C MSO divergence mso1 nodiv15 F              IS n 547 1.01/d win 48.4 PF1.33 $   9715 dd 1538 bust 31.3 pass 68.7 | HO n 708 1.00/d win 50.8 PF1.35 $  16098 dd 2622 bust 39.8 pass 60.2
+C MSO divergence mso1 nodiv15 B              IS n 511 0.95/d win 48.5 PF1.33 $   9087 dd 1336 bust 27.4 pass 72.6 | HO n 679 0.96/d win 51.3 PF1.22 $   9710 dd 3191 bust 42.8 pass 57.2
+C MSO divergence mso1 nodiv30 N              IS n 497 0.92/d win 50.1 PF1.38 $  10143 dd 1287 bust 14.3 pass 85.7 | HO n 667 0.95/d win 51.9 PF1.24 $  10243 dd 2850 bust 42.0 pass 58.0
+C MSO divergence mso1 nodiv30 F              IS n 533 0.99/d win 48.2 PF1.32 $   9379 dd 1538 bust 28.3 pass 71.7 | HO n 688 0.98/d win 50.7 PF1.36 $  16295 dd 2622 bust 46.3 pass 53.7
+C MSO divergence mso1 nodiv30 B              IS n 466 0.86/d win 49.8 PF1.41 $  10159 dd 1290 bust 26.9 pass 73.1 | HO n 628 0.89/d win 51.6 PF1.26 $  10555 dd 2641 bust 52.2 pass 47.8
+C MSO divergence mso1 nodiv60 N              IS n 449 0.83/d win 50.8 PF1.39 $   9341 dd 1484 bust 18.5 pass 81.5 | HO n 606 0.86/d win 53.3 PF1.27 $   9925 dd 3607 bust 37.3 pass 62.7
+C MSO divergence mso1 nodiv60 F              IS n 506 0.94/d win 47.6 PF1.37 $   9914 dd 1538 bust 28.7 pass 71.3 | HO n 655 0.93/d win 49.9 PF1.36 $  15649 dd 2622 bust 45.4 pass 54.6
+C MSO divergence mso1 nodiv60 B              IS n 391 0.72/d win 49.9 PF1.50 $   9892 dd 1454 bust  9.3 pass 90.7 | HO n 534 0.76/d win 52.2 PF1.29 $   9591 dd 2768 bust 45.0 pass 55.0
+C MSO divergence mso1 nodiv120 N             IS n 342 0.63/d win 52.6 PF1.32 $   5873 dd 1659 bust 20.0 pass 80.0 | HO n 475 0.67/d win 54.5 PF1.24 $   6735 dd 3073 bust 52.6 pass 47.4
+C MSO divergence mso1 nodiv120 F             IS n 462 0.86/d win 47.6 PF1.40 $   9873 dd 1582 bust 19.6 pass 80.4 | HO n 606 0.86/d win 49.2 PF1.37 $  15226 dd 2221 bust 45.2 pass 54.8
+C MSO divergence mso1 nodiv120 B             IS n 240 0.44/d win 52.5 PF1.52 $   6383 dd 1362 bust 13.9 pass 86.1 | HO n 354 0.50/d win 52.5 PF1.27 $   5979 dd 2152 bust 55.9 pass 44.1
+C MSO divergence mso1 needdiv30 F            IS n 408 0.76/d win 47.1 PF1.44 $   9809 dd 1358 bust 28.0 pass 72.0 | HO n 520 0.74/d win 47.5 PF1.36 $  13048 dd 2570 bust 44.4 pass 55.6
+C MSO divergence mso1 needdiv120 F           IS n 494 0.91/d win 47.4 PF1.33 $   8920 dd 1458 bust 30.7 pass 69.3 | HO n 638 0.90/d win 50.3 PF1.38 $  15815 dd 2768 bust 34.8 pass 65.2
+C MSO divergence mso5 nodiv15 N              IS n 562 1.04/d win 48.6 PF1.31 $   9469 dd 1538 bust 31.5 pass 68.5 | HO n 722 1.02/d win 51.4 PF1.35 $  16342 dd 2597 bust 33.9 pass 66.1
+C MSO divergence mso5 nodiv15 F              IS n 564 1.04/d win 48.6 PF1.30 $   9363 dd 1538 bust 31.5 pass 68.5 | HO n 720 1.02/d win 51.0 PF1.34 $  15944 dd 2591 bust 39.6 pass 60.4
+C MSO divergence mso5 nodiv15 B              IS n 562 1.04/d win 48.6 PF1.31 $   9469 dd 1538 bust 31.5 pass 68.5 | HO n 715 1.01/d win 51.3 PF1.35 $  16304 dd 2597 bust 39.6 pass 60.4
+C MSO divergence mso5 nodiv30 N              IS n 561 1.04/d win 48.7 PF1.31 $   9474 dd 1538 bust 31.5 pass 68.5 | HO n 720 1.02/d win 51.4 PF1.35 $  16392 dd 2597 bust 33.9 pass 66.1
+C MSO divergence mso5 nodiv30 F              IS n 559 1.04/d win 48.8 PF1.32 $   9637 dd 1538 bust 22.8 pass 77.2 | HO n 716 1.02/d win 50.7 PF1.33 $  15626 dd 2716 bust 39.6 pass 60.4
+C MSO divergence mso5 nodiv30 B              IS n 556 1.03/d win 48.9 PF1.33 $   9748 dd 1538 bust 31.1 pass 68.9 | HO n 709 1.01/d win 51.1 PF1.35 $  16036 dd 2722 bust 39.6 pass 60.4
+C MSO divergence mso5 nodiv60 N              IS n 554 1.03/d win 48.6 PF1.30 $   9052 dd 1851 bust 32.8 pass 67.2 | HO n 704 1.00/d win 51.4 PF1.35 $  15913 dd 2374 bust 33.6 pass 66.4
+C MSO divergence mso5 nodiv60 F              IS n 553 1.02/d win 48.6 PF1.30 $   9141 dd 1598 bust 26.9 pass 73.1 | HO n 705 1.00/d win 51.1 PF1.35 $  16205 dd 2716 bust 38.2 pass 61.8
+C MSO divergence mso5 nodiv60 B              IS n 543 1.01/d win 48.6 PF1.30 $   8830 dd 1910 bust 26.1 pass 73.9 | HO n 682 0.97/d win 51.5 PF1.36 $  16136 dd 2499 bust 38.0 pass 62.0
+C MSO divergence mso5 nodiv120 N             IS n 534 0.99/d win 48.3 PF1.26 $   7607 dd 2040 bust 28.9 pass 71.1 | HO n 671 0.95/d win 52.0 PF1.39 $  16729 dd 2595 bust 26.0 pass 74.0
+C MSO divergence mso5 nodiv120 F             IS n 536 0.99/d win 48.7 PF1.34 $   9676 dd 1299 bust 31.7 pass 68.3 | HO n 682 0.97/d win 50.7 PF1.37 $  16384 dd 2467 bust 38.0 pass 62.0
+C MSO divergence mso5 nodiv120 B             IS n 506 0.94/d win 48.4 PF1.29 $   7920 dd 1738 bust 23.7 pass 76.3 | HO n 626 0.89/d win 51.8 PF1.42 $  17131 dd 2471 bust 31.7 pass 68.3
+C MSO divergence mso5 needdiv30 F            IS n 369 0.68/d win 45.3 PF1.40 $   8059 dd 1306 bust 23.3 pass 76.7 | HO n 459 0.65/d win 45.1 PF1.33 $  10980 dd 2406 bust 38.9 pass 61.1
+C MSO divergence mso5 needdiv120 F           IS n 385 0.71/d win 45.5 PF1.40 $   8305 dd 1244 bust 22.4 pass 77.6 | HO n 490 0.70/d win 46.5 PF1.34 $  11918 dd 2167 bust 38.0 pass 62.0
+C Fractal fr15 agree N                       IS n 312 0.58/d win 52.9 PF1.24 $   3758 dd 1246 bust 26.9 pass 73.1 | HO n 408 0.58/d win 55.6 PF1.32 $   7037 dd 2741 bust 26.1 pass 73.9
+C Fractal fr15 agree F                       IS n 484 0.90/d win 47.9 PF1.39 $  10024 dd 1376 bust 24.6 pass 75.4 | HO n 610 0.87/d win 48.9 PF1.31 $  12599 dd 2149 bust 42.9 pass 57.1
+C Fractal fr15 agree B                       IS n 232 0.43/d win 53.0 PF1.42 $   4419 dd  909 bust 58.9 pass 40.6 | HO n 291 0.41/d win 52.9 PF1.23 $   3654 dd 1324 bust 42.2 pass 57.8
+C Fractal fr15 noopp N                       IS n 356 0.66/d win 52.8 PF1.36 $   6432 dd 1316 bust 25.9 pass 74.1 | HO n 474 0.67/d win 53.2 PF1.21 $   5920 dd 2990 bust 32.7 pass 67.3
+C Fractal fr15 noopp F                       IS n 545 1.01/d win 48.4 PF1.33 $   9817 dd 1538 bust 18.9 pass 81.1 | HO n 702 1.00/d win 50.9 PF1.33 $  15269 dd 2526 bust 43.5 pass 56.5
+C Fractal fr15 noopp B                       IS n 337 0.62/d win 52.8 PF1.42 $   6887 dd 1316 bust 27.2 pass 72.8 | HO n 449 0.64/d win 53.0 PF1.19 $   5206 dd 3013 bust 33.1 pass 66.9
+C Fractal fr60 agree N                       IS n 246 0.46/d win 52.4 PF1.09 $   1227 dd 2043 bust 31.7 pass 68.3 | HO n 326 0.46/d win 59.2 PF1.31 $   5414 dd 2360 bust 26.6 pass 73.4
+C Fractal fr60 agree F                       IS n 480 0.89/d win 47.1 PF1.33 $   8655 dd 1481 bust 26.3 pass 73.7 | HO n 596 0.85/d win 48.7 PF1.35 $  14017 dd 2400 bust 32.9 pass 67.1
+C Fractal fr60 agree B                       IS n 162 0.30/d win 50.0 PF1.06 $    520 dd 1572 bust 31.3 pass 38.0 | HO n 195 0.28/d win 57.4 PF1.33 $   3449 dd 1325 bust 24.7 pass 75.3
+C Fractal fr60 noopp N                       IS n 284 0.53/d win 53.2 PF1.19 $   2994 dd 2405 bust 29.3 pass 70.7 | HO n 384 0.54/d win 55.2 PF1.16 $   3608 dd 3310 bust 40.6 pass 59.4
+C Fractal fr60 noopp F                       IS n 552 1.02/d win 48.4 PF1.31 $   9349 dd 1538 bust 31.1 pass 68.9 | HO n 704 1.00/d win 50.7 PF1.35 $  16127 dd 2451 bust 32.5 pass 67.5
+C Fractal fr60 noopp B                       IS n 272 0.50/d win 52.9 PF1.20 $   2980 dd 2156 bust 24.8 pass 75.2 | HO n 361 0.51/d win 54.8 PF1.18 $   3753 dd 3234 bust 41.7 pass 58.3
+Traceback (most recent call last):
+  File "/home/user/opogabuuga/docs/results/session13/study3.py", line 29, in <module>
+    out[f"D AI acc{int(acc*100)} cov{int(cov*100)}"] = avg; print(line(f"D AI acc{int(acc*100)} cov{int(cov*100)} (6 seeds)", avg), flush=True)
+                                                                  ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/opogabuuga/docs/results/session13/study.py", line 51, in line
+    return f"{name:44s} IS n{a['n']:4d} {a['tpd']:.2f}/d win{a['win']:5.1f} PF{a['pf']:.2f} ${a['usd']:7.0f} dd{a['dd']:5.0f} bust{a['bust']:5.1f} pass{a['pass']:5.1f} | HO n{b['n']:4d} {b['tpd']:.2f}/d win{b['win']:5.1f} PF{b['pf']:.2f} ${b['usd']:7.0f} dd{b['dd']:5.0f} bust{b['bust']:5.1f} pass{b['pass']:5.1f}"
+                            ^^^^^^^^^^^
+ValueError: Unknown format code 'd' for object of type 'float'

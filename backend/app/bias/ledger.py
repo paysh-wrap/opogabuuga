@@ -15,7 +15,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.bias.policy import Call, LedgerStats, Policy, combine, ledger_stats, score
+from app.bias.policy import Call, LedgerStats, Policy, combine, ledger_stats, score, wilson_lower
 from app.clock import ET
 from app.models import Bar, BiasDecision
 
@@ -32,12 +32,17 @@ def parse_label(label: str) -> tuple[str, str | None, int | None]:
 
 def session_outcome(s: Session, symbol: str, day: date) -> bool | None:
     """True = the RTH session closed above its 09:30 open; None = bars missing (not scored)."""
-    start = datetime(day.year, day.month, day.day, 9, 31, tzinfo=ET)
-    end = datetime(day.year, day.month, day.day, 16, 0, tzinfo=ET)
+    # D78: tolerate a few missing 1-minute bars at the edges (first bar within 09:31-09:35, last within 15:56-16:00)
+    def at(h: int, m: int) -> datetime:
+        return datetime(day.year, day.month, day.day, h, m, tzinfo=ET)
+
+    base = select(Bar).where(Bar.symbol == symbol, Bar.tf == "1")
     first = s.execute(
-        select(Bar).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time == start)
+        base.where(Bar.close_time >= at(9, 31), Bar.close_time <= at(9, 35)).order_by(Bar.close_time).limit(1)
     ).scalar_one_or_none()
-    last = s.execute(select(Bar).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time == end)).scalar_one_or_none()
+    last = s.execute(
+        base.where(Bar.close_time >= at(15, 56), Bar.close_time <= at(16, 0)).order_by(Bar.close_time.desc()).limit(1)
+    ).scalar_one_or_none()
     if first is None or last is None or last.c == first.o:
         return None
     return last.c > first.o
@@ -55,9 +60,12 @@ def _calls(s: Session, proxy: str, since: date, until: date) -> list[BiasDecisio
     return [last[d] for d in sorted(last)]
 
 
-def ledger(s: Session, proxy: str, symbol: str, today: date, pol: Policy, days: int = 120) -> dict[str, Any]:
+def ledger(
+    s: Session, proxy: str, symbol: str, today: date, pol: Policy, days: int = 120, through: date | None = None
+) -> dict[str, Any]:
+    """`through` = last session to score (default: yesterday; D78: today once the 16:00 bar is stored)."""
     rows, scored = [], []
-    for d in _calls(s, proxy, today - timedelta(days=days), today - timedelta(days=1)):
+    for d in _calls(s, proxy, today - timedelta(days=days), through or today - timedelta(days=1)):
         ta, vd, vc = parse_label(d.raw_rating)
         call = combine(ta, vd, vc, pol)
         up = session_outcome(s, symbol, d.session_date)
@@ -115,13 +123,30 @@ def sizing_call(s: Session, proxy: str, symbol: str, today: date, min_acc: float
     return call.direction
 
 
-def status(s: Session, proxy: str, symbol: str, today: date, min_acc: float) -> dict[str, Any]:
+def calls_needed(st: LedgerStats, min_calls: int, min_acc: float) -> dict[str, int | None]:
+    """D78: how many MORE scored calls until the proof, (a) if future calls keep today's hit rate, (b) best case (all
+    hits). None = cannot get there that way. Window = the newest 60 scored calls (ledger_stats)."""
+    out: dict[str, int | None] = {"at_current_rate": None, "best_case": None}
+    for key, rate in (("at_current_rate", st.hit_rate), ("best_case", 1.0)):
+        hits = st.hit_rate * st.n
+        for k in range(0, 301):
+            n = st.n + k
+            if n >= min_calls and n > 0 and wilson_lower(hits + rate * k, n) >= min_acc:
+                out[key] = k
+                break
+    return out
+
+
+def status(
+    s: Session, proxy: str, symbol: str, today: date, min_acc: float, through: date | None = None
+) -> dict[str, Any]:
     pol = Policy(bias_matters=True)
-    led = ledger(s, proxy, symbol, today, pol)
+    led = ledger(s, proxy, symbol, today, pol, through=through)
     st = LedgerStats(**led["stats"])
     ok = proven(st, pol, min_acc)
     led["required_accuracy"] = min_acc
     led["min_calls"] = pol.min_calls
+    led["calls_needed"] = calls_needed(st, pol.min_calls, min_acc)
     led["state"] = "PROVEN" if ok else ("WARMUP" if st.n < pol.min_calls else "UNPROVEN")
     led["badge"] = "MAY BLOCK (proven)" if ok else "ADVISORY"
     return led

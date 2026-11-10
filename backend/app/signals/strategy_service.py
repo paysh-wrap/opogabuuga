@@ -250,7 +250,12 @@ def run_noise(s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarPr
             gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
             if gate[0]:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
                 why = ledger.may_block(
-                    s, inst.bias_proxy, cfg.symbol, at.astimezone(ET).date(), a.direction.sign, ledger.NOISE_MIN_ACC
+                    s,
+                    inst.bias_proxy,
+                    cfg.symbol,
+                    at.astimezone(ET).date(),
+                    a.direction.sign,
+                    float(rules.strategy.ai_gate_min_accuracy),
                 )
                 if why:
                     gate = (False, why, "proven AI call (both tools agree) is against this side")

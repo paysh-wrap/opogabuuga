@@ -363,6 +363,11 @@ class StructureFilterCfg(_M):
     smt_filter: bool = False  # needs MES 1-minute bars in the feed; skipped when absent
     smt_lookback: int = 20
     smt_valid_bars: int = 15
+    # D77: Big Beluga MSO divergence gate (G6 style): block an entry when an OPPOSING MSO divergence printed in the last
+    # mso_div_minutes. Measured (docs/results/session13): noise-level (5 trades blocked) -> OFF.
+    mso_div_filter: bool = False
+    mso_tf_min: int = 5
+    mso_div_minutes: int = 30
     anchor_buffer_pts: D = D("2")  # shadow only: where an OB-anchored stop would sit (never applied live)
 
 
@@ -406,6 +411,9 @@ class StrategyCfg(_M):
     # ≥ min_calls scored calls with observed hit rate ≥ ai_sizing_min_accuracy. Never blocks.
     # DLL / D57 / worst-case checks still apply.
     ai_sizing: bool = True
+    # D77: accuracy the AI record must PROVE (Wilson lower bound) before the AI call may BLOCK a NOISE entry. Shipped default
+    # 0.70 (D55); the user may choose 0.60/0.65 after reading docs/results/session13/README.md. Allowed 0.55-0.95.
+    ai_gate_min_accuracy: D = Field(default=D("0.70"), ge=D("0.55"), le=D("0.95"))
     ai_sizing_min_account: D = D("100000")
     ai_sizing_min_accuracy: D = D("0.60")
     ai_sizing_min_calls: int = 60

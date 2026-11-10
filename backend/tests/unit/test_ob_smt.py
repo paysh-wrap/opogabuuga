@@ -91,3 +91,18 @@ def test_structure_filter_verdict():
     assert evaluate(c2, 1, D(105), D(50), D("0.25"), a, b).veto == "SMT_BLOCK"
     assert evaluate(c2, -1, D(105), D(50), D("0.25"), a, b).veto is None
     assert evaluate(c2, 1, D(105), D(50), D("0.25"), a, None).veto is None
+
+
+def test_mso_div_filter_default_off_and_threshold_bounds():
+    from pydantic import ValidationError
+
+    from app.config import StrategyCfg, StructureFilterCfg
+    from app.engine.structure_filter import evaluate
+
+    assert StrategyCfg().ai_gate_min_accuracy == D("0.70")
+    assert StrategyCfg(ai_gate_min_accuracy=D("0.60")).ai_gate_min_accuracy == D("0.60")
+    with pytest.raises(ValidationError):
+        StrategyCfg(ai_gate_min_accuracy=D("0.40"))
+    cfg = StructureFilterCfg(ob_filter=False, mso_div_filter=True)
+    v = evaluate(cfg, 1, D(100), D(90), D("0.25"), flat(60), None)
+    assert v.veto is None  # flat bars print no divergence

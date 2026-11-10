@@ -87,3 +87,13 @@ def test_strategies_endpoint(authed):
     assert r.status_code == 200, r.text
     ai = authed.get("/api/strategies").json()["strategies"][4]
     assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "PAPER ONLY"
+
+
+def test_gate_chain_and_ai_threshold_from_config(authed):
+    """D77: /api/strategies lists the NOISE/PM_FADE gate chain from config; the AI threshold defaults to 70%."""
+    d = authed.get("/api/strategies").json()
+    ids = {g["id"]: g for g in d["gate_chain"]}
+    assert ids["G1"]["on"] and ids["G1"]["locked"] and ids["RISK"]["kind"] == "pillar"
+    assert not ids["G6"]["on"] and not ids["FRACTAL"]["on"] and not ids["G4"]["on"]
+    assert ids["AI"]["on"] and "70%" in ids["AI"]["text"]
+    assert d["ai_ledger"][0]["required_accuracy"] == 0.7
