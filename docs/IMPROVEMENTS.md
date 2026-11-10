@@ -142,3 +142,15 @@ Paths are under `backend/app/`. Priority: P1 = fix before any LIVE order, P2 = b
 
 ## Suggested order
 1, 2, 3 (restart + exits + missed heartbeat), then 5 (feed-lost flatten), 4 and 6 (tests + limiter), 14 (causal projections, so decisions use honest numbers), 8, 15-17 (UX), 19 (AI cost). 9-13 are experiments for agents after 14 exists.
+
+# Session 14 review (2026-11-10) — new findings beyond the session 13 audit
+Built in session 14 (approved scope): N1 unique trade refs across restarts; N2 retry + alert on a failed strategy exit.
+Awaiting user approval (NOT built):
+- N3 P1 Pre-flight is mostly stubbed (api/automation.py:97-111 broker_ok=True, orphans=0, drift=0, bias MNQ-only) and never runs on a schedule; the UI polls a POST that can pause accounts on page view. Wire real checks, schedule at config.schedule.preflight, split read-only check.
+- N4 P2 No cancel_all of leftover SL/TP after an app flatten (order_manager.py:394/407) — verify CrossTrade behaviour first.
+- N5 P2 A PASS signal no account took still counts as an open NOISE position (strategy_service.py:~262) -> later entries and the PM fade get suppressed. Mark NOT_TAKEN.
+- N6 P1 Consistency fit uses NOISE's far 10% safety TP (config.py:243, risk/checks.py:238-251) -> CONSISTENCY_CAP on every NOISE entry for FUNDED / Flex / Daily EVAL accounts. Fix = skip TP-reward fit for fixed-size strategy trades + live consistency day-stop flatten. TOUCHES RISK CHECKS -> needs explicit user OK.
+- N7 P2 EOD MLL update skipped forever if the app is down 16:50-18:00 ET (main.py:126-139). Catch up at startup, block arming until done.
+- N8 P2 Automation page: optional Tradovate # silently creates a REAL account; Flatten has no confirm; raw pause codes; raw pre-flight keys.
+- N9 P3 Persistent header "Flatten all" button with one confirm.
+- N10-12 backtests: NOISE win rate by check hour (last_check 13/14:00); skip same-bar reverse after stop-out; minimum sigma-band width vs costs.
