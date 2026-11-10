@@ -385,3 +385,10 @@ TradingView heartbeat finding (session 13): the user's alerts were rejected STAL
 - Session 13 update: TradingView is now CONNECTED (fix: webhook secret placed in the indicator + CME real-time data subscription ~$7/mo). User chose to stay PAPER for now. D79 ngrok permanent webhook URL (Connections card; desktop auto-starts ngrok; cloudflared fallback is now actually started) is UNTESTED against a real ngrok account.
 - Broker bridge discussion (nothing built): CrossTrade Pro ~$49/mo is the supported safe option (position read-back is needed by the live gate). Cheapest safe alternative = Tradovate API add-on ~$30/mo, ONLY IF Lucid allows it (ask Lucid first). TradersPost cannot read back positions, so it does not satisfy the live gate.
 - Session 13 (D80): UI synced with D72-D79 - gate chain rows with state/reason, gate toggles + unproven badge/confirm, LunqFX flags card, CrossTrade note, TradersPost removed, hindsight-projection notice (Dashboard/Today). No logic changes.
+
+## END OF SESSION 13 (2026-11-10)
+- D80 UI sync done: gate chain rows with tested reasons, unproven badges, LunqFX filter card, CrossTrade note, projections-optimistic notice, Risk page text. TradersPost removed completely.
+- Research: Tradovate API is NOT available on prop/eval accounts (the ~$30 API option is out). WebhookTrade unverifiable. CrossTrade Pro is the only confirmed safe bridge. Ask Lucid in writing whether bridges are allowed.
+- Session 13 audit: 21 proposals in docs/IMPROVEMENTS.md awaiting user approval (top: restart recovery, exit marked CLOSED before broker confirms, lost heartbeats/duplicates, feed-lost protection, causal projections rebuild).
+- User is running PAPER.
+- OPEN: D75 P1-P4, Lucid checks, causal rebuild decision, ngrok setup by user.
