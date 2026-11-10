@@ -1,0 +1,1532 @@
+{
+ "25K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "5 reset when cushion < 10% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 74.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "5 reset when cushion < 15% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 69.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 71.6
+   }
+  },
+  "5 reset when cushion < 20% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 71.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 65.2
+   }
+  },
+  "5 reset when cushion < 25% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 69.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.5,
+    "bust": 0.0,
+    "frozen": 53.5,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 59.1
+   }
+  },
+  "5 reset when cushion < 30% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 54.4,
+    "bust": 0.0,
+    "frozen": 45.6,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 65.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.5,
+    "bust": 0.0,
+    "frozen": 56.5,
+    "open": 0.0,
+    "med": 26.0,
+    "spp": 60.9
+   }
+  },
+  "5 reset when cushion < 40% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 47.3,
+    "bust": 0.0,
+    "frozen": 52.7,
+    "open": 0.0,
+    "med": 33.0,
+    "spp": 58.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.2,
+    "bust": 0.0,
+    "frozen": 56.8,
+    "open": 0.0,
+    "med": 25.5,
+    "spp": 57.2
+   }
+  },
+  "OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 68.6,
+    "bust": 0.0,
+    "frozen": 30.0,
+    "open": 1.4,
+    "med": 40.0,
+    "spp": 74.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 52.6,
+    "bust": 0.0,
+    "frozen": 47.4,
+    "open": 0.0,
+    "med": 25.0,
+    "spp": 69.9
+   }
+  },
+  "OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 55.8,
+    "bust": 0.0,
+    "frozen": 44.2,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 71.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 52.9,
+    "bust": 0.0,
+    "frozen": 47.1,
+    "open": 0.0,
+    "med": 25.0,
+    "spp": 56.4
+   }
+  },
+  "30m+5+OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 51.2,
+    "bust": 0.0,
+    "frozen": 38.5,
+    "open": 10.2,
+    "med": 29.0,
+    "spp": 100.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 28.0,
+    "spp": 100.5
+   }
+  },
+  "30m+5+OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 51.6,
+    "bust": 0.0,
+    "frozen": 41.7,
+    "open": 6.7,
+    "med": 29.5,
+    "spp": 82.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 28.0,
+    "spp": 70.2
+   }
+  },
+  "OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 6.0,
+    "med": 40.0,
+    "spp": 80.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 53.2,
+    "bust": 0.0,
+    "frozen": 46.8,
+    "open": 0.0,
+    "med": 25.0,
+    "spp": 70.0
+   }
+  },
+  "shrink .7 + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 71.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.8,
+    "bust": 0.0,
+    "frozen": 53.2,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 60.2
+   }
+  }
+ },
+ "25K-HR": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 63.8
+   }
+  },
+  "5 reset when cushion < 10% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 63.6
+   }
+  },
+  "5 reset when cushion < 15% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 51.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 58.7
+   }
+  },
+  "5 reset when cushion < 20% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 45.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 57.1
+   }
+  },
+  "5 reset when cushion < 25% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 39.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 52.5
+   }
+  },
+  "5 reset when cushion < 30% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 26.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 37.5
+   }
+  },
+  "5 reset when cushion < 40% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 37.5,
+    "bust": 0.0,
+    "frozen": 62.5,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 22.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 28.4
+   }
+  },
+  "OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 41.0,
+    "bust": 0.0,
+    "frozen": 59.0,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 50.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 34.5,
+    "bust": 0.0,
+    "frozen": 65.5,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 57.2
+   }
+  },
+  "OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 40.3,
+    "bust": 0.0,
+    "frozen": 59.7,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 43.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.9,
+    "bust": 0.0,
+    "frozen": 67.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 53.0
+   }
+  },
+  "30m+5+OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 50.2,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.0,
+    "med": 12.0,
+    "spp": 40.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 34.2,
+    "bust": 0.0,
+    "frozen": 65.8,
+    "open": 0.0,
+    "med": 6.5,
+    "spp": 57.8
+   }
+  },
+  "30m+5+OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 44.9,
+    "bust": 0.0,
+    "frozen": 55.1,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 38.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.3,
+    "bust": 0.0,
+    "frozen": 68.7,
+    "open": 0.0,
+    "med": 6.0,
+    "spp": 56.9
+   }
+  },
+  "OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 42.8,
+    "bust": 0.0,
+    "frozen": 57.2,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 50.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 38.4,
+    "bust": 0.0,
+    "frozen": 61.6,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 54.3
+   }
+  },
+  "shrink .7 + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 39.9,
+    "bust": 0.0,
+    "frozen": 60.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 35.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.6,
+    "bust": 0.0,
+    "frozen": 67.4,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 50.8
+   }
+  },
+  "rec + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 41.7,
+    "bust": 0.0,
+    "frozen": 58.3,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 53.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 39.4,
+    "bust": 0.0,
+    "frozen": 60.6,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 54.4
+   }
+  },
+  "rec + shrink .8 + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 42.4,
+    "bust": 0.0,
+    "frozen": 57.6,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 49.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 7.5,
+    "spp": 55.0
+   }
+  },
+  "rec + shrink .8": {
+   "IS": {
+    "n": 283,
+    "pas": 42.4,
+    "bust": 0.0,
+    "frozen": 57.6,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 49.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 36.1,
+    "bust": 0.0,
+    "frozen": 63.9,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 58.8
+   }
+  },
+  "rec + OD": {
+   "IS": {
+    "n": 283,
+    "pas": 44.5,
+    "bust": 0.0,
+    "frozen": 55.5,
+    "open": 0.0,
+    "med": 11.5,
+    "spp": 49.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 41.0,
+    "bust": 0.0,
+    "frozen": 59.0,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 52.4
+   }
+  },
+  "rec + 30m": {
+   "IS": {
+    "n": 283,
+    "pas": 50.5,
+    "bust": 0.0,
+    "frozen": 49.5,
+    "open": 0.0,
+    "med": 12.0,
+    "spp": 42.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 57.7
+   }
+  },
+  "rec + 30m + OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 52.3,
+    "bust": 0.0,
+    "frozen": 47.7,
+    "open": 0.0,
+    "med": 12.5,
+    "spp": 39.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 55.9
+   }
+  },
+  "rec + reset<15%": {
+   "IS": {
+    "n": 283,
+    "pas": 43.5,
+    "bust": 0.0,
+    "frozen": 56.5,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 27.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 38.1,
+    "bust": 0.0,
+    "frozen": 61.9,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 35.8
+   }
+  },
+  "rec + min .10% + reset<15%": {
+   "IS": {
+    "n": 283,
+    "pas": 41.7,
+    "bust": 0.0,
+    "frozen": 58.3,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 25.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 39.4,
+    "bust": 0.0,
+    "frozen": 60.6,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 23.5
+   }
+  },
+  "rec, 4 micros": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 55.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.3,
+    "bust": 0.0,
+    "frozen": 67.7,
+    "open": 0.0,
+    "med": 6.0,
+    "spp": 67.9
+   }
+  },
+  "rec, 2 micros x $250": {
+   "IS": {
+    "n": 283,
+    "pas": 47.0,
+    "bust": 0.0,
+    "frozen": 53.0,
+    "open": 0.0,
+    "med": 19.0,
+    "spp": 56.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 41.0,
+    "bust": 0.0,
+    "frozen": 59.0,
+    "open": 0.0,
+    "med": 13.0,
+    "spp": 63.6
+   }
+  },
+  "rec, 3 micros no taper": {
+   "IS": {
+    "n": 283,
+    "pas": 35.0,
+    "bust": 0.0,
+    "frozen": 65.0,
+    "open": 0.0,
+    "med": 6.0,
+    "spp": 60.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.3,
+    "bust": 0.0,
+    "frozen": 67.7,
+    "open": 0.0,
+    "med": 5.0,
+    "spp": 65.9
+   }
+  }
+ },
+ "50K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 118.4
+   }
+  },
+  "5 reset when cushion < 10% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 52.3,
+    "bust": 0.0,
+    "frozen": 40.6,
+    "open": 7.1,
+    "med": 48.0,
+    "spp": 108.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 46.1,
+    "open": 6.8,
+    "med": 37.5,
+    "spp": 99.7
+   }
+  },
+  "5 reset when cushion < 15% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 51.9,
+    "bust": 0.0,
+    "frozen": 41.0,
+    "open": 7.1,
+    "med": 48.0,
+    "spp": 102.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.8,
+    "bust": 0.0,
+    "frozen": 46.5,
+    "open": 6.8,
+    "med": 37.0,
+    "spp": 95.2
+   }
+  },
+  "5 reset when cushion < 20% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 51.6,
+    "bust": 0.0,
+    "frozen": 41.3,
+    "open": 7.1,
+    "med": 48.0,
+    "spp": 99.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.8,
+    "bust": 0.0,
+    "frozen": 47.1,
+    "open": 6.1,
+    "med": 37.0,
+    "spp": 91.5
+   }
+  },
+  "5 reset when cushion < 25% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 50.5,
+    "bust": 0.0,
+    "frozen": 42.8,
+    "open": 6.7,
+    "med": 48.0,
+    "spp": 98.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.5,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.6,
+    "med": 37.0,
+    "spp": 78.4
+   }
+  },
+  "5 reset when cushion < 30% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 49.5,
+    "bust": 0.0,
+    "frozen": 48.4,
+    "open": 2.1,
+    "med": 48.5,
+    "spp": 88.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.5,
+    "bust": 0.0,
+    "frozen": 54.8,
+    "open": 0.6,
+    "med": 37.0,
+    "spp": 75.9
+   }
+  },
+  "5 reset when cushion < 40% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 33.9,
+    "bust": 0.0,
+    "frozen": 66.1,
+    "open": 0.0,
+    "med": 41.5,
+    "spp": 80.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.6,
+    "bust": 0.0,
+    "frozen": 68.4,
+    "open": 0.0,
+    "med": 31.0,
+    "spp": 82.5
+   }
+  },
+  "OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 61.5,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 11.3,
+    "med": 47.0,
+    "spp": 106.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 54.8,
+    "bust": 0.0,
+    "frozen": 40.3,
+    "open": 4.8,
+    "med": 34.0,
+    "spp": 90.8
+   }
+  },
+  "OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 51.2,
+    "bust": 0.0,
+    "frozen": 39.9,
+    "open": 8.8,
+    "med": 45.0,
+    "spp": 101.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 53.2,
+    "bust": 0.0,
+    "frozen": 40.6,
+    "open": 6.1,
+    "med": 34.0,
+    "spp": 76.6
+   }
+  },
+  "30m+5+OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 54.8,
+    "bust": 0.0,
+    "frozen": 31.8,
+    "open": 13.4,
+    "med": 38.0,
+    "spp": 111.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 50.6,
+    "bust": 0.0,
+    "frozen": 49.4,
+    "open": 0.0,
+    "med": 48.0,
+    "spp": 100.6
+   }
+  },
+  "30m+5+OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 51.9,
+    "bust": 0.0,
+    "frozen": 35.0,
+    "open": 13.1,
+    "med": 35.0,
+    "spp": 94.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 50.0,
+    "bust": 0.0,
+    "frozen": 50.0,
+    "open": 0.0,
+    "med": 48.0,
+    "spp": 77.6
+   }
+  },
+  "OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 51.9,
+    "bust": 0.0,
+    "frozen": 31.8,
+    "open": 16.3,
+    "med": 46.0,
+    "spp": 129.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 57.4,
+    "bust": 0.0,
+    "frozen": 36.1,
+    "open": 6.5,
+    "med": 35.0,
+    "spp": 89.7
+   }
+  },
+  "shrink .7 + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 54.8,
+    "bust": 0.0,
+    "frozen": 38.2,
+    "open": 7.1,
+    "med": 48.0,
+    "spp": 97.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.1,
+    "bust": 0.0,
+    "frozen": 46.8,
+    "open": 5.2,
+    "med": 37.0,
+    "spp": 85.1
+   }
+  }
+ },
+ "100K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 140.1
+   }
+  },
+  "5 reset when cushion < 10% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 28.3,
+    "open": 3.9,
+    "med": 99.0,
+    "spp": 169.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 120.7
+   }
+  },
+  "5 reset when cushion < 15% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 53.4,
+    "bust": 0.0,
+    "frozen": 45.6,
+    "open": 1.1,
+    "med": 88.0,
+    "spp": 170.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.3,
+    "bust": 0.0,
+    "frozen": 45.7,
+    "open": 0.0,
+    "med": 71.0,
+    "spp": 116.8
+   }
+  },
+  "5 reset when cushion < 20% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 49.5,
+    "bust": 0.0,
+    "frozen": 50.5,
+    "open": 0.0,
+    "med": 77.0,
+    "spp": 163.4
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 67.0,
+    "spp": 113.4
+   }
+  },
+  "5 reset when cushion < 25% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 49.5,
+    "bust": 0.0,
+    "frozen": 50.5,
+    "open": 0.0,
+    "med": 77.0,
+    "spp": 157.4
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.4,
+    "bust": 0.0,
+    "frozen": 48.6,
+    "open": 0.0,
+    "med": 66.5,
+    "spp": 109.1
+   }
+  },
+  "5 reset when cushion < 30% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 49.5,
+    "bust": 0.0,
+    "frozen": 50.5,
+    "open": 0.0,
+    "med": 77.0,
+    "spp": 150.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 44.5,
+    "bust": 0.0,
+    "frozen": 55.5,
+    "open": 0.0,
+    "med": 62.0,
+    "spp": 106.6
+   }
+  },
+  "5 reset when cushion < 40% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 33.6,
+    "bust": 0.0,
+    "frozen": 66.4,
+    "open": 0.0,
+    "med": 65.0,
+    "spp": 139.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 43.7,
+    "bust": 0.0,
+    "frozen": 56.3,
+    "open": 0.0,
+    "med": 61.0,
+    "spp": 99.0
+   }
+  },
+  "OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 73.1,
+    "bust": 0.0,
+    "frozen": 20.8,
+    "open": 6.0,
+    "med": 92.0,
+    "spp": 159.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.9,
+    "bust": 0.0,
+    "frozen": 44.1,
+    "open": 0.0,
+    "med": 71.0,
+    "spp": 136.5
+   }
+  },
+  "OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 50.2,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.0,
+    "med": 74.5,
+    "spp": 158.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.3,
+    "bust": 0.0,
+    "frozen": 45.7,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 111.8
+   }
+  },
+  "30m+5+OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 77.7,
+    "bust": 0.0,
+    "frozen": 21.9,
+    "open": 0.4,
+    "med": 95.0,
+    "spp": 144.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.5,
+    "bust": 0.0,
+    "frozen": 46.5,
+    "open": 0.0,
+    "med": 61.0,
+    "spp": 130.7
+   }
+  },
+  "30m+5+OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 54.1,
+    "bust": 0.0,
+    "frozen": 45.6,
+    "open": 0.4,
+    "med": 61.0,
+    "spp": 139.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 42.4,
+    "bust": 0.0,
+    "frozen": 57.6,
+    "open": 0.0,
+    "med": 52.0,
+    "spp": 108.2
+   }
+  },
+  "OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 24.0,
+    "open": 8.1,
+    "med": 97.0,
+    "spp": 187.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 56.3,
+    "bust": 0.0,
+    "frozen": 43.7,
+    "open": 0.0,
+    "med": 71.5,
+    "spp": 135.6
+   }
+  },
+  "shrink .7 + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 50.9,
+    "bust": 0.0,
+    "frozen": 49.1,
+    "open": 0.0,
+    "med": 78.0,
+    "spp": 160.4
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 67.0,
+    "spp": 112.1
+   }
+  }
+ },
+ "150K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 143.6
+   }
+  },
+  "5 reset when cushion < 10% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 53.4,
+    "bust": 0.0,
+    "frozen": 42.4,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 182.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 123.9
+   }
+  },
+  "5 reset when cushion < 15% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 44.2,
+    "open": 3.2,
+    "med": 80.0,
+    "spp": 172.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 119.2
+   }
+  },
+  "5 reset when cushion < 20% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 48.8,
+    "bust": 0.0,
+    "frozen": 48.1,
+    "open": 3.2,
+    "med": 76.5,
+    "spp": 165.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 116.6
+   }
+  },
+  "5 reset when cushion < 25% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 47.3,
+    "bust": 0.0,
+    "frozen": 50.2,
+    "open": 2.5,
+    "med": 77.0,
+    "spp": 160.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 50.2,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.0,
+    "med": 68.0,
+    "spp": 113.9
+   }
+  },
+  "5 reset when cushion < 30% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 47.3,
+    "bust": 0.0,
+    "frozen": 50.5,
+    "open": 2.1,
+    "med": 77.0,
+    "spp": 156.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 46.5,
+    "bust": 0.0,
+    "frozen": 53.5,
+    "open": 0.0,
+    "med": 64.0,
+    "spp": 108.3
+   }
+  },
+  "5 reset when cushion < 40% MLL": {
+   "IS": {
+    "n": 283,
+    "pas": 42.4,
+    "bust": 0.0,
+    "frozen": 56.2,
+    "open": 1.4,
+    "med": 74.0,
+    "spp": 139.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 42.4,
+    "bust": 0.0,
+    "frozen": 57.6,
+    "open": 0.0,
+    "med": 59.5,
+    "spp": 97.5
+   }
+  },
+  "OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 63.3,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 3.9,
+    "med": 78.0,
+    "spp": 168.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 59.2,
+    "bust": 0.0,
+    "frozen": 40.8,
+    "open": 0.0,
+    "med": 63.0,
+    "spp": 120.6
+   }
+  },
+  "OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 51.6,
+    "bust": 0.0,
+    "frozen": 45.6,
+    "open": 2.8,
+    "med": 76.0,
+    "spp": 159.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 58.8,
+    "bust": 0.0,
+    "frozen": 41.2,
+    "open": 0.0,
+    "med": 63.5,
+    "spp": 101.1
+   }
+  },
+  "30m+5+OD + shrink .7": {
+   "IS": {
+    "n": 283,
+    "pas": 82.7,
+    "bust": 0.0,
+    "frozen": 13.4,
+    "open": 3.9,
+    "med": 121.0,
+    "spp": 143.2
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.1,
+    "bust": 0.0,
+    "frozen": 46.9,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 140.6
+   }
+  },
+  "30m+5+OD + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.5,
+    "bust": 0.0,
+    "frozen": 37.1,
+    "open": 0.4,
+    "med": 81.0,
+    "spp": 133.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.1,
+    "bust": 0.0,
+    "frozen": 46.9,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 106.8
+   }
+  },
+  "OD + min .10%": {
+   "IS": {
+    "n": 283,
+    "pas": 63.3,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 3.9,
+    "med": 78.0,
+    "spp": 170.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 58.8,
+    "bust": 0.0,
+    "frozen": 41.2,
+    "open": 0.0,
+    "med": 63.5,
+    "spp": 124.6
+   }
+  },
+  "shrink .7 + reset<20%": {
+   "IS": {
+    "n": 283,
+    "pas": 48.8,
+    "bust": 0.0,
+    "frozen": 48.1,
+    "open": 3.2,
+    "med": 76.5,
+    "spp": 165.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 115.7
+   }
+  }
+ }
+}

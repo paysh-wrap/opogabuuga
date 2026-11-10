@@ -195,6 +195,7 @@ def run_eval(objs, i0, cfg, horizon):
             if bust: return "BUST", n + 1
         idle = idle + 1 if tk == 0 else 0
         if idle >= STALL_N: return "STALL", n + 1
+        if cfg.get("abandon") and bal - floor < cfg["abandon"] * MLL: return "STALL", n + 1   # operational: reset now instead of waiting frozen
         if bal - b0 > 0: npos += 1
         maxday = max(maxday, bal - b0)
         peak = max(peak, bal)

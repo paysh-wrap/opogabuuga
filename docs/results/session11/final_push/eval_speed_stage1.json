@@ -1,0 +1,2552 @@
+{
+ "25K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "1a 30-min checks": {
+   "IS": {
+    "n": 283,
+    "pas": 52.3,
+    "bust": 0.0,
+    "frozen": 37.8,
+    "open": 9.9,
+    "med": 30.0,
+    "spp": 98.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 33.9,
+    "bust": 0.0,
+    "frozen": 66.1,
+    "open": 0.0,
+    "med": 32.0,
+    "spp": 116.9
+   }
+  },
+  "1b 5 entries/day": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.1,
+    "bust": 0.0,
+    "frozen": 51.9,
+    "open": 0.0,
+    "med": 28.0,
+    "spp": 79.8
+   }
+  },
+  "1c 30-min + 5 entries": {
+   "IS": {
+    "n": 283,
+    "pas": 51.9,
+    "bust": 0.0,
+    "frozen": 37.8,
+    "open": 10.2,
+    "med": 30.0,
+    "spp": 98.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.6,
+    "bust": 0.0,
+    "frozen": 67.4,
+    "open": 0.0,
+    "med": 28.0,
+    "spp": 120.0
+   }
+  },
+  "1d opening-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 32.5,
+    "open": 1.4,
+    "med": 40.0,
+    "spp": 76.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 52.9,
+    "bust": 0.0,
+    "frozen": 47.1,
+    "open": 0.0,
+    "med": 25.0,
+    "spp": 68.6
+   }
+  },
+  "1e 30-min + 5 + open-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 37.1,
+    "open": 10.2,
+    "med": 30.0,
+    "spp": 97.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 37.4,
+    "bust": 0.0,
+    "frozen": 62.6,
+    "open": 0.0,
+    "med": 28.0,
+    "spp": 98.4
+   }
+  },
+  "2a frozen: $100 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 83.0
+   }
+  },
+  "2b frozen: $125 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.3
+   }
+  },
+  "2c frozen: $150 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "2d recover-mode fewer micros": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "2e shrink 0.7": {
+   "IS": {
+    "n": 283,
+    "pas": 69.3,
+    "bust": 0.0,
+    "frozen": 30.0,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 73.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.8,
+    "bust": 0.0,
+    "frozen": 53.2,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 83.4
+   }
+  },
+  "2f shrink 0.8": {
+   "IS": {
+    "n": 283,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 86.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.8,
+    "bust": 0.0,
+    "frozen": 55.2,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 85.2
+   }
+  },
+  "2g min-stop 0.15%": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 30.4,
+    "open": 3.5,
+    "med": 40.0,
+    "spp": 79.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 83.7
+   }
+  },
+  "2h min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 30.4,
+    "open": 3.5,
+    "med": 40.0,
+    "spp": 79.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.4,
+    "bust": 0.0,
+    "frozen": 52.6,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 83.4
+   }
+  },
+  "2i shrink 0.8 + min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 34.0,
+    "spp": 86.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.8,
+    "bust": 0.0,
+    "frozen": 55.2,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 85.2
+   }
+  },
+  "2j fade under D57 (no pause floor)": {
+   "IS": {
+    "n": 283,
+    "pas": 64.7,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 1.8,
+    "med": 41.0,
+    "spp": 77.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.1,
+    "bust": 0.0,
+    "frozen": 51.9,
+    "open": 0.0,
+    "med": 26.0,
+    "spp": 80.6
+   }
+  },
+  "4a day cap 35% of target": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 0.7,
+    "med": 40.0,
+    "spp": 76.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 0.0,
+    "med": 27.0,
+    "spp": 82.0
+   }
+  },
+  "4b IF 40% rule applied: live": {
+   "IS": {
+    "n": 283,
+    "pas": 64.7,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 2.1,
+    "med": 42.0,
+    "spp": 83.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 42.3,
+    "bust": 0.0,
+    "frozen": 57.4,
+    "open": 0.3,
+    "med": 41.0,
+    "spp": 106.1
+   }
+  },
+  "4c IF 40% rule applied: day cap 35%": {
+   "IS": {
+    "n": 283,
+    "pas": 64.7,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 2.1,
+    "med": 42.0,
+    "spp": 83.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 42.3,
+    "bust": 0.0,
+    "frozen": 57.4,
+    "open": 0.3,
+    "med": 41.0,
+    "spp": 106.1
+   }
+  },
+  "4d IF 40% rule applied: day cap 25%": {
+   "IS": {
+    "n": 283,
+    "pas": 64.7,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 2.1,
+    "med": 42.0,
+    "spp": 83.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 42.3,
+    "bust": 0.0,
+    "frozen": 57.4,
+    "open": 0.3,
+    "med": 41.0,
+    "spp": 106.1
+   }
+  },
+  "3a front 2 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 54.1,
+    "bust": 0.0,
+    "frozen": 45.9,
+    "open": 0.0,
+    "med": 33.0,
+    "spp": 70.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.8,
+    "bust": 0.0,
+    "frozen": 54.8,
+    "open": 0.3,
+    "med": 19.0,
+    "spp": 77.0
+   }
+  },
+  "3b front 2 >=90%": {
+   "IS": {
+    "n": 283,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.0,
+    "med": 25.0,
+    "spp": 70.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 41.0,
+    "bust": 0.0,
+    "frozen": 59.0,
+    "open": 0.0,
+    "med": 15.0,
+    "spp": 81.4
+   }
+  },
+  "3c front 3 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 38.2,
+    "bust": 0.0,
+    "frozen": 61.5,
+    "open": 0.4,
+    "med": 11.0,
+    "spp": 99.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 34.8,
+    "bust": 0.0,
+    "frozen": 65.2,
+    "open": 0.0,
+    "med": 11.5,
+    "spp": 92.9
+   }
+  },
+  "3d prop $500/micro max2": {
+   "IS": {
+    "n": 283,
+    "pas": 54.1,
+    "bust": 0.0,
+    "frozen": 45.9,
+    "open": 0.0,
+    "med": 33.0,
+    "spp": 70.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.8,
+    "bust": 0.0,
+    "frozen": 54.8,
+    "open": 0.3,
+    "med": 19.0,
+    "spp": 77.0
+   }
+  },
+  "3e prop $400/micro max3": {
+   "IS": {
+    "n": 283,
+    "pas": 47.7,
+    "bust": 0.0,
+    "frozen": 52.3,
+    "open": 0.0,
+    "med": 19.0,
+    "spp": 73.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 35.5,
+    "bust": 0.0,
+    "frozen": 64.5,
+    "open": 0.0,
+    "med": 11.5,
+    "spp": 90.5
+   }
+  }
+ },
+ "25K-HR": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 63.8
+   }
+  },
+  "1a 30-min checks": {
+   "IS": {
+    "n": 283,
+    "pas": 44.2,
+    "bust": 0.0,
+    "frozen": 55.8,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 45.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 61.9
+   }
+  },
+  "1b 5 entries/day": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 54.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 30.6,
+    "bust": 0.0,
+    "frozen": 69.4,
+    "open": 0.0,
+    "med": 6.0,
+    "spp": 67.2
+   }
+  },
+  "1c 30-min + 5 entries": {
+   "IS": {
+    "n": 283,
+    "pas": 44.5,
+    "bust": 0.0,
+    "frozen": 55.5,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 44.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.3,
+    "bust": 0.0,
+    "frozen": 68.7,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 63.6
+   }
+  },
+  "1d opening-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 40.3,
+    "bust": 0.0,
+    "frozen": 59.7,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 52.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.9,
+    "bust": 0.0,
+    "frozen": 67.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 60.3
+   }
+  },
+  "1e 30-min + 5 + open-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 44.9,
+    "bust": 0.0,
+    "frozen": 55.1,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 44.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.3,
+    "bust": 0.0,
+    "frozen": 68.7,
+    "open": 0.0,
+    "med": 6.0,
+    "spp": 63.1
+   }
+  },
+  "2a frozen: $100 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.6,
+    "bust": 0.0,
+    "frozen": 67.4,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 62.2
+   }
+  },
+  "2b frozen: $125 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.3,
+    "bust": 0.0,
+    "frozen": 67.7,
+    "open": 0.0,
+    "med": 6.5,
+    "spp": 63.4
+   }
+  },
+  "2c frozen: $150 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.3,
+    "bust": 0.0,
+    "frozen": 67.7,
+    "open": 0.0,
+    "med": 6.5,
+    "spp": 63.3
+   }
+  },
+  "2d recover-mode fewer micros": {
+   "IS": {
+    "n": 283,
+    "pas": 43.5,
+    "bust": 0.0,
+    "frozen": 56.5,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 51.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 38.1,
+    "bust": 0.0,
+    "frozen": 61.9,
+    "open": 0.0,
+    "med": 8.0,
+    "spp": 58.5
+   }
+  },
+  "2e shrink 0.7": {
+   "IS": {
+    "n": 283,
+    "pas": 39.9,
+    "bust": 0.0,
+    "frozen": 60.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 52.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.6,
+    "bust": 0.0,
+    "frozen": 67.4,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 62.3
+   }
+  },
+  "2f shrink 0.8": {
+   "IS": {
+    "n": 283,
+    "pas": 43.1,
+    "bust": 0.0,
+    "frozen": 56.9,
+    "open": 0.0,
+    "med": 10.5,
+    "spp": 48.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 34.5,
+    "bust": 0.0,
+    "frozen": 65.5,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 59.0
+   }
+  },
+  "2g min-stop 0.15%": {
+   "IS": {
+    "n": 283,
+    "pas": 40.6,
+    "bust": 0.0,
+    "frozen": 59.4,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 53.5
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 32.6,
+    "bust": 0.0,
+    "frozen": 67.4,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 62.5
+   }
+  },
+  "2h min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 42.0,
+    "bust": 0.0,
+    "frozen": 58.0,
+    "open": 0.0,
+    "med": 11.0,
+    "spp": 51.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 36.5,
+    "bust": 0.0,
+    "frozen": 63.5,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 58.8
+   }
+  },
+  "2i shrink 0.8 + min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 43.1,
+    "bust": 0.0,
+    "frozen": 56.9,
+    "open": 0.0,
+    "med": 10.5,
+    "spp": 48.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 36.8,
+    "bust": 0.0,
+    "frozen": 63.2,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 56.4
+   }
+  },
+  "2j fade under D57 (no pause floor)": {
+   "IS": {
+    "n": 283,
+    "pas": 37.8,
+    "bust": 0.0,
+    "frozen": 62.2,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 28.7,
+    "bust": 0.0,
+    "frozen": 71.3,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 74.1
+   }
+  },
+  "4a day cap 35% of target": {
+   "IS": {
+    "n": 283,
+    "pas": 38.9,
+    "bust": 0.0,
+    "frozen": 61.1,
+    "open": 0.0,
+    "med": 10.0,
+    "spp": 55.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 31.9,
+    "bust": 0.0,
+    "frozen": 68.1,
+    "open": 0.0,
+    "med": 7.0,
+    "spp": 63.9
+   }
+  },
+  "4b IF 40% rule applied: live": {
+   "IS": {
+    "n": 283,
+    "pas": 30.0,
+    "bust": 0.0,
+    "frozen": 65.4,
+    "open": 4.6,
+    "med": 38.0,
+    "spp": 126.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 22.3,
+    "bust": 0.0,
+    "frozen": 74.2,
+    "open": 3.5,
+    "med": 35.0,
+    "spp": 155.4
+   }
+  },
+  "4c IF 40% rule applied: day cap 35%": {
+   "IS": {
+    "n": 283,
+    "pas": 30.0,
+    "bust": 0.0,
+    "frozen": 65.4,
+    "open": 4.6,
+    "med": 38.0,
+    "spp": 126.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 22.6,
+    "bust": 0.0,
+    "frozen": 73.9,
+    "open": 3.5,
+    "med": 34.5,
+    "spp": 152.5
+   }
+  },
+  "4d IF 40% rule applied: day cap 25%": {
+   "IS": {
+    "n": 283,
+    "pas": 29.7,
+    "bust": 0.0,
+    "frozen": 66.1,
+    "open": 4.2,
+    "med": 36.0,
+    "spp": 125.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 22.9,
+    "bust": 0.0,
+    "frozen": 73.5,
+    "open": 3.5,
+    "med": 34.0,
+    "spp": 150.1
+   }
+  }
+ },
+ "50K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 118.4
+   }
+  },
+  "1a 30-min checks": {
+   "IS": {
+    "n": 283,
+    "pas": 54.4,
+    "bust": 0.0,
+    "frozen": 24.4,
+    "open": 21.2,
+    "med": 38.0,
+    "spp": 121.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 49.0,
+    "bust": 0.0,
+    "frozen": 49.7,
+    "open": 1.3,
+    "med": 47.5,
+    "spp": 104.8
+   }
+  },
+  "1b 5 entries/day": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.7,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 6.8,
+    "med": 38.5,
+    "spp": 115.6
+   }
+  },
+  "1c 30-min + 5 entries": {
+   "IS": {
+    "n": 283,
+    "pas": 54.4,
+    "bust": 0.0,
+    "frozen": 24.4,
+    "open": 21.2,
+    "med": 38.0,
+    "spp": 119.2
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.7,
+    "bust": 0.0,
+    "frozen": 50.0,
+    "open": 1.3,
+    "med": 47.0,
+    "spp": 103.8
+   }
+  },
+  "1d opening-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 51.9,
+    "bust": 0.0,
+    "frozen": 32.2,
+    "open": 15.9,
+    "med": 46.0,
+    "spp": 131.8
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 53.2,
+    "bust": 0.0,
+    "frozen": 40.3,
+    "open": 6.5,
+    "med": 34.0,
+    "spp": 97.2
+   }
+  },
+  "1e 30-min + 5 + open-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 25.1,
+    "open": 19.8,
+    "med": 38.0,
+    "spp": 115.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 50.6,
+    "bust": 0.0,
+    "frozen": 49.4,
+    "open": 0.0,
+    "med": 48.0,
+    "spp": 100.8
+   }
+  },
+  "2a frozen: $100 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.4,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.1,
+    "med": 37.0,
+    "spp": 116.8
+   }
+  },
+  "2b frozen: $125 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 118.0
+   }
+  },
+  "2c frozen: $150 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 118.4
+   }
+  },
+  "2d recover-mode fewer micros": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.8,
+    "bust": 0.0,
+    "frozen": 46.1,
+    "open": 7.1,
+    "med": 37.0,
+    "spp": 117.9
+   }
+  },
+  "2e shrink 0.7": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 28.6,
+    "open": 9.2,
+    "med": 51.0,
+    "spp": 106.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.4,
+    "bust": 0.0,
+    "frozen": 45.8,
+    "open": 5.8,
+    "med": 37.0,
+    "spp": 110.8
+   }
+  },
+  "2f shrink 0.8": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 30.7,
+    "open": 7.1,
+    "med": 51.0,
+    "spp": 104.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.4,
+    "bust": 0.0,
+    "frozen": 45.8,
+    "open": 5.8,
+    "med": 37.0,
+    "spp": 108.4
+   }
+  },
+  "2g min-stop 0.15%": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 12.7,
+    "med": 52.5,
+    "spp": 114.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 48.1,
+    "bust": 0.0,
+    "frozen": 44.8,
+    "open": 7.1,
+    "med": 39.0,
+    "spp": 115.0
+   }
+  },
+  "2h min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 12.7,
+    "med": 52.5,
+    "spp": 114.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 51.0,
+    "bust": 0.0,
+    "frozen": 41.9,
+    "open": 7.1,
+    "med": 39.5,
+    "spp": 108.3
+   }
+  },
+  "2i shrink 0.8 + min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 30.7,
+    "open": 7.1,
+    "med": 51.0,
+    "spp": 104.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 45.8,
+    "bust": 0.0,
+    "frozen": 48.4,
+    "open": 5.8,
+    "med": 36.5,
+    "spp": 114.9
+   }
+  },
+  "2j fade under D57 (no pause floor)": {
+   "IS": {
+    "n": 283,
+    "pas": 51.6,
+    "bust": 0.0,
+    "frozen": 40.6,
+    "open": 7.8,
+    "med": 48.0,
+    "spp": 126.9
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 115.9
+   }
+  },
+  "4a day cap 35% of target": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.3
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 47.1,
+    "bust": 0.0,
+    "frozen": 45.5,
+    "open": 7.4,
+    "med": 37.5,
+    "spp": 118.4
+   }
+  },
+  "4b IF 40% rule applied: live": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.9,
+    "bust": 0.0,
+    "frozen": 48.4,
+    "open": 7.7,
+    "med": 49.0,
+    "spp": 139.1
+   }
+  },
+  "4c IF 40% rule applied: day cap 35%": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.9,
+    "bust": 0.0,
+    "frozen": 48.4,
+    "open": 7.7,
+    "med": 49.0,
+    "spp": 139.1
+   }
+  },
+  "4d IF 40% rule applied: day cap 25%": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 27.2,
+    "open": 13.4,
+    "med": 52.5,
+    "spp": 116.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.2,
+    "bust": 0.0,
+    "frozen": 48.7,
+    "open": 8.1,
+    "med": 49.5,
+    "spp": 142.4
+   }
+  },
+  "3a front 3 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 54.1,
+    "bust": 0.0,
+    "frozen": 31.8,
+    "open": 14.1,
+    "med": 46.0,
+    "spp": 123.0
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.9,
+    "bust": 0.0,
+    "frozen": 50.0,
+    "open": 6.1,
+    "med": 29.5,
+    "spp": 120.5
+   }
+  },
+  "3b front 3 >=90%": {
+   "IS": {
+    "n": 283,
+    "pas": 50.9,
+    "bust": 0.0,
+    "frozen": 35.0,
+    "open": 14.1,
+    "med": 42.0,
+    "spp": 126.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.2,
+    "bust": 0.0,
+    "frozen": 51.9,
+    "open": 4.8,
+    "med": 29.0,
+    "spp": 121.9
+   }
+  },
+  "3c front 4 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 50.2,
+    "bust": 0.0,
+    "frozen": 37.8,
+    "open": 12.0,
+    "med": 45.5,
+    "spp": 126.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 45.2,
+    "bust": 0.0,
+    "frozen": 52.9,
+    "open": 1.9,
+    "med": 29.0,
+    "spp": 108.4
+   }
+  },
+  "3d front 4 >=90%": {
+   "IS": {
+    "n": 283,
+    "pas": 48.4,
+    "bust": 0.0,
+    "frozen": 39.6,
+    "open": 12.0,
+    "med": 40.0,
+    "spp": 133.6
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 44.5,
+    "bust": 0.0,
+    "frozen": 54.2,
+    "open": 1.3,
+    "med": 28.0,
+    "spp": 104.4
+   }
+  },
+  "3e prop $1000/micro max3": {
+   "IS": {
+    "n": 283,
+    "pas": 28.6,
+    "bust": 0.0,
+    "frozen": 0.0,
+    "open": 71.4,
+    "med": 88.0,
+    "spp": 384.1
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 39.4,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 27.7,
+    "med": 59.5,
+    "spp": 212.4
+   }
+  },
+  "3f prop $700/micro max4": {
+   "IS": {
+    "n": 283,
+    "pas": 45.6,
+    "bust": 0.0,
+    "frozen": 26.1,
+    "open": 28.3,
+    "med": 48.0,
+    "spp": 166.7
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 46.1,
+    "bust": 0.0,
+    "frozen": 41.9,
+    "open": 11.9,
+    "med": 41.0,
+    "spp": 148.0
+   }
+  },
+  "3g prop $500/micro max4": {
+   "IS": {
+    "n": 283,
+    "pas": 45.2,
+    "bust": 0.0,
+    "frozen": 37.8,
+    "open": 17.0,
+    "med": 32.0,
+    "spp": 136.4
+   },
+   "OOS": {
+    "n": 310,
+    "pas": 43.2,
+    "bust": 0.0,
+    "frozen": 51.6,
+    "open": 5.2,
+    "med": 24.5,
+    "spp": 111.4
+   }
+  }
+ },
+ "100K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 140.1
+   }
+  },
+  "1a 30-min checks": {
+   "IS": {
+    "n": 283,
+    "pas": 68.9,
+    "bust": 0.0,
+    "frozen": 26.1,
+    "open": 4.9,
+    "med": 82.0,
+    "spp": 165.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.0,
+    "med": 64.0,
+    "spp": 139.1
+   }
+  },
+  "1b 5 entries/day": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 74.5,
+    "spp": 143.7
+   }
+  },
+  "1c 30-min + 5 entries": {
+   "IS": {
+    "n": 283,
+    "pas": 70.3,
+    "bust": 0.0,
+    "frozen": 25.8,
+    "open": 3.9,
+    "med": 89.0,
+    "spp": 158.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.0,
+    "med": 64.0,
+    "spp": 137.5
+   }
+  },
+  "1d opening-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 24.0,
+    "open": 8.1,
+    "med": 97.0,
+    "spp": 186.2
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 56.3,
+    "bust": 0.0,
+    "frozen": 43.7,
+    "open": 0.0,
+    "med": 71.5,
+    "spp": 135.5
+   }
+  },
+  "1e 30-min + 5 + open-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 82.3,
+    "bust": 0.0,
+    "frozen": 16.6,
+    "open": 1.1,
+    "med": 115.0,
+    "spp": 143.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.5,
+    "bust": 0.0,
+    "frozen": 46.5,
+    "open": 0.0,
+    "med": 60.0,
+    "spp": 128.2
+   }
+  },
+  "2a frozen: $100 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 141.4
+   }
+  },
+  "2b frozen: $125 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 138.9
+   }
+  },
+  "2c frozen: $150 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 140.1
+   }
+  },
+  "2d recover-mode fewer micros": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.3,
+    "bust": 0.0,
+    "frozen": 45.7,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 141.4
+   }
+  },
+  "2e shrink 0.7": {
+   "IS": {
+    "n": 283,
+    "pas": 72.1,
+    "bust": 0.0,
+    "frozen": 25.4,
+    "open": 2.5,
+    "med": 94.5,
+    "spp": 161.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 140.5
+   }
+  },
+  "2f shrink 0.8": {
+   "IS": {
+    "n": 283,
+    "pas": 71.0,
+    "bust": 0.0,
+    "frozen": 26.1,
+    "open": 2.8,
+    "med": 94.0,
+    "spp": 160.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 71.5,
+    "spp": 140.1
+   }
+  },
+  "2g min-stop 0.15%": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.8
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 141.6
+   }
+  },
+  "2h min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.8
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.3,
+    "bust": 0.0,
+    "frozen": 45.7,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 143.9
+   }
+  },
+  "2i shrink 0.8 + min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 71.0,
+    "bust": 0.0,
+    "frozen": 26.1,
+    "open": 2.8,
+    "med": 94.0,
+    "spp": 160.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 71.5,
+    "spp": 140.1
+   }
+  },
+  "2j fade under D57 (no pause floor)": {
+   "IS": {
+    "n": 283,
+    "pas": 59.4,
+    "bust": 0.0,
+    "frozen": 34.3,
+    "open": 6.4,
+    "med": 97.5,
+    "spp": 202.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 139.7
+   }
+  },
+  "4a day cap 35% of target": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 44.9,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 140.1
+   }
+  },
+  "4b IF 40% rule applied: live": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.8,
+    "med": 77.0,
+    "spp": 157.1
+   }
+  },
+  "4c IF 40% rule applied: day cap 35%": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.8,
+    "med": 77.0,
+    "spp": 157.1
+   }
+  },
+  "4d IF 40% rule applied: day cap 25%": {
+   "IS": {
+    "n": 283,
+    "pas": 67.8,
+    "bust": 0.0,
+    "frozen": 27.9,
+    "open": 4.2,
+    "med": 99.0,
+    "spp": 182.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.8,
+    "med": 77.0,
+    "spp": 157.1
+   }
+  },
+  "3a front 3 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 68.6,
+    "bust": 0.0,
+    "frozen": 23.7,
+    "open": 7.8,
+    "med": 101.5,
+    "spp": 184.8
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 142.9
+   }
+  },
+  "3b front 4 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 60.1,
+    "bust": 0.0,
+    "frozen": 37.8,
+    "open": 2.1,
+    "med": 87.0,
+    "spp": 195.3
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 68.5,
+    "spp": 135.5
+   }
+  },
+  "3c front 4 >=90%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 37.5,
+    "open": 0.4,
+    "med": 88.5,
+    "spp": 174.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.7,
+    "bust": 0.0,
+    "frozen": 45.3,
+    "open": 0.0,
+    "med": 70.5,
+    "spp": 140.0
+   }
+  },
+  "3d front 6 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 63.3,
+    "bust": 0.0,
+    "frozen": 36.7,
+    "open": 0.0,
+    "med": 86.0,
+    "spp": 160.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.4,
+    "bust": 0.0,
+    "frozen": 48.6,
+    "open": 0.0,
+    "med": 75.0,
+    "spp": 153.9
+   }
+  },
+  "3e prop $1000/micro max4": {
+   "IS": {
+    "n": 283,
+    "pas": 58.0,
+    "bust": 0.0,
+    "frozen": 0.0,
+    "open": 42.0,
+    "med": 129.5,
+    "spp": 323.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.4,
+    "bust": 0.0,
+    "frozen": 48.6,
+    "open": 0.0,
+    "med": 86.0,
+    "spp": 218.7
+   }
+  },
+  "3f prop $750/micro max4": {
+   "IS": {
+    "n": 283,
+    "pas": 62.5,
+    "bust": 0.0,
+    "frozen": 15.5,
+    "open": 21.9,
+    "med": 112.0,
+    "spp": 258.3
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 55.5,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 0.0,
+    "med": 67.0,
+    "spp": 166.5
+   }
+  },
+  "3g prop $600/micro max6": {
+   "IS": {
+    "n": 283,
+    "pas": 60.8,
+    "bust": 0.0,
+    "frozen": 38.5,
+    "open": 0.7,
+    "med": 64.5,
+    "spp": 166.3
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.4,
+    "bust": 0.0,
+    "frozen": 48.6,
+    "open": 0.0,
+    "med": 68.0,
+    "spp": 155.7
+   }
+  }
+ },
+ "150K": {
+  "BASE (live)": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 143.6
+   }
+  },
+  "1a 30-min checks": {
+   "IS": {
+    "n": 283,
+    "pas": 77.0,
+    "bust": 0.0,
+    "frozen": 20.8,
+    "open": 2.1,
+    "med": 115.0,
+    "spp": 148.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.1,
+    "bust": 0.0,
+    "frozen": 46.9,
+    "open": 0.0,
+    "med": 79.0,
+    "spp": 138.2
+   }
+  },
+  "1b 5 entries/day": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 72.0,
+    "spp": 144.9
+   }
+  },
+  "1c 30-min + 5 entries": {
+   "IS": {
+    "n": 283,
+    "pas": 76.7,
+    "bust": 0.0,
+    "frozen": 21.6,
+    "open": 1.8,
+    "med": 117.0,
+    "spp": 148.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.0,
+    "med": 77.0,
+    "spp": 138.9
+   }
+  },
+  "1d opening-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 63.3,
+    "bust": 0.0,
+    "frozen": 33.2,
+    "open": 3.5,
+    "med": 78.0,
+    "spp": 168.8
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 58.8,
+    "bust": 0.0,
+    "frozen": 41.2,
+    "open": 0.0,
+    "med": 63.5,
+    "spp": 120.7
+   }
+  },
+  "1e 30-min + 5 + open-drive": {
+   "IS": {
+    "n": 283,
+    "pas": 80.9,
+    "bust": 0.0,
+    "frozen": 15.5,
+    "open": 3.5,
+    "med": 119.0,
+    "spp": 142.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.1,
+    "bust": 0.0,
+    "frozen": 46.9,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 140.5
+   }
+  },
+  "2a frozen: $100 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 146.7
+   }
+  },
+  "2b frozen: $125 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 145.8
+   }
+  },
+  "2c frozen: $150 stop tier": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 143.6
+   }
+  },
+  "2d recover-mode fewer micros": {
+   "IS": {
+    "n": 283,
+    "pas": 55.1,
+    "bust": 0.0,
+    "frozen": 40.3,
+    "open": 4.6,
+    "med": 79.5,
+    "spp": 197.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 166.6
+   }
+  },
+  "2e shrink 0.7": {
+   "IS": {
+    "n": 283,
+    "pas": 62.9,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 4.2,
+    "med": 79.5,
+    "spp": 172.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 144.5
+   }
+  },
+  "2f shrink 0.8": {
+   "IS": {
+    "n": 283,
+    "pas": 62.9,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 4.2,
+    "med": 79.5,
+    "spp": 174.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 146.8
+   }
+  },
+  "2g min-stop 0.15%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.3
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 147.9
+   }
+  },
+  "2h min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 66.1,
+    "bust": 0.0,
+    "frozen": 29.7,
+    "open": 4.2,
+    "med": 82.0,
+    "spp": 171.6
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.5,
+    "bust": 0.0,
+    "frozen": 46.5,
+    "open": 0.0,
+    "med": 71.0,
+    "spp": 147.6
+   }
+  },
+  "2i shrink 0.8 + min-stop 0.10%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.9,
+    "bust": 0.0,
+    "frozen": 32.9,
+    "open": 4.2,
+    "med": 79.5,
+    "spp": 174.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 69.5,
+    "spp": 147.6
+   }
+  },
+  "2j fade under D57 (no pause floor)": {
+   "IS": {
+    "n": 283,
+    "pas": 53.7,
+    "bust": 0.0,
+    "frozen": 42.0,
+    "open": 4.2,
+    "med": 79.5,
+    "spp": 204.5
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 142.7
+   }
+  },
+  "4a day cap 35% of target": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.8,
+    "bust": 0.0,
+    "frozen": 48.2,
+    "open": 0.0,
+    "med": 70.0,
+    "spp": 143.6
+   }
+  },
+  "4b IF 40% rule applied: live": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 49.8,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.4,
+    "med": 72.0,
+    "spp": 155.3
+   }
+  },
+  "4c IF 40% rule applied: day cap 35%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 49.8,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.4,
+    "med": 72.0,
+    "spp": 155.3
+   }
+  },
+  "4d IF 40% rule applied: day cap 25%": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 33.6,
+    "open": 4.2,
+    "med": 79.0,
+    "spp": 175.0
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 49.8,
+    "bust": 0.0,
+    "frozen": 49.8,
+    "open": 0.4,
+    "med": 72.0,
+    "spp": 155.3
+   }
+  },
+  "3a front 5 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 58.7,
+    "bust": 0.0,
+    "frozen": 41.3,
+    "open": 0.0,
+    "med": 78.5,
+    "spp": 175.2
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 68.5,
+    "spp": 147.3
+   }
+  },
+  "3b front 6 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 35.7,
+    "open": 2.1,
+    "med": 79.5,
+    "spp": 172.1
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 51.4,
+    "bust": 0.0,
+    "frozen": 48.6,
+    "open": 0.0,
+    "med": 64.5,
+    "spp": 146.9
+   }
+  },
+  "3c front 6 >=90%": {
+   "IS": {
+    "n": 283,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 43.1,
+    "open": 4.2,
+    "med": 73.0,
+    "spp": 199.2
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.2,
+    "bust": 0.0,
+    "frozen": 47.8,
+    "open": 0.0,
+    "med": 67.0,
+    "spp": 146.7
+   }
+  },
+  "3d front 8 @peak": {
+   "IS": {
+    "n": 283,
+    "pas": 57.6,
+    "bust": 0.0,
+    "frozen": 41.7,
+    "open": 0.7,
+    "med": 73.0,
+    "spp": 163.8
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 49.8,
+    "bust": 0.0,
+    "frozen": 50.2,
+    "open": 0.0,
+    "med": 59.0,
+    "spp": 145.4
+   }
+  },
+  "3e prop $1125/micro max4": {
+   "IS": {
+    "n": 283,
+    "pas": 66.4,
+    "bust": 0.0,
+    "frozen": 0.0,
+    "open": 33.6,
+    "med": 109.5,
+    "spp": 253.4
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 48.6,
+    "bust": 0.0,
+    "frozen": 44.5,
+    "open": 6.9,
+    "med": 83.0,
+    "spp": 266.1
+   }
+  },
+  "3f prop $900/micro max6": {
+   "IS": {
+    "n": 283,
+    "pas": 71.7,
+    "bust": 0.0,
+    "frozen": 0.0,
+    "open": 28.3,
+    "med": 106.0,
+    "spp": 221.9
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 52.7,
+    "bust": 0.0,
+    "frozen": 47.3,
+    "open": 0.0,
+    "med": 75.0,
+    "spp": 210.4
+   }
+  },
+  "3g prop $750/micro max6": {
+   "IS": {
+    "n": 283,
+    "pas": 62.2,
+    "bust": 0.0,
+    "frozen": 1.1,
+    "open": 36.7,
+    "med": 98.5,
+    "spp": 270.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 54.3,
+    "bust": 0.0,
+    "frozen": 45.7,
+    "open": 0.0,
+    "med": 65.0,
+    "spp": 174.3
+   }
+  },
+  "3h prop $750/micro max8": {
+   "IS": {
+    "n": 283,
+    "pas": 64.0,
+    "bust": 0.0,
+    "frozen": 1.8,
+    "open": 34.3,
+    "med": 95.0,
+    "spp": 256.7
+   },
+   "OOS": {
+    "n": 245,
+    "pas": 53.1,
+    "bust": 0.0,
+    "frozen": 46.9,
+    "open": 0.0,
+    "med": 66.5,
+    "spp": 181.2
+   }
+  }
+ }
+}
