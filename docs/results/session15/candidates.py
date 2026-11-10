@@ -148,14 +148,14 @@ def main():
     add("N1 NOISE + profit lock (+100 pt -> stop entry+10 pt)", "MNQ", None, "D75-P1 (trail-type; no target <1.5R)", lib.noise_stream("MNQ", lock=(100, 10)))
     add("N2 NOISE + scale-out half at +1R then breakeven", "MNQ", 1.0, "partial target 1R < 1.5R", lib.noise_stream("MNQ", scale=(0.5, 1.0)))
     add("N3 NOISE + scale-out half at +0.5R then breakeven", "MNQ", 0.5, "partial target 0.5R < 1.5R", lib.noise_stream("MNQ", scale=(0.5, 0.5)))
-    for sym in ("MNQ", "MES"):
+    for sym in os.environ.get("S15_SYMS", "MNQ,MES").split(","):
         add(f"V1 VWAP-reversion +trend filter, R:R 1.5 ({sym})", sym, 1.5, "target = VWAP, stop = dist/1.5", vwap_rev(sym, 1.5))
         add(f"V2 VWAP-reversion +trend filter, R:R 0.67 ({sym})", sym, 0.67, "stop = 1.5 x dist", vwap_rev(sym, 0.67))
         add(f"O1 Opening-range failure fade, target 1.5R ({sym})", sym, 1.5, "OR 15 min, fade failed break", or_fail(sym, "rr15"))
         add(f"O2 Opening-range failure fade, target OR midpoint ({sym})", sym, None, "R:R depends on the trade (usually < 1.5)", or_fail(sym, "mid"))
         add(f"G1 Overnight gap fill, R:R 1.5 ({sym})", sym, 1.5, "fade gap toward prior close", gap_fill(sym, 1.5))
         add(f"G2 Overnight gap fill, R:R 0.67 ({sym})", sym, 0.67, "stop = 1.5 x remaining gap", gap_fill(sym, 0.67))
-    if os.path.exists(f"{lib.RAW}/mgc_5y.csv"):
+    if os.path.exists(f"{lib.RAW}/mgc_5y.csv") and "MGC" in os.environ.get("S15_SYMS", "MNQ,MES,MGC"):
         add("M1 MGC overnight-VWAP reversion at NY open, R:R 1.5", "MGC", 1.5, "", mgc_session_rev(1.5))
         add("M2 MGC overnight-VWAP reversion at NY open, R:R 0.67", "MGC", 0.67, "", mgc_session_rev(0.67))
     rows = []

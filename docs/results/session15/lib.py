@@ -22,6 +22,7 @@ _cache = {}
 def days(sym, start="09:30", end="16:00", **kw):
     key = (sym, start, end)
     if key not in _cache:
+        if sym == "MGC": kw.setdefault("ffill", True)   # thin market: a minute with no trade = price unchanged
         _cache[key] = NG.load_days(f"{RAW}/{INST[sym]['csv']}", start=start, end=end, **kw)
     return _cache[key]
 
