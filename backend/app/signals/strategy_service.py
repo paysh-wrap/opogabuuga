@@ -660,6 +660,7 @@ def _duo_research(
             "confidence": setup.confidence,
             "zone": [str(setup.entry_low), str(setup.entry_high)],
             "valid_until": setup.valid_until,
+            "lock_price": None if setup.lock_price is None else str(setup.lock_price),
             "reasons": list(setup.reasons),
             "below_preferred_2r": sp.below_preferred,  # allowed (>= 1.5R) but under the preferred 2R: tagged
             "paper_only": cfg.paper_only,

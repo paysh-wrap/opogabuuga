@@ -94,7 +94,7 @@ def test_no_pullback_by_window_end_is_a_logged_skip(db, loaded_rules):
     with db() as s:
         today = _setup(s, "BUY·VT LONG 85", {k: D(20000) for k in range(160)})
         assert _run(s, rules, today + timedelta(minutes=60)).updates == []  # nothing yet, still waiting
-        out = _run(s, rules, today + timedelta(minutes=150))  # 12:00 close (MNQ window 08:30-12:00)
+        out = _run(s, rules, today + timedelta(minutes=150))  # 12:00 close (MNQ window 08:00-12:00)
         assert [(u.status, u.reason) for u in out.updates] == [("SKIP", "NO_PULLBACK")]
         assert _run(s, rules, today + timedelta(minutes=155)).updates == []  # past the window
 
@@ -337,8 +337,9 @@ def test_mgc_signal_does_not_clash_with_noise_on_mnq(db, loaded_rules):
 
 
 def test_duo_settings_are_editable_and_validated(authed):
-    ok = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_duo_cfg.windows": {"MGC": ["03:00", "11:30"], "MNQ": ["08:30", "12:00"]},
-                    "strategy.ai_duo_cfg.markets": ["MGC"]}, "note": "duo"})  # fmt: skip
+    win = {"MGC": ["03:00", "11:30"], "MNQ": ["08:30", "12:00"]}
+    changes = {"strategy.ai_duo_cfg.windows": win, "strategy.ai_duo_cfg.markets": ["MGC"]}
+    ok = authed.put("/api/risk/settings", json={"changes": changes, "note": "duo"})
     assert ok.status_code == 200, ok.text
     bad = authed.put(
         "/api/risk/settings",
@@ -372,7 +373,7 @@ def test_per_market_windows_default_and_validation():
     from app.config import AiDuoCfg
 
     c = AiDuoCfg()
-    assert c.window_for("MGC") == ("03:00", "11:30") and c.window_for("MNQ") == ("08:30", "12:00")
+    assert c.window_for("MGC") == ("03:00", "11:30") and c.window_for("MNQ") == ("08:00", "12:00")
     assert c.excluded == [("09:30", "09:35")] and c.accounts == {}
     with pytest.raises(ValueError, match="starts before"):
         AiDuoCfg(windows={"MGC": ("12:00", "03:00"), "MNQ": ("08:30", "12:00")})
@@ -385,12 +386,12 @@ def test_per_market_windows_default_and_validation():
 
 
 def test_mnq_does_not_trade_before_its_own_window(db, loaded_rules):
-    rules = _real_windows(_rules(loaded_rules, ai_duo=True), ("08:30", "12:00"))
+    rules = _real_windows(_rules(loaded_rules, ai_duo=True), ("08:00", "12:00"))
     with db() as s:
         today = _sessions(2)[-1]
         _bars(s, "MNQ", _london(today), PULLBACK, D(20000))
         _label(s, today, "BUY·VT LONG 85")
-        assert _run(s, rules, _london(today) + timedelta(minutes=10)).updates == []  # 03:10 < 08:30 for MNQ
+        assert _run(s, rules, _london(today) + timedelta(minutes=10)).updates == []  # 03:10 < 08:00 for MNQ
 
 
 def _duo_accounts(authed, clock, assign):
@@ -447,3 +448,85 @@ def test_assigned_account_unavailable_is_reported(authed, clock):
     assert [(r.account_id, r.reason) for r in res if r.reason == "DUO_ASSIGNED_ACCOUNT_UNAVAILABLE"] == [
         (ids[0], "DUO_ASSIGNED_ACCOUNT_UNAVAILABLE")
     ] or all(r.account_id == ids[0] for r in res)
+
+
+# ---------- D85: several positions on 150K, one on every other account, kill switch flattens all ----------
+def _multi_setup(authed, clock, balances):
+    import asyncio  # noqa: F401
+    from datetime import UTC, datetime
+
+    at = datetime(2026, 10, 13, 15, 0, tzinfo=UTC)
+    st = authed.app.state
+    clock.set(at)
+    ids = []
+    for label, bal in balances:
+        aid = authed.post("/api/accounts", json={"label": label, "stage": "EVAL", "balance": bal}).json()["id"]
+        authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True})
+        ids.append(aid)
+    authed.post("/api/attestation", json={"confirm": True})
+    st.controller.mode = "FULL"
+    sim = st.controller.adapter.sim
+    sim.last["MNQ"], sim.last["MGC"] = D(20000), D(2700)
+    return st, ids, at
+
+
+def _duo_sig(st, at, symbol, plan, features=None):
+    from app.engine.trade_plan import Direction
+
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(s, FixedClock(at), symbol=symbol, key=f"{symbol}-DUO-2026-10-13", direction=Direction.LONG,
+                             at=at, gate=(True, "OK", ""), features=features or {}, plan=("AI_DUO", *plan))  # fmt: skip
+        s.commit()
+        return sig.id
+
+
+MNQ_PLAN = (D(20000), D(19980), D(20100), D(20), D(5))
+MGC_PLAN = (D(2700), D(2690), D(2730), D(10), D(3))
+
+
+def test_150k_account_holds_mnq_and_mgc_together_a_25k_account_only_one(authed, clock):
+    import asyncio
+
+    st, ids, at = _multi_setup(authed, clock, [("big", "150000"), ("small", "25000")])
+    big, small = ids
+    s1, s2 = _duo_sig(st, at, "MNQ", MNQ_PLAN), _duo_sig(st, at, "MGC", MGC_PLAN)
+    r1 = {r.account_id: r for r in asyncio.run(st.controller.execute(s1, "automation"))}
+    r2 = {r.account_id: r for r in asyncio.run(st.controller.execute(s2, "automation"))}
+    assert r1[big].ok and r2[big].ok, (r1[big], r2[big])  # two positions at once on the 150K account
+    assert r1[small].ok and not r2[small].ok and r2[small].reason == "POSITION_OPEN"  # everyone else: max 1
+    with st.sessionmaker() as s:
+        from app.models import Account
+
+        ext = s.get(Account, big).broker_account_id
+    mine = [t for t in st.controller.om.trades.values() if t.account == ext]
+    assert {t.symbol for t in mine} == {"MNQ", "MGC"} and all(t.legs[0].stop for t in mine)  # own stop bracket each
+    assert all(t.manage is not None for t in mine)  # break-even / lock / trail attached to each position
+    by = {t.symbol: t.manage for t in mine}  # D85 lock per market: MNQ +100 → +50 pts; MGC (VERIFY) 13 → 6.5
+    assert (by["MNQ"].lock_trigger_pts, by["MNQ"].lock_pts) == (D(100), D(50))
+    assert (by["MGC"].lock_trigger_pts, by["MGC"].lock_pts) == (D(13), D("6.5"))
+    assert by["MNQ"].ai_lock_price is None
+    assert all(t.qty <= 4 for t in mine)  # 4 is a cap
+
+
+def test_kill_switch_flattens_every_open_position(authed, clock):
+    import asyncio
+
+    st, _ids, at = _multi_setup(authed, clock, [("big", "150000")])
+    s1, s2 = _duo_sig(st, at, "MNQ", MNQ_PLAN), _duo_sig(st, at, "MGC", MGC_PLAN)
+    assert asyncio.run(st.controller.execute(s1, "automation"))[0].ok
+    assert asyncio.run(st.controller.execute(s2, "automation"))[0].ok
+    assert len(st.controller.om.trades) == 2
+    asyncio.run(st.controller.kill_switch("test"))
+    ctl = st.controller
+    assert asyncio.run(ctl.adapter.get_positions(next(iter(ctl.adapter.sim.accounts)))) == []  # all flat
+    assert not any(not t.closing for t in ctl.om.trades.values()) or ctl.om.trades == {}
+
+
+def test_the_ai_setup_lock_level_reaches_the_position(authed, clock):
+    import asyncio
+
+    st, _ids, at = _multi_setup(authed, clock, [("big", "150000")])
+    sid = _duo_sig(st, at, "MGC", MGC_PLAN, {"lock_price": "2712"})
+    assert asyncio.run(st.controller.execute(sid, "automation"))[0].ok
+    (t,) = st.controller.om.trades.values()
+    assert t.manage.ai_lock_price == D(2712)

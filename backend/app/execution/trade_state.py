@@ -8,6 +8,7 @@ from typing import Any
 
 from app.engine.trade_plan import Direction, TradePlan
 from app.execution.order_manager import Leg, OpenTrade
+from app.management.trade_manage import ManageCfg
 
 
 def _d(x: Decimal | None) -> str | None:
@@ -83,7 +84,29 @@ def dump(t: OpenTrade) -> dict[str, Any]:
         "strategy": t.strategy,
         "profit_lock": None if t.profit_lock is None else [str(x) for x in t.profit_lock],
         "profit_locked": t.profit_locked,
+        "manage": None
+        if t.manage is None
+        else {
+            **{
+                k: str(getattr(t.manage, k))
+                for k in ("be_r", "lock_trigger_pts", "lock_pts", "trail_start_r", "trail_r")
+            },
+            "fee_cover_ticks": t.manage.fee_cover_ticks,
+            "ai_lock_price": None if t.manage.ai_lock_price is None else str(t.manage.ai_lock_price),
+        },
     }
+
+
+def _manage(m: dict[str, Any]) -> ManageCfg:
+    return ManageCfg(
+        Decimal(m["be_r"]),
+        Decimal(m["lock_trigger_pts"]),
+        Decimal(m["lock_pts"]),
+        Decimal(m["trail_start_r"]),
+        Decimal(m["trail_r"]),
+        int(m["fee_cover_ticks"]),
+        None if m.get("ai_lock_price") is None else Decimal(m["ai_lock_price"]),
+    )
 
 
 def load(d: dict[str, Any]) -> OpenTrade:
@@ -147,4 +170,5 @@ def load(d: dict[str, Any]) -> OpenTrade:
         if d.get("profit_lock") is None
         else (Decimal(d["profit_lock"][0]), Decimal(d["profit_lock"][1])),
         profit_locked=bool(d.get("profit_locked", False)),
+        manage=None if not d.get("manage") else _manage(d["manage"]),
     )

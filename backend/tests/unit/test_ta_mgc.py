@@ -149,3 +149,13 @@ def test_research_due_rules():
     assert not TR.research_due(datetime(2026, 11, 14, 3, tzinfo=et), "02:45", None, False, "11:30")  # Saturday
     assert not TR.research_due(wed, "02:45", (wed - timedelta(minutes=10)).isoformat(), False, "11:30")
     assert TR.research_due(wed, "02:45", (wed - timedelta(minutes=31)).isoformat(), False, "11:30")
+
+
+def test_optional_ai_lock_level_is_kept_only_when_it_is_in_the_trades_favour():
+    assert TM.parse_setup({**LONG, "lock_price": 2712}, 55).lock_price == D(2712)
+    assert TM.parse_setup(LONG, 55).lock_price is None
+    for bad in (2690, 2701, 2731, "x", None):  # below the zone / inside it / beyond the target / junk
+        assert TM.parse_setup({**LONG, "lock_price": bad}, 55).lock_price is None
+    short = {**LONG, "side": "SHORT", "invalidation": 2712, "target": 2670, "lock_price": 2690}
+    assert TM.parse_setup(short, 55).lock_price == D(2690)
+    assert TM.parse_setup({**short, "lock_price": 2705}, 55).lock_price is None

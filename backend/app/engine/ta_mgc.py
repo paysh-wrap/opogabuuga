@@ -32,6 +32,9 @@ class Setup:
     target: Decimal
     valid_until: str
     reasons: tuple[str, ...]
+    lock_price: Decimal | None = (
+        None  # the AI's own profit-lock level (optional); the manager uses it instead of config
+    )
 
 
 def _dec(x: Any) -> Decimal | None:
@@ -69,7 +72,10 @@ def parse_setup(raw: Any, min_confidence: int) -> Setup | str:
         return "SETUP_CONF_LOW"
     reasons = raw.get("reasons")
     why = tuple(str(r)[:200] for r in reasons[:8]) if isinstance(reasons, list) else ()
-    return Setup(d, conf, lo, hi, inv, tgt, str(raw.get("valid_until", "")), why)
+    lock = _dec(raw.get("lock_price"))
+    if lock is not None and not ((hi < lock < tgt) if d is Direction.LONG else (tgt < lock < lo)):
+        lock = None  # a lock level outside zone → target is ignored (the config level applies), never an error
+    return Setup(d, conf, lo, hi, inv, tgt, str(raw.get("valid_until", "")), why, lock)
 
 
 def valid_until_at(value: str, day: str) -> datetime | None:

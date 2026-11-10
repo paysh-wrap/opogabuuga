@@ -33,7 +33,7 @@ def research_prompt(req: dict[str, Any], decision: str, reports: dict[str, Any])
         "Finish with exactly one line, nothing after it:\n"
         'TA_SETUP {"side": "LONG" or "SHORT" or "NONE", "confidence": integer 0-100, "entry_low": number, '
         '"entry_high": number, "invalidation": number, "target": number, "valid_until": "HH:MM" (ET), '
-        '"reasons": ["max 5 short strings"]}'
+        '"lock_price": number or null (optional: where to lock profit), "reasons": ["max 5 short strings"]}'
     )
 
 

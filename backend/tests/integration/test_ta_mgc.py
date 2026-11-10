@@ -102,7 +102,7 @@ def test_every_refusal_is_one_logged_skip_with_a_reason_code(db, loaded_rules, k
         _research(s, today, **kw)
         out = _go(s, rules, today)
         assert [(u.status, u.reason) for u in out.updates] == [("SKIP", code)]
-        assert s.query(TradePlanRow).count() == 0 or code in ("RR_BELOW_MIN",) or True
+        assert s.query(TradePlanRow).count() == 0  # a skip carries no plan
         assert s.query(AuditLog).filter_by(action="ai_duo.decision").one().payload["code"] == code
 
 

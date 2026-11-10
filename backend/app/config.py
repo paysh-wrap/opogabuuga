@@ -319,7 +319,7 @@ class AiDuoCfg(_M):
     markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
     # entry window per market, ET (user 2026-11-10): MGC from the London open, MNQ around the US open. The window start
     # is also the session-VWAP anchor; the last bar close in the window that may trigger ends it (NO_PULLBACK skip).
-    windows: dict[Literal["MNQ", "MGC"], tuple[str, str]] = {"MGC": ("03:00", "11:30"), "MNQ": ("08:30", "12:00")}
+    windows: dict[Literal["MNQ", "MGC"], tuple[str, str]] = {"MGC": ("03:00", "11:30"), "MNQ": ("08:00", "12:00")}
     # per-market account (Account.id; max 1 position per account stays): MGC and MNQ may run on different accounts.
     # A market without an entry uses any selected/armed account not assigned to the other market.
     accounts: dict[Literal["MNQ", "MGC"], int | None] = {}
@@ -330,11 +330,38 @@ class AiDuoCfg(_M):
     rr_target: D = D("2.0")
     rr_min: D = D("1.5")  # firm floor (CLAUDE.md D49): config refuses lower
     flat_at: str = "16:00"
-    contracts: int = 1
+    contracts: int = 1  # micros per trade on every account except the big (150K) ones below
     paper_only: Literal[True] = True
+    # D85 (user 2026-11-10): total risk per trade (stop distance × qty + fees + slippage), all account sizes
+    max_risk_usd: D = D("250")
+    # D85 (user-approved override of "max 1 open position per account", AI Duo on accounts ≥ big_account_size ONLY):
+    # up to max_open_positions positions at once and max_qty micros per trade (a CAP: sizing still comes from the risk
+    # engine + max_risk_usd + the aggregate DLL/MLL check). Every other account stays at 1 position / `contracts`.
+    big_account_size: D = D("150000")
+    max_open_positions: int = 4
+    max_qty: int = 4
+    brake_below: D = D("0.5")  # cushion brake: 1 micro while (equity − MLL) < brake_below × the account's loss limit
+    # D85 trade management (reuses the guard's BE price, the lock rule and the runner trail; ratchet only):
+    be_r: D = D("1.0")  # break-even (+ fee cover) once +1R
+    trail_start_r: D = D("1.5")
+    trail_r: D = D("1.0")
+    # profit lock per market, points: (trigger, lock) — once +trigger pts the stop moves to entry +lock pts, or to the
+    # AI setup's own lock level when it gave one. User 2026-11-10: MNQ +100 → +50 (NOISE keeps its tested +100 → +10).
+    # MGC # VERIFY: proportional by price (≈ 0.48% / 0.24% of ~2,700) — not tested, the user must confirm.
+    lock_pts: dict[Literal["MNQ", "MGC"], tuple[D, D]] = {"MNQ": (D(100), D(50)), "MGC": (D(13), D("6.5"))}
 
     @model_validator(mode="after")
     def _valid(self) -> AiDuoCfg:
+        if self.max_risk_usd <= 0 or self.max_open_positions < 1 or self.max_qty < 1 or self.big_account_size <= 0:
+            raise ValueError("ai_duo: max_risk_usd > 0, max_open_positions ≥ 1, max_qty ≥ 1, big_account_size > 0")
+        if not (D(0) < self.brake_below <= D(1)):
+            raise ValueError("ai_duo: 0 < brake_below ≤ 1")
+        if self.be_r <= 0 or any(not (D(0) <= lock < trig) for trig, lock in self.lock_pts.values()):
+            raise ValueError("ai_duo: be_r > 0 and each lock_pts needs 0 ≤ lock < trigger")
+        if any(m not in self.lock_pts for m in self.markets):
+            raise ValueError("ai_duo: every market needs lock_pts")
+        if self.trail_start_r <= 0 or self.trail_r <= 0:
+            raise ValueError("ai_duo: trail_start_r and trail_r > 0")
         if self.rr_min < D("1.5") or self.rr_target < self.rr_min:
             raise ValueError("ai_duo: rr_min ≥ 1.5 and rr_target ≥ rr_min")
         if self.bar_minutes < 1 or self.contracts < 1 or self.vt_min_conf < 1 or self.stop_buffer_ticks < 0:

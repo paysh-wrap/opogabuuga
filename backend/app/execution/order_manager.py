@@ -23,6 +23,7 @@ from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerErr
 from app.management.drawdown_guard import ratchet, runner_stop, split_legs
 from app.management.exits import adverse_half_due, early_exit_allowed, exit_allowed_now
 from app.management.profit_lock import PROFIT_LOCK_REASON, lock_stop
+from app.management.trade_manage import ManageCfg, managed_stop
 
 
 @dataclass
@@ -69,6 +70,7 @@ class OpenTrade:
     strategy: str = ""  # D55: "" = LunqFX; NOISE / OPEN_DRIVE trades are exited by their own rules
     profit_lock: tuple[Decimal, Decimal] | None = None  # D82: (trigger_pts, lock_pts) — NOISE profit lock (D75-P1)
     profit_locked: bool = False  # the stop has been moved to entry + lock_pts
+    manage: ManageCfg | None = None  # D85: AI Duo break-even / profit lock / trail (management/trade_manage.py)
 
     @property
     def d(self) -> Direction:
@@ -371,6 +373,21 @@ class OrderManager:
         leg.stop = new
         return [Event("STOP_MOVED", t, f"{why} {new}")]
 
+    async def _managed(self, t: OpenTrade, last: Decimal | None) -> list[Event]:
+        """D85: break-even, profit lock and trailing stop for each open leg on its own (ratchet only)."""
+        assert t.manage is not None and t.best is not None
+        out: list[Event] = []
+        for leg in [x for x in t.legs if x.entry is not None and not x.closed]:
+            mv = managed_stop(t.d, leg.entry or Decimal(0), t.plan.risk_pts, t.best, leg.stop, t.manage, t.tick, last)
+            if mv is None:
+                continue
+            out += await self._move_stop(
+                t, leg, mv.stop, f"MANAGE:{mv.rule}"
+            )  # the rule that chose the level is logged
+            if t.closing:
+                break  # stop-modify failure: flattening, nothing more to move
+        return out
+
     async def _profit_lock(self, t: OpenTrade) -> list[Event]:
         """D82 / D75-P1: after +trigger pts the stop of every open leg moves to entry + lock pts (ratchet only)."""
         assert t.profit_lock is not None
@@ -388,7 +405,7 @@ class OrderManager:
         return out
 
     # ---------- price ----------
-    async def on_bar(self, symbol: str, high: Decimal, low: Decimal) -> list[Event]:
+    async def on_bar(self, symbol: str, high: Decimal, low: Decimal, close: Decimal | None = None) -> list[Event]:
         out: list[Event] = []
         for t in list(self.trades.values()):
             if t.symbol != symbol or any(x.entry is None for x in t.legs):
@@ -397,6 +414,8 @@ class OrderManager:
             t.best = fav if t.best is None or (fav - t.best) * t.d.sign > 0 else t.best
             if t.profit_lock is not None and not t.closing:
                 out += await self._profit_lock(t)
+            if t.manage is not None and not t.closing:
+                out += await self._managed(t, close if close is not None else low)
             trail = t.runner_trail or (self.trail_r if t.guard_on else None)
             if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")

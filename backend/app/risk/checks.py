@@ -74,6 +74,12 @@ class AccountView:
     mll: Decimal
     dll: Decimal | None  # None when DLL is off
     base: Decimal  # risk base
+    # D85 (AI Duo on 150K only, user-approved override of "max 1 open position"): how many positions the account may
+    # hold at once (default 1 = unchanged for every other strategy/size), how many it holds now, and the risk still
+    # open on them (stop distance × qty + fees + slippage, $) — the aggregate-risk check below uses it.
+    max_open_positions: int = 1
+    open_positions: int = 0
+    open_risk_usd: Decimal = Decimal(0)
 
 
 @dataclass(frozen=True)
@@ -101,6 +107,9 @@ class TradeLimits:
     # stop would be noise → skip DRAWDOWN_TOO_DEEP. None = off (pause floor applies). Same-code in live/backtest.
     shrink_fraction: Decimal | None = None
     shrink_min_pct: Decimal = Decimal("0.002")
+    # D85 (user 2026-11-10, AI Duo): a total per-trade risk cap in $ (stop distance × qty + fees + slippage). The fixed
+    # size is reduced to what fits; if not even one contract fits → STOP_TOO_WIDE. None = off (every other strategy).
+    max_risk_usd: Decimal | None = None
 
 
 @dataclass
@@ -153,7 +162,8 @@ def pretrade(
         return fail("ACCOUNT_PAUSED")
     if not r.log("payout_not_pending", not acct.payout_pending):
         return fail("PAYOUT_PENDING")
-    if not r.log("one_position", not acct.has_open_position):
+    held = max(acct.open_positions, 1 if acct.has_open_position else 0)
+    if not r.log("one_position", held < max(acct.max_open_positions, 1), held=held, allowed=acct.max_open_positions):
         return fail("POSITION_OPEN")
     if not r.log("hedge_lock", not hedge_conflict):
         return fail("HEDGE_LOCK")
@@ -176,6 +186,10 @@ def pretrade(
     stop_ticks = plan.risk_pts / lim.tick
     if lim.fixed_contracts is not None:
         n = min(lim.fixed_contracts, lim.firm_max, lim.internal_max)
+        if lim.max_risk_usd is not None:
+            one = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks)
+            n = min(n, int(lim.max_risk_usd // one))
+            r.log("trade_risk_cap", n > 0, cap=lim.max_risk_usd, per_contract=money(one), contracts=n)
         usd = money(n * per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks))
         if lim.shrink_fraction is not None and n > 0:
             room0 = min(x for x in (dll_left, dist - lim.kill_switch_distance) if x is not None)
@@ -195,7 +209,7 @@ def pretrade(
         r.risk_usd = usd
         if not r.log("fixed_size", n > 0, contracts=n, worst=usd, cap_not_applied=rcfg.max_risk_usd):
             return fail("STOP_TOO_WIDE")
-        return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist)
+        return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist, acct.open_risk_usd)
     pct = select_risk_pct(score, ctx, rcfg, floor)
     if not r.log("score_tier", pct is not None, score=score, profile=rcfg.kind):
         return fail("SCORE_BELOW_MIN")
@@ -219,7 +233,7 @@ def pretrade(
             r.log("low_risk_min_qty", True, risk=usd, cap=cap)
     if not r.log("size", n > 0, risk=usd, stop_ticks=stop_ticks, min_qty=lim.min_qty):
         return fail("STOP_TOO_WIDE")
-    return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist)
+    return _finish(r, plan, day, consistency, lim, n, stop_ticks, dll_left, dist, acct.open_risk_usd)
 
 
 def _finish(
@@ -232,6 +246,7 @@ def _finish(
     stop_ticks: Decimal,
     dll_left: Decimal | None,
     dist: Decimal,
+    open_risk: Decimal = Decimal(0),
 ) -> PreTrade:
     """Checks every trade passes after sizing: consistency cap, then worst case vs DLL left / MLL distance."""
     if consistency is not None:
@@ -252,7 +267,16 @@ def _finish(
     per = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks)
     worst = money(n * per)
     room = min(x for x in (dll_left, dist - lim.kill_switch_distance) if x is not None)
-    if not r.log("worst_case", worst + lim.dll_safety_margin <= room, worst=worst, room=room):
+    if open_risk > 0:  # D85 aggregate: risk still open on this account's other positions + this trade + margin ≤ room
+        fit = int((room - lim.dll_safety_margin - open_risk) // per) if room - lim.dll_safety_margin > open_risk else 0
+        n_new = min(n, fit)
+        if not r.log(
+            "aggregate_risk", n_new > 0, open_risk=open_risk, room=room, margin=lim.dll_safety_margin, contracts=n_new
+        ):
+            r.reason = "AGGREGATE_RISK_EXCEEDS_LIMITS"
+            return r
+        n, worst = n_new, money(n_new * per)
+    if not r.log("worst_case", worst + open_risk + lim.dll_safety_margin <= room, worst=worst, room=room):
         r.reason = "WORST_CASE_EXCEEDS_LIMITS"
         return r
     r.ok, r.contracts, r.worst_case_usd = True, n, worst

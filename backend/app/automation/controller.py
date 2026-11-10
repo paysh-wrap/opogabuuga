@@ -33,6 +33,7 @@ from app.execution.order_manager import Event, OpenTrade, OrderManager, Orphaned
 from app.indicators.bars import tf_minutes
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
 from app.management.profit_lock import PROFIT_LOCK_REASON
+from app.management.trade_manage import ManageCfg
 from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
@@ -425,7 +426,16 @@ class Controller:
             guard_on = guard_active(a.drawdown_type, mll.locked, GuardCfgView(r.drawdown_guard.mode))
             if guard_on:
                 plan = apply_guard(plan, inst.tick, fee_cover_ticks(inst.fee_rt, inst.tick_value))
+        duo = r.strategy.ai_duo_cfg if strategy == "AI_DUO" else None
+        if duo is not None:  # D85: the Drawdown Guard's own auto rule (intraday, MLL not locked) → 2-bracket mode
+            guard_on = guard_active(a.drawdown_type, mll.locked, GuardCfgView(r.drawdown_guard.mode))
+            if guard_on:
+                plan = apply_guard(plan, inst.tick, fee_cover_ticks(inst.fee_rt, inst.tick_value))
+        acct_size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
+        big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
+        mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
         positions = await self.open_positions(s)
+        n_open = max(sum(1 for p in positions if p.account == a.broker_account_id), len(mine))
         view = AccountView(
             a.broker_account_id,
             a.stage,
@@ -441,6 +451,9 @@ class Controller:
             mll.mll,
             st.dll_for(r, a),
             base,
+            max_open_positions=duo.max_open_positions if duo is not None and big else 1,
+            open_positions=n_open,
+            open_risk_usd=sum((self._open_risk(t) for t in mine), Decimal(0)) if duo is not None else Decimal(0),
         )
         fixed = (
             {
@@ -448,11 +461,15 @@ class Controller:
                 "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
                 "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
                 "PM_FADE": r.strategy.pm_fade_cfg.contracts,
-                "AI_DUO": r.strategy.ai_duo_cfg.contracts,
+                "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
             }[strategy]
             if strategy
             else None
         )
+        if duo is not None and fixed is not None and fixed > 1:  # D85 cushion brake (the size-table brake, reused)
+            fixed = auto_contracts(
+                acct_size, base, [SizeTier(acct_size, r.eval.max_loss_limit, fixed, duo.brake_below, 1)]
+            ).contracts
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
         eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on
@@ -545,9 +562,8 @@ class Controller:
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
             fixed_contracts=fixed,
-            shrink_fraction=r.strategy.drawdown_shrink
-            if strategy in ("NOISE", "AI_BIAS", "AI_DUO", "TA_MGC")
-            else None,
+            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
+            max_risk_usd=duo.max_risk_usd if duo is not None else None,  # D85: $250 per trade (config)
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
@@ -619,6 +635,13 @@ class Controller:
                 trade_id=f"P-{sig.id}-{a.id}",  # deterministic: unique across restarts, broker clOrdId derives from it
             )
             t.profile, t.signal_id, t.strategy = sig.profile, sig.id, strategy
+            if duo is not None:  # D85: break-even / profit lock / trail on every Duo position, each on its own
+                trig, lock = duo.lock_pts[sig.symbol]  # type: ignore[index]
+                ai = (sig.features or {}).get("lock_price")  # the AI setup's own lock level (research setups)
+                t.manage = ManageCfg(
+                    duo.be_r, trig, lock, duo.trail_start_r, duo.trail_r,
+                    fee_cover_ticks(inst.fee_rt, inst.tick_value), Decimal(str(ai)) if ai else None,
+                )  # fmt: skip
             nc = r.strategy.noise_cfg
             if strategy == "NOISE" and nc.profit_lock_trigger_pts is not None and nc.profit_lock_pts is not None:
                 t.profit_lock = (nc.profit_lock_trigger_pts, nc.profit_lock_pts)  # D82 / D75-P1 (preset C)
@@ -738,6 +761,20 @@ class Controller:
                                 await self._flatten_account(s, a, reason)
                 await self._retry_strategy_exits(s)
                 self._commit(s)
+
+    def _open_risk(self, t: OpenTrade) -> Decimal:
+        """$ still at risk on an open position: per open leg (entry − current stop, never below 0) × qty at the tick
+        value, plus round-trip fee and slippage — the same per-contract formula the pre-trade sizing uses."""
+        total = Decimal(0)
+        r = self.rules.rules
+        inst = r.instrument(t.symbol)
+        slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
+        for leg in t.legs:
+            if leg.entry is None or leg.closed:
+                continue
+            dist = max((leg.entry - leg.stop) * t.d.sign, Decimal(0))
+            total += leg.qty * (dist / t.tick * t.tick_value + inst.fee_rt + slip * t.tick_value)
+        return total
 
     def _mark_lock_exit(self, s: Session, signal_id: int | None) -> None:
         """D82 / D75-P1: a locked-stop exit ends NOISE for the day (strategy_service reads `lock_exit`).
@@ -873,7 +910,7 @@ class Controller:
                 for f in self.adapter.on_bar(symbol, o, h, low, c, at):
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
-                await self._handle_events(s, await self.om.on_bar(symbol, h, low))
+                await self._handle_events(s, await self.om.on_bar(symbol, h, low, c))
                 await self._retry_strategy_exits(s)
                 await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
@@ -913,6 +950,8 @@ class Controller:
                 if e.detail == "FLATTEN":
                     reason = e.trade.closing or self._flatten_reason or e.detail
                 self._close_trade(s, e.trade, reason)
+            elif e.kind == "STOP_MOVED":  # every stop move is logged (D85: which rule chose the level)
+                audit.record(s, self.clock, "automation", "trade.stop_moved", e.trade.account, {"detail": e.detail})
             elif e.kind == "PAUSE":
                 self._pause(s, e.trade.account, e.detail)
             elif e.kind == "CANCELLED":
