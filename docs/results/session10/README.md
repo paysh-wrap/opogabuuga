@@ -375,3 +375,9 @@ price (DRAWDOWN_TOO_DEEP) → an account that took a stop-out FREEZES instead of
 | 3 → 1, cap = full limit − $140 | 37.6% | 62.4% | 8 | 33 | $619 |
 | 2 → 1, cap = full limit − $140 | 38.8% | 61.2% | 14 | 40 | $639 |
 Findings: the study's speed does not survive the live safety rules; even 1-micro evals lose ≈ 8 pass points (era 2: 61% → 47%).
+
+## 33. Kill-switch distance $100 vs $50 (D71) — agent, kill_distance_report.md
+Almost no effect: eval pass +0 to +4 pts (25K Regular 55.5% → 56.0%; 25K 3 × $150 31.2% → 33.1%; 2 × $225 34.1% → 38.4%; 50K 49.2% flat), freezing falls by the same amount, bust 0% under the live rule at every distance, funded year-1 income +$6 to +$45 per account, win rate unchanged (≈ 50.6% all trades, NOISE 45.5%, fade 59%).
+Cost: less slippage margin — +$100 extra loss on every stop-out would bust 0.5–6% of runs at $50 vs 0% at $100; in the 5-year data no stop filled worse than planned and no trade came within $50 of the floor. The news rule, not the margin, protects against fast spikes.
+Why small: the minimum-stop rule (0.2% of price) and the 0.6 shrink drive freezing, not the kill distance → the real lever is those two.
+FINDING: controller passes shrink_fraction only for NOISE and AI_BIAS — PM_FADE is NOT tightened (keeps the $500 pause floor + worst-case check); with that, $50 helps more (Regular eval pass 49.7% → 56.2%).

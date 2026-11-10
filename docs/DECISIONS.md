@@ -623,4 +623,5 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - internal.kill_switch_mll_distance = 50 in lucid_pro_{25k,50k,100k,150k}.yaml (others keep 100). It is the margin used by the
   kill switch (flatten + pause when equity − MLL ≤ distance), the pre-trade "NEAR_MLL" check and the room for the
   worst-case check / D57 stop-tightening → fewer frozen accounts, more room per trade, thinner safety margin
-  (a slippage gap > $50 could now breach the limit). Effect measured by an agent (kill_distance_report.md, pending).
+  (a slippage gap > $50 could now breach the limit). Measured (kill_distance_report.md): pass +0–4 pts, bust 0%, income +$6–45, win rate unchanged;
+  extra risk only under a +$100 stop-out slippage stress (0.5–6% bust). PM_FADE is not tightened by D57 (controller passes shrink only for NOISE/AI_BIAS).
