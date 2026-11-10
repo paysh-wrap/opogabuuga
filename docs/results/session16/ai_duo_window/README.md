@@ -1,0 +1,256 @@
+# AI Duo window study: London open to 11:30 ET (session 16)
+
+Research only. No backend/frontend code touched. **AI accuracy is SIMULATED; real accuracy is unproven. Every number below is a BOUND ("if the AI were X% right"), not a forecast.**
+
+## Verdict (plain language)
+- **Extending AI Duo to the London open (03:00 ET) does not help. It makes it worse.** On MNQ at 70% simulated accuracy, 2024-2026: the current window 09:36-11:30 earns about +$12,990 (PF 1.47); 03:00-11:30 earns about +$1,070 (PF 1.07). 2019-2023: current +$12,465, London-open -$1,932.
+- Reason (visible in the oracle rows): the AI predicts the **RTH open-to-close direction**. Most London-window trades (median entry about 04:15 ET) are overnight moves that have almost no relation to that direction. Even a PERFECT (100%) AI loses money on MNQ pre-RTH (03:00-09:30: oracle PF 0.8, -$3,215 over 2024-26). Accuracy only pays when the trade happens inside the period the AI is predicting.
+- Pre-RTH only (window C) loses at every accuracy on MNQ, and on MGC too (PF 0.80-0.93 at 60-70%).
+- MGC: same picture. 09:36-11:30 is positive at 60%+ accuracy (70%: +$6,000 in 2024-26, PF 1.30); 03:00-11:30 is about break-even at best (70%: PF 0.99).
+- Combined MNQ+MGC (independent calls per market, 1 trade per market per day, never both directions in one market): 09:36-11:30 at 70% = +$18,993 (2024-26, PF 1.40) vs 03:00-11:30 = +$899 (PF 1.03).
+- Break-even bar for 2R is about 34-35% win after costs. A window only works if the AI lifts the win rate well above that; London-open trades stay at 33-36% at all accuracies.
+- Recommendation: keep AI Duo at **09:36-11:30**. If a pre-RTH variant is ever wanted, the AI would have to predict the overnight/London move (a different, separate bias with its own ledger), which nobody has measured.
+- Caution: even the current window depends entirely on real accuracy of 60%+ (at 50-55% it is about zero). Published LLM next-day accuracy is 50-56% (session 11), so the best case here is far from proven.
+
+## Method
+- Data: Databento GLBX.MDP3 `MNQ.v.0` and `MGC.v.0` (volume roll, never `.c.0`), 1-minute bars 2019-05-06 to 2026-11-06, ET. MNQ 1,827 usable days, MGC 1,895. Days with any 1-minute close-to-close jump > 1% (MNQ) / 2% (MGC) dropped as roll/bad-print guard (MNQ 116, MGC 45), partly real shock days (e.g. Mar 2020), so tail days are slightly under-represented.
+- Day "truth" = sign of (16:00 close - 09:30 open). AI call correct with probability = accuracy, seeded (200 seeds per cell, mean reported; seeds identical across windows). NEUTRAL: 27% of days skipped at random (user brief). Sensitivity with 73% skipped (agree-strong only) at the end.
+- Entry: 5-minute bars on the :00/:05 grid. Signal = first 5m bar that pulls back to VWAP (long: low <= VWAP < close; short mirrored) and closes in the AI direction (close above open for long). Decision at bar close, fill at next 1m open + 1 tick. Earliest entry 09:40 for window A (bar 09:35-09:40 closes after 09:36); 09:30-09:35 bars excluded (D10) in all windows.
+- **VWAP anchor**: window A = RTH VWAP anchored 09:30 (as live). Windows L, B, C = **Globex VWAP anchored 18:00 ET the prior evening** (typical price x volume, cumulative).
+- Stop = pullback extreme (low/high of signal bar and the one before) beyond by 1 tick; stop skipped if wider than the NOISE $250 emergency stop in points (MNQ 124 pts, MGC 24.65 pts); stop widened to at least $10 of price risk (MNQ 5 pts, MGC 1 pt) - an assumption of mine. Target 2.0R (limit, needs 1-tick trade-through; same-bar stop+target = stop first). 1 micro, fee MNQ $1.00 / MGC $1.50 round trip, 1 tick slippage on entry and on stop/flat exits. One trade per market per day; flat at window end (A 11:30, L 11:30, B 11:00, C 09:30).
+- NOISE overlap: NOISE (verified rules, `session10/five_year/noise_gen.py`, MNQ RTH, $250 stop) trade intervals vs the Duo trade interval on the same date; "overlap" = share of Duo trades that are open at the same time as a NOISE trade (seed 0). For MGC this is vs MNQ NOISE (NOISE is MNQ-only; MGC is a different hedge group, so no HEDGE_LOCK, but it is still the same account budget/DLL).
+- Periods: 2019-2023 and 2024-2026 reported separately, plus last 12 months (2025-11-10 on). Nothing was tuned or picked on any of them; all parameters were fixed before running.
+- Limitations: no 08:30 news flatten and no DLL/day-stop in the sim (so London trades that run through 08:30 are flattered or hurt by news the live app would flatten); window-A VWAP differs from B (different anchor) so some A-vs-L gap is partly anchor; MGC "RTH 09:30-16:00" truth is not gold's own session (gold's liquid hours are about 08:20-13:30), so AI truth for gold is a loose proxy; a pre-RTH trade could be scored against a different truth (overnight direction) but the AI here is defined as the RTH call.
+
+## Results (mean over 200 seeds)
+Columns: trades, win%, profit factor, net $ (1 micro), max drawdown $ (trade-by-trade), average $/trade, share of Duo trades overlapping a NOISE trade. Windows: A = current 09:36-11:30; **L = 03:00-11:30 (main London-open candidate)**; B = 03:00-11:00; C = 03:00-09:30 (only shown at 60%/70%).
+
+#### MNQ (1 micro), 2019-2023 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 756 | 39% | 1.02 | +478 | -3,513 | +0.6 | 20% |
+| A 09:36-11:30 | 55% | 763 | 41% | 1.10 | +3,308 | -2,675 | +4.3 | 18% |
+| A 09:36-11:30 | 60% | 766 | 43% | 1.20 | +6,695 | -2,050 | +8.7 | 20% |
+| A 09:36-11:30 | 65% | 772 | 44% | 1.30 | +9,611 | -1,655 | +12.4 | 19% |
+| A 09:36-11:30 | 70% | 776 | 46% | 1.40 | +12,465 | -1,540 | +16.1 | 20% |
+| L 03:00-11:30 | 50% | 752 | 33% | 0.85 | -3,129 | -3,956 | -4.2 | 1% |
+| L 03:00-11:30 | 55% | 755 | 33% | 0.86 | -2,885 | -3,733 | -3.8 | 1% |
+| L 03:00-11:30 | 60% | 756 | 33% | 0.89 | -2,304 | -3,406 | -3.1 | 1% |
+| L 03:00-11:30 | 65% | 758 | 34% | 0.91 | -2,012 | -3,244 | -2.7 | 1% |
+| L 03:00-11:30 | 70% | 760 | 34% | 0.91 | -1,932 | -3,154 | -2.5 | 1% |
+| B 03:00-11:00 | 60% | 748 | 33% | 0.88 | -2,548 | -3,513 | -3.4 | 1% |
+| B 03:00-11:00 | 70% | 753 | 33% | 0.89 | -2,251 | -3,312 | -3.0 | 1% |
+| C 03:00-09:30 | 60% | 644 | 33% | 0.89 | -1,741 | -2,562 | -2.7 | 0% |
+| C 03:00-09:30 | 70% | 644 | 33% | 0.88 | -1,909 | -2,619 | -3.0 | 0% |
+
+#### MNQ (1 micro), 2024-2026 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 456 | 41% | 1.09 | +2,548 | -3,244 | +5.6 | 18% |
+| A 09:36-11:30 | 55% | 460 | 42% | 1.17 | +4,927 | -2,765 | +10.7 | 17% |
+| A 09:36-11:30 | 60% | 461 | 44% | 1.27 | +7,850 | -2,304 | +17.1 | 18% |
+| A 09:36-11:30 | 65% | 465 | 46% | 1.36 | +10,175 | -2,017 | +21.9 | 16% |
+| A 09:36-11:30 | 70% | 466 | 48% | 1.47 | +12,993 | -1,813 | +27.9 | 17% |
+| L 03:00-11:30 | 50% | 443 | 34% | 0.95 | -931 | -2,581 | -2.1 | 2% |
+| L 03:00-11:30 | 55% | 446 | 35% | 0.97 | -514 | -2,408 | -1.2 | 1% |
+| L 03:00-11:30 | 60% | 445 | 35% | 1.01 | +158 | -2,158 | +0.4 | 1% |
+| L 03:00-11:30 | 65% | 448 | 35% | 1.03 | +522 | -1,944 | +1.2 | 0% |
+| L 03:00-11:30 | 70% | 448 | 36% | 1.07 | +1,070 | -1,853 | +2.4 | 1% |
+| B 03:00-11:00 | 60% | 437 | 35% | 1.02 | +189 | -2,005 | +0.4 | 1% |
+| B 03:00-11:00 | 70% | 440 | 36% | 1.07 | +1,139 | -1,708 | +2.6 | 1% |
+| C 03:00-09:30 | 60% | 368 | 32% | 0.81 | -2,401 | -3,032 | -6.5 | 0% |
+| C 03:00-09:30 | 70% | 369 | 32% | 0.80 | -2,518 | -3,003 | -6.8 | 0% |
+
+#### MNQ (1 micro), last12m (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 157 | 38% | 1.02 | +188 | -2,619 | +1.1 | 16% |
+| A 09:36-11:30 | 55% | 158 | 40% | 1.10 | +1,149 | -2,385 | +7.3 | 17% |
+| A 09:36-11:30 | 60% | 157 | 41% | 1.20 | +2,451 | -2,028 | +15.6 | 15% |
+| A 09:36-11:30 | 65% | 160 | 42% | 1.26 | +3,303 | -1,830 | +20.6 | 14% |
+| A 09:36-11:30 | 70% | 160 | 44% | 1.36 | +4,363 | -1,683 | +27.3 | 16% |
+| L 03:00-11:30 | 50% | 147 | 33% | 0.98 | -228 | -1,712 | -1.7 | 1% |
+| L 03:00-11:30 | 55% | 148 | 33% | 1.01 | +6 | -1,631 | -0.0 | 1% |
+| L 03:00-11:30 | 60% | 148 | 33% | 1.04 | +204 | -1,572 | +1.4 | 1% |
+| L 03:00-11:30 | 65% | 149 | 33% | 1.04 | +278 | -1,508 | +1.8 | 1% |
+| L 03:00-11:30 | 70% | 150 | 34% | 1.07 | +450 | -1,486 | +3.0 | 1% |
+| B 03:00-11:00 | 60% | 143 | 34% | 1.02 | +104 | -1,542 | +0.7 | 1% |
+| B 03:00-11:00 | 70% | 145 | 35% | 1.06 | +393 | -1,426 | +2.7 | 1% |
+| C 03:00-09:30 | 60% | 117 | 32% | 0.78 | -1,253 | -1,963 | -10.7 | 0% |
+| C 03:00-09:30 | 70% | 118 | 32% | 0.76 | -1,373 | -2,003 | -11.7 | 0% |
+
+#### MGC (1 micro), 2019-2023 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 808 | 36% | 0.89 | -1,915 | -2,766 | -2.4 | 17% |
+| A 09:36-11:30 | 55% | 812 | 38% | 0.97 | -532 | -1,816 | -0.7 | 19% |
+| A 09:36-11:30 | 60% | 817 | 39% | 1.05 | +790 | -1,305 | +1.0 | 19% |
+| A 09:36-11:30 | 65% | 819 | 41% | 1.14 | +2,220 | -978 | +2.7 | 19% |
+| A 09:36-11:30 | 70% | 823 | 43% | 1.26 | +3,831 | -774 | +4.7 | 20% |
+| L 03:00-11:30 | 50% | 752 | 34% | 0.81 | -2,591 | -2,886 | -3.4 | 3% |
+| L 03:00-11:30 | 55% | 754 | 34% | 0.83 | -2,258 | -2,581 | -3.0 | 3% |
+| L 03:00-11:30 | 60% | 757 | 35% | 0.86 | -1,874 | -2,253 | -2.5 | 2% |
+| L 03:00-11:30 | 65% | 758 | 35% | 0.89 | -1,457 | -1,951 | -1.9 | 3% |
+| L 03:00-11:30 | 70% | 759 | 36% | 0.91 | -1,125 | -1,717 | -1.5 | 2% |
+| B 03:00-11:00 | 60% | 747 | 35% | 0.86 | -1,815 | -2,194 | -2.4 | 2% |
+| B 03:00-11:00 | 70% | 749 | 36% | 0.91 | -1,090 | -1,677 | -1.5 | 2% |
+| C 03:00-09:30 | 60% | 687 | 34% | 0.80 | -2,169 | -2,385 | -3.2 | 0% |
+| C 03:00-09:30 | 70% | 685 | 35% | 0.82 | -1,973 | -2,230 | -2.9 | 0% |
+
+#### MGC (1 micro), 2024-2026 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 512 | 38% | 0.97 | -666 | -3,148 | -1.3 | 19% |
+| A 09:36-11:30 | 55% | 514 | 40% | 1.06 | +1,146 | -2,467 | +2.2 | 19% |
+| A 09:36-11:30 | 60% | 516 | 41% | 1.12 | +2,461 | -2,094 | +4.8 | 16% |
+| A 09:36-11:30 | 65% | 516 | 43% | 1.21 | +4,283 | -1,775 | +8.3 | 16% |
+| A 09:36-11:30 | 70% | 519 | 44% | 1.30 | +6,000 | -1,593 | +11.6 | 18% |
+| L 03:00-11:30 | 50% | 419 | 32% | 0.84 | -2,592 | -3,442 | -6.2 | 5% |
+| L 03:00-11:30 | 55% | 422 | 33% | 0.88 | -1,830 | -2,927 | -4.4 | 5% |
+| L 03:00-11:30 | 60% | 421 | 34% | 0.90 | -1,620 | -2,796 | -3.9 | 5% |
+| L 03:00-11:30 | 65% | 421 | 35% | 0.94 | -939 | -2,350 | -2.2 | 5% |
+| L 03:00-11:30 | 70% | 423 | 36% | 0.99 | -171 | -2,033 | -0.4 | 5% |
+| B 03:00-11:00 | 60% | 414 | 34% | 0.90 | -1,528 | -2,716 | -3.7 | 4% |
+| B 03:00-11:00 | 70% | 416 | 36% | 0.99 | -213 | -2,020 | -0.5 | 3% |
+| C 03:00-09:30 | 60% | 370 | 34% | 0.88 | -1,523 | -2,394 | -4.1 | 0% |
+| C 03:00-09:30 | 70% | 370 | 36% | 0.93 | -903 | -2,029 | -2.4 | 0% |
+
+#### MGC (1 micro), last12m (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade | overlap w/ NOISE |
+|---|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 181 | 39% | 1.00 | -78 | -2,400 | -0.4 | 17% |
+| A 09:36-11:30 | 55% | 181 | 40% | 1.08 | +773 | -2,126 | +4.3 | 15% |
+| A 09:36-11:30 | 60% | 182 | 41% | 1.11 | +1,183 | -1,975 | +6.5 | 15% |
+| A 09:36-11:30 | 65% | 181 | 42% | 1.19 | +2,026 | -1,732 | +11.2 | 16% |
+| A 09:36-11:30 | 70% | 182 | 44% | 1.27 | +2,808 | -1,573 | +15.4 | 17% |
+| L 03:00-11:30 | 50% | 135 | 33% | 0.82 | -1,468 | -2,299 | -10.9 | 5% |
+| L 03:00-11:30 | 55% | 135 | 34% | 0.89 | -916 | -1,957 | -6.8 | 3% |
+| L 03:00-11:30 | 60% | 135 | 34% | 0.88 | -963 | -1,972 | -7.1 | 6% |
+| L 03:00-11:30 | 65% | 135 | 35% | 0.92 | -662 | -1,813 | -4.9 | 4% |
+| L 03:00-11:30 | 70% | 135 | 36% | 0.98 | -207 | -1,601 | -1.5 | 4% |
+| B 03:00-11:00 | 60% | 132 | 34% | 0.88 | -983 | -1,967 | -7.5 | 4% |
+| B 03:00-11:00 | 70% | 133 | 36% | 0.97 | -258 | -1,593 | -1.9 | 2% |
+| C 03:00-09:30 | 60% | 117 | 34% | 0.85 | -976 | -1,729 | -8.3 | 0% |
+| C 03:00-09:30 | 70% | 117 | 35% | 0.90 | -658 | -1,525 | -5.6 | 0% |
+
+#### MNQ + MGC combined (independent AI call per market), 2019-2023 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade |
+|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 1564 | 38% | 0.97 | -1,437 | -4,816 | -0.9 |
+| A 09:36-11:30 | 55% | 1575 | 39% | 1.06 | +2,777 | -3,119 | +1.8 |
+| A 09:36-11:30 | 60% | 1583 | 41% | 1.15 | +7,486 | -2,226 | +4.7 |
+| A 09:36-11:30 | 65% | 1592 | 43% | 1.25 | +11,832 | -1,704 | +7.4 |
+| A 09:36-11:30 | 70% | 1600 | 44% | 1.35 | +16,296 | -1,472 | +10.2 |
+| L 03:00-11:30 | 50% | 1504 | 33% | 0.83 | -5,720 | -6,218 | -3.8 |
+| L 03:00-11:30 | 55% | 1509 | 33% | 0.85 | -5,143 | -5,683 | -3.4 |
+| L 03:00-11:30 | 60% | 1513 | 34% | 0.88 | -4,179 | -4,892 | -2.8 |
+| L 03:00-11:30 | 65% | 1516 | 34% | 0.90 | -3,469 | -4,367 | -2.3 |
+| L 03:00-11:30 | 70% | 1520 | 35% | 0.91 | -3,056 | -4,046 | -2.0 |
+| B 03:00-11:00 | 60% | 1496 | 34% | 0.87 | -4,363 | -4,977 | -2.9 |
+| B 03:00-11:00 | 70% | 1502 | 35% | 0.90 | -3,341 | -4,225 | -2.2 |
+| C 03:00-09:30 | 60% | 1331 | 34% | 0.85 | -3,909 | -4,312 | -2.9 |
+| C 03:00-09:30 | 70% | 1330 | 34% | 0.85 | -3,883 | -4,263 | -2.9 |
+
+#### MNQ + MGC combined (independent AI call per market), 2024-2026 (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade |
+|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 969 | 39% | 1.04 | +1,882 | -4,320 | +1.9 |
+| A 09:36-11:30 | 55% | 974 | 41% | 1.12 | +6,073 | -3,319 | +6.2 |
+| A 09:36-11:30 | 60% | 977 | 42% | 1.21 | +10,310 | -2,852 | +10.6 |
+| A 09:36-11:30 | 65% | 981 | 44% | 1.29 | +14,458 | -2,426 | +14.7 |
+| A 09:36-11:30 | 70% | 985 | 46% | 1.40 | +18,993 | -2,060 | +19.3 |
+| L 03:00-11:30 | 50% | 862 | 33% | 0.89 | -3,523 | -4,897 | -4.1 |
+| L 03:00-11:30 | 55% | 868 | 34% | 0.93 | -2,344 | -4,216 | -2.7 |
+| L 03:00-11:30 | 60% | 866 | 34% | 0.96 | -1,462 | -3,707 | -1.7 |
+| L 03:00-11:30 | 65% | 869 | 35% | 0.99 | -418 | -3,076 | -0.5 |
+| L 03:00-11:30 | 70% | 871 | 36% | 1.03 | +899 | -2,653 | +1.0 |
+| B 03:00-11:00 | 60% | 850 | 35% | 0.96 | -1,340 | -3,515 | -1.6 |
+| B 03:00-11:00 | 70% | 856 | 36% | 1.03 | +926 | -2,515 | +1.1 |
+| C 03:00-09:30 | 60% | 738 | 33% | 0.84 | -3,924 | -4,535 | -5.3 |
+| C 03:00-09:30 | 70% | 739 | 34% | 0.86 | -3,421 | -4,052 | -4.6 |
+
+#### MNQ + MGC combined (independent AI call per market), last12m (NEUTRAL skip 27%, mean of 200 seeds)
+
+| window | AI acc | trades | win | PF | net $ | max DD $ | avg $/trade |
+|---|---|---|---|---|---|---|---|
+| A 09:36-11:30 | 50% | 338 | 38% | 1.01 | +109 | -3,596 | +0.3 |
+| A 09:36-11:30 | 55% | 339 | 40% | 1.08 | +1,922 | -2,975 | +5.7 |
+| A 09:36-11:30 | 60% | 339 | 41% | 1.15 | +3,634 | -2,678 | +10.7 |
+| A 09:36-11:30 | 65% | 341 | 42% | 1.22 | +5,329 | -2,312 | +15.6 |
+| A 09:36-11:30 | 70% | 342 | 44% | 1.31 | +7,171 | -1,954 | +21.0 |
+| L 03:00-11:30 | 50% | 282 | 33% | 0.89 | -1,696 | -3,146 | -6.1 |
+| L 03:00-11:30 | 55% | 284 | 34% | 0.94 | -911 | -2,764 | -3.2 |
+| L 03:00-11:30 | 60% | 283 | 34% | 0.95 | -759 | -2,714 | -2.7 |
+| L 03:00-11:30 | 65% | 284 | 34% | 0.98 | -385 | -2,474 | -1.4 |
+| L 03:00-11:30 | 70% | 285 | 35% | 1.02 | +243 | -2,263 | +0.8 |
+| B 03:00-11:00 | 60% | 275 | 34% | 0.94 | -879 | -2,671 | -3.2 |
+| B 03:00-11:00 | 70% | 278 | 36% | 1.01 | +135 | -2,182 | +0.5 |
+| C 03:00-09:30 | 60% | 234 | 33% | 0.81 | -2,229 | -2,943 | -9.5 |
+| C 03:00-09:30 | 70% | 235 | 33% | 0.83 | -2,031 | -2,738 | -8.7 |
+
+#### Oracle / blind diagnostics (2024-2026, no NEUTRAL skips): AI 100% right, 0% right, always long, always short
+
+| market | window | case | trades | win | PF | net $ |
+|---|---|---|---|---|---|---|
+| MNQ | A 09:36-11:30 | oracle100 | 659 | 58% | 2.23 | +39,465 |
+| MNQ | A 09:36-11:30 | anti0 | 592 | 22% | 0.38 | -32,531 |
+| MNQ | A 09:36-11:30 | always_long | 632 | 41% | 1.02 | +834 |
+| MNQ | A 09:36-11:30 | always_short | 619 | 41% | 1.15 | +6,100 |
+| MNQ | L 03:00-11:30 | oracle100 | 623 | 39% | 1.26 | +5,698 |
+| MNQ | L 03:00-11:30 | anti0 | 593 | 30% | 0.67 | -8,258 |
+| MNQ | L 03:00-11:30 | always_long | 611 | 35% | 0.99 | -188 |
+| MNQ | L 03:00-11:30 | always_short | 605 | 34% | 0.90 | -2,372 |
+| MNQ | B 03:00-11:00 | oracle100 | 613 | 39% | 1.29 | +5,977 |
+| MNQ | B 03:00-11:00 | anti0 | 580 | 28% | 0.66 | -8,666 |
+| MNQ | B 03:00-11:00 | always_long | 599 | 34% | 0.96 | -791 |
+| MNQ | B 03:00-11:00 | always_short | 594 | 34% | 0.92 | -1,898 |
+| MNQ | C 03:00-09:30 | oracle100 | 508 | 33% | 0.81 | -3,215 |
+| MNQ | C 03:00-09:30 | anti0 | 501 | 31% | 0.79 | -3,567 |
+| MNQ | C 03:00-09:30 | always_long | 517 | 33% | 0.83 | -2,814 |
+| MNQ | C 03:00-09:30 | always_short | 492 | 31% | 0.77 | -3,968 |
+| MGC | A 09:36-11:30 | oracle100 | 724 | 53% | 1.95 | +22,149 |
+| MGC | A 09:36-11:30 | anti0 | 679 | 22% | 0.36 | -24,003 |
+| MGC | A 09:36-11:30 | always_long | 705 | 37% | 0.89 | -3,467 |
+| MGC | A 09:36-11:30 | always_short | 698 | 39% | 1.06 | +1,613 |
+| MGC | L 03:00-11:30 | oracle100 | 587 | 40% | 1.21 | +4,021 |
+| MGC | L 03:00-11:30 | anti0 | 563 | 25% | 0.53 | -11,025 |
+| MGC | L 03:00-11:30 | always_long | 574 | 33% | 0.92 | -1,687 |
+| MGC | L 03:00-11:30 | always_short | 576 | 31% | 0.76 | -5,316 |
+| MGC | B 03:00-11:00 | oracle100 | 577 | 39% | 1.20 | +3,667 |
+| MGC | B 03:00-11:00 | anti0 | 552 | 26% | 0.54 | -10,355 |
+| MGC | B 03:00-11:00 | always_long | 565 | 34% | 0.93 | -1,366 |
+| MGC | B 03:00-11:00 | always_short | 564 | 32% | 0.75 | -5,322 |
+| MGC | C 03:00-09:30 | oracle100 | 505 | 38% | 1.02 | +297 |
+| MGC | C 03:00-09:30 | anti0 | 510 | 30% | 0.69 | -5,453 |
+| MGC | C 03:00-09:30 | always_long | 514 | 35% | 0.96 | -698 |
+| MGC | C 03:00-09:30 | always_short | 501 | 33% | 0.75 | -4,458 |
+
+#### Sensitivity: agree-strong only (NEUTRAL skip 73%, ~0.27 trades/day), 70% accuracy, 2024-2026
+
+| market | window | trades | win | PF | net $ | max DD $ |
+|---|---|---|---|---|---|---|
+| MNQ | A 09:36-11:30 | 173 | 47% | 1.47 | +4,761 | -1,348 |
+| MNQ | L 03:00-11:30 | 166 | 36% | 1.07 | +374 | -1,230 |
+| MGC | A 09:36-11:30 | 192 | 43% | 1.29 | +2,075 | -1,182 |
+| MGC | L 03:00-11:30 | 156 | 35% | 0.98 | -188 | -1,353 |
+| BOTH | A 09:36-11:30 | 364 | 45% | 1.39 | +6,836 | -1,608 |
+| BOTH | L 03:00-11:30 | 323 | 36% | 1.02 | +186 | -1,817 |
+## Safety concerns of pre-RTH (03:00-09:30 ET) trading
+1. **Thin liquidity / wider real spreads**: overnight MNQ/MGC books are much thinner than RTH; the sim assumes 1 tick slippage which is optimistic overnight (MGC especially: many minutes with no trade, price forward-filled). Stops can slip several ticks; limit targets fill less often than a 1-tick trade-through suggests.
+2. **08:30 ET news** (CPI, jobs, claims): inside the London window. FUNDED news = HARD BREACH (flat 1 min before to 1 min after); EVAL blacked out; flatten rule is news -2 min. A trade open at 08:28 must be flat; the sim does NOT do this, so real results would differ and entries 08:00-08:35 would often be blocked.
+3. **Session boundaries / DLL reset**: Lucid trading day and the DLL/EOD-drawdown daily reset sit at 17:00 ET; a 03:00-09:30 trade belongs to the same Lucid day as the later RTH trade, so one overnight loss eats the same $600 DLL and the 40% consistency day budget as NOISE. Max 1 open position per account means a pre-RTH Duo position can still be open at 09:30 and would block NOISE on that account (separate account needed; hedge lock still applies across accounts if sides differ).
+4. **Flatten rules**: auto flat 16:40 / hard 16:44 are irrelevant to the window, but the strategy's own window-end flat (11:30) and the news -2 min flat would force many early exits; pre-flight is 06:40 (D2) and the calendar 06:00, bias 06:10, so **the AI bias would not even exist at 03:00** (TA runs 02:40 in the design, so only just) and data/heartbeat/feed health checks and the attestation (once per session before arming) are not designed for an overnight session.
+5. **Hold rule (D8)**: app exits wait >= 6 s; protective exits never wait. In thin overnight books a 6 s wait before a non-protective exit can cost more than in RTH; stop/TP/news/flat exits are unaffected.
+6. **Operational**: unattended overnight automation (first 5 sessions of a stage are OFF/SEMI only), broker/token outage with an open position, weekend/holiday low-volume sessions, and Databento .v.0 volume-roll days.
+7. The morning window rule D2 (06:45-11:30) is a binding approved setting; trading before it needs an explicit user decision and a config change (not hardcoded).
+
+## Reproduce
+`python3 ai_duo_window.py MNQ.csv MGC.csv 200` then `python3 make_tables.py`. CSVs = Databento `ohlcv-1m` (`MNQ.v.0`, `MGC.v.0`), columns timestamp (UTC), open, high, low, close, volume; downloaded in 2-month chunks (large single requests time out through the proxy). `results.json` holds every cell; `tables.md` is the full table set.
