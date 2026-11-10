@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import RuleMeters from "../components/RuleMeters";
+import FeedGuardSettings from "../components/FeedGuardSettings";
 import type { MeterAcct } from "../lib/insights";
 import { EvalModePanel, FirmAndSafety, ImpactTable, type PreviewResp, Versions, WhatIf } from "../components/RiskPanels";
 
@@ -105,6 +106,8 @@ export default function Risk() {
           ))}
         </div>
       </section>
+
+      <FeedGuardSettings key={String(s.version)} settings={s.settings} save={save} />
 
       <EvalModePanel />
 

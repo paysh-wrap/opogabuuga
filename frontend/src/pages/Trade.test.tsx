@@ -14,7 +14,7 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/automation") return j({ mode: "SEMI-AUTO", broker: "paper", attested_today: attested, entries_blocked_by_time: false, rules_error: null,
       approvals: [{ signal_id: 9, expires: "2026-11-06T15:00:00+00:00" }] });
     if (u === "/api/automation/preflight") return j({ ok: false, checks: [{ check: "attested", ok: false, detail: "not attested" }] });
-    if (u === "/api/positions") return j({ accounts: [{ account_id: 1, label: "E1", balance: "25000", open_pnl: "-12.5", mll: "24000", positions: [{ symbol: "MNQ", qty: -2, avg: "20000" }] }] });
+    if (u === "/api/positions") return j({ accounts: [{ account_id: 1, label: "E1", balance: "25000", open_pnl: "-12.5", mll: "24000", positions: [{ symbol: "MNQ", qty: -2, avg: "20000", exit_pending: "NOISE_TRAIL" }] }] });
     if (u === "/api/accounts") return j({ accounts: [
       { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null, mode_override: "inherit", consistency_pct: "40" },
       { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null }] });
@@ -38,6 +38,7 @@ test("Trade: approvals execute/skip, positions, arming gated on attestation, FLA
   wrap(<Trade />);
   expect(await screen.findByTestId("approval-9")).toBeInTheDocument();
   expect(await screen.findByTestId("position-1")).toHaveTextContent("▼ SHORT 2");
+  expect(screen.getByTestId("exit-pending-1")).toHaveTextContent("exit pending broker confirmation");
   expect(document.title).toBe("Paytience · Trade");
   expect(await screen.findByTestId("order-7")).toHaveTextContent("▼ SELL 2 bracket");
   expect(screen.getByTestId("order-7")).toHaveTextContent("2 @ 4100.40");

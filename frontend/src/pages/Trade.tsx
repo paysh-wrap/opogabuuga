@@ -17,7 +17,7 @@ interface Status {
 interface Preflight { ok: boolean; checks: { check: string; ok: boolean; detail: string }[] }
 interface Acct { id: number; label: string; stage: string; armed: boolean; selected: boolean; paused_reason: string | null; paper: boolean }
 interface Ord { id: number; created_at: string; account: string; symbol: string | null; kind: string; side: string; qty: number; price: string | null; status: string; source: string; filled_qty: number; avg_fill: string | null }
-interface Pos { account_id: number; label: string; balance?: string; open_pnl?: string; mll?: string; positions: { symbol: string; qty: number; avg: string }[]; error?: string }
+interface Pos { account_id: number; label: string; balance?: string; open_pnl?: string; mll?: string; positions: { symbol: string; qty: number; avg: string; exit_pending?: string | null }[]; error?: string }
 
 const FLATTEN_PHRASE = "FLATTEN ALL"; // must match backend FLATTEN_PHRASE
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
@@ -94,6 +94,7 @@ export default function Trade() {
               <tr key={`${x.account_id}-${x.symbol}`} data-testid={`position-${x.account_id}`} className="border-t border-border">
                 <td className="py-1 text-gold">{x.label}</td><td>{x.symbol}</td>
                 <td>{x.qty > 0 ? "▲ LONG" : "▼ SHORT"} {Math.abs(x.qty)}</td><td>avg {x.avg}</td>
+                <td>{x.exit_pending && <span data-testid={`exit-pending-${x.account_id}`} title={x.exit_pending} className="rounded border border-gold px-1.5 py-0.5 text-xs font-semibold text-gold">⏳ exit pending broker confirmation</span>}</td>
               </tr>
             ))}
           </tbody></table>
