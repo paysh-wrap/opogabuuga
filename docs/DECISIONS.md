@@ -648,3 +648,8 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
   wired in automation/controller.py after auto_contracts. Audit "trade.auto_size" logs ai_call + contracts_final.
   DLL / D57 / worst-case / firm-max checks still apply after it. 25K and 50K never change. No calls recorded yet (AI key not connected) → no effect today.
 - Note: observed hit rate over 60 calls is noisy (a true 55% tool can pass ~25% of the time); the study shows a 55% tool roughly breaks even on 100K, so the downside is small.
+
+## D75 (studies 2026-11-10, AWAITING USER — nothing built): final-push proposals
+- P1 NOISE profit lock (+100 pt → stop to entry +10 pt; a locked stop-out ends NOISE for the day). P2 reset frozen evals at once
+  (25K < $150, 100K < $300, 150K < $225). P3 25K High-risk recover mode. P4 cushion sizing on funded (fewer dead accounts, less income).
+  Rejected: second market MES/MYM/M2K, 30-min NOISE checks, extra entries, looser D57. Numbers: docs/results/session11/README.md.

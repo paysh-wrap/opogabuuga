@@ -351,3 +351,17 @@ OPEN ITEMS / DECISIONS FOR THE USER:
  8. Staggered funding (buy/pass evals 1–2 months apart): P($0 in year 1) 25% → 6%, costs ≈ 7% of the mean.
 TRADING SETUP STEPS FOR THE USER: TradingView MNQ1! 1-minute heartbeats (NOISE needs 10 stored RTH sessions; Essential alerts expire every 2 months) → add each Lucid account on the Automation page (starting balance = account size) → Connections (Tradovate) → pre-flight + daily attestation → PAPER ≥ 5 sessions → live switches. Select the Pro plan matching the accounts on the Risk page.
 TESTS at last run: 620 backend (risk/management/phases 100% coverage), 54 UI, ruff/mypy/eslint/tsc clean, production build OK. Container restarts kill running agents — re-create them.
+
+## FULL RECORD OF SESSION 11 (2026-11-10) — read this first in session 12
+Branch claude/laughing-feynman-1f0fm5, all committed + pushed. Results index + final report: docs/results/session11/README.md. Decisions D72–D75.
+User prefs now: main session Opus 5.5 LOW; Sonnet agents for small tasks; keep usage low, replies short; ALL backtests go to agents.
+DONE: (1) main_strategy_5y.csv rebuilt + now tracked (was gitignored; income card works on fresh clones; rebuild script docs/results/session11/rebuild_main_csv.py).
+(2) D72 AI bias = record first, block only when proven (≥ 30 calls, Wilson ≥ 70%) — already wired; AI key NOT connected → no calls recorded.
+(3) D73 PM fade stays OFF the D57 shrink (measured worse). (4) D74 AI-bias sizing version B BUILT (100K/150K only; +1 agree / −1 disagree;
+needs ≥ 60 scored calls at ≥ 60% hit rate; strategy.ai_sizing*; risk/strategy_sizing.bias_size; bias/ledger.sizing_call; controller). No effect until calls exist.
+(5) UI polish (frontend/src/index.css + components/Layout.tsx; same theme; only Dashboard/Strategy/Risk were visually checked).
+(6) Final push studies (D75, NOTHING BUILT, awaiting user): P1 NOISE profit lock (win 50 → 53.2%, fewer dead funded accounts) · P2 reset frozen evals at once ·
+P3 25K High-risk recover mode · P4 cushion sizing on funded (trade-off) · second market rejected · 25K is the worst account size for this edge.
+OPEN: user approval for P1–P4; session-10 items 2, 3, 5, 7, 8 unchanged; clean test of 150K eval at 3 micros; verify with Lucid: consistency on Pro evals, reset/eval prices;
+connect the AI key before live eval trading; review the other UI pages. Raw bars (MNQ/MES/MYM/M2K) are cached only in the container (gitignored) — re-download via the scripts.
+TESTS at last run: backend 619 passed (risk/management/phases 100%), frontend 54, ruff/mypy/eslint/tsc clean, vite build OK. Data scripts need system python3 (numpy), not .venv.
