@@ -653,3 +653,10 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - P1 NOISE profit lock (+100 pt → stop to entry +10 pt; a locked stop-out ends NOISE for the day). P2 reset frozen evals at once
   (25K < $150, 100K < $300, 150K < $225). P3 25K High-risk recover mode. P4 cushion sizing on funded (fewer dead accounts, less income).
   Rejected: second market MES/MYM/M2K, 30-min NOISE checks, extra entries, looser D57. Numbers: docs/results/session11/README.md.
+
+## D76 (study 2026-11-10): order blocks + SMT (MNQ vs MES) on NOISE / PM_FADE — built, shadow only, NOT enabled
+- User asked for OB + SMT as FILTER and as OB STOP ANCHOR. Built pure indicators (order_block.py, smt.py), engine/structure_filter.py and
+  strategy.structure_filters (enabled=false, shadow_log=true). Filter can only block; anchor only if tighter than the fixed stop and never applied live.
+- Measured on 5y MNQ/MES (pick 2021-23, judge 2024-26; docs/results/session12/README.md): baseline 48.6% / $9,363 IS, 51.0% / $15,982 HO.
+  No variant improved held-out win rate and profit meaningfully (best IS pick: HO win 50.7%, +$292 but win rate down); SMT cuts trades 17-84% and profit
+  23-100%; OB anchors cut win rate 1-9 pts and profit 2-25%. Stays OFF. LunqFX results are in a separate report by another agent.
