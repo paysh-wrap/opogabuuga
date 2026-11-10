@@ -290,3 +290,73 @@ def test_high_risk_eval_taper_on_25k(authed, clock, monkeypatch):  # D69 sprint 
     with st.sessionmaker() as s:
         profiles = [x.payload["profile"] for x in s.query(AuditLog).filter_by(action="trade.auto_size")]
     assert profiles == ["EVAL", "EVAL"]
+
+
+def test_fast_eval_ladder_eval_only_and_quality_day(authed, clock):  # D87
+    from app.config import FastEvalCfg, SizeTierCfg
+    from app.models import Trade
+
+    st = authed.app.state
+    clock.set(AT)
+    ids = {}
+    for label, stage in (("E", "EVAL"), ("F", "FUNDED")):
+        aid = authed.post("/api/accounts", json={"label": label, "stage": stage, "balance": "25000"}).json()["id"]
+        assert authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True}).status_code == 200
+        ids[label] = aid
+    authed.post("/api/attestation", json={"confirm": True})
+    st.controller.mode = "FULL"
+    h = st.controller.rules
+    fe = FastEvalCfg.model_validate(
+        {"ladder": {"enabled": True, "steps": [{"cushion_frac": "0.5", "extra": 1}], "max_contracts": 2},
+         "quality_day": {"enabled": True, "mode": "prev_day"}}
+    )  # fmt: skip
+    table = [SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=1)]
+    h.rules = h.rules.model_copy(
+        update={"fast_eval": fe, "strategy": h.rules.strategy.model_copy(update={"size_table": table})}
+    )
+
+    def fire(key):
+        with st.sessionmaker() as s:
+            for aid in ids.values():  # a failed paper order (no feed in tests) pauses the account: reset for each fire
+                acct = s.get(Account, aid)
+                acct.paused_reason, acct.armed = None, True
+            s.commit()
+            sig = SS._new_signal(
+                s, FixedClock(AT), symbol="MNQ", key=key, direction=Direction.LONG, at=AT, gate=(True, "OK", ""),
+                features={"reason": "test"}, plan=("NOISE", D(20000), D(19876), D(20050), D(124), D("0.40")),
+            )  # fmt: skip
+            s.commit()
+            sid = sig.id
+        return {r.account_id: r for r in asyncio.run(st.controller.execute(sid, "automation", only=list(ids.values())))}
+
+    def fixed(res, label):
+        return next(c for c in res[ids[label]].checks if c["check"] == "fixed_size")["contracts"]
+
+    off = fire("MNQ-NOISE-2026-10-13-1")  # Fast Evaluation OFF (default): base size everywhere
+
+    assert fixed(off, "E") == "1" and fixed(off, "F") == "1"
+    h.fast_eval_on = True
+    on = fire("MNQ-NOISE-2026-10-13-2")
+    assert fixed(on, "E") == "2"  # ladder: cushion 100% of the loss limit >= 50% → +1 micro on EVAL
+    assert fixed(on, "F") == "1"  # FUNDED never changes
+    with st.sessionmaker() as s:
+        s.get(Account, ids["E"]).stage_started_at = None  # count history from the start in this test
+        # yesterday was a losing day → quality-day filter skips the EVAL account only
+        s.add(
+            Trade(
+                account_id=ids["E"],
+                symbol="MNQ",
+                direction="LONG",
+                qty=1,
+                entry=D(20000),
+                risk_usd=D(100),
+                opened_at=datetime(2026, 10, 12, 15, tzinfo=UTC),
+                closed_at=datetime(2026, 10, 12, 16, tzinfo=UTC),
+                pnl_usd=D(-50),
+                net_r=D("-0.2"),
+            )
+        )
+        s.commit()
+    skipped = fire("MNQ-NOISE-2026-10-13-3")
+    assert skipped[ids["E"]].reason == "FAST_EVAL_QUALITY_DAY" and not skipped[ids["E"]].ok
+    assert skipped[ids["F"]].reason != "FAST_EVAL_QUALITY_DAY"

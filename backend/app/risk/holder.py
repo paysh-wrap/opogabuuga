@@ -19,6 +19,7 @@ class RulesHolder:
     base: LoadedRules
     rules: RulesConfig = field(init=False)
     eval_mode_on: bool = False
+    fast_eval_on: bool = False  # D87 (EVAL stage only; pure check in risk/fast_eval)
     standard_version: int = 0
     firm_version: int = 0
     verified_paths: list[str] = field(default_factory=list)
@@ -49,6 +50,7 @@ class RulesHolder:
         from app.risk.low_risk import retire_short_modes
 
         self.rules, self.eval_mode_on = retire_short_modes(eff.rules), eff.eval_mode_on
+        self.fast_eval_on = eff.fast_eval_on
         self._apply_instrument_toggles(s)
         try:
             self._apply_payout_settings(s)

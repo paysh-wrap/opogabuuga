@@ -14,6 +14,11 @@ import { compareKind } from "../components/BacktestCompare";
 const impact = { kind: "standard", risk_by_tier: { "1000": { "60": "70.00", "75": "90.00", "90": "110.00" } }, worst_day_at_1000: "160.00",
   dll_test_at_max_base: { base: "3000", loss1: "330", loss2: "186.9", total: "516.9", dll: "600" }, losses_to_pause_from_1000: 8 };
 let evalOn = false;
+let fastOn = false;
+const fastView = () => ({ enabled: fastOn, has_eval_accounts: true, confirm_phrase: "ENABLE FAST EVALUATION", verify: ["fast_eval.ladder"], accounts: [],
+  config: { ladder: { enabled: false, steps: [{ cushion_frac: "0.5", extra: 1 }], max_contracts: 2 }, harvest: { enabled: false, day_stop_pct_of_target: "35" },
+    early: { enabled: false, first_trades: 10, until_profit_frac: "0.5", cushion_frac: "0.5", risk_pct: "0.14", extra_contracts: 1 },
+    quality_day: { enabled: false, mode: "prev_day", trailing_days: 10 } } });
 
 function mock(calls: string[]) {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
@@ -43,6 +48,11 @@ function mock(calls: string[]) {
     if (u === "/api/risk/eval-mode" && m === "GET") return j({ enabled: evalOn, has_eval_accounts: true, confirm_phrase: "ENABLE EVALUATION MODE", accounts: [] });
     if (u === "/api/risk/eval-mode") { evalOn = JSON.parse(String(init?.body)).enabled; return j({}); }
     if (u === "/api/risk/eval-mode/preview") return j({ on: { ...impact, kind: "evaluation" }, off: impact });
+    if (u === "/api/risk/fast-eval" && m === "GET") return j(fastView());
+    if (u === "/api/risk/fast-eval") { fastOn = JSON.parse(String(init?.body)).enabled; return j({}); }
+    if (u === "/api/risk/fast-eval/preview") return j({ mechanisms: {}, unchanged: ["kill switch", "daily and maximum loss limits"],
+      mechanism_notes: { harvest: "No measured benefit" },
+      study: { status: "ready", plan: "p", notice: "SIMULATED on past trades. UNPROVEN.", source: "x", baseline: null, fast: null } });
     if (u === "/api/risk/preview") return j({ valid: true, errors: [], warnings: [], preview: impact });
     if (u === "/api/risk/versions") return j({ versions: [{ kind: "standard", version: 3, author: "admin", note: "", diff: {}, active: true, at: "2026-11-05T15:00:00+00:00" },
       { kind: "standard", version: 2, author: "admin", note: "", diff: { a: 1 }, active: false, at: "2026-11-04T15:00:00+00:00" }] });
@@ -155,4 +165,24 @@ test("Accounts: per-account history and Lucid link", async () => {
   wrap(<Accounts />);
   expect(await screen.findByTestId("history-1")).toHaveTextContent("risk.eval_mode.account");
   expect(screen.getByRole("link", { name: /Open Lucid dashboard/ })).toHaveAttribute("target", "_blank");
+});
+
+test("Risk: Fast Evaluation is OFF by default, needs preview + typed phrase, shows the unproven notice, OFF is one click", async () => {
+  fastOn = false;
+  const calls: string[] = [];
+  mock(calls);
+  wrap(<Risk />);
+  expect(await screen.findByTestId("fast-eval-panel")).toHaveTextContent("Paytience · Fast Evaluation · OFF");
+  expect(await screen.findByTestId("fast-eval-mechanisms")).toHaveTextContent("VERIFY");
+  await userEvent.click(await screen.findByTestId("fast-eval-preview"));
+  expect(await screen.findByTestId("fast-eval-study")).toHaveTextContent(/No study numbers.*No measured benefit.*UNPROVEN/s);
+  const enable = screen.getByTestId("fast-eval-enable");
+  expect(enable).toBeDisabled();
+  await userEvent.type(screen.getByLabelText("Fast Evaluation confirmation"), "ENABLE FAST EVALUATION");
+  await userEvent.click(enable);
+  await waitFor(() => expect(calls).toContain('PUT /api/risk/fast-eval {"enabled":true,"confirm":"ENABLE FAST EVALUATION"}'));
+  await userEvent.click(await screen.findByTestId("fast-eval-off"));
+  await waitFor(() => expect(calls).toContain('PUT /api/risk/fast-eval {"enabled":false,"confirm":""}'));
+  await userEvent.click(screen.getByLabelText("Fast Evaluation 2 · Day-cap harvesting"));
+  await waitFor(() => expect(calls.some((c) => c.includes('"fast_eval.harvest.enabled":true'))).toBe(true));
 });

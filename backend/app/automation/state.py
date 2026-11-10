@@ -15,6 +15,7 @@ from app.models import Account, AppSetting, Attestation, DailyAccountStats, Payo
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import DayLimits, DayState
 from app.risk.consistency import ConsistencyLimits, eval_limits, funded_limits
+from app.risk.fast_eval import FastCtx
 from app.risk.tiers import RiskCtx
 
 
@@ -110,6 +111,35 @@ def risk_ctx(
         wins_since_streak_floor=wins,
         in_streak_floor=in_floor,
         low_expectancy_cap=low_e,
+    )
+
+
+def prior_day_pnls(s: Session, acct: Account, now: datetime, n: int) -> list[Decimal]:
+    """D87: realised P&L of the last n PREVIOUS trading days of this stage (oldest first; days with trades only)."""
+    sess = session_date(now)
+    by_day: dict[object, Decimal] = {}
+    for r in closed_trades(s, acct):
+        d = session_date(r.closed_at)
+        if d < sess:
+            by_day[d] = by_day.get(d, Decimal(0)) + r.pnl
+    return [by_day[d] for d in sorted(by_day, key=str)][-n:]
+
+
+def fast_ctx(s: Session, acct: Account, base: Decimal, rules: RulesConfig, now: datetime, balance: Decimal) -> FastCtx:
+    """D87 inputs: cushion = the risk base, mll = the plan's loss limit, profit share from the settled balance."""
+    res = closed_trades(s, acct)
+    sess = session_date(now)
+    today = [r for r in res if session_date(r.closed_at) == sess]
+    start = acct.starting_balance or rules.account_size
+    done = balance - day_stats(s, acct, now).day_profit - start
+    target = rules.eval.profit_target
+    return FastCtx(
+        cushion=base,
+        mll=rules.eval.max_loss_limit,
+        last_closed_was_loss=bool(res) and res[-1].pnl < 0,
+        losses_today=sum(1 for r in today if r.pnl < 0),
+        trades_in_stage=len(res),
+        profit_frac=done / target if target > 0 else Decimal(0),
     )
 
 

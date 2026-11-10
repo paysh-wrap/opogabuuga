@@ -103,6 +103,19 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
                 "warmup_trades",
             )
         ),
+        "fast_eval.ladder.enabled",  # D87 Fast Evaluation (EVAL only): each mechanism has its own switch + parameters
+        "fast_eval.ladder.steps",
+        "fast_eval.ladder.max_contracts",
+        "fast_eval.harvest.enabled",
+        "fast_eval.harvest.day_stop_pct_of_target",
+        "fast_eval.early.enabled",
+        "fast_eval.early.first_trades",
+        "fast_eval.early.cushion_frac",
+        "fast_eval.early.risk_pct",
+        "fast_eval.early.extra_contracts",
+        "fast_eval.quality_day.enabled",
+        "fast_eval.quality_day.mode",
+        "fast_eval.quality_day.trailing_days",
         "payouts.frequency",
         "payouts.skim_mode",
         "payouts.min_pct_of_cap",  # D65
@@ -114,6 +127,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
 FIRM_KEYS_PREFIXES = ("purchase", "max_contracts", "eval.", "funded.", "live", "session", "behavior.", "instruments.")
 FIRM_PHRASE = "UPDATE FIRM RULES"
 EVAL_MODE_PHRASE = "ENABLE EVALUATION MODE"
+FAST_EVAL_PHRASE = "ENABLE FAST EVALUATION"
 
 
 class SettingsError(ValueError):
@@ -167,6 +181,7 @@ class Effective:
     firm_version: int
     eval_mode_on: bool
     verified_paths: list[str]
+    fast_eval_on: bool = False
 
 
 def latest(s: Session, kind: str) -> RiskProfile | None:
@@ -202,6 +217,7 @@ def build(raw: dict[str, Any]) -> tuple[RulesConfig, Validation]:
 
 def effective(s: Session, base: LoadedRules) -> Effective:
     std, firm, ev = latest(s, "standard"), latest_firm(s), latest(s, "evaluation")
+    fe = latest(s, "fast_eval")
     lab = latest(s, "lab")  # §17: approved Lab tunables (separate layer; My Settings never contain these keys)
     mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
     cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, mine))
@@ -212,6 +228,7 @@ def effective(s: Session, base: LoadedRules) -> Effective:
         firm.version if firm else 0,
         bool(ev.settings.get("enabled")) if ev else False,
         verified,
+        fast_eval_on=bool(fe.settings.get("enabled")) if fe else False,
     )
 
 
@@ -303,6 +320,33 @@ def set_eval_mode(
     return row
 
 
+def set_fast_eval(
+    s: Session, clock: Clock, author: str, enabled: bool, phrase: str, has_eval_accounts: bool
+) -> RiskProfile:
+    """D87: same pattern as Evaluation Mode — typed phrase to enable, one click to disable, EVAL accounts only."""
+    if enabled and not has_eval_accounts:
+        raise SettingsError(["no EVAL accounts — Fast Evaluation applies to EVAL accounts only"])
+    if enabled and phrase != FAST_EVAL_PHRASE:
+        raise SettingsError([f'type "{FAST_EVAL_PHRASE}" to enable'])
+    cur = latest(s, "fast_eval")
+    if cur:
+        cur.active = False
+    nv = (s.execute(select(func.max(RiskProfile.version)).where(RiskProfile.kind == "fast_eval")).scalar() or 0) + 1
+    row = RiskProfile(
+        kind="fast_eval",
+        version=nv,
+        settings={"enabled": enabled},
+        author=author,
+        note="enable" if enabled else "disable",
+        diff={"enabled": enabled},
+        active=True,
+    )
+    s.add(row)
+    audit.record(s, clock, author, "risk.fast_eval", "global", {"enabled": enabled})
+    s.flush()
+    return row
+
+
 def save_firm_rules(
     s: Session,
     base: LoadedRules,
@@ -387,4 +431,53 @@ def impact_preview(cfg: RulesConfig, kind: str) -> dict[str, Any]:
         ),
         "monte_carlo": None,  # P(pass ≤15/≤20 sessions), P(MLL hit) need backtest data — Phase 8
         "monte_carlo_note": "Available after the Phase 8 backtest has data.",
+    }
+
+
+def fast_eval_preview(cfg: RulesConfig, plan: str) -> dict[str, Any]:
+    """D87 Impact Preview: which mechanisms are switched on with which numbers, the unchanged safety limits, and the
+    study's expected pass/bust change for this plan (config/fast_eval_study.yaml). Never invents numbers."""
+    import yaml
+
+    from app.settings import REPO_ROOT
+
+    study = yaml.safe_load((REPO_ROOT / "config" / "fast_eval_study.yaml").read_text())
+    f = cfg.fast_eval
+    plans = study.get("plans") or {}
+    row = plans.get(plan)
+    return {
+        "mechanisms": {
+            "ladder": {
+                "enabled": f.ladder.enabled,
+                "steps": [s.model_dump() for s in f.ladder.steps],
+                "max_contracts": f.ladder.max_contracts,
+            },
+            "harvest": {
+                "enabled": f.harvest.enabled,
+                "day_stop_pct_of_target": f.harvest.day_stop_pct_of_target,
+                "day_stop_usd": str(money(f.harvest.day_stop_pct_of_target / Decimal(100) * cfg.eval.profit_target)),
+            },
+            "early": f.early.model_dump(),
+            "quality_day": f.quality_day.model_dump(),
+        },
+        "unchanged": [
+            "kill switch",
+            "daily and maximum loss limits",
+            "day stops (can only be tightened)",
+            "pause floor",
+            "hedge / news / flat rules",
+            "entry gates",
+            "R:R window",
+            "consistency cap",
+        ],
+        "study": {
+            "status": study.get("status", "pending"),
+            "plan": plan,
+            "notice": study.get("notice", ""),
+            "source": study.get("source", ""),
+            "baseline": row.get("baseline") if row else None,
+            "fast": row.get("fast") if row else None,
+            "note": (row.get("note") if row else None) or "",
+        },
+        "mechanism_notes": study.get("mechanism_notes") or {},
     }

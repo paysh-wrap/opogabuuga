@@ -1,0 +1,32 @@
+# D87 Fast Evaluation — numbers the Impact Preview shows. Source: docs/results/session16/fast_eval/README.md
+# (reading A = best day <= 40% of target, held-out 2024-01..2026-10, block bootstrap of the NOISE per-trade stream).
+# Update ONLY from a finished study run; keep the notice. Plans without a row: no study numbers (the UI says so).
+status: ready
+notice: "SIMULATED on past NOISE trades (block-bootstrapped), picked on 2021-2023 and judged on 2024-2026. UNPROVEN: it has never run live or on paper; real fills, a new market regime and the firm's own consistency reading can differ. Faster usually means a higher bust rate - read both."
+source: docs/results/session16/fast_eval/README.md
+mechanism_notes:
+  ladder: "Study pick for the 150K plan only (1 -> 2 micros while cushion >= 50% of the loss limit). Hurts 50K/100K and busts 25K."
+  harvest: "No measured benefit (identical results with and without the 35% day stop)."
+  early: "No measured benefit (never chosen by the study)."
+  quality_day: "Study pick for the 50K plan only (skip the day after a losing day): pass 40% -> 46%, but slower (median 154 -> 205 sessions)."
+plans:
+  lucid_daily_25k:
+    baseline: {pass_pct: 8, bust_pct: 55, median_sessions: 37}
+    fast: null
+    note: "No safe speed-up found - 25K busts 55-60%."
+  lucid_flex_25k:
+    baseline: {pass_pct: 8, bust_pct: 55, median_sessions: 38}
+    fast: null
+    note: "No safe speed-up found - 25K busts 55-60%."
+  lucid_flex_50k:
+    baseline: {pass_pct: 40, bust_pct: 23, median_sessions: 154}
+    fast: {pass_pct: 46, bust_pct: 28, median_sessions: 205}
+    note: "Quality-day filter (skip the day after a losing day): more passes, more busts, slower."
+  lucid_flex_100k:
+    baseline: {pass_pct: 87, bust_pct: 8, median_sessions: 356}
+    fast: null
+    note: "Plain 1 micro is best - every ladder busts more (28-35%) for a lower pass rate."
+  lucid_flex_150k:
+    baseline: {pass_pct: 68, bust_pct: 1, median_sessions: 505}
+    fast: {pass_pct: 87, bust_pct: 8, median_sessions: 275}
+    note: "Size ladder 1 -> 2 micros while cushion >= 50% of the loss limit."

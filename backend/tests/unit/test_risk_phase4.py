@@ -496,3 +496,21 @@ def test_fixed_size_scales_stop_down_with_drawdown_instead_of_pausing():  # D57
     # too deep: the scaled stop would be < min % of price → skip with its own reason
     deep = run(plan=NOISE_PLAN, lim=_fixed(shrink_fraction=D("0.6"), shrink_min_pct=D("0.05")), consistency=None, **low)
     assert not deep.ok and deep.reason == "DRAWDOWN_TOO_DEEP"
+
+
+def test_pretrade_fast_eval_early_tier_raises_pct_and_eval_only():
+    """D87: early tier raises the risk % only for EVAL inside the window; DLL checks still run."""
+    from app.config import FastEvalCfg
+    from app.risk.fast_eval import FastCtx
+
+    fc = FastEvalCfg.model_validate({"early": {"enabled": True, "first_trades": 10, "risk_pct": "0.11"}})
+    fx = FastCtx(D(1000), D(1000), False, 0, 2)
+    plain = run()
+    r = run(fast=(fc, fx))
+    assert r.ok and r.risk_pct == D("0.11") and r.risk_usd == D(110)
+    assert next(c for c in r.checks if c["check"] == "fast_eval_early_tier")["after"] == "0.11"
+    assert plain.risk_usd == D(90)  # unchanged without it
+    funded = run(fast=(fc, fx), acct_stage="FUNDED")
+    assert funded.risk_usd == D(90) and not any(c["check"] == "fast_eval_early_tier" for c in funded.checks)
+    dll = run(fast=(fc, fx), day=DayState(1, 1, 0, D(-500), D(0)))  # DLL room still binds
+    assert not dll.ok and dll.reason == "DLL_LIMIT"

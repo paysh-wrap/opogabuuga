@@ -241,3 +241,43 @@ def test_trend_filter_switches_save_d44(authed):
     assert r.status_code == 200, r.text
     assert authed.app.state.rules.rules.filters.trend.vwap is True
     assert authed.get("/api/risk/settings").json()["settings"]["filters.trend.vwap"] is True
+
+
+def test_fast_eval_toggle_rules_and_preview(authed):
+    r = authed.get("/api/risk/fast-eval").json()
+    assert r["enabled"] is False and r["confirm_phrase"] == "ENABLE FAST EVALUATION"  # default OFF
+    assert r["config"]["ladder"]["enabled"] is False and len(r["verify"]) == 4
+    r = authed.put("/api/risk/fast-eval", json={"enabled": True, "confirm": "ENABLE FAST EVALUATION"})
+    assert r.status_code == 422 and "no EVAL accounts" in r.json()["detail"]["errors"][0]
+    eid, fid = add_account(authed), add_account(authed, stage="FUNDED", ext="LUCID2")
+    assert authed.put("/api/risk/fast-eval", json={"enabled": True, "confirm": "yes"}).status_code == 422
+    r = authed.put("/api/risk/fast-eval", json={"enabled": True, "confirm": "ENABLE FAST EVALUATION"})
+    assert r.status_code == 200 and r.json()["enabled"] and authed.app.state.rules.fast_eval_on
+    assert [a["id"] for a in r.json()["accounts"]] == [eid]  # FUNDED/LIVE accounts never listed or affected
+    assert fid not in [a["id"] for a in r.json()["accounts"]]
+    p = authed.post("/api/risk/fast-eval/preview").json()
+    assert p["study"]["status"] == "ready" and "UNPROVEN" in p["study"]["notice"]
+    assert p["study"]["fast"] is None or p["study"]["fast"]["pass_pct"] >= 0  # only study numbers, none invented
+    assert (
+        "no measured benefit" in p["mechanism_notes"]["harvest"].lower()
+        and "no measured benefit" in p["mechanism_notes"]["early"].lower()
+    )
+    assert "kill switch" in p["unchanged"] and p["mechanisms"]["harvest"]["day_stop_usd"]
+    r = authed.put("/api/risk/fast-eval", json={"enabled": False})  # one click off
+    assert r.status_code == 200 and not r.json()["enabled"]
+
+
+def test_fast_eval_params_editable_and_validated(authed):
+    ok = authed.put(
+        "/api/risk/settings",
+        json={
+            "changes": {"fast_eval.harvest.enabled": True, "fast_eval.harvest.day_stop_pct_of_target": "30"},
+            "note": "x",
+        },
+    )
+    assert ok.status_code == 200
+    assert authed.app.state.rules.rules.fast_eval.harvest.day_stop_pct_of_target == D(30)
+    bad = authed.put(
+        "/api/risk/settings", json={"changes": {"fast_eval.harvest.day_stop_pct_of_target": "500"}, "note": "x"}
+    )
+    assert bad.status_code == 422

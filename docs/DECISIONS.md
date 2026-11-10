@@ -762,3 +762,10 @@ D79 addendum (session 13): TradingView connected (webhook secret in indicator + 
 User: "Go back to best hours". The session 16 window study (docs/results/session16/ai_duo_window) found 03:00 starts lose
 the edge (70%-accuracy bound, 2024–26: 09:36–11:30 +$18,993 PF 1.40 vs 03:00–11:30 +$899 PF 1.03). Default
 strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editable in settings). Supersedes the D83 addendum hours.
+
+## D87 (user 2026-11-10, "yes implement all"; consistency reading confirmed: best day <= 40% of total profit / of target): "Fast Evaluation" option
+- EVAL stage ONLY (non-negotiable 10; pure check `risk/fast_eval.fast_eval_effective`, tests for FUNDED/LIVE), master switch default OFF, PAPER like everything else. Enable = Impact Preview + typed "ENABLE FAST EVALUATION" (same pattern as Evaluation Mode); disable = one click. Risk page card "Paytience · Fast Evaluation".
+- Four mechanisms, each with its own config switch + parameters (`fast_eval:` block in config/rules/*.yaml, editable keys `fast_eval.*` in My Settings): (1) cushion size ladder, (2) day-cap harvesting (tighten-only), (3) early-evaluation tier, (4) quality-day filter. Size never rises after a loss; no martingale, no pace escalation.
+- Defaults from the study (docs/results/session16/fast_eval/README.md, reading A, held-out, SIMULATED/unproven): Flex 150K ladder 1->2 micros while cushion >= 50% of the loss limit (68%/1% -> 87%/8% pass/bust, median 505 -> 275 sessions); Flex 50K skip the day after a losing day (40%/23% -> 46%/28%, slower 154 -> 205); 100K plain 1 micro; 25K none ("no safe speed-up found - 25K busts 55-60%"). Harvesting and early tier: no measured benefit -> available, OFF. Pro plans: not studied, all OFF.
+- Unchanged: kill switch, DLL/MLL, day stops (only tightened), pause floor, hedge/news/flat rules, gates, R:R, consistency cap. Numbers shown in the preview live in config/fast_eval_study.yaml.
+- Build notes: docs/results/session16/fast_eval_build.md.

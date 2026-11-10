@@ -14,6 +14,7 @@ from app.models import Account, RiskProfile, RuleProfile
 from app.phases.phase_engine import stage_rules
 from app.risk import settings_store as ss
 from app.risk.eval_mode import eval_mode_effective
+from app.risk.fast_eval import fast_eval_effective
 from app.risk.validation import validate
 
 router = APIRouter(prefix="/api")
@@ -181,6 +182,55 @@ async def put_eval_mode(
 def eval_mode_preview(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
     r = request.app.state.rules.rules
     return {"on": ss.impact_preview(r, "evaluation"), "off": ss.impact_preview(r, "standard")}
+
+
+# ---------- Fast Evaluation (D87, EVAL stage only) ----------
+def _fast_view(request: Request, db: Session) -> dict[str, Any]:
+    h = request.app.state.rules
+    accts = _eval_accounts(db)
+    return {
+        "enabled": h.fast_eval_on,
+        "has_eval_accounts": bool(accts),
+        "confirm_phrase": ss.FAST_EVAL_PHRASE,
+        "config": ss._norm(h.rules.fast_eval.model_dump()),
+        "verify": [p for p in h.verify_paths if p.startswith("fast_eval.")],
+        "accounts": [
+            {
+                "id": a.id,
+                "label": a.label or a.broker_account_id,
+                "effective": fast_eval_effective(a.stage, h.fast_eval_on),
+            }
+            for a in accts
+        ],
+    }
+
+
+@router.get("/risk/fast-eval")
+def get_fast_eval(
+    request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    return _fast_view(request, db)
+
+
+@router.put("/risk/fast-eval")
+async def put_fast_eval(
+    body: EvalModeIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    st = request.app.state
+    try:
+        ss.set_fast_eval(db, st.clock, p.user.username, body.enabled, body.confirm, bool(_eval_accounts(db)))
+    except ss.SettingsError as e:
+        raise _err(e) from e
+    db.commit()
+    st.rules.refresh(db)
+    await st.hub.broadcast("risk.fast_eval.changed", {"enabled": body.enabled, "by": p.user.username})
+    return _fast_view(request, db)
+
+
+@router.post("/risk/fast-eval/preview")
+def fast_eval_preview(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
+    h = request.app.state.rules
+    return ss.fast_eval_preview(h.rules, h.plan)
 
 
 class AcctEvalIn(BaseModel):

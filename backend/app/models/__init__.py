@@ -94,7 +94,7 @@ class RuleProfile(_Row, Base):
 class RiskProfile(_Row, Base):
     __tablename__ = "risk_profiles"
     __table_args__ = (UniqueConstraint("kind", "version"),)
-    kind: Mapped[str] = mapped_column(String(12))  # standard | evaluation | lab (§17 approved tunables)
+    kind: Mapped[str] = mapped_column(String(12))  # standard | evaluation | fast_eval | lab (§17 approved tunables)
     version: Mapped[int] = mapped_column(Integer)
     settings: Mapped[dict[str, Any]] = mapped_column(JSON)
     author: Mapped[str] = mapped_column(String(64))

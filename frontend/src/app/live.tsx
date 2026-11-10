@@ -15,6 +15,7 @@ export const EVENT_QUERIES: Record<string, string[]> = {
   "account.updated": ["accounts", "dashboard", "positions"],
   "risk.alert": ["dashboard", "accounts", "automation"],
   "risk.eval_mode.changed": ["eval-mode", "evalmode", "accounts", "dashboard", "risk"],
+  "risk.fast_eval.changed": ["fasteval", "accounts", "dashboard", "risk"],
   "risk.day_lockin": ["dashboard", "accounts"],
   "risk.settings_changed": ["risk", "rules", "lowrisk", "payout-settings", "payout-plan"],
   "cooldown.changed": ["plan", "dashboard"],

@@ -727,6 +727,81 @@ class EvalModeCfg(_M):
     one_to_one: bool = False  # D23: 1:1 plans on EVAL accounts while Evaluation Mode is on
 
 
+class FastLadderStep(_M):
+    cushion_frac: D  # step applies while cushion (risk_base) >= cushion_frac x the loss limit (MLL)
+    extra: int  # micros added on top of the base size while it applies
+
+
+class FastLadderCfg(_M):
+    enabled: bool = False
+    steps: list[FastLadderStep] = []
+    max_contracts: int = 1  # hard ceiling for base + ladder + early extras
+
+
+class FastHarvestCfg(_M):
+    enabled: bool = False
+    day_stop_pct_of_target: D = D(
+        "35"
+    )  # stop new entries once today's profit >= x% of the profit target (tighten only)
+
+
+class FastEarlyCfg(_M):
+    enabled: bool = False
+    first_trades: int = 0  # applies only to the first N closed trades of the stage ...
+    until_profit_frac: D | None = None  # ... and/or only while the eval profit is below this share of the target
+    cushion_frac: D = D("0.5")  # ... and only while cushion >= cushion_frac x the loss limit
+    risk_pct: D | None = None  # score-tier path: raise the risk % to this (never lowers it)
+    extra_contracts: int = 0  # fixed-size path: micros added
+
+
+class FastQualityCfg(_M):
+    enabled: bool = False
+    mode: Literal["prev_day", "trailing"] = "prev_day"  # skip a day after a losing day / a losing trailing window
+    trailing_days: int = 10
+
+
+class FastEvalCfg(_M):
+    """D87 Fast Evaluation (EVAL stage ONLY, non-negotiable 10; PAPER like everything else). Four independent
+    mechanisms, each with its own switch. Never touches kill switch, DLL/MLL, gates, R:R, hedge/news/flat rules."""
+
+    default_on: bool = False
+    applies_to_stages: list[Literal["EVAL"]] = ["EVAL"]
+    confirm_phrase: str = "ENABLE FAST EVALUATION"
+    ladder: FastLadderCfg = FastLadderCfg()
+    harvest: FastHarvestCfg = FastHarvestCfg()
+    early: FastEarlyCfg = FastEarlyCfg()
+    quality_day: FastQualityCfg = FastQualityCfg()
+    pace_escalation: Literal[False] = False  # no martingale, no catching up
+
+    @model_validator(mode="after")
+    def _valid(self) -> FastEvalCfg:
+        if any(st.extra < 1 or st.cushion_frac <= 0 for st in self.ladder.steps):
+            raise ValueError("fast_eval.ladder: every step needs extra >= 1 and cushion_frac > 0")
+        fr = [st.cushion_frac for st in self.ladder.steps]
+        if fr != sorted(fr) or len(set(fr)) != len(fr):
+            raise ValueError("fast_eval.ladder: steps must have strictly ascending cushion_frac")
+        ex = [st.extra for st in self.ladder.steps]
+        if ex != sorted(ex):
+            raise ValueError("fast_eval.ladder: extra must not decrease as the cushion grows")
+        if self.ladder.max_contracts < 1:
+            raise ValueError("fast_eval.ladder.max_contracts >= 1")
+        h = self.harvest.day_stop_pct_of_target
+        if not (D(0) < h <= D(100)):
+            raise ValueError("fast_eval.harvest.day_stop_pct_of_target must be in (0, 100]")
+        e = self.early
+        if e.first_trades < 0 or e.extra_contracts < 0 or not (D(0) < e.cushion_frac <= D(1)):
+            raise ValueError("fast_eval.early: first_trades >= 0, extra_contracts >= 0, 0 < cushion_frac <= 1")
+        if e.until_profit_frac is not None and not (D(0) < e.until_profit_frac <= D(1)):
+            raise ValueError("fast_eval.early.until_profit_frac must be in (0, 1]")
+        if e.enabled and e.first_trades == 0 and e.until_profit_frac is None:
+            raise ValueError("fast_eval.early: enabled needs first_trades > 0 or until_profit_frac")
+        if e.risk_pct is not None and not (D(0) < e.risk_pct <= D("0.14")):
+            raise ValueError("fast_eval.early.risk_pct must be in (0, 0.14] (the Evaluation Mode ceiling)")
+        if self.quality_day.trailing_days < 1:
+            raise ValueError("fast_eval.quality_day.trailing_days >= 1")
+        return self
+
+
 class BiasCfg(_M):
     provider: str
     pinned_version: str
@@ -883,6 +958,7 @@ class RulesConfig(_M):
     one_to_one_mode: OneToOneMode
     scalp_mode: ScalpMode = ScalpMode()
     eval_mode: EvalModeCfg
+    fast_eval: FastEvalCfg = FastEvalCfg()
     bias: BiasCfg
     smt: SmtCfg
     indicators: IndicatorsCfg

@@ -7,8 +7,10 @@ from dataclasses import dataclass, field
 from decimal import ROUND_DOWN, Decimal
 from typing import Any
 
+from app.config import FastEvalCfg
 from app.engine.trade_plan import TradePlan
 from app.risk.consistency import ConsistencyLimits, day_stopped, fit_contracts
+from app.risk.fast_eval import FastCtx, fast_risk_pct
 from app.risk.risk_base import money
 from app.risk.sizing import per_contract_risk, size_contracts
 from app.risk.tiers import FloorRules, RiskCfg, RiskCtx, risk_usd, select_risk_pct
@@ -141,6 +143,7 @@ def pretrade(
     consistency: ConsistencyLimits | None,
     lim: TradeLimits,
     hedge_conflict: bool,
+    fast: tuple[FastEvalCfg, FastCtx] | None = None,  # D87: only passed for an EVAL account with Fast Evaluation on
 ) -> PreTrade:
     r = PreTrade(ok=False, reason=None)
 
@@ -214,6 +217,10 @@ def pretrade(
     if not r.log("score_tier", pct is not None, score=score, profile=rcfg.kind):
         return fail("SCORE_BELOW_MIN")
     assert pct is not None
+    if fast is not None and acct.stage == "EVAL":  # D87 mechanism 3 (raise only; caps and DLL checks below still apply)
+        boosted = fast_risk_pct(fast[0], fast[1], pct)
+        r.log("fast_eval_early_tier", True, before=pct, after=boosted)
+        pct = boosted
     usd = risk_usd(pct, acct.base, rcfg)
     r.risk_pct, r.risk_usd = pct, usd
     if dll_left is not None and not r.log(

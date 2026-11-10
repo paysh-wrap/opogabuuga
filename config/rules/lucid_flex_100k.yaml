@@ -203,6 +203,30 @@ eval_mode:                             # §11C — EVAL stage ONLY
   pace_escalation: false               # never raise risk to catch up
   one_to_one: false                    # D23: use 1:1 plans on EVAL accounts while Evaluation Mode is on
 
+fast_eval:                             # D87 Fast Evaluation — EVAL stage ONLY (non-negotiable 10), default OFF, PAPER
+  default_on: false                    # master switch OFF: enabled on the Risk page (typed phrase) — NOT a rule value
+  applies_to_stages: [EVAL]
+  confirm_phrase: "ENABLE FAST EVALUATION"
+  pace_escalation: false               # no martingale: size never rises after a loss
+  ladder:                              # VERIFY not a study pick for this plan, kept OFF - 1. cushion size ladder
+    enabled: false
+    steps: [{cushion_frac: 0.5, extra: 1}]
+    max_contracts: 2
+  harvest:                             # VERIFY not a study pick for this plan, kept OFF - 2. day-cap harvesting (study: no measured benefit)
+    enabled: false
+    day_stop_pct_of_target: 35
+  early:                               # VERIFY not a study pick for this plan, kept OFF - 3. early-evaluation tier (study: no measured benefit)
+    enabled: false
+    first_trades: 10
+    until_profit_frac: 0.5
+    cushion_frac: 0.5
+    risk_pct: 0.14
+    extra_contracts: 1
+  quality_day:                         # VERIFY not a study pick for this plan, kept OFF - 4. quality-day filter
+    enabled: false
+    mode: prev_day
+    trailing_days: 10
+
 bias:
   provider: tradingagents
   pinned_version: "0.7.1"                # tag v0.7.1, commit 3e44faafa042daf953f6ec2422ae36bb1fd4f50f

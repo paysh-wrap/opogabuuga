@@ -5,6 +5,7 @@ import { usePageTitle } from "../components/usePageTitle";
 import RuleMeters from "../components/RuleMeters";
 import FeedGuardSettings from "../components/FeedGuardSettings";
 import type { MeterAcct } from "../lib/insights";
+import { FastEvalPanel } from "../components/FastEvalPanel";
 import { EvalModePanel, FirmAndSafety, ImpactTable, type PreviewResp, Versions, WhatIf } from "../components/RiskPanels";
 
 interface Settings {
@@ -110,6 +111,7 @@ export default function Risk() {
       <FeedGuardSettings key={String(s.version)} settings={s.settings} save={save} />
 
       <EvalModePanel />
+      <FastEvalPanel />
 
       <section className="rounded-xl border border-gold bg-card p-4">
         <h2 className="font-semibold text-gold">Live trading {lv.data?.live ? "· LIVE" : "· PAPER"}</h2>

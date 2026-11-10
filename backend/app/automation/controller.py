@@ -39,6 +39,7 @@ from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
+from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -549,6 +550,28 @@ class Controller:
                     "profile": "EVAL" if eval_sizing else "HIGH" if r.strategy.high_risk else "REGULAR",
                 },
             )
+        # D87 Fast Evaluation — EVAL stage only (pure check in risk/fast_eval); every other check below still runs
+        fast_cfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
+        fast_pair = None
+        consistency_lim = st.consistency(s, a, r)
+        if fast_cfg is not None:
+            fctx = st.fast_ctx(s, a, base, r, now, bal)
+            skip = quality_day_block(fast_cfg, st.prior_day_pnls(s, a, now, fast_cfg.quality_day.trailing_days))
+            if skip is not None:
+                audit.record(
+                    s, self.clock, actor, "trade.fast_eval", a.broker_account_id, {"signal": sig.id, "skip": skip}
+                )
+                return AccountResult(a.id, False, skip)
+            if fixed is not None:
+                sized = fast_contracts(fast_cfg, fctx, fixed)
+                if sized != fixed:
+                    audit.record(
+                        s, self.clock, actor, "trade.fast_eval", a.broker_account_id,
+                        {"signal": sig.id, "contracts_before": fixed, "contracts_after": sized},
+                    )  # fmt: skip
+                fixed = sized
+            fast_pair = (fast_cfg, fctx)
+            consistency_lim = harvest_limits(consistency_lim, fast_cfg, r.eval.profit_target)
         lim = TradeLimits(
             inst.tick,
             inst.tick_value,
@@ -576,9 +599,10 @@ class Controller:
             floor=fl,
             day=st.day_state(s, a, opnl, now),
             day_limits=st.day_limits(r, a.stage),
-            consistency=st.consistency(s, a, r),
+            consistency=consistency_lim,
             lim=lim,
             hedge_conflict=hedge_conflict(r, sig.symbol, plan.direction.value, positions) is not None,
+            fast=fast_pair,
         )
         audit.record(
             s,
