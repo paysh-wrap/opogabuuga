@@ -99,12 +99,26 @@ def _vault(request: Request) -> Vault:
         raise HTTPException(503, str(e)) from e
 
 
+def _poke_tunnel(pid: str) -> None:
+    if pid == "ngrok":
+        from app import tunnel
+
+        if tunnel.ACTIVE is not None:
+            tunnel.ACTIVE.poke()
+
+
 async def _extras(request: Request) -> dict[str, dict[str, Any]]:
     st = request.app.state
     ta = st.ta
     ver = await ta.version() if ta.installed() else None
     latest = await conn.latest_ta_tag(st.http)
+    from app import tunnel
+
+    tm = tunnel.ACTIVE
     return {
+        "ngrok": {
+            "tunnel": tm.state.as_dict() if tm else {"mode": "none", "public_url": "", "permanent": False, "error": ""}
+        },
         "tradingagents": {
             "installed_version": ver.data.get("version") if ver and ver.ok else None,
             "install_error": None if (ver and ver.ok) else (ver.data.get("error") if ver else "not installed"),
@@ -112,7 +126,7 @@ async def _extras(request: Request) -> dict[str, dict[str, Any]]:
             "pinned_commit": st.rules.rules.bias.pinned_commit,
             "latest_tag": latest,
             "llm_key_urls": {k: v["keys_url"] for k, v in LLM_PROVIDERS.items()},
-        }
+        },
     }
 
 
@@ -168,6 +182,7 @@ async def save_connection(
     except ValueError as e:
         raise HTTPException(422, str(e)) from e
     db.commit()
+    _poke_tunnel(pid)
     return await _view_after(request, db, pid)
 
 
@@ -201,6 +216,7 @@ async def delete_connection(
     except KeyError as e:
         raise HTTPException(404, "unknown connection") from e
     db.commit()
+    _poke_tunnel(pid)
     return await _view_after(request, db, pid)
 
 

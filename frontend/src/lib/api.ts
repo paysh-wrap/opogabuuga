@@ -58,6 +58,15 @@ export interface Connection {
   pinned_commit?: string;
   latest_tag?: string | null;
   llm_key_urls?: Record<string, string>;
+  tunnel?: TunnelInfo;
+}
+
+export interface TunnelInfo {
+  mode: "ngrok" | "cloudflare" | "none";
+  ngrok_domain?: string;
+  public_url: string;
+  permanent: boolean;
+  error: string;
 }
 
 export interface Indicator {

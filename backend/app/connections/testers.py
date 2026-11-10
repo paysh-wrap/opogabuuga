@@ -104,6 +104,27 @@ async def _tunnel(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     return TestResult(False, f"Not reachable or not Paytience (HTTP {r.status_code})")
 
 
+async def _ngrok(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
+    """D79: proves token + domain by starting the agent once (or reuses the running one). Secrets never returned."""
+    from app import tunnel
+    from app.settings import get_settings
+
+    domain = tunnel.clean_domain(v["domain"])
+    m = tunnel.ACTIVE
+    if m is not None and m.state.mode == "ngrok" and m.state.domain == domain:
+        return TestResult(True, f"ngrok is running · permanent URL https://{domain}")
+    if m is not None:
+        m._kill()  # frees the domain if the manager is retrying; it restarts on poke below
+    try:
+        ok, msg = await tunnel.verify_ngrok(get_settings().tools_dir, v["authtoken"], domain)
+    except Exception as e:
+        return TestResult(False, f"Could not run ngrok: {type(e).__name__}")
+    finally:
+        if m is not None:
+            m.poke()
+    return TestResult(ok, msg)
+
+
 async def _crosstrade(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     r = await http.get("https://app.crosstrade.io/v1/api/tv/status", headers={"Authorization": f"Bearer {v['token']}"})
     if r.status_code == 200:
@@ -136,4 +157,5 @@ TESTERS: dict[str, Tester] = {
     "discord": _discord,
     "telegram": _telegram,
     "tunnel": _tunnel,
+    "ngrok": _ngrok,
 }

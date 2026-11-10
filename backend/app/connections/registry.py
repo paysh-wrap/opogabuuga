@@ -362,6 +362,30 @@ PROVIDERS: tuple[Provider, ...] = (
         fields=(FieldSpec("bot_token", "Bot token"), FieldSpec("chat_id", "Chat ID", "text")),
     ),
     Provider(
+        id="ngrok",
+        name="ngrok (permanent webhook URL)",
+        category="network",
+        purpose="Free static domain so the TradingView webhook URL never changes. Paytience downloads and starts "
+        "ngrok by itself — no command prompt. If ngrok is not set up or fails, a temporary Cloudflare link is used "
+        "(with a warning) and the URL changes on every restart.",
+        links=(
+            Link("1. Sign up (free)", "https://dashboard.ngrok.com/signup"),
+            Link("2. Claim your free static domain", "https://dashboard.ngrok.com/domains"),
+            Link("3. Copy your authtoken", "https://dashboard.ngrok.com/get-started/your-authtoken"),
+        ),
+        fields=(
+            FieldSpec("authtoken", "ngrok authtoken"),
+            FieldSpec("domain", "Static domain", "text", placeholder="your-name.ngrok-free.app"),
+        ),
+        steps=(
+            "Sign up at ngrok.com (free).",
+            "Dashboard → Domains → claim your free static domain (looks like your-name.ngrok-free.app).",
+            "Dashboard → Your Authtoken → copy it.",
+            "Paste both here, Save & test. Paytience starts ngrok automatically from then on.",
+        ),
+        note="Permanent — set the webhook URL once in TradingView. The authtoken is encrypted and never shown again.",
+    ),
+    Provider(
         id="tunnel",
         name="Public HTTPS URL (Cloudflare Tunnel)",
         category="network",

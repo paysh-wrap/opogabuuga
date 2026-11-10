@@ -685,3 +685,9 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Live ledger: failed proxies retried every 30 min until 09:25 ET; Vibe-Trading failure warns; scoring tolerant to missing edge
   bars; today scored after 16:01 ET; 30-day coverage list; "calls still needed" for the proof. Bias time is 02:40 ET (D34).
 - Details: docs/results/session13/AI_LEDGER.md.
+
+## D79 (user 2026-11-10, session 13): permanent webhook URL via the user's free ngrok static domain
+- Connections card "ngrok (permanent webhook URL)": authtoken (secret, encrypted, write-only) + static domain (validated *.ngrok-free.app etc.), Test button, status. Links: signup, Domains, Your Authtoken.
+- Desktop app (PAYTIENCE_TUNNEL_AUTOSTART): app/tunnel.py downloads pinned ngrok 3.18.4 (sha256-checked) into paytience-data/tools, writes the authtoken to a 0600 ngrok.yml (never on the command line, every output line redacted), runs `ngrok http --url=<domain> 8000`, restarts it if it dies.
+- Fallback when ngrok is not set up or keeps failing: pinned cloudflared 2025.9.1 quick tunnel + notification + Connections banner ("temporary link"); ngrok is retried every 5 min. A dead tunnel raises "No public webhook URL" (no silent failure).
+- Connections shows https://<domain>/api/webhook/tradingview with "permanent — set once in TradingView" when ngrok is active. Only on Connections (not Dashboard).

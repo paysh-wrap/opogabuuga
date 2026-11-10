@@ -37,6 +37,10 @@ def validate_values(p: Provider, values: dict[str, str]) -> dict[str, str]:
             raise ValueError(f"{f.label}: choose one of {', '.join(f.options)}")
         if v:
             clean[name] = v
+    if p.id == "ngrok" and "domain" in clean:
+        from app.tunnel import clean_domain
+
+        clean["domain"] = clean_domain(clean["domain"])
     return clean
 
 

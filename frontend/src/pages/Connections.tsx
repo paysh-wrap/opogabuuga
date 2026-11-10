@@ -83,6 +83,16 @@ function ConnectionCard({ c }: { c: Connection }) {
         </dl>
       )}
 
+      {c.id === "ngrok" && c.tunnel && (
+        <p data-testid="ngrok-status" className={`mt-2 text-sm font-semibold ${c.tunnel.mode === "ngrok" ? "text-gold" : "text-goldLight"}`}>
+          {c.tunnel.mode === "ngrok"
+            ? `Active: https://${c.tunnel.ngrok_domain} (permanent)`
+            : c.tunnel.mode === "cloudflare"
+              ? `Using a temporary Cloudflare link (changes on every restart)${c.tunnel.error ? ` — ${c.tunnel.error}` : ""}`
+              : `No tunnel running here${c.tunnel.error ? ` — ${c.tunnel.error}` : " (the desktop app starts it automatically)"}`}
+        </p>
+      )}
+
       {c.steps.length > 0 && (
         <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs">{c.steps.map((s) => <li key={s}>{s}</li>)}</ol>
       )}
@@ -197,7 +207,10 @@ export default function Connections() {
   if (q.error || !q.data) return <p role="alert">Could not load connections: {String(q.error?.message ?? "unknown")}</p>;
   const { connections, indicators, summary, master_key_set } = q.data;
   const tunnel = connections.find((c) => c.id === "tunnel");
-  const base = tunnel?.status === "connected" ? tunnel.hints.public_url : undefined;
+  const ngrok = connections.find((c) => c.id === "ngrok");
+  const ti = ngrok?.tunnel;
+  const permanent = ti?.mode === "ngrok" ? ti.public_url : undefined;
+  const base = permanent ?? (tunnel?.status === "connected" ? tunnel.hints.public_url : undefined) ?? (ti?.mode === "cloudflare" ? ti.public_url : undefined);
   const required = connections.filter((c) => c.required);
 
   return (
@@ -230,7 +243,13 @@ export default function Connections() {
         )}
       </section>
 
-      <TradingViewSetup publicBase={base} />
+      {ti?.mode === "cloudflare" && (
+        <p role="alert" data-testid="tunnel-banner" className="rounded-lg border border-gold bg-card p-3 text-sm text-goldLight">
+          ⚠ Using a temporary Cloudflare link — your TradingView webhook URL changes every restart.
+          {ti.error ? ` (${ti.error}) ` : " "}Set up the permanent ngrok URL below and it stays the same forever.
+        </p>
+      )}
+      <TradingViewSetup publicBase={base} permanent={!!permanent} />
       <TestAlert />
 
       <section>

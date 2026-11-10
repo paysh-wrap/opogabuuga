@@ -220,3 +220,72 @@ def test_openbb_keys_are_optional_and_reach_the_openbb_process(authed, monkeypat
     authed.get("/api/market/openbb")  # loads the saved keys, starts a refresh
     authed.portal.call(st.openbb.refresh)
     assert seen.get("PB_OPENBB_PAT") == "pat-secret-123" and "PB_FMP_API_KEY" not in seen
+
+
+def test_ngrok_card_validates_domain_and_never_returns_token(authed, mock_http, monkeypatch):
+    from app import tunnel
+
+    async def fake_verify(tools, token, domain, **kw):
+        return (token == "good-token", "Token accepted" if token == "good-token" else "authtoken rejected")
+
+    monkeypatch.setattr(tunnel, "verify_ngrok", fake_verify)
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    bad = authed.put("/api/connections/ngrok", json={"values": {"authtoken": "x", "domain": "evil.com"}})
+    assert bad.status_code == 422
+    v = authed.put(
+        "/api/connections/ngrok", json={"values": {"authtoken": "good-token", "domain": "https://Me.ngrok-free.app/"}}
+    ).json()
+    assert v["status"] == "connected" and v["hints"]["domain"] == "me.ngrok-free.app"
+    assert "good-token" not in str(v) and v["tunnel"]["mode"] == "none"
+    v = authed.put(
+        "/api/connections/ngrok", json={"values": {"authtoken": "wrong", "domain": "me.ngrok-free.app"}}
+    ).json()
+    assert v["status"] == "failed" and "rejected" in v["detail"]
+    assert authed.delete("/api/connections/ngrok").status_code == 200
+
+
+def test_ngrok_tester_reuses_running_manager(tmp_path):
+    import asyncio
+
+    from app import tunnel
+    from app.connections.testers import _ngrok
+
+    class M:
+        state = tunnel.TunnelState("ngrok", "me.ngrok-free.app")
+
+    tunnel.ACTIVE = M()  # type: ignore[assignment]
+    try:
+        r = asyncio.run(_ngrok({"authtoken": "t", "domain": "me.ngrok-free.app"}, None))  # type: ignore[arg-type]
+    finally:
+        tunnel.ACTIVE = None
+    assert r.ok and "permanent" in r.detail
+
+
+def test_ngrok_tester_reports_run_failure(monkeypatch):
+    import asyncio
+
+    from app import tunnel
+    from app.connections.testers import _ngrok
+
+    async def boom(*a, **k):
+        raise OSError("x")
+
+    monkeypatch.setattr(tunnel, "verify_ngrok", boom)
+
+    class M:
+        state = tunnel.TunnelState()
+        killed = poked = False
+
+        def _kill(self):
+            self.killed = True
+
+        def poke(self):
+            self.poked = True
+
+    m = M()
+    tunnel.ACTIVE = m  # type: ignore[assignment]
+    try:
+        r = asyncio.run(_ngrok({"authtoken": "t", "domain": "me.ngrok-free.app"}, None))  # type: ignore[arg-type]
+    finally:
+        tunnel.ACTIVE = None
+    assert not r.ok and "OSError" in r.detail and m.killed and m.poked

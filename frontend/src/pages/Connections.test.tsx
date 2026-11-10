@@ -80,3 +80,29 @@ test("TradingView setup shows download link, masked secret and live feed status"
   expect(await within(box).findByTestId("feed-MNQ-TIGHT")).toHaveAttribute("data-status", "FRESH");
   expect(within(box).getByTestId("webhook-counts")).toHaveTextContent("HEARTBEAT 3");
 });
+
+function ngrokPayload(tunnel: NonNullable<Connection["tunnel"]>): ConnectionsResponse {
+  const p = payload("not_set");
+  p.connections = [{ ...base, id: "ngrok", name: "ngrok (permanent webhook URL)", category: "network", status: "connected",
+    links: [{ label: "1. Sign up (free)", url: "https://dashboard.ngrok.com/signup" }], tunnel,
+    fields: [
+      { name: "authtoken", label: "ngrok authtoken", kind: "secret", required: true, placeholder: "", options: [], help: "" },
+      { name: "domain", label: "Static domain", kind: "text", required: true, placeholder: "", options: [], help: "" },
+    ] }];
+  return p;
+}
+
+test("ngrok active: permanent webhook URL and note", async () => {
+  setup([ngrokPayload({ mode: "ngrok", ngrok_domain: "me.ngrok-free.app", public_url: "https://me.ngrok-free.app", permanent: true, error: "" })]);
+  expect(await screen.findByTestId("ngrok-status")).toHaveTextContent("Active: https://me.ngrok-free.app (permanent)");
+  expect(await screen.findByTestId("webhook-url")).toHaveTextContent("https://me.ngrok-free.app/api/webhook/tradingview");
+  expect(screen.getByTestId("permanent-note")).toHaveTextContent("permanent — set once in TradingView");
+  expect(screen.queryByTestId("tunnel-banner")).toBeNull();
+  expect(screen.getByRole("link", { name: /Sign up/ })).toHaveAttribute("href", "https://dashboard.ngrok.com/signup");
+});
+
+test("ngrok failed: Cloudflare fallback banner is shown", async () => {
+  setup([ngrokPayload({ mode: "cloudflare", public_url: "https://x.trycloudflare.com", permanent: false, error: "ngrok keeps failing" })]);
+  expect(await screen.findByTestId("tunnel-banner")).toHaveTextContent("temporary Cloudflare link");
+  expect(screen.queryByTestId("permanent-note")).toBeNull();
+});

@@ -6,7 +6,7 @@ import { etTime } from "../lib/time";
 
 const FEED_LABEL = { FRESH: "Fresh", STALE: "Stale", CLOSED: "Market closed", NO_DATA: "No data" } as const;
 
-export default function TradingViewSetup({ publicBase }: { publicBase?: string }) {
+export default function TradingViewSetup({ publicBase, permanent }: { publicBase?: string; permanent?: boolean }) {
   const st = useQuery({ queryKey: ["webhook-status"], queryFn: () => api<WebhookStatus>("/api/webhook/status"), refetchInterval: 15_000 });
   const [secret, setSecret] = useState<string | null>(null);
   const [copied, setCopied] = useState("");
@@ -45,6 +45,7 @@ export default function TradingViewSetup({ publicBase }: { publicBase?: string }
               <button className="rounded border border-blue px-2 py-0.5 text-xs text-blue" onClick={() => copy("url", url)}>
                 {copied === "url" ? "Copied" : "Copy"}
               </button>
+              {permanent && <span data-testid="permanent-note" className="text-xs text-goldLight">permanent — set once in TradingView</span>}
             </>
           ) : (
             <span>Connect your public HTTPS URL (Network section) and the exact URL appears here.</span>

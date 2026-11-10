@@ -343,6 +343,25 @@ def _start_live(app: FastAPI) -> list[asyncio.Task[None]]:
     return [asyncio.create_task(gate_loop()), asyncio.create_task(fills_loop())]
 
 
+def _start_tunnel(app: FastAPI) -> None:
+    """D79: ngrok static domain if saved, else a visible Cloudflare quick-tunnel fallback (desktop app)."""
+    from app import tunnel
+    from app.connections import service as conn_service
+    from app.crypto import Vault
+
+    def creds() -> dict[str, str] | None:
+        try:
+            vault = Vault(app.state.settings.master_key.get_secret_value())
+            with app.state.sessionmaker() as s:
+                return conn_service.credentials(s, vault, "ngrok")
+        except Exception as e:
+            log.error("tunnel.credentials_unreadable", error=type(e).__name__)
+            return None
+
+    tunnel.ACTIVE = tunnel.TunnelManager(app.state.settings.tools_dir, creds, app.state.bus.notify)
+    tunnel.ACTIVE.start()
+
+
 def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
     settings = settings or get_settings()
     rules = load_rules(settings.rules_path)
@@ -384,6 +403,8 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
             cached = get_setting(s, "calendar.cache")
         app.state.calendar = CalendarStore.from_json(cached) if isinstance(cached, dict) else CalendarStore()
+        if settings.tunnel_autostart:
+            _start_tunnel(app)
         if settings.scheduler_enabled:
             bg.append(asyncio.create_task(_scheduler(app)))
             bg.append(asyncio.create_task(_watchdog(app)))
@@ -391,6 +412,12 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         for t in bg:
             t.cancel()
         app.state.controller.adapter.stop()
+        if settings.tunnel_autostart:
+            from app import tunnel as _tunnel
+
+            if _tunnel.ACTIVE is not None:
+                _tunnel.ACTIVE.stop()
+                _tunnel.ACTIVE = None
         await app.state.http.aclose()
         engine.dispose()
 
