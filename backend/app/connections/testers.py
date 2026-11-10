@@ -148,7 +148,19 @@ async def _vibetrading(v: dict[str, str], http: httpx.AsyncClient) -> TestResult
     return _status_msg(r, f"{p} key accepted")
 
 
+async def _github_updates(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
+    """D88: read-only check that the token can see the repo (never returns the token)."""
+    from app.updater import REPO
+
+    r = await http.get(
+        f"https://api.github.com/repos/{REPO}",
+        headers={"Authorization": f"Bearer {v['token']}", "Accept": "application/vnd.github+json"},
+    )
+    return _status_msg(r, f"Token can read {REPO}")
+
+
 TESTERS: dict[str, Tester] = {
+    "github_updates": _github_updates,
     "vibetrading": _vibetrading,
     "crosstrade": _crosstrade,
     "alpha_vantage": _alpha_vantage,

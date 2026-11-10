@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 import Header from "./Header";
 import SafetyBanners from "./SafetyBanners";
+import { UpdateBanner } from "./UpdatePanel";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
@@ -39,6 +40,7 @@ export default function Layout() {
       </div>
       <main className="mx-auto max-w-6xl px-4 py-6">
         <SafetyBanners />
+        <UpdateBanner />
         <Outlet />
       </main>
     </div>

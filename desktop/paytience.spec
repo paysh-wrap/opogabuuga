@@ -10,6 +10,8 @@ datas = [
     (str(ROOT / "backend" / "app"), "backend/app"),
     (str(ROOT / "pine"), "pine"),
 ]
+if (ROOT / "desktop" / "version.json").exists():  # D88: written by the workflow (commit SHA + build time)
+    datas.append((str(ROOT / "desktop" / "version.json"), "desktop"))
 datas += collect_data_files("argon2") + collect_data_files("alembic")
 hidden = collect_submodules("app") + collect_submodules("uvicorn") + collect_submodules("sqlalchemy.dialects.sqlite") + ["alembic.command"]
 a = Analysis([str(ROOT / "desktop" / "paytience_app.py")], pathex=[str(ROOT / "backend")], datas=datas, hiddenimports=hidden)

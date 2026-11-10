@@ -16,6 +16,7 @@ const GROUPS: [string, string][] = [
   ["notifications", "Notifications"],
   ["network", "Network"],
   ["firm", "Prop firm"],
+  ["updates", "App updates (optional)"],
 ];
 
 function ExtLink({ href, children }: { href: string; children: string }) {

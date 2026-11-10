@@ -56,6 +56,11 @@ def ensure_env() -> None:
     os.environ["PAYTIENCE_TA_PYTHON"] = str(DATA / ".venv-ta" / ("Scripts/python.exe" if WIN else "bin/python"))
     os.environ["PAYTIENCE_VT_ROOT"] = str(DATA)
     os.environ["PAYTIENCE_TOOLS_DIR"] = str(DATA / "tools")  # D79: ngrok / cloudflared live in their own folder
+    os.environ["PAYTIENCE_VERSION_FILE"] = str(BUNDLE / "desktop" / "version.json")  # D88: commit + build time
+    if FROZEN:  # D88: auto-update only for the packaged app; paytience-data is never touched by an update
+        os.environ["PAYTIENCE_APP_DIR"] = str(EXE_DIR)
+        os.environ["PAYTIENCE_UPDATES_DIR"] = str(DATA / "updates")
+        (DATA / "updates").mkdir(exist_ok=True)
     os.environ["PAYTIENCE_TUNNEL_AUTOSTART"] = "true"  # ngrok static domain if saved, else Cloudflare quick tunnel + warning
 
 
@@ -229,6 +234,15 @@ def main() -> None:
         for _ in range(120):
             try:
                 urllib.request.urlopen(URL + "/api/health", timeout=1)
+                if FROZEN:  # D88: tell a pending update the new version started; drop backups (old-*)
+                    from app.updater import on_healthy_start
+
+                    try:
+                        failed = on_healthy_start(DATA / "updates")
+                        if failed:
+                            print(f"  ⚠ {failed}")
+                    except OSError as e:
+                        print(f"  ⚠ Update bookkeeping failed: {e}")
                 webbrowser.open(URL)
                 return
             except Exception:  # noqa: BLE001 - still starting

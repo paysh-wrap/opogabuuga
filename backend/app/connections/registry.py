@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 FieldKind = Literal["secret", "text", "select"]
-Category = Literal["signals", "ai_bias", "broker", "data", "notifications", "network", "firm"]
+Category = Literal["signals", "ai_bias", "broker", "data", "notifications", "network", "firm", "updates"]
 
 
 @dataclass(frozen=True)
@@ -376,6 +376,22 @@ PROVIDERS: tuple[Provider, ...] = (
             "Paste both here, Save & test. Paytience starts ngrok automatically from then on.",
         ),
         note="Permanent — set the webhook URL once in TradingView. The authtoken is encrypted and never shown again.",
+    ),
+    Provider(
+        id="github_updates",
+        name="GitHub (app updates)",
+        category="updates",
+        purpose="Optional (D88): lets the Windows desktop app check for and install new versions of Paytience. "
+        "Use a READ-ONLY fine-grained token. The app works without it.",
+        links=(Link("Create a fine-grained token", "https://github.com/settings/personal-access-tokens/new"),),
+        fields=(FieldSpec("token", "GitHub fine-grained token", placeholder="github_pat_…"),),
+        steps=(
+            "GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new.",
+            "Repository access: Only select repositories → paysh-wrap/opogabuuga.",
+            "Permissions → Repository → Contents: Read-only (nothing else).",
+            "Generate, copy, paste here and Save & test.",
+        ),
+        note="Encrypted, write-only, never shown again. Updates install only when you click Install now.",
     ),
     Provider(
         id="tunnel",

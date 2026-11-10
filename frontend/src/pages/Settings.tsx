@@ -4,6 +4,7 @@ import { browserNotifyEnabled, disableBrowserNotify, enableBrowserNotify, notify
 import { Link } from "react-router-dom";
 import { api, type Health } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import { UpdatePanel } from "../components/UpdatePanel";
 
 interface Rules {
   rules: {
@@ -82,6 +83,8 @@ export default function Settings() {
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Settings</h1>
       <p className="text-sm">Read-only summary. Change values on the <Link to="/risk" className="text-blue underline">Risk</Link>, <Link to="/automation" className="text-blue underline">Automation</Link> and <Link to="/connections" className="text-blue underline">Connections</Link> pages.</p>
+
+      <UpdatePanel />
 
       <Section title="Mode" loading={health.isLoading || auto.isLoading} error={!!(health.error || auto.error)}>
         <p data-testid="settings-mode" className="mt-1 text-sm">

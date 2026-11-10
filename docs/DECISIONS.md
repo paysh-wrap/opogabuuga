@@ -769,3 +769,19 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - Defaults from the study (docs/results/session16/fast_eval/README.md, reading A, held-out, SIMULATED/unproven): Flex 150K ladder 1->2 micros while cushion >= 50% of the loss limit (68%/1% -> 87%/8% pass/bust, median 505 -> 275 sessions); Flex 50K skip the day after a losing day (40%/23% -> 46%/28%, slower 154 -> 205); 100K plain 1 micro; 25K none ("no safe speed-up found - 25K busts 55-60%"). Harvesting and early tier: no measured benefit -> available, OFF. Pro plans: not studied, all OFF.
 - Unchanged: kill switch, DLL/MLL, day stops (only tightened), pause floor, hedge/news/flat rules, gates, R:R, consistency cap. Numbers shown in the preview live in config/fast_eval_study.yaml.
 - Build notes: docs/results/session16/fast_eval_build.md.
+
+## D88 — Token-based auto-update for the Windows desktop app (user approved, 2026-11-10)
+- New optional connection "GitHub (app updates)": read-only fine-grained token (Contents: Read-only on
+  paysh-wrap/opogabuuga), encrypted like every key, write-only, never logged or returned. The app works without it.
+- The workflow writes desktop/version.json (commit SHA + build time, bundled via the spec) and puts `commit: <sha>`
+  in the `desktop-latest` release body. Version shown on Settings → App version.
+- Check on start (desktop app + token only) and via "Check for updates". Newer = different commit AND asset built
+  after this build. Banner "Update available — Install now?"; nothing installs without the user's click.
+- Install: blocked while any position is open, any account is armed or automation is not OFF (reason shown).
+  Download via asset API → paytience-data/updates/, verify size + sha256 (GitHub digest), extract to staging, write
+  apply-update.bat: waits for Paytience to exit, moves Paytience.exe + _internal to updates/old-<ts>, moves the new
+  files in (paytience-data never touched), starts the new app, waits ≤ 120 s for healthy.flag (written by the new
+  app on its first healthy start, which also deletes old-*), else restores the backup and starts the old version.
+  Every step logged (updates/update.log); any failure = banner + log + notify + old version kept.
+- Code: backend/app/updater.py, backend/app/api/updates.py, frontend/src/components/UpdatePanel.tsx,
+  tests backend/tests/integration/test_updater.py.
