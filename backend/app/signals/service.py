@@ -7,7 +7,7 @@ which the HEARTBEAT (close price) has arrived, so the entry price is always that
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Any
@@ -146,6 +146,41 @@ def _store(s: Session, sig: Signal, dec: Decision, now: datetime, final_status: 
         )
 
 
+def _lunq_structure(s: Session, rules: RulesConfig, symbol: str, at: datetime, dec: Decision) -> Decision:
+    """D76 LunqFX OB/SMT filter (default OFF, shadow-logged). Only acts on a PASS with a STANDARD plan."""
+    cfg = rules.strategy.lunqfx_structure
+    if dec.outcome != "PASS" or dec.plan is None or not (cfg.enabled or cfg.anchor_stop or cfg.shadow_log):
+        return dec
+    from datetime import timedelta
+
+    from app.engine import lunq_structure as LS
+    from app.indicators.bars import Bar as IBar
+    from app.models import Bar
+
+    def rows(sym: str) -> list[IBar]:
+        q = (
+            select(Bar)
+            .where(Bar.symbol == sym, Bar.tf == "1", Bar.close_time > at - timedelta(minutes=240))
+            .where(Bar.close_time <= at)
+            .order_by(Bar.close_time)
+        )
+        out = []
+        for b in s.execute(q).scalars():
+            ms = int(b.close_time.timestamp() * 1000)
+            out.append(IBar(ms - 60_000, ms, b.o, b.h, b.l, b.c, b.v))
+        return out
+
+    mnq = rows(symbol)
+    if not mnq:
+        return replace(dec, features={**dec.features, "lunq_structure": {"would_block": None, "no_bars": True}})
+    tp = rules.trade_plan
+    r = LS.check(cfg, dec.plan, tp.rr_min, tp.rr_max, rules.instrument(symbol).tick, mnq, rows("MES") or None)
+    feats = {**dec.features, **r.features}
+    if r.veto:
+        return replace(dec, outcome="SKIP", skip_reason=r.veto, plan=None, plan_one_to_one=None, features=feats)
+    return replace(dec, plan=r.plan, features=feats)
+
+
 def _store_plan(s: Session, sig: Signal, p: TradePlan) -> None:
     s.add(
         TradePlanRow(
@@ -267,6 +302,7 @@ def process(
             ),
             eval_rules,
         )
+        dec = _lunq_structure(s, rules, st.symbol, at, dec)
         deadline = entry_deadline_ms(mv.confirm_time_ms, mv.c3_close_time_ms, tf_min, rules.entry.max_wait_bars)
         final: str | None = None
         if dec.outcome == "WAIT" and bar_ms >= deadline:

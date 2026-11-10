@@ -660,3 +660,9 @@ win rate +0 to +1 pt at 55–65% accuracy; Vibe-Trading blend recovers ~10 trade
 - Measured on 5y MNQ/MES (pick 2021-23, judge 2024-26; docs/results/session12/README.md): baseline 48.6% / $9,363 IS, 51.0% / $15,982 HO.
   No variant improved held-out win rate and profit meaningfully (best IS pick: HO win 50.7%, +$292 but win rate down); SMT cuts trades 17-84% and profit
   23-100%; OB anchors cut win rate 1-9 pts and profit 2-25%. Stays OFF. LunqFX results are in a separate report by another agent.
+- LunqFX (study 2026-11-10, docs/results/session12/LUNQFX.md): engine PASS setups (shadow plans, lucid_pro_25k, 22 sampled months 2021-11..2026-10,
+  R:R 1.75-3.0, 1 micro). Baseline IS 54.7% / -$11,555 (508), HO 53.9% / -$27,322 (675). In-sample pick OB filter (5m OB, body 1.0 ATR, block within
+  60 pts of an opposing OB): IS 65.9% / +$4,736 (440), HO 62.9% / -$5,724 (603) — win rate and profit both better held-out, but still a loss.
+  SMT hurts (HO win 43-50%, all worse). OB stop anchor: no effect (a tighter OB stop almost never keeps R:R <= 3.0). Wired as
+  strategy.lunqfx_structure (enabled=false, anchor_stop=false, shadow_log=true; engine/lunq_structure.py, signals/service.py; tests). Recommendation:
+  keep OFF — LunqFX stays a SHADOW strategy; the OB filter is the first candidate if LunqFX is ever revisited (needs the full 60-month run).
