@@ -411,3 +411,9 @@ TradingView heartbeat finding (session 13): the user's alerts were rejected STAL
 - Caveat: sizing chosen knowing both periods (IS-only sizing fails held-out: MNQ $ swings +60% since the index is ~68% higher).
 - Raw MES/MGC/MNQ 1-minute files are NOT committed (scratchpad only); build_raw.py documents the Databento download.
 - OPEN: user approval for the lock + size table + fade off; verify with Lucid that a 7-9 month evaluation is allowed and the eval/reset prices; DECISIONS.md entry not written.
+
+## Session 16 (2026-11-10)
+- Built (user-approved): D82 NOISE presets A/B/C + pure profit lock; D83 AI Duo button (TA + Vibe-Trading must agree; MNQ 08:00-12:00, MGC 03:00-11:30 per user; paper only; $250 max risk/trade); D84 TradingAgents MGC research (part of AI Duo); D85 AI Duo on 150K: up to 4 positions x 4 micros with new aggregate DLL/MLL check, trade_manage (BE +1R, MNQ +100->entry+50, MGC step trail 20 ticks per 60, trail, AI level override, ratchet only).
+- Review fixed 4 bugs (lock through market, AI lock early, pending legs in aggregate risk, multi-position flatten split) + Dashboard "ET ET"/grid. Final checks: backend 826 passed (100% cov), frontend 70, lint + typecheck clean.
+- Studies: docs/results/session16/ (strategy_comparison incl. 1-yr view, external_strategies_research, ai_combined_strategy_design, ai_duo_window, screenshots).
+- OPEN for user: ai_duo_window study says 03:00 starts hurt (70%-acc bound: 09:36-11:30 +$18,993 vs 03:00-11:30 +$899, 2024-26); recommend 09:36-11:30; MNQ 08:00 untested. Lucid questions still open (7-9 month eval, CrossTrade, consistency, resets). N5/N3 not built. Risk vs Dashboard plan mismatch on scratch DB (check real install). TA research LLM step untested against real package.
