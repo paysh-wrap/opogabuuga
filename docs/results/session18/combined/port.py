@@ -45,10 +45,10 @@ def vote_mask(c, window=30):
     return ok
 
 
-def select(c, acct, rank, cap=None, frac=0.25, rules=RULES, rand_seed=None, fixed_n=None, day_rules=True, mask=None):
+def select(c, acct, rank, cap=None, frac=0.25, rules=RULES, rand_seed=None, fixed_n=None, day_rules=True, mask=None, sdc=None):
     """c: candidate rows (any mix of strategies/markets).  rank: dict strat -> priority (lower = first) used to break ties at the same entry minute.
     rand_seed: use the random-direction twin of every candidate (coin flip per candidate).  fixed_n: 1 = raw single-micro sim (no day rules, no budget) for the reproduction tables."""
-    a = ACCT[acct]; cap = a["cap"] if cap is None else cap; budget = frac * a["mll"]
+    a = ACCT[acct]; cap = a["cap"] if cap is None else cap; budget = frac * a["mll"]; SD = STRAT_DAY_CAP if sdc is None else sdc
     if mask is not None: c = c[mask]
     if len(c) == 0: return pd.DataFrame(columns=["d", "t0", "t1", "mkt", "strat", "var", "side", "n", "pnl", "mae", "risk"])
     c = c.assign(_r=c.strat.map(rank)).sort_values(["t0", "_r"], kind="stable")
@@ -70,7 +70,7 @@ def select(c, acct, rank, cap=None, frac=0.25, rules=RULES, rand_seed=None, fixe
             if day_rules:
                 if cnt >= rules["max_trades"] or consec >= rules["max_consec"]: continue
                 if a["dll"] is not None and dpnl <= -a["dll"] + rules["dll_margin"]: continue
-            if STRAT_DAY_CAP.get(st) is not None and scnt.get((st, m), 0) >= STRAT_DAY_CAP[st]: continue
+            if SD.get(st) is not None and scnt.get((st, m), 0) >= SD[st]: continue
             per = arr["risk"][i] + MK[m]["fee"] + MK[m]["tick"] * MK[m]["pv"]
             n = max(1, min(cap, int(budget // per)))
             if day_rules and a["dll"] is not None:
@@ -79,7 +79,7 @@ def select(c, acct, rank, cap=None, frac=0.25, rules=RULES, rand_seed=None, fixe
                 if n < 1: continue
         else:
             n = fixed_n
-            if STRAT_DAY_CAP.get(st) is not None and scnt.get((st, m), 0) >= STRAT_DAY_CAP[st]: continue
+            if SD.get(st) is not None and scnt.get((st, m), 0) >= SD[st]: continue
         pnl = arr["pnl"][i] * n
         out.append((d, t0, arr["t1"][i], m, st, arr["var"][i], arr["side"][i], n, pnl, arr["mae"][i] * n, arr["risk"][i] * n))
         busy = arr["t1"][i]; busy_side = arr["side"][i]; busy_mkt = m

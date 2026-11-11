@@ -35,7 +35,9 @@ P = c[keep].reset_index(drop=True)
 VM = vote_mask(P, 30)
 CONF = {  # name -> (strategies, vote?)
     "ICT": (["ICT"], False), "SMC": (["SMC"], False), "DMI": (["DMI"], False), "RSI": (["RSI"], False),
-    "COMB-1 first signal wins": (STR, False), "COMB-2 IS-PF gated priority": (gated, False), "COMB-3 vote (2 agree <=30 min)": (STR, True)}
+    "COMB-1 first signal wins": (STR, False), "COMB-2 IS-PF gated priority": (gated, False), "COMB-3 vote (2 agree <=30 min)": (STR, True),
+    "COMB-4 first signal, <=1/day per strategy+market": (STR, False)}
+SDC = {"COMB-4 first signal, <=1/day per strategy+market": {s: 1 for s in STR}}
 
 
 def build(conf, scope):
@@ -88,20 +90,21 @@ for acct in (25, 50, 100, 150):
         for scope in ("BOTH", "MNQ", "MGC"):
             g = build(conf, scope)
             if scope != "BOTH" and conf.startswith("COMB-3"): g = g
-            t = select(g, acct, RANK)
+            t = select(g, acct, RANK, sdc=SDC.get(conf))
             R[conf][scope] = summarize(t, A, boot=(scope == "BOTH"))
-        R[conf]["RAND"] = rand_summary(build(conf, "BOTH"), acct, {}, seeds=20)
+        R[conf]["RAND"] = rand_summary(build(conf, "BOTH"), acct, ({"sdc": SDC[conf]} if conf in SDC else {}), seeds=20)
         # trades log for the combined (HO) for later inspection
         if conf.startswith("COMB") and acct == 25:
-            select(build(conf, "BOTH"), acct, RANK).to_csv(HERE + f"/out/trades_{conf.split()[0]}_{acct}k.csv", index=False)
+            select(build(conf, "BOTH"), acct, RANK, sdc=SDC.get(conf)).to_csv(HERE + f"/out/trades_{conf.split()[0]}_{acct}k.csv", index=False)
     # sensitivities (combined only)
     S = {}
     for conf in [k for k in CONF if k.startswith("COMB")]:
         g = build(conf, "BOTH")
-        S[conf] = {"no day rules": summarize(select(g, acct, RANK, day_rules=False), A),
-                   "budget 12.5% MLL": summarize(select(g, acct, RANK, frac=0.125), A),
-                   "cap 2 micros": summarize(select(g, acct, RANK, cap=2), A),
-                   "budget 50% MLL": summarize(select(g, acct, RANK, frac=0.5), A)}
+        kw = ({"sdc": SDC[conf]} if conf in SDC else {})
+        S[conf] = {"no day rules": summarize(select(g, acct, RANK, day_rules=False, **kw), A),
+                   "budget 12.5% MLL": summarize(select(g, acct, RANK, frac=0.125, **kw), A),
+                   "cap 2 micros": summarize(select(g, acct, RANK, cap=2, **kw), A),
+                   "budget 50% MLL": summarize(select(g, acct, RANK, frac=0.5, **kw), A)}
     R["_sens"] = S
     RES[acct] = R
     print("acct", acct, "done", round(time.time() - t_start), "s", flush=True)
