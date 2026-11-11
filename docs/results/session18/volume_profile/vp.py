@@ -85,6 +85,7 @@ def build(evs, stopk, tgtk, rnd=None):
         dist = stopdist(e, stopk)
         if not dist: continue
         side = rr.choice((1, -1)) if rr else e["side"]; lv = e["level"]
+        if rr and not (L[e["j"]] <= lv <= H[e["j"]]): continue   # random side must actually trade at the level
         stop = lv - side * dist
         if tgtk in ("1.5", "2.0"): tgt = lv + side * float(tgtk) * dist
         else:
@@ -113,7 +114,7 @@ for vn, vs in VARS.items():
     for sk in ("pct8", "atr", "tick"):
         for tk in TGT:
             if tk == "OPP" and "V3" not in vs: continue
-            t = build(evs, sk, tk); name = f"{vn} | stop={sk} | tgt={tk}"
+            t = build(evs, sk, tk); name = f"{vn} / stop={sk} / tgt={tk}"
             rb = [st(build(evs, sk, tk, rnd=s), "HO") for s in range(15)] if len(t) > 20 else []
             rd = dict(IS=st(t, "IS"), HO=st(t, "HO"), ALL=st(t, "ALL"),
                       rand=dict(pf=round(float(np.mean([a.get("pf", 0) for a in rb])), 2), avg=round(float(np.mean([a.get("avg", 0) for a in rb])), 2), win=round(float(np.mean([a.get("win", 0) for a in rb])), 1)) if rb else None)
