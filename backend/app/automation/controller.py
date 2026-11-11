@@ -1620,7 +1620,7 @@ class Controller:
         """Half-off defence: every confirmation against the trade (MSO trend flipped AND a CHoCH against since entry)
         and price ≥ adverse_half_at of the way to the stop → close one of the two brackets (once per trade)."""
         r = self.rules.rules
-        if not r.internal.adverse_half_enabled or not self.om.trades:
+        if not r.internal.adverse_half_enabled or not self.om.trades or not r.indicators.mso.enabled:  # D91
             return
         now = self.clock.now()
         async with self.lock:

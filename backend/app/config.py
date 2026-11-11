@@ -839,6 +839,10 @@ class SmtCfg(_M):
 
 
 class MsoCfg(_M):
+    """D91: BigBeluga MSO. OFF by default: gates G4-G6 and the MSO score components are not evaluated, and LunqFX
+    (which needs them) can only run in SHADOW. The parameters stay for the opt-in path and the old regression tests."""
+
+    enabled: bool = False
     pivot_left: int = Field(ge=1, le=50)
     pivot_right: int = Field(ge=1, le=50)
     mom_length: int = Field(ge=1, le=200)

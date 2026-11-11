@@ -242,7 +242,7 @@ smt: {enabled: false, pair: []}   # D51: Micro S&P removed, so no NQ/ES SMT pair
 
 indicators:                            # docs/INDICATOR_SPEC.md (spec-derived; VERIFY vs original source, D11)
   require_c2_close_inside_c1: true     # pillar — must stay true
-  mso: {pivot_left: 5, pivot_right: 5, mom_length: 14, smooth_length: 10, div_pivot_left: 5, div_pivot_right: 5}   # = BigBeluga defaults (verified)
+  mso: {enabled: false, pivot_left: 5, pivot_right: 5, mom_length: 14, smooth_length: 10, div_pivot_left: 5, div_pivot_right: 5}   # = BigBeluga defaults (verified); D91: enabled=false in every offered plan (legacy Daily keeps true as the MSO test baseline)
 
 webhook:
   heartbeat_max_age_s: 30              # §5.4 reject older HEARTBEAT (age from bar close)

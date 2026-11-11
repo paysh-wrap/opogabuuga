@@ -31,8 +31,9 @@ def check(
     tick: Decimal,
     mnq: Sequence[Bar],
     mes: Sequence[Bar] | None,
+    mso_enabled: bool = False,
 ) -> LunqStructureResult:
-    v = SF.evaluate(cfg.filter, plan.direction.sign, plan.entry, plan.stop, tick, mnq, mes)
+    v = SF.evaluate(cfg.filter, plan.direction.sign, plan.entry, plan.stop, tick, mnq, mes, mso_enabled)
     anchored: TradePlan | None = None
     if v.anchor_stop is not None:
         risk = abs(plan.entry - v.anchor_stop)

@@ -38,8 +38,10 @@ def evaluate(
     tick: Decimal,
     mnq: Sequence[Bar],
     mes: Sequence[Bar] | None,
+    mso_enabled: bool = False,
 ) -> StructureVerdict:
-    """`mnq`/`mes`: closed 1-minute bars up to and including the decision bar (oldest first)."""
+    """`mnq`/`mes`: closed 1-minute bars up to and including the decision bar (oldest first).
+    `mso_enabled` (D91): the MSO divergence veto only exists while BigBeluga MSO is switched on (default off)."""
     obs = find_blocks(_agg(mnq, cfg.ob_tf_min), ObConfig(body_atr=cfg.ob_body_atr, swing_bars=cfg.ob_swing_bars))
     veto: str | None = None
     if cfg.ob_filter and blocked_by_opposing(sign, price, obs, cfg.ob_dist_pts) is not None:
@@ -52,7 +54,7 @@ def evaluate(
         sc = SmtConfig(cfg.smt_lookback, cfg.smt_valid_bars)
         if len(a) > cfg.smt_lookback and blocked_by_smt(sign, find_smt(a, b2, sc), len(a) - 1, sc) is not None:
             veto = "SMT_BLOCK"
-    if veto is None and cfg.mso_div_filter:
+    if veto is None and mso_enabled and cfg.mso_div_filter:
         eng, last_opposing = MsoEngine(), None
         for b in _agg(mnq, cfg.mso_tf_min):
             for ev in eng.push(b):

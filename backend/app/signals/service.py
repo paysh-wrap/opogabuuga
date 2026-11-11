@@ -174,7 +174,16 @@ def _lunq_structure(s: Session, rules: RulesConfig, symbol: str, at: datetime, d
     if not mnq:
         return replace(dec, features={**dec.features, "lunq_structure": {"would_block": None, "no_bars": True}})
     tp = rules.trade_plan
-    r = LS.check(cfg, dec.plan, tp.rr_min, tp.rr_max, rules.instrument(symbol).tick, mnq, rows("MES") or None)
+    r = LS.check(
+        cfg,
+        dec.plan,
+        tp.rr_min,
+        tp.rr_max,
+        rules.instrument(symbol).tick,
+        mnq,
+        rows("MES") or None,
+        rules.indicators.mso.enabled,
+    )
     feats = {**dec.features, **r.features}
     if r.veto:
         return replace(dec, outcome="SKIP", skip_reason=r.veto, plan=None, plan_one_to_one=None, features=feats)
@@ -248,7 +257,10 @@ def process(
     cooled = cooldown_active(s, st.symbol, st.profile, sess) and (mfc.in_scalp or not rules.scalp_mode.enabled)
     mso = st.mso or {}
     inst_on = rules.instrument(st.symbol).enabled
-    enabled = inst_on and rules.strategy.lunqfx  # D55: LunqFX button off → its setups run in SHADOW only
+    mso_on = rules.indicators.mso.enabled
+    # D55: LunqFX button off → its setups run in SHADOW only. D91: LunqFX needs BigBeluga MSO (G4-G6, score); without
+    # it the engine is untested, so it can NEVER trade (button on or not) - SHADOW only.
+    enabled = inst_on and rules.strategy.lunqfx and mso_on
     eval_rules = rules if enabled else shadow_rules(rules, st.symbol)
     hist = cache.get((st.symbol, st.profile), now) if cache else None
     if hist is None:
@@ -327,7 +339,13 @@ def process(
             }
             sig.status = "SHADOW" if dec.outcome == "WAIT" and final is None else "SHADOWED"
             sig.passed = False
-            sig.skip_reason = "INSTRUMENT_DISABLED" if not inst_on else "STRATEGY_OFF"
+            sig.skip_reason = (
+                "INSTRUMENT_DISABLED"
+                if not inst_on
+                else "STRATEGY_OFF"
+                if not rules.strategy.lunqfx
+                else "MSO_DISABLED"
+            )
             score_s = str(sig.score) if sig.score is not None else None
             updates.append(SignalUpdate(sig.id, m.model_key, sig.status, sig.skip_reason, score_s))
             continue

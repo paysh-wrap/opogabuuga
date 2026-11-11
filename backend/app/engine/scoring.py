@@ -41,6 +41,7 @@ def compute_score(
     session_open_weight: Decimal,
     smt_weight: Decimal,
     exclude_unknown: bool = False,
+    mso_enabled: bool = True,
 ) -> ScoreResult:
     """exclude_unknown (D35): items that cannot be known yet — bias on a NEUTRAL day, own T2 rate before
     tp_rate_min_samples — are left out of the maximum instead of scoring 0. A known miss still scores 0."""
@@ -63,6 +64,10 @@ def compute_score(
         + w["bias_aligned"]
         + w["htf_mso_agrees"]
     )
+    if not mso_enabled:  # D91: MSO off → its three components leave both the earned and the maximum points
+        for k in ("structure_after_sweep", "osc_strength", "htf_mso_agrees"):
+            del earned[k]
+        max_points -= w["choch_after_sweep"] + w["osc_strength"] + w["htf_mso_agrees"]
     if exclude_unknown:
         if not x.bias_known:
             del earned["bias_aligned"]

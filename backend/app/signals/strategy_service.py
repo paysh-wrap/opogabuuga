@@ -198,7 +198,14 @@ def structure_check(
         ).scalars()
     )
     v = SF.evaluate(
-        cfg, direction.sign, price, fixed_stop, rules.instrument(symbol).tick, mnq, _ibars(mes_rows) or None
+        cfg,
+        direction.sign,
+        price,
+        fixed_stop,
+        rules.instrument(symbol).tick,
+        mnq,
+        _ibars(mes_rows) or None,
+        rules.indicators.mso.enabled,
     )
     feats: dict[str, object] = {
         "structure": {"would_block": v.veto, "ob_anchor_stop": None if v.anchor_stop is None else str(v.anchor_stop)}

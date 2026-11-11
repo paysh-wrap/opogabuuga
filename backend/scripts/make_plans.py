@@ -47,7 +47,7 @@ def make(plan: str, k: int) -> str:
     size = k * 1000
     pro = plan == "pro"
     scale = size / 25000
-    t = TPL
+    t = TPL.replace("mso: {enabled: true, ", "mso: {enabled: false, ")  # D91: MSO off in every offered plan
     t = re.sub(r"\A(#.*\n)+", "", t)
     name = "LucidPro" if pro else "LucidFlex"
     head = (

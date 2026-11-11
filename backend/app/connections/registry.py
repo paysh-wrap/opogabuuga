@@ -414,7 +414,7 @@ INDICATORS: tuple[dict[str, str], ...] = (
         "id": "bigbeluga_mso",
         "name": BIGBELUGA_NAME,
         "author": "BigBeluga",
-        "role": "WHEN / WHETHER — structure turn, trend side, divergence veto",
+        "role": "OFF by default (D91) — optional: structure turn, trend side, divergence veto (gates G4–G6)",
         "link": _tv_search("Market Structure Oscillator BigBeluga"),
         "setting": "Default settings",
     },

@@ -11,6 +11,7 @@ import LunqFlags from "../components/LunqFlags";
 
 interface Feed { profile: string; feed: string; mso_trend: string | null; mso_osc: string | null; active_models: { key: string; dir: string; status: string }[]; last_mso_event: [string, string] | null }
 interface S {
+  mso_enabled?: boolean;
   tradingagents: { installed_version: string | null; pinned_version: string; configured: boolean; schedule: string };
   indicators: string[];
   instruments: { symbol: string; enabled: boolean; proxy: string; bias: string; feeds: Feed[] }[];
@@ -36,7 +37,7 @@ export default function Strategy() {
       <TaMgcCard />
       <GateChain />
       <AiLedger />
-      <p className="text-sm"><b className="text-gold">LunqFX engine (below):</b> no single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) · the <b className="text-gold">BigBeluga MSO</b> says when · then gates G1–G8 and risk decide whether and how big.</p>
+      <p className="text-sm"><b className="text-gold">LunqFX engine (below):</b> no single part trades alone. <b className="text-gold">TradingAgents</b> picks the side for the day (<b className="text-gold">Vibe-Trading</b> can overrule a one-sided day back to both sides when it strongly disagrees; <b className="text-gold">OpenBB</b> supplies the market data both read) · the <b className="text-gold">LunqFX fractal</b> says where (stop) and what (target) {s.mso_enabled && <>· the <b className="text-gold">BigBeluga MSO</b> says when </>}· then the gates and risk decide whether and how big.{!s.mso_enabled && <> BigBeluga MSO is <b className="text-gold">off</b> (D91): LunqFX has no structure gates and only runs in SHADOW.</>}</p>
 
       <LunqFlags />
       <div className="grid gap-4 lg:grid-cols-3">
@@ -62,8 +63,9 @@ export default function Strategy() {
               {i.feeds.length === 0 && <span> — no TradingView alerts received yet (<Link className="text-blue underline" to="/connections">setup</Link>)</span>}
               {i.feeds.map((f) => (
                 <div key={f.profile} className="ml-3">
-                  {dot(f.feed === "FRESH")} {f.profile} feed {f.feed} · MSO {f.mso_trend ?? "—"} {f.mso_osc ? `(${Number(f.mso_osc).toFixed(1)})` : ""}
-                  {f.last_mso_event && ` · last ${f.last_mso_event[0]} ${f.last_mso_event[1]}`}
+                  {dot(f.feed === "FRESH")} {f.profile} feed {f.feed}
+                  {s.mso_enabled && ` · MSO ${f.mso_trend ?? "—"} ${f.mso_osc ? `(${Number(f.mso_osc).toFixed(1)})` : ""}`}
+                  {s.mso_enabled && f.last_mso_event && ` · last ${f.last_mso_event[0]} ${f.last_mso_event[1]}`}
                   {f.active_models.map((m) => <div key={m.key} className="ml-4">fractal model {m.dir}: {m.status}</div>)}
                 </div>
               ))}

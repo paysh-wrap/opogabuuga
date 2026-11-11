@@ -213,12 +213,18 @@ GATES = [
 ]
 
 
+MSO_GATES = ("G4", "G5", "G6")
+
+
 def gate_texts(r: Any) -> list[tuple[str, str]]:
-    """Gate descriptions from the LOADED plan (never hardcoded rule numbers)."""
+    """Gate descriptions from the LOADED plan (never hardcoded rule numbers). D91: G4-G6 only exist with MSO on."""
     tp, f = r.trade_plan, r.filters
     out = dict(GATES)
     out["G4"] += "" if f.require_mso_agree else " (score only in this plan)"
     out["G5"] += "" if f.require_structure_break else " (score only; no break → closer target)"
+    if not r.indicators.mso.enabled:
+        for g in MSO_GATES:
+            del out[g]
     out["G7"] = f"Valid trade plan (stop + target, R:R {tp.rr_min:g}–{tp.rr_max:g})"
     return list(out.items())
 
@@ -292,8 +298,9 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
         },
         "indicators": [
             "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]",
-            "Market Structure Oscillator [BigBeluga]",
+            *(["Market Structure Oscillator [BigBeluga]"] if r.indicators.mso.enabled else []),
         ],
+        "mso_enabled": r.indicators.mso.enabled,
         "instruments": instruments,
         "gates": [
             {"id": g, "text": t, "last": last_gates.get(g)} for g, t in gate_texts(request.app.state.rules.rules)
@@ -338,7 +345,7 @@ def _gate_chain(r: Any) -> list[dict[str, object]]:
         }
 
     lunq = "Applies to the LunqFX engine only - not to NOISE or the afternoon fade."
-    return [
+    rows = [
         row(
             "G1",
             "Window / news / calendar / instrument",
@@ -402,6 +409,19 @@ def _gate_chain(r: Any) -> list[dict[str, object]]:
             scope="lunqfx",
         ),
     ]
+    if not r.indicators.mso.enabled:  # D91: BigBeluga MSO is off, so its gates and the MSO divergence filter are hidden
+        rows = [x for x in rows if x["id"] not in MSO_GATES]
+    return rows
+
+
+def _lunq_shadow(c: dict[str, object], mso_on: bool) -> dict[str, object]:
+    if mso_on or c["key"] != "lunqfx":
+        return {}
+    return {
+        "status": "SHADOW ONLY",
+        "note": "BigBeluga MSO is off (D91): LunqFX is untested without it, so it only runs in SHADOW - "
+        "even if this button is ON.",
+    }
 
 
 def _lunqfx_flags(r: Any) -> list[dict[str, object]]:
@@ -541,8 +561,14 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     for sym, i in r.instruments.items():
         if i.enabled:
             ledgers.append({**status(db, i.bias_proxy, sym, sess, float(r.strategy.ai_gate_min_accuracy)), "rows": []})
+    mso_on = r.indicators.mso.enabled
+    if not mso_on:  # D91: LunqFX is untested without MSO -> shown (and enforced) as SHADOW only
+        on["lunqfx"] = False
     return {
-        "strategies": [{**c, "enabled": on[str(c["key"])], "setting": f"strategy.{c['key']}"} for c in CATALOG],
+        "strategies": [
+            {**c, "enabled": on[str(c["key"])], "setting": f"strategy.{c['key']}", **_lunq_shadow(c, mso_on)}
+            for c in CATALOG
+        ],
         "noise_warmup": {
             "sessions": len(stored),
             "needed": nc.min_history_days,

@@ -164,34 +164,39 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
 
     gates.append(g3())
 
-    # ---- G4: structure agrees
-    if d is Direction.LONG:
-        g4 = x.mso_trend == "BULL" and x.mso_osc is not None and x.mso_osc > 50
-    else:
-        g4 = x.mso_trend == "BEAR" and x.mso_osc is not None and x.mso_osc < 50
-    if g4 or cfg.filters.require_mso_agree:
-        gates.append(Gate("G4", g4, "OK" if g4 else "MSO_STRUCTURE_DISAGREES"))
-    else:  # D35 score-only: recorded, not blocking
-        gates.append(Gate("G4", True, "OK", detail="soft: MSO disagrees"))
+    # ---- G4-G6 (BigBeluga MSO): D91 - only evaluated when mso.enabled; otherwise the gates do not exist at all
+    mso_on = cfg.indicators.mso.enabled
+    breaks: list[tuple[str, int]] = []
+    choch = bos = False
+    if mso_on:
+        # ---- G4: structure agrees
+        if d is Direction.LONG:
+            g4 = x.mso_trend == "BULL" and x.mso_osc is not None and x.mso_osc > 50
+        else:
+            g4 = x.mso_trend == "BEAR" and x.mso_osc is not None and x.mso_osc < 50
+        if g4 or cfg.filters.require_mso_agree:
+            gates.append(Gate("G4", g4, "OK" if g4 else "MSO_STRUCTURE_DISAGREES"))
+        else:  # D35 score-only: recorded, not blocking
+            gates.append(Gate("G4", True, "OK", detail="soft: MSO disagrees"))
 
-    # ---- G5: CHoCH/BoS in direction confirmed at/after the sweep
-    breaks = [
-        (e, t)
-        for e, dd, t in x.mso_events
-        if dd == d.value and e in ("MSO_CHOCH", "MSO_BOS") and m.sweep_time_ms <= t <= at_ms
-    ]
-    choch = any(e == "MSO_CHOCH" for e, _ in breaks)
-    bos = any(e == "MSO_BOS" for e, _ in breaks)
-    if breaks or cfg.filters.require_structure_break:
-        gates.append(Gate("G5", bool(breaks), "OK" if breaks else "NO_STRUCTURE_BREAK"))
-    else:  # D35 score-only: recorded, not blocking
-        gates.append(Gate("G5", True, "OK", detail="soft: no structure break"))
+        # ---- G5: CHoCH/BoS in direction confirmed at/after the sweep
+        breaks = [
+            (e, t)
+            for e, dd, t in x.mso_events
+            if dd == d.value and e in ("MSO_CHOCH", "MSO_BOS") and m.sweep_time_ms <= t <= at_ms
+        ]
+        choch = any(e == "MSO_CHOCH" for e, _ in breaks)
+        bos = any(e == "MSO_BOS" for e, _ in breaks)
+        if breaks or cfg.filters.require_structure_break:
+            gates.append(Gate("G5", bool(breaks), "OK" if breaks else "NO_STRUCTURE_BREAK"))
+        else:  # D35 score-only: recorded, not blocking
+            gates.append(Gate("G5", True, "OK", detail="soft: no structure break"))
 
-    # ---- G6: no opposing divergence within lookback
-    opp = Direction.SHORT.value if d is Direction.LONG else Direction.LONG.value
-    since = at_ms - cfg.score.div_lookback_bars * x.tf_min * 60_000
-    div = any(e == "MSO_DIV" and dd == opp and since <= t <= at_ms for e, dd, t in x.mso_events)
-    gates.append(Gate("G6", not div, "OPPOSING_DIVERGENCE" if div else "OK"))
+        # ---- G6: no opposing divergence within lookback
+        opp = Direction.SHORT.value if d is Direction.LONG else Direction.LONG.value
+        since = at_ms - cfg.score.div_lookback_bars * x.tf_min * 60_000
+        div = any(e == "MSO_DIV" and dd == opp and since <= t <= at_ms for e, dd, t in x.mso_events)
+        gates.append(Gate("G6", not div, "OPPOSING_DIVERGENCE" if div else "OK"))
 
     # ---- TREND (D44): only on the side of the switched-on trend indicators. Unknown (warming up) → WAIT.
     sign = 1 if d is Direction.LONG else -1
@@ -222,7 +227,7 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         entry = m.cisd_level
     rr_max = tp_cfg.rr_max
     cap = cfg.filters.no_break_rr_cap
-    if cap is not None and not breaks:  # D36: no structure break → closer target
+    if cap is not None and mso_on and not breaks:  # D36: no structure break → closer target
         rr_max = max(tp_cfg.rr_min, min(rr_max, cap))
     plan = build_trade_plan(d, entry, m.invalid, m.t2, inst.tick, buf, min_stop, tp_cfg.rr_min, rr_max)
     plan11: TradePlan | Skip | None = None
@@ -269,6 +274,7 @@ def evaluate(x: EvalInput, cfg: RulesConfig) -> Decision:
         cfg.score.session_open_c1_weight,
         cfg.score.smt_weight if cfg.smt.enabled else Decimal(0),
         cfg.score.exclude_unknown,
+        mso_on,
     )
     need = cfg.score.neutral_min_score if x.bias == "NEUTRAL" else cfg.score.min_score
     score_ok = score.score >= need

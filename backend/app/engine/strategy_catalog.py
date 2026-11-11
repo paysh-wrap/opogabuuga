@@ -47,7 +47,7 @@ CATALOG: list[dict[str, object]] = [
     {
         "key": "lunqfx",
         "name": "LunqFX fractal (original strategy)",
-        "source": "ICT/LunqFX C1→C2 sweep + CISD, BigBeluga MSO (D49–D54)",
+        "source": "ICT/LunqFX C1→C2 sweep + CISD (BigBeluga MSO optional, off by default, D91)",
         "verified": False,
         "status": "ORIGINAL",
         "win_pct": 35.0,
@@ -58,7 +58,8 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_pass_pct": None,
         "pro25k_bust_pct": None,
         "period": "engine, Nov 2025 → Oct 2026 (MNQ, from 03:00)",
-        "note": "No credible independent evidence for sweep/CISD setups; kept as a button. Off = runs in SHADOW.",
+        "note": "No credible independent evidence for sweep/CISD setups; kept as a button. Off = runs in SHADOW. "
+        "Without BigBeluga MSO (default, D91) it is untested and always SHADOW.",
     },
     {
         "key": "open_drive",
