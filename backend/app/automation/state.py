@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.clock import session_date
 from app.config import RulesConfig
-from app.models import Account, AppSetting, Attestation, DailyAccountStats, Payout, Trade
+from app.models import Account, AppSetting, Attestation, DailyAccountStats, Payout, Trade, TradePlanRow
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import DayLimits, DayState
 from app.risk.consistency import ConsistencyLimits, eval_limits, funded_limits
@@ -84,6 +84,21 @@ def day_stats(s: Session, acct: Account, now: datetime) -> DailyAccountStats:
         s.add(row)
         s.flush()
     return row
+
+
+def strategy_day_pnl(s: Session, acct: Account, now: datetime, mode: str) -> Decimal:
+    """D92: realised P&L today of one strategy's closed trades on this account (its plan row carries the mode)."""
+    sess = session_date(now)
+    q = (
+        select(Trade.pnl_usd, Trade.closed_at)
+        .join(TradePlanRow, TradePlanRow.signal_id == Trade.signal_id)
+        .where(Trade.account_id == acct.id, Trade.closed_at.is_not(None), TradePlanRow.mode == mode)
+    )
+    total = Decimal(0)
+    for pnl, closed in s.execute(q):
+        if closed is not None and session_date(closed) == sess:
+            total += pnl or Decimal(0)
+    return total
 
 
 def risk_ctx(

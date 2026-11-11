@@ -20,6 +20,7 @@ from app.payouts.service import consistency_view
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
 from app.risk.eval_mode import eval_mode_effective
+from app.risk.split_risk import split_active
 from app.signals.service import today_bias
 
 router = APIRouter(prefix="/api")
@@ -552,6 +553,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "ai_bias": r.strategy.ai_bias,
         "ai_duo": r.strategy.ai_duo,
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
+        "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
     stored = [

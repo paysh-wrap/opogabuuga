@@ -112,6 +112,9 @@ class TradeLimits:
     # D85 (user 2026-11-10, AI Duo): a total per-trade risk cap in $ (stop distance × qty + fees + slippage). The fixed
     # size is reduced to what fits; if not even one contract fits → STOP_TOO_WIDE. None = off (every other strategy).
     max_risk_usd: Decimal | None = None
+    # D92 split-risk button: this side's share of the daily loss limit still free (None = no split / no DLL). The worst
+    # case of a new trade plus the DLL safety margin must fit it. Tighten-only.
+    side_budget_left: Decimal | None = None
 
 
 @dataclass
@@ -300,6 +303,15 @@ def _finish(
             r.reason = "AGGREGATE_RISK_EXCEEDS_LIMITS"
             return r
         n, worst = n_new, money(n_new * per)
+    if lim.side_budget_left is not None and not r.log(
+        "split_budget",
+        worst + lim.dll_safety_margin <= lim.side_budget_left,
+        worst=worst,
+        margin=lim.dll_safety_margin,
+        left=lim.side_budget_left,
+    ):
+        r.reason = "SPLIT_BUDGET_EXCEEDED"
+        return r
     if not r.log("worst_case", worst + open_risk + lim.dll_safety_margin <= room, worst=worst, room=room):
         r.reason = "WORST_CASE_EXCEEDS_LIMITS"
         return r

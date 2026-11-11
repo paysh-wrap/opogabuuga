@@ -71,6 +71,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_bias",
         "strategy.ta_mgc_cfg.min_confidence",  # D84 (MGC research part of AI Duo)
         "strategy.ai_duo",  # D83
+        "strategy.noise_ai_split",  # D92: split risk button (share lives in the plan file)
         "strategy.ai_duo_cfg.markets",
         "strategy.ai_duo_cfg.windows",
         "strategy.ai_duo_cfg.accounts",

@@ -546,6 +546,11 @@ class StrategyCfg(_M):
     ai_bias: bool = False
     pm_fade: bool = False
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
+    # D92: "NOISE + AI Duo - split risk 50/50" button (default OFF): with NOISE and AI Duo both on, each side
+    # trades half size (rounded down, min 1) and may use half of the daily loss limit. AI Duo stays paper-only.
+    # Tighten-only.
+    noise_ai_split: bool = False
+    noise_ai_split_share: D = Field(default=D("0.5"), gt=D(0), le=D("0.5"))
     # D57: NOISE / AI_BIAS scale their emergency stop down as the account draws down instead of pausing at the pause
     # floor: worst case ≤ this fraction of the room (DLL left / distance to MLL − kill distance); None = old pause.
     drawdown_shrink: D | None = D("0.6")

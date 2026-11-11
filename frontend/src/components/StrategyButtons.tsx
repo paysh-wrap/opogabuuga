@@ -6,7 +6,7 @@ import { badge } from "../lib/theme";
 // data). Each click saves a new versioned My Settings entry (rollback on the Risk page).
 export interface Strat {
   key: string; name: string; source: string; verified: boolean; status: string;
-  win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number; held_out_trades: number;
+  win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number | null; held_out_trades: number;
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
   enabled: boolean; setting: string;
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
@@ -96,7 +96,7 @@ export default function StrategyButtons() {
               <dt>Pro 25K bust</dt><dd className="text-gold">{pct(s.pro25k_bust_pct)}</dd>
               <dt>Profit factor</dt><dd className="text-gold">{s.profit_factor == null ? "—" : s.profit_factor.toFixed(2)}</dd>
               <dt>Per trade (1 micro)</dt><dd className="text-gold">{s.usd_per_trade == null ? "— (not testable)" : `${s.usd_per_trade >= 0 ? "▲ +" : "▼ "}$${Math.abs(s.usd_per_trade).toFixed(2)}`}</dd>
-              <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week.toFixed(1)}</dd>
+              <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
             </dl>
             <p className="mt-2 text-xs text-blue">{s.note}</p>
             {s.key === "noise" && !w.ready && (
