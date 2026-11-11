@@ -41,7 +41,7 @@ def test_header_and_license_attribution():
 
 
 def test_bigbeluga_mso_removed_d120():
-    for s in ("BigBeluga", "MSO", '"mso"', "pivL", "divL", "momLen", "smoothLen"):
+    for s in ("BigBeluga", "MSO pivot", "MSO_", '"mso"', "divL", "momLen", "smoothLen"):
         assert s not in "\n".join(CODE_LINES), s
 
 

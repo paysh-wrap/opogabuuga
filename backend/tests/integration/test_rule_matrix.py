@@ -6,7 +6,8 @@ manager -> sim broker), the same code live and paper use. A violation is collect
 every finding (the test then fails with the whole list).
 
 Asserted per cell:
-- contracts never exceed the firm plan cap, the internal cap or the strategy's own cap (Order Flow: 1 micro);
+- contracts never exceed the firm plan cap, the internal cap or the strategy's own per-plan cap (D115);
+- worst case never exceeds the plan's per-trade cap (strategy.max_trade_risk_usd) or the strategy's own $ budget;
 - worst-case stop loss of the trade (qty x (stop ticks x tick value + fee + slippage)) + the DLL safety margin fits
   the DLL room and the MLL room (distance to the MLL minus the kill-switch distance), also with an absurdly wide stop;
 - max open positions: 1 per account (AI Duo only up to its own config on its big accounts);
@@ -68,6 +69,7 @@ SPECS = [  # D105: LunqFX removed
     Spec("SPLIT_AI_DUO", "AI_DUO", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
     Spec("ORDER_FLOW_MNQ", "ORDER_FLOW", "MNQ", {"order_flow": True}),
     Spec("ORDER_FLOW_MGC", "ORDER_FLOW", "MGC", {"order_flow": True}),
+    Spec("AI_BIAS", "AI_BIAS", "MNQ", {"ai_bias": True}),  # D115: per-plan size now > 1 on 50K+
 ]
 CFG_OF = {"AI_DUO": "ai_duo_cfg", "ORDER_FLOW": "order_flow_cfg"}
 
@@ -93,11 +95,22 @@ def strategy_cap(r: RulesConfig, spec: Spec) -> int:
         cap = duo.max_qty if size >= duo.big_account_size else duo.contracts
     elif spec.mode == "ORDER_FLOW":
         cap = st.order_flow_cfg.contracts
+    elif spec.mode == "AI_BIAS":
+        cap = st.ai_bias_cfg.contracts
     else:  # STANDARD (LunqFX): sized by the risk engine, bounded only by the firm and internal caps
         cap = min(r.max_contracts.micros, r.internal.internal_max_micros)
     if "noise_ai_split" in spec.flags and spec.mode in ("NOISE", "AI_DUO"):
         cap = split_contracts(cap, st.noise_ai_split_share)
     return cap
+
+
+def strategy_budget(r: RulesConfig, spec: Spec) -> D | None:
+    st = r.strategy
+    return {
+        "AI_DUO": st.ai_duo_cfg.max_risk_usd,
+        "ORDER_FLOW": st.order_flow_cfg.max_risk_usd,
+        "AI_BIAS": st.ai_bias_cfg.max_risk_usd,
+    }.get(spec.mode)
 
 
 def room_of(r: RulesConfig, stage: str) -> D:
@@ -206,10 +219,14 @@ def check_trade(r: RulesConfig, spec: Spec, stage: str, t: Any, where: str, out:
     firm = firm_max_micros(r, stage, D(0))
     if t.qty > min(cap, firm):
         out.append(f"{where}: {t.qty} contracts > cap {min(cap, firm)} (strategy {cap}, firm {firm})")
-    if spec.mode == "ORDER_FLOW" and t.qty != 1:
-        out.append(f"{where}: Order Flow must be 1 micro, got {t.qty}")
+    if r.account_size <= D(25000) and t.qty != 1:  # D115: every 25K plan stays at 1 micro per strategy
+        out.append(f"{where}: 25K plan must trade 1 micro, got {t.qty}")
     stop_pts = abs(t.plan.entry - t.plan.stop)
     worst = t.qty * per_contract(r, t.symbol, stop_pts)
+    caps = [r.strategy.max_trade_risk_usd, strategy_budget(r, spec)]
+    for c in (x for x in caps if x is not None):
+        if worst > c:
+            out.append(f"{where}: worst case ${worst:.2f} > per-trade cap ${c}")
     room = room_of(r, stage)
     if worst + r.internal.dll_safety_margin > room:
         out.append(f"{where}: worst case ${worst:.2f} + margin {r.internal.dll_safety_margin} > room ${room}")
@@ -326,7 +343,14 @@ def test_no_strategy_ships_paper_only_in_config(stem):
         ("order_flow", st.order_flow_cfg),
     ):
         assert cfg.paper_only is False, f"{stem}: {name} must not be forced paper-only (D102)"
-    assert st.order_flow_cfg.contracts == 1 and st.order_flow_cfg.rr_min >= D("1.5")
+    assert st.order_flow_cfg.rr_min >= D("1.5")
+    r0 = rules_of(stem)
+    sizes = [st.noise_cfg.contracts, st.pm_fade_cfg.contracts, st.ai_bias_cfg.contracts, st.ai_duo_cfg.contracts]
+    sizes.append(st.order_flow_cfg.contracts)
+    assert all(1 <= n <= r0.max_contracts.micros for n in sizes), f"{stem}: strategy size outside 1..firm max"
+    if r0.account_size <= D(25000):  # D115: 25K plans keep 1 micro for every strategy
+        assert sizes == [1] * len(sizes), f"{stem}: 25K plan must stay at 1 micro per strategy"
+    assert st.max_trade_risk_usd is not None and st.max_trade_risk_usd < r0.eval.max_loss_limit
     # every unverified button defaults OFF
     assert not (st.ai_bias or st.ai_duo or st.order_flow), f"{stem}: unverified button ON by default"
     # MGC only through Order Flow's own switch (D96); the global instrument switch stays as the plan says
