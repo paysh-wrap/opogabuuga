@@ -19,9 +19,10 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import ledger
+from app.bias import of_advisor as OFA
 from app.bias import ta_mgc_research as TR
 from app.bias.policy import Policy, combine
-from app.clock import ET, Clock
+from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
 from app.engine import noise as N
@@ -455,6 +456,19 @@ def run_order_flow(
     key = f"{symbol}-OF-{day}-{payload.bar_time_ms}-{direction.value}"
     if s.execute(select(Signal.id).where(Signal.model_key == key)).first() is not None:
         return out  # same alert twice (one entry per model)
+    # D109 TradingAgents advisor: annotate; skip OF_TA_DISAGREES only with ta_advisor_blocks + a proven ledger
+    ta_note, ta_skip = OFA.verdict(s, rules, symbol, session_date(at), direction.value)
+    if ta_note is not None and ta_note.get("agrees") is False:
+        audit.record(
+            s,
+            clock,
+            "engine",
+            "order_flow.ta_disagrees",
+            f"{symbol}-OF-{day}",
+            {"key": key, "direction": direction.value, "advice": ta_note.get("side"), "blocks": ta_skip is not None},
+        )
+        if ta_skip and gate[0]:
+            gate = (False, ta_skip, f"TradingAgents advisor says {ta_note.get('side')} (proven ledger, blocks on)")
     new = _new_signal(
         s,
         clock,
@@ -469,6 +483,7 @@ def run_order_flow(
             "paper_only": cfg.paper_only,
             "unverified": True,
             "ar": layers,  # D101: the four AR-Model layers this signal passed
+            **({"ta_advice": ta_note} if ta_note is not None else {}),  # D109 advisory annotation
         },
         plan=("ORDER_FLOW", res.entry, res.stop, res.take_profit, res.risk_pts, res.rr),
     )

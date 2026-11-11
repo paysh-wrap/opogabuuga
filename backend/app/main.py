@@ -202,6 +202,42 @@ async def _daily_bias(app: FastAPI, s: Session, now: datetime) -> None:
     s.commit()
 
 
+async def _of_ta_advisor(app: FastAPI, s: Session, now: datetime) -> None:
+    """D109: Order Flow TradingAgents advisor — the existing bias job for the Order Flow markets, once per session
+    at ta_advisor_lead_min before the first Order Flow entry window (ET). Failure = no advice (never blocks)."""
+    from app.automation import state as stt
+    from app.bias import of_advisor as ofa
+    from app.bias import service as bias
+    from app.clock import session_date
+    from app.crypto import Vault
+
+    st = app.state
+    r = st.rules.rules
+    sess = session_date(now)
+    if not ofa.due(now, r, stt.get_setting(s, "job.of_ta.session"), sess):  # type: ignore[arg-type]
+        return
+    stt.set_setting(s, "job.of_ta.session", sess.isoformat(), now)
+    s.commit()
+    try:
+        await bias.run_bias(
+            s,
+            st.ta,
+            Vault(st.settings.master_key.get_secret_value()),
+            r,
+            st.clock,
+            sess,
+            st.controller.notify,
+            vt_root=st.settings.vt_root,
+            context=bias.openbb_context(st),
+            only=ofa.proxies(r),
+        )
+    except Exception as e:  # advisory only: a failure means no advice, never a trading block (§1.8: logged + notified)
+        s.rollback()
+        log.warning("of_ta_advisor.failed", error=type(e).__name__)
+        st.controller.notify("warn", "Order Flow AI advisor: no advice today", type(e).__name__)
+    ofa.record(s, r, st.clock, sess)
+
+
 async def _ta_mgc_research(app: FastAPI, s: Session, now: datetime) -> None:
     """D84: the MGC research part of AI Duo. Off unless AI Duo is on with MGC. Reuses the existing TradingAgents /
     Vibe-Trading connections; no key = nothing runs (the Strategy page shows "AI key not connected")."""
@@ -289,6 +325,7 @@ async def _scheduler(app: FastAPI) -> None:
                 await _refresh_calendar(app, s, now)
                 await _inactivity(app, s, now)
                 await _daily_bias(app, s, now)
+                await _of_ta_advisor(app, s, now)
                 await _ta_mgc_research(app, s, now)
                 await _eod(app, s, now)
                 await _nightly(app, s, now)

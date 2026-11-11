@@ -141,6 +141,25 @@ def ar_rules(rules: Any) -> dict[str, Any]:
     }
 
 
+def ta_advisor_view(request: Request, db: Session, symbol: str) -> dict[str, Any]:
+    """D109: the TradingAgents advisor toggle + today's stored advice for this market (advisory label)."""
+    from app.bias import of_advisor as OFA
+    from app.clock import session_date
+
+    r = request.app.state.rules.rules
+    cfg = r.strategy.order_flow_cfg
+    today = session_date(request.app.state.clock.now())
+    return {
+        "enabled": cfg.ta_advisor,
+        "setting": "strategy.order_flow_cfg.ta_advisor",
+        "blocks": cfg.ta_advisor_blocks,
+        "at": OFA.advisor_at(r),
+        "advisory": True,
+        "session": today.isoformat(),
+        "advice": OFA.advice(db, symbol, today) if cfg.ta_advisor else None,
+    }
+
+
 def _skips(db: Session, symbol: str, day: date | None) -> list[dict[str, Any]]:
     """D101: Order Flow alerts the engine refused (audit `order_flow.skip`) for this ET day, newest first."""
     if day is None:
@@ -212,6 +231,7 @@ def orderflow(
         "sessions": [d.isoformat() for d in days],
         "ar": ar_rules(request.app.state.rules.rules),
     }
+    base["ta_advisor"] = ta_advisor_view(request, db, symbol)
     cur = session if session is not None else (days[-1] if days else None)
     base["skips"] = _skips(db, symbol, cur)
     if cur is None or cur not in by:

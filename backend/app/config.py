@@ -386,6 +386,13 @@ class OrderFlowCfg(_M):
     flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
     ar: ArModelCfg = ArModelCfg()  # D101: AR Model layers
     casper: CasperCfg = CasperCfg()  # D108: Casper 4h course refinements (each a switch)
+    # D109 (user 2026-11-11): TradingAgents as an ADVISOR for Order Flow (Order Flow page toggle, default OFF). The
+    # existing bias job runs ta_advisor_lead_min before the earliest Order Flow entry window start (ET). Advisory only:
+    # an opposite ORDER_FLOW signal is annotated + warned; it is skipped (OF_TA_DISAGREES) only when
+    # ta_advisor_blocks is true AND the AI-accuracy ledger has proven the call (ai_gate_min_accuracy).
+    ta_advisor: bool = False
+    ta_advisor_blocks: bool = False
+    ta_advisor_lead_min: int = Field(default=60, ge=15, le=240)
 
     @model_validator(mode="after")
     def _check(self) -> OrderFlowCfg:

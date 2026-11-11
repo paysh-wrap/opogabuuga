@@ -25,7 +25,7 @@ from app.webhook.service import Accepted, Ignored, ingest
 router = APIRouter(prefix="/api")
 log = structlog.get_logger()
 PINE_DIR = REPO_ROOT / "pine"
-PINE_FILES = {"bridge": "Paytience_Bridge.pine"}
+PINE_FILES = {"bridge": "Paytience_Bridge.pine", "orderflow": "Paytience_OrderFlow.pine"}  # D109: Order Flow guide
 
 
 async def _run_sync(st: Any, fn: Any) -> Any:
