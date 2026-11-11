@@ -16,7 +16,7 @@ def _by_key(r):
 
 def test_each_strategy_has_its_own_gates_and_no_lunqfx(loaded_rules):
     rows = _by_key(loaded_rules.rules)
-    assert set(rows) == {"noise", "pm_fade", "open_drive", "ai_bias", "ai_duo", "order_flow"}
+    assert set(rows) == {"noise", "pm_fade", "ai_bias", "ai_duo", "order_flow", "noise_ai_split"}  # D107: no OD
     ids = {k: [g["id"] for g in v["gates"]] for k, v in rows.items()}
     assert "BREAKOUT" in ids["noise"] and "VWAP_TRAIL" in ids["noise"] and "FLAT" in ids["noise"]
     assert ids["order_flow"][:1] == ["ENVIRONMENT"] and "CONFIRMATION" in ids["order_flow"]
@@ -110,9 +110,29 @@ def test_endpoint_live_status(authed):
     of = {g["id"]: g["status"] for g in rows["order_flow"]["gates"]}
     assert rows["order_flow"]["last"]["source"] == "audit" and of["ENVIRONMENT"] == "FAIL"
     assert rows["ai_duo"]["last"] is None
+    sp = rows["noise_ai_split"]  # D92: the later side's decision; the other side shows no data
+    st = {g["id"]: g["status"] for g in sp["gates"]}
+    assert sp["last"]["code"] == "NEWS_BLACKOUT" and sp["lucid_code"] == "NEWS_BLACKOUT"
+    assert st["SIDE_NOISE"] == "PASS" and st["SIDE_DUO"] is None and st["SPLIT"] == "PASS"
     assert d["lucid_rules"][0]["id"] == "NEWS"
     assert all("codes" in g for g in d["lucid_rules"])
 
 
 def test_endpoint_needs_login(client):
     assert client.get("/api/strategy-gates").status_code == 401
+
+
+def test_split_card_shows_both_sides(loaded_rules):
+    """D92: the 50/50 split button lists both sides + its own budget gate (D105/D107: no LunqFX, no Opening drive)."""
+    r = loaded_rules.rules
+    sp = _by_key(r)["noise_ai_split"]
+    assert sp["name"] == "NOISE + AI Duo — 50/50 risk split" and sp["on"] is False
+    ids = [g["id"] for g in sp["gates"]]
+    assert ids == ["SIDE_NOISE", "SIDE_DUO", "SPLIT", LUCID]
+    gates = {g["id"]: g for g in sp["gates"]}
+    assert "SPLIT_BUDGET_EXCEEDED" in gates["SPLIT"]["codes"] and "50%" in gates["SPLIT"]["text"]
+    assert "AI_DISAGREE" in gates["SIDE_DUO"]["codes"] and "BIAS_PROVEN_AGAINST" in gates["SIDE_NOISE"]["codes"]
+    on = r.model_copy(
+        update={"strategy": r.strategy.model_copy(update={"noise": True, "ai_duo": True, "noise_ai_split": True})}
+    )
+    assert _by_key(on)["noise_ai_split"]["on"] is True

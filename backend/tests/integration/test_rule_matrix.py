@@ -62,7 +62,6 @@ class Spec:
 
 SPECS = [  # D105: LunqFX removed
     Spec("NOISE", "NOISE", "MNQ", {"noise": True}),
-    Spec("OPEN_DRIVE", "OPEN_DRIVE", "MNQ", {"open_drive": True}),
     Spec("AI_DUO_MNQ", "AI_DUO", "MNQ", {"ai_duo": True}),
     Spec("AI_DUO_MGC", "AI_DUO", "MGC", {"ai_duo": True}),
     Spec("SPLIT_NOISE", "NOISE", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
@@ -70,7 +69,7 @@ SPECS = [  # D105: LunqFX removed
     Spec("ORDER_FLOW_MNQ", "ORDER_FLOW", "MNQ", {"order_flow": True}),
     Spec("ORDER_FLOW_MGC", "ORDER_FLOW", "MGC", {"order_flow": True}),
 ]
-CFG_OF = {"OPEN_DRIVE": "open_drive_cfg", "AI_DUO": "ai_duo_cfg", "ORDER_FLOW": "order_flow_cfg"}
+CFG_OF = {"AI_DUO": "ai_duo_cfg", "ORDER_FLOW": "order_flow_cfg"}
 
 
 # ------------------------------------------------------------------------------------------------ config helpers
@@ -89,8 +88,6 @@ def strategy_cap(r: RulesConfig, spec: Spec) -> int:
             if t.account_size == size
         ]
         cap = max([max(t.contracts, t.max_contracts or 0) for t in tiers], default=st.noise_cfg.contracts)
-    elif spec.mode == "OPEN_DRIVE":
-        cap = st.open_drive_cfg.contracts
     elif spec.mode == "AI_DUO":
         duo = st.ai_duo_cfg
         cap = duo.max_qty if size >= duo.big_account_size else duo.contracts
@@ -146,7 +143,7 @@ class Ctx:
 
     def set_rules(self, spec_flags: dict[str, Any]) -> RulesConfig:
         base = rules_of(self.stem)
-        off = {k: False for k in ("noise", "open_drive", "ai_bias", "pm_fade", "ai_duo", "order_flow")}
+        off = {k: False for k in ("noise", "ai_bias", "pm_fade", "ai_duo", "order_flow")}
         strat = base.strategy.model_copy(update={**off, **spec_flags})
         r = base.model_copy(update={"strategy": strat})
         self.st.rules.rules = r
@@ -323,7 +320,6 @@ def test_no_strategy_is_forced_paper_only_per_plan(authed, clock, stem):
 def test_no_strategy_ships_paper_only_in_config(stem):
     st = rules_of(stem).strategy
     for name, cfg in (
-        ("open_drive", st.open_drive_cfg),
         ("ai_bias", st.ai_bias_cfg),
         ("pm_fade", st.pm_fade_cfg),
         ("ai_duo", st.ai_duo_cfg),
@@ -332,7 +328,7 @@ def test_no_strategy_ships_paper_only_in_config(stem):
         assert cfg.paper_only is False, f"{stem}: {name} must not be forced paper-only (D102)"
     assert st.order_flow_cfg.contracts == 1 and st.order_flow_cfg.rr_min >= D("1.5")
     # every unverified button defaults OFF
-    assert not (st.open_drive or st.ai_bias or st.ai_duo or st.order_flow), f"{stem}: unverified button ON by default"
+    assert not (st.ai_bias or st.ai_duo or st.order_flow), f"{stem}: unverified button ON by default"
     # MGC only through Order Flow's own switch (D96); the global instrument switch stays as the plan says
     r = rules_of(stem)
     for sym in st.order_flow_cfg.instruments:

@@ -1004,3 +1004,14 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   locked. Display only: no backend gate, risk or safety logic changed. The AI proof-threshold editor moved to the NOISE
   card. Left for the test owner: `/api/strategies` still returns the unused `gate_chain` (tests test_bias_ledger /
   test_mso_disabled read it) — remove together with those asserts.
+- D107 (user 2026-11-11): "Remove opening drive". The Opening-drive pullback strategy (OPEN_DRIVE, D55) is removed like
+  LunqFX (D105): Strategy-page button/catalog card, `strategy.open_drive` (My Settings key) + `strategy.open_drive_cfg`
+  (OpenDriveCfg) and the `open_drive: false` line in the 8 Pro/Flex plan yamls, strategy_service routing
+  (`run_open_drive`), the controller's OPEN_DRIVE strategy mode / fixed size / limit entry, the per-strategy gates card
+  (api/strategy_gates.py) and UI/docs text. Deleted: engine/open_drive.py + tests/unit/test_open_drive.py and the OPEN_DRIVE
+  service test / rule-matrix cell. Old plan files / stored settings with `open_drive` / `open_drive_cfg` load fine (ignored
+  by StrategyCfg, like the LunqFX keys). A stored OPEN_DRIVE signal can no longer be executed (NO_PLAN). Safety unchanged:
+  the "OD" tag stays in Order Flow's signal-level hedge-lock list (a legacy open position still locks), global flat
+  times / watchdog / kill switch / risk untouched. Same change: the D92 split card is labelled "NOISE + AI Duo — 50/50
+  risk split" and the per-strategy gates view shows it with both sides (NOISE side, AI Duo side, 50/50 budget
+  SPLIT_BUDGET_EXCEEDED, Lucid rules); behaviour unchanged.

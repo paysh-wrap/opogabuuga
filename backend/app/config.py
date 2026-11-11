@@ -631,7 +631,9 @@ class StrategyCfg(_M):
     @classmethod
     def _apply_preset(cls, data: Any) -> Any:
         if isinstance(data, dict) and any(k in data for k in LEGACY_LUNQFX_KEYS):
-            data = {k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS}  # D105/D107: removed strategies, ignored
+            data = {
+                k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS
+            }  # D105/D107: removed strategies, ignored
         if not isinstance(data, dict) or not data.get("preset"):
             return data
         presets = load_presets()

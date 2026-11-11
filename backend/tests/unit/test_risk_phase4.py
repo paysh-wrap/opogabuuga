@@ -448,7 +448,7 @@ def test_low_risk_min_qty_floor_d36():
     assert nodll.ok and nodll.contracts == 1
 
 
-# ---------- D55 fixed-size strategies (NOISE / OPEN_DRIVE, 1 micro) ----------
+# ---------- D55 fixed-size strategies (NOISE etc., 1 micro) ----------
 NOISE_PLAN = TradePlan(Direction.LONG, D(20000), D(19800), D(22000), D(200), D(10), mode="NOISE")  # 1% stop
 
 

@@ -1,4 +1,4 @@
-"""D55 strategy runtime: NOISE / OPEN_DRIVE signals and exits from stored 1-minute TradingView bars."""
+"""D55 strategy runtime: NOISE / fade / AI signals and exits from stored 1-minute bars (D107: no OPEN_DRIVE)."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ DAY0 = datetime(2026, 10, 12, 13, 30, tzinfo=UTC)  # Monday 09:30 ET (EDT, UTC�
 def _rules(loaded_rules, **strategy):
     r = loaded_rules.rules
     mnq = r.instruments["MNQ"].model_copy(update={"enabled": True, "windows": [("09:30", "16:00")]})
-    st = r.strategy.model_copy(update={"lunqfx": False, **strategy})
+    st = r.strategy.model_copy(update=strategy)
     return r.model_copy(update={"strategy": st, "instruments": {**r.instruments, "MNQ": mnq}})
 
 
@@ -153,7 +153,7 @@ def test_noise_news_blackout_records_skip_and_flat_at_1600(db, loaded_rules):
 
 
 def test_strategy_off_or_wrong_feed_does_nothing(db, loaded_rules):
-    rules = _rules(loaded_rules)  # noise off, open_drive off
+    rules = _rules(loaded_rules)  # noise off
     with db() as s:
         assert (
             SS.run(
@@ -192,44 +192,6 @@ def test_strategy_off_or_wrong_feed_does_nothing(db, loaded_rules):
             ).updates
             == []
         )
-
-
-def test_open_drive_signal_and_time_stop(db, loaded_rules):
-    rules = _rules(loaded_rules, open_drive=True)
-    days = _sessions(12)
-    today = days[-1]
-    clock = FixedClock(today + timedelta(minutes=30))
-    with db() as s:
-        for start in days[:-1]:  # 100-point daily ranges
-            _add_day(s, start, {100: D(20050), 200: D(19950), 300: D(20000)})
-        _add_day(s, today, {k: D(20000) + 2 * k for k in range(30)})  # +58 by 09:59 ≥ 0.35 × ~102
-        s.commit()
-        out = SS.run(
-            s, rules=rules, clock=clock, calendar=lambda _d: [], symbol="MNQ", tf="1", at=today + timedelta(minutes=30)
-        )
-        assert len(out.updates) == 1 and out.updates[0].status == "PASS"
-        sig = s.get(Signal, out.updates[0].signal_id)
-        assert sig.features["strategy"] == "OPEN_DRIVE" and sig.features["paper_only"] is False
-        plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
-        assert plan.mode == "OPEN_DRIVE" and plan.stop < plan.entry < plan.take_profit and plan.rr < 1
-        assert datetime.fromisoformat(sig.features["entry_expires_at"]).astimezone(UTC).hour == 16  # 12:31 ET
-        # only one per day
-        assert (
-            SS.run(
-                s,
-                rules=rules,
-                clock=clock,
-                calendar=lambda _d: [],
-                symbol="MNQ",
-                tf="1",
-                at=today + timedelta(minutes=30),
-            ).updates
-            == []
-        )
-        out = SS.run(
-            s, rules=rules, clock=clock, calendar=lambda _d: [], symbol="MNQ", tf="1", at=today + timedelta(minutes=210)
-        )  # 13:00 close
-        assert out.exits == [(sig.id, "OD_TIME_STOP")]
 
 
 def test_load_days_groups_rth_sessions(db):

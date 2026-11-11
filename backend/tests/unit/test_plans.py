@@ -98,12 +98,12 @@ def test_strategy_buttons_d55(plan):
     """D55 (user 2026-11-09): NOISE (verified noise-area momentum, MNQ) on; Opening-drive is a button, off; the
     verified NOISE parameters ship unchanged. D105: no LunqFX key."""
     s = r(plan).strategy
-    assert s.noise and not s.open_drive and not hasattr(s, "lunqfx")
+    assert s.noise and not hasattr(s, "open_drive") and not hasattr(s, "lunqfx")
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
     assert n.contracts == 1  # fallback; D63 size_table sizes each account
-    assert not s.open_drive_cfg.paper_only  # D102: no strategy forced paper-only
+    assert not s.order_flow_cfg.paper_only and not s.ai_duo_cfg.paper_only  # D102: none forced paper-only
 
 
 def test_legacy_daily_plan_loads_without_lunqfx():
@@ -111,9 +111,12 @@ def test_legacy_daily_plan_loads_without_lunqfx():
     from app.config import StrategyCfg
 
     s = load_rules(RULES / "lucid_daily_25k.yaml").rules.strategy
-    assert not s.noise and not s.open_drive and not hasattr(s, "lunqfx")
-    old = StrategyCfg.model_validate({"lunqfx": True, "lunqfx_structure": {"enabled": True}, "noise": True})
-    assert old.noise and "lunqfx" not in old.model_dump()
+    assert not s.noise and not hasattr(s, "open_drive") and not hasattr(s, "lunqfx")
+    old = StrategyCfg.model_validate(
+        {"lunqfx": True, "lunqfx_structure": {"enabled": True}, "open_drive": True, "open_drive_cfg": {}, "noise": True}
+    )
+    dumped = old.model_dump()
+    assert old.noise and not {"lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg"} & set(dumped)  # D107
 
 
 def test_size_table_validation_and_plans():  # D63
