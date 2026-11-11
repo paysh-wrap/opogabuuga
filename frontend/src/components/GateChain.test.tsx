@@ -9,12 +9,12 @@ test("gate chain shows each gate's state and the AI record from the server", asy
     gate_chain: [
       { id: "G1", name: "Window", kind: "firm-safe", on: true, locked: true, text: "Entries only inside windows." },
       { id: "AI", name: "AI bias", kind: "ai", on: true, locked: false, text: "advisory" },
-      { id: "FRACTAL", name: "LunqFX fractal agreement", kind: "study", on: false, locked: false, text: "OFF" },
+      { id: "OB", name: "Order-block filter", kind: "study", on: false, locked: false, text: "OFF" },
     ],
   })));
   render(<QueryClientProvider client={new QueryClient()}><GateChain /></QueryClientProvider>);
   expect(await screen.findByTestId("chain-G1")).toHaveTextContent("ON");
-  expect(screen.getByTestId("chain-FRACTAL")).toHaveTextContent("OFF");
+  expect(screen.getByTestId("chain-OB")).toHaveTextContent("OFF");
   expect(screen.getByTestId("chain-ai-status")).toHaveTextContent("2/30");
   expect(screen.getByTestId("chain-ai-status")).toHaveTextContent("70%");
 });

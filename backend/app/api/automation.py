@@ -128,7 +128,7 @@ async def _preflight(request: Request, db: Session) -> dict[str, Any]:
         c.notify(
             "warn",
             "Optional item missing (not blocking)",
-            "bias: no daily bias today — LunqFX/AI strategies skip, NOISE and the others keep trading",
+            "bias: no daily bias today — AI strategies skip, NOISE and the others keep trading",
             "preflight",
         )
     st.last_preflight = {**out, "at": now.isoformat()}  # shown on the Today page

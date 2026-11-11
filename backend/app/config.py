@@ -590,24 +590,13 @@ class StructureFilterCfg(_M):
     anchor_buffer_pts: D = D("2")  # shadow only: where an OB-anchored stop would sit (never applied live)
 
 
-class LunqStructureCfg(_M):
-    """D76 LunqFX: optional OB + SMT (MNQ vs MES) filter on a LunqFX PASS. Default OFF (shadow-logged only).
-    Not a pillar change: G1-G8 run unchanged; this can only turn a PASS into a SKIP (OB_BLOCK / SMT_BLOCK).
-    anchor_stop: move the stop to just beyond a same-side order block ONLY when tighter (never widens risk) and the
-    rebuilt R:R stays inside trade_plan rr_min..rr_max; else the original plan is kept.
-    Study docs/results/session12/LUNQFX.md decides whether to switch on."""
-
-    enabled: bool = False
-    anchor_stop: bool = False
-    shadow_log: bool = True
-    filter: StructureFilterCfg = StructureFilterCfg()
+LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure")  # D105: dropped from old plan files / stored settings
 
 
 class StrategyCfg(_M):
-    """D55: which strategies may trade (buttons on the Strategy page). Disabled strategies still run in SHADOW where
-    they have a shadow path (LunqFX). Defaults keep legacy plan files on the original LunqFX engine."""
+    """D55: which strategies may trade (buttons on the Strategy page). D105: the LunqFX button/keys were removed;
+    old plan files / stored settings that still carry them are tolerated and ignored (see _apply_preset)."""
 
-    lunqfx: bool = True
     # D82: Strategy preset (config/strategy_presets.yaml) — overlays noise_cfg stop/profit lock, noise, pm_fade and the
     # size tables before validation. None = "custom" (the plan file's own values).
     preset: str | None = None
@@ -634,7 +623,6 @@ class StrategyCfg(_M):
     order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     structure_filters: StructureFilterCfg = StructureFilterCfg()
-    lunqfx_structure: LunqStructureCfg = LunqStructureCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
     size_table: list[SizeTierCfg] = []
     # D74 (user 2026-11-10): AI-bias SIZING (study docs/results/session11/ai_bias_sizing_study.md, version B): when the
@@ -661,6 +649,8 @@ class StrategyCfg(_M):
     @model_validator(mode="before")
     @classmethod
     def _apply_preset(cls, data: Any) -> Any:
+        if isinstance(data, dict) and any(k in data for k in LEGACY_LUNQFX_KEYS):
+            data = {k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS}  # D105: removed strategy, ignored
         if not isinstance(data, dict) or not data.get("preset"):
             return data
         presets = load_presets()

@@ -110,7 +110,6 @@ BEST_MODELS: dict[str, dict[str, str]] = {
 
 LLM_NAMES = {"anthropic": "Claude (Anthropic) — default", "kimi": "Kimi (Moonshot)", "qwen": "Qwen (Alibaba)"}
 
-LUNQFX_NAME = "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]"
 BIGBELUGA_NAME = "Market Structure Oscillator [BigBeluga]"
 TA_REPO = "https://github.com/TauricResearch/TradingAgents"
 
@@ -418,14 +417,6 @@ PROVIDERS: tuple[Provider, ...] = (
 )
 
 INDICATORS: tuple[dict[str, str], ...] = (
-    {
-        "id": "lunqfx",
-        "name": LUNQFX_NAME,
-        "author": "LunqFX",
-        "role": "WHERE / WHAT — direction, stop anchor, T2 target",
-        "link": _tv_search("ICT Fractal Model HTF Candles CISD C2 Targets LunqFX"),
-        "setting": "Require C2 to close back inside C1 = ON",
-    },
     {
         "id": "bigbeluga_mso",
         "name": BIGBELUGA_NAME,

@@ -18,13 +18,11 @@ export interface Ledger {
   stats: { n: number; hit_rate: number; brier: number; wilson_lb: number };
 }
 export interface GateRow { id: string; name: string; kind: string; state?: string; on: boolean; locked: boolean; text: string; setting?: string | null; unproven?: boolean; scope?: string }
-export interface LunqFlag { setting: string; name: string; on: boolean; text: string }
 export interface StrategiesResp {
   strategies: Strat[];
   noise_warmup: { sessions: number; needed: number; ready: boolean };
   ai_ledger: Ledger[];
   gate_chain?: GateRow[];
-  lunqfx_flags?: LunqFlag[];
   markets: Record<string, boolean>;
   size_profiles?: SizeProfiles;
   presets?: PresetsResp;

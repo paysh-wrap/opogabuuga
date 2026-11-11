@@ -202,34 +202,6 @@ async def bias_run(request: Request, _: Principal = Depends(current_user), db: S
     return {"ran": ran}
 
 
-GATES = [
-    ("G1", "Window, news, feed, halt, cooldown"),
-    ("G2", "TradingAgents bias allows this side"),
-    ("G3", "LunqFX fractal model valid + C1 range ≥ ATR minimum"),
-    ("G4", "BigBeluga MSO structure agrees"),
-    ("G5", "MSO CHoCH/BoS after the sweep"),
-    ("G6", "No opposing MSO divergence"),
-    ("G7", "Valid trade plan (stop + target, R:R 2–3)"),
-    ("G8", "Phase, drawdown guard, risk, consistency, hedge lock approve"),
-]
-
-
-MSO_GATES = ("G4", "G5", "G6")
-
-
-def gate_texts(r: Any) -> list[tuple[str, str]]:
-    """Gate descriptions from the LOADED plan (never hardcoded rule numbers). D91: G4-G6 only exist with MSO on."""
-    tp, f = r.trade_plan, r.filters
-    out = dict(GATES)
-    out["G4"] += "" if f.require_mso_agree else " (score only in this plan)"
-    out["G5"] += "" if f.require_structure_break else " (score only; no break → closer target)"
-    if not r.indicators.mso.enabled:
-        for g in MSO_GATES:
-            del out[g]
-    out["G7"] = f"Valid trade plan (stop + target, R:R {tp.rr_min:g}–{tp.rr_max:g})"
-    return list(out.items())
-
-
 def _tier(t: Any) -> dict[str, Any]:
     return {
         "account_size": str(t.account_size),
@@ -244,9 +216,8 @@ def _tier(t: Any) -> dict[str, Any]:
 
 @router.get("/strategy")
 async def strategy(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
-    """How the three parts fit together, live: TradingAgents (which side) · LunqFX fractal (where/what) ·
-    BigBeluga MSO (when/whether) → gates G1–G8 → risk → orders."""
-    from app.models import ApiCredential, SignalGate
+    """TradingAgents bias status + per-instrument feed state (D105: the LunqFX gates/model panel was removed)."""
+    from app.models import ApiCredential
     from app.monitor.feed import feed_status
 
     st = request.app.state
@@ -264,14 +235,12 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
             if s_sym != sym:
                 continue
             tf = 1 if prof == "TIGHT" else 5
-            active = [m for m in ss.models.values() if m.status not in ("C3_CLOSED", "MODEL_FAILED")]
             feeds.append(
                 {
                     "profile": prof,
                     "feed": feed_status(ss.last_heartbeat_ms, tf, now, 2),
                     "mso_trend": (ss.mso or {}).get("trend"),
                     "mso_osc": (ss.mso or {}).get("osc"),
-                    "active_models": [{"key": m.model_key, "dir": m.direction, "status": m.status} for m in active],
                     "last_mso_event": ss.mso_events[-1][:2] if ss.mso_events else None,
                 }
             )
@@ -284,12 +253,6 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
                 "feeds": feeds,
             }
         )
-    last = db.execute(select(Signal).order_by(Signal.id.desc()).limit(1)).scalar_one_or_none()
-    last_gates = (
-        {g.gate: g.passed for g in db.execute(select(SignalGate).where(SignalGate.signal_id == last.id)).scalars()}
-        if last
-        else {}
-    )
     return {
         "tradingagents": {
             "installed_version": ver.data.get("version") if ver and ver.ok else None,
@@ -297,16 +260,8 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
             "configured": configured,
             "schedule": r.schedule.bias,
         },
-        "indicators": [
-            "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]",
-            *(["Market Structure Oscillator [BigBeluga]"] if r.indicators.mso.enabled else []),
-        ],
         "mso_enabled": r.indicators.mso.enabled,
         "instruments": instruments,
-        "gates": [
-            {"id": g, "text": t, "last": last_gates.get(g)} for g, t in gate_texts(request.app.state.rules.rules)
-        ],
-        "last_signal": {"id": last.id, "status": last.status, "skip_reason": last.skip_reason} if last else None,
         "one_to_one": r.one_to_one_mode.enabled,
     }
 
@@ -314,7 +269,7 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
 def _gate_chain(r: Any) -> list[dict[str, object]]:
     """D77/D80: the gates a NOISE / PM_FADE entry passes (all must pass; a gate can only block). Read from the live
     config —
-    nothing is hardcoded here, so the UI shows exactly what the engine does. state: ON | OFF | ADVISORY | LUNQFX_ONLY.
+    nothing is hardcoded here, so the UI shows exactly what the engine does. state: ON | OFF | ADVISORY.
     setting = My Settings key a toggle may edit (None = not editable); unproven = gold badge + confirm in the UI."""
     sf, st = r.strategy.structure_filters, r.strategy
     inst = r.instrument(st.noise_cfg.symbol)
@@ -345,7 +300,6 @@ def _gate_chain(r: Any) -> list[dict[str, object]]:
             "scope": scope,
         }
 
-    lunq = "Applies to the LunqFX engine only - not to NOISE or the afternoon fade."
     rows = [
         row(
             "G1",
@@ -389,67 +343,10 @@ def _gate_chain(r: Any) -> list[dict[str, object]]:
             f"Records one call per day and scores it. It may block an entry only when BOTH tools agree strongly and the live record proves >= {float(st.ai_gate_min_accuracy):.0%} (strategy.ai_gate_min_accuracy). Until then it only advises. Simulated 55-70% accuracy moved held-out win rate by at most +0.5 pt.",  # noqa: E501
             setting="strategy.ai_gate_min_accuracy",
         ),
-        row("G2", "Daily bias gate (G2)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
-        row("G3", "Model valid + C1 range (G3)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
-        row(
-            "G4",
-            "Big Beluga MSO structure agrees (G4)",
-            "lunqfx",
-            "LUNQFX_ONLY",
-            lunq + " Tested as a filter on NOISE + fade: cut 5-40% of trades and held-out win rate and profit fell.",
-            scope="lunqfx",
-        ),
-        row("G5", "CHoCH / BoS after sweep (G5)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
-        row("G7", "Valid TradePlan + score (G7)", "lunqfx", "LUNQFX_ONLY", lunq, scope="lunqfx"),
-        row(
-            "FRACTAL",
-            "LunqFX fractal agreement",
-            "lunqfx",
-            "LUNQFX_ONLY",
-            "LunqFX only. Tested as a filter on NOISE + fade: kept 30-50% of trades, profit fell 55-80% - off. LunqFX stays a SHADOW strategy.",  # noqa: E501
-            scope="lunqfx",
-        ),
     ]
     if not r.indicators.mso.enabled:  # D91: BigBeluga MSO is off, so its gates and the MSO divergence filter are hidden
-        rows = [x for x in rows if x["id"] not in MSO_GATES]
+        rows = [x for x in rows if x["id"] != "G6"]
     return rows
-
-
-def _lunq_shadow(c: dict[str, object], mso_on: bool) -> dict[str, object]:
-    if mso_on or c["key"] != "lunqfx":
-        return {}
-    return {
-        "status": "SHADOW ONLY",
-        "note": "BigBeluga MSO is off (D91): LunqFX is untested without it, so it only runs in SHADOW - "
-        "even if this button is ON.",
-    }
-
-
-def _lunqfx_flags(r: Any) -> list[dict[str, object]]:
-    """D76/D80: the LunqFX structure-filter flags (all unproven; the OB filter was the best candidate, still a loss)."""
-    lf = r.strategy.lunqfx_structure
-    f = lf.filter
-    return [
-        {
-            "setting": "strategy.lunqfx_structure.enabled",
-            "name": "Structure filter (OB / SMT) blocks LunqFX entries",
-            "on": lf.enabled,
-            "text": "Tested 2024-26: OB filter lifted win rate 53.9% to 62.9% but still lost money; SMT was worse.",
-        },
-        {
-            "setting": "strategy.lunqfx_structure.anchor_stop",
-            "name": "Order-block stop anchor",
-            "on": lf.anchor_stop,
-            "text": "Tested: no effect (a tighter stop almost never keeps R:R at or below 3.0) - off.",
-        },
-        {
-            "setting": "strategy.lunqfx_structure.shadow_log",
-            "name": "Shadow-log the verdicts",
-            "on": lf.shadow_log,
-            "text": "Stores what the filter would have blocked without blocking it "
-            f"(OB {'on' if f.ob_filter else 'off'}, SMT {'on' if f.smt_filter else 'off'}).",
-        },
-    ]
 
 
 def _ta_mgc(db: Session, r: Any, sess: Any) -> dict[str, Any]:
@@ -563,7 +460,6 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     sess = session_date(now)
     on = {
         "noise": r.strategy.noise,
-        "lunqfx": r.strategy.lunqfx,
         "open_drive": r.strategy.open_drive,
         "ai_bias": r.strategy.ai_bias,
         "ai_duo": r.strategy.ai_duo,
@@ -579,16 +475,12 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     for sym, i in r.instruments.items():
         if i.enabled:
             ledgers.append({**status(db, i.bias_proxy, sym, sess, float(r.strategy.ai_gate_min_accuracy)), "rows": []})
-    mso_on = r.indicators.mso.enabled
-    if not mso_on:  # D91: LunqFX is untested without MSO -> shown (and enforced) as SHADOW only
-        on["lunqfx"] = False
     return {
         "strategies": [
             {
                 **c,
                 "enabled": on[str(c["key"])],
                 "setting": f"strategy.{c['key']}",
-                **_lunq_shadow(c, mso_on),
                 **_order_flow_markets(c, r),
             }
             for c in CATALOG
@@ -603,7 +495,6 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "ta_mgc": _ta_mgc(db, r, sess),
         "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
         "gate_chain": _gate_chain(r),
-        "lunqfx_flags": _lunqfx_flags(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
         "size_profiles": {  # D64: Regular / High risk buttons (each account sized by its own size + drawdown brake)
             "active": "high" if r.strategy.high_risk else "regular",

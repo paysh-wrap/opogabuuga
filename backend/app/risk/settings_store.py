@@ -65,7 +65,6 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "filters.trend.ema200_5m",
         "filters.trend.utbot_5m",
         "filters.trend.squeeze_5m_15m",
-        "strategy.lunqfx",  # D55: strategy buttons (parameters stay in the plan file)
         "strategy.noise",
         "strategy.open_drive",
         "strategy.ai_bias",
@@ -85,9 +84,6 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.structure_filters.smt_filter",
         "strategy.structure_filters.mso_div_filter",
         "strategy.structure_filters.shadow_log",
-        "strategy.lunqfx_structure.enabled",
-        "strategy.lunqfx_structure.anchor_stop",
-        "strategy.lunqfx_structure.shadow_log",
         "strategy.ai_gate_min_accuracy",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",

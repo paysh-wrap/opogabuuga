@@ -3,7 +3,7 @@
 Source: docs/results/2026-11-09_session9_strategy_research.md (Databento MNQ 1-minute 2019-05 → 2026-11, pick on
 2019–2023, judge unchanged on 2024-01 → 2026-11, 1 micro, costs included). Pro 25K figures: tools/sim25k.py rolling
 starts on real held-out days (eval: +$1,250 target, $1,000 EOD trailing max loss; open-trade drawdown and news not
-modeled → somewhat optimistic). The LunqFX row is the engine's own 1-year run (D52/D54)."""
+modeled → somewhat optimistic)."""
 
 from __future__ import annotations
 
@@ -43,23 +43,6 @@ CATALOG: list[dict[str, object]] = [
         "period": "held-out 2024-01 → 2026-11",
         "note": "Hourly checks 10:00–15:00, exit on band/VWAP, 1% emergency stop, flat 16:00. Warm-up: 10 sessions "
         "of TradingView 1-minute bars.",
-    },
-    {
-        "key": "lunqfx",
-        "name": "LunqFX fractal (original strategy)",
-        "source": "ICT/LunqFX C1→C2 sweep + CISD (BigBeluga MSO optional, off by default, D91)",
-        "verified": False,
-        "status": "ORIGINAL",
-        "win_pct": 35.0,
-        "profit_factor": 1.07,
-        "usd_per_trade": 1.98,
-        "trades_per_week": 4.7,
-        "held_out_trades": 248,
-        "pro25k_pass_pct": None,
-        "pro25k_bust_pct": None,
-        "period": "engine, Nov 2025 → Oct 2026 (MNQ, from 03:00)",
-        "note": "No credible independent evidence for sweep/CISD setups; kept as a button. Off = runs in SHADOW. "
-        "Without BigBeluga MSO (default, D91) it is untested and always SHADOW.",
     },
     {
         "key": "open_drive",

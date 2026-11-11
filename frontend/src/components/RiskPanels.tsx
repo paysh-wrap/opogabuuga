@@ -64,7 +64,6 @@ export function EvalModePanel() {
         <li><b className="text-gold">MAIN strategy (NOISE + fade), Lucid Pro:</b> 150K trades 4 micros (brake to 2 below 50% cushion) — pass ≈ 19 sessions faster;
           100K starts at 2 and grows +1 per $1,200 of cushion up to 4, and stops for the day once today&apos;s profit ≥ 33% of the remaining target — ≈ 14 sessions faster;
           25K / 50K unchanged (every faster setting lost value in the 5-year test).</li>
-        <li>Original LunqFX strategy: risk tiers 10/12/14% (max $140).</li>
         <li>Never changes gates, stops, DLL/MLL, day stops, kill switch or flat rules. Applies to the next new trade.</li>
       </ul>
       {err && <p role="alert" className="mt-2 text-sm text-goldLight">⚠ {err}</p>}

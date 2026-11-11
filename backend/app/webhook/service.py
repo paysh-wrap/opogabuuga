@@ -17,7 +17,7 @@ from app.indicators.bars import tf_minutes
 from app.models import Bar as BarRow
 from app.models import Event
 from app.webhook.parser_bridge import map_symbol, parse
-from app.webhook.schemas import WebhookPayload
+from app.webhook.schemas import FRACTAL_EVENTS, WebhookPayload
 from app.webhook.security import Rejection, freshness, secret_ok
 
 
@@ -55,9 +55,17 @@ class Accepted:
     duplicate: bool
 
 
+@dataclass(frozen=True)
+class Ignored:
+    """D105: a LunqFX fractal alert (feature removed): acknowledged with 200 (no TradingView error), nothing stored."""
+
+    code: str
+    detail: str
+
+
 def ingest(
     s: Session, body: bytes, *, rules: RulesConfig, secret: str, clock: Clock, ip: str, stats: WebhookStats
-) -> Accepted | Rejection:
+) -> Accepted | Ignored | Rejection:
     now = clock.now()
     p, rej = parse(body, rules)
     if rej is not None or p is None:
@@ -78,6 +86,10 @@ def ingest(
         r = Rejection(422, "UNKNOWN_SYMBOL", f"{p.symbol!r} is not a configured instrument")
         stats.reject(r, now, ip)
         return r
+    if p.event in FRACTAL_EVENTS:
+        stats.accepted["LUNQFX_REMOVED"] += 1
+        detail = "LunqFX was removed from Paytience (D105): this alert is ignored - delete it in TradingView"
+        return Ignored("LUNQFX_REMOVED", detail)
     expected_tf = rules.profiles.TIGHT.ltf if p.profile == "TIGHT" else rules.profiles.STD.ltf
     try:
         tf_ok = tf_minutes(p.tf) == tf_minutes(expected_tf)

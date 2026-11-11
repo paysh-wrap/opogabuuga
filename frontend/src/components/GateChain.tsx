@@ -6,7 +6,7 @@ import FlagToggle from "./FlagToggle";
 import type { StrategiesResp } from "./StrategyButtons";
 
 // D77: the gates a NOISE / PM_FADE entry passes. All must pass; a gate can only block. Rows come from the server config.
-const KIND: Record<string, string> = { "firm-safe": "FIRM SAFETY", pillar: "PILLAR", study: "TESTED", ai: "AI", lunqfx: "LunqFX only" };
+const KIND: Record<string, string> = { "firm-safe": "FIRM SAFETY", pillar: "PILLAR", study: "TESTED", ai: "AI" };
 const card = "rounded-xl border border-border bg-card p-4";
 
 function AiThreshold({ value }: { value: number }) {
@@ -34,7 +34,7 @@ export default function GateChain() {
   const rows = q.data?.gate_chain;
   if (!rows) return null;
   const led = q.data?.ai_ledger[0];
-  const label = (g: (typeof rows)[number]) => g.state === "LUNQFX_ONLY" ? "LunqFX only" : g.state === "ADVISORY" ? "ADVISORY" : g.on ? "ON" : "OFF";
+  const label = (g: (typeof rows)[number]) => g.state === "ADVISORY" ? "ADVISORY" : g.on ? "ON" : "OFF";
   return (
     <section className={card} data-testid="gate-chain">
       <h2 className="font-semibold text-gold">Paytience · Gates for NOISE + afternoon fade (all must pass)</h2>

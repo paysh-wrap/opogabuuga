@@ -1,6 +1,7 @@
-"""Backtest = replay through the SAME live code (§16): 1-minute bars → Python ports of the LunqFX fractal + BigBeluga
-MSO → bridge-format alerts → the real webhook → confluence gates → risk → order manager → simulator (fees, slippage,
-stop-first). Runs in a throwaway app instance + database; nothing touches the real app.
+"""Backtest = replay through the SAME live code (§16): 1-minute bars → bridge-format alerts → the real webhook →
+the enabled strategies (NOISE etc.) → risk → order manager → simulator (fees, slippage, stop-first). D105: the LunqFX
+fractal alerts are no longer replayed (the live webhook ignores them).
+Runs in a throwaway app instance + database; nothing touches the real app.
 
 Inputs the past can't supply, set explicitly and reported with the result:
 - bias: "recorded" (stored TradingAgents decisions only; missing days = NO_TRADE) or a fixed value for every day
@@ -21,6 +22,7 @@ from typing import Any
 
 from app.backtest.parity import replay_payloads
 from app.indicators.bars import Bar
+from app.webhook.schemas import FRACTAL_EVENTS
 
 MIN_MS = 60_000
 
@@ -141,6 +143,7 @@ def run_backtest(bars_1m: Iterable[Bar], cfg: BacktestConfig, rules_path: Path |
             div_pivot_left=m.div_pivot_left,
             div_pivot_right=m.div_pivot_right,
         )
+    payloads = [p for p in payloads if p["event"] not in FRACTAL_EVENTS]  # D105: LunqFX alerts are ignored live
     payloads.sort(key=lambda p: (p["bar_time_ms"], p["event"] != "HEARTBEAT"))
     assumptions = ["no historical news calendar: sessions treated as having no high-impact USD events"]
     if cfg.data_source != "futures":

@@ -19,8 +19,8 @@ from app.indicators.bars import tf_minutes
 from app.models import Event
 from app.monitor.feed import feed_status
 from app.settings import REPO_ROOT
-from app.signals.service import SignalUpdate, process
-from app.webhook.service import Accepted, ingest
+from app.signals.service import SignalUpdate
+from app.webhook.service import Accepted, Ignored, ingest
 
 router = APIRouter(prefix="/api")
 log = structlog.get_logger()
@@ -50,7 +50,7 @@ async def _after_accept(request: Request, acc: Accepted) -> None:
 
 async def after_accept(app: Any, acc: Accepted, replay: bool = False) -> None:
     """Process one stored event. replay=True (watchdog / startup replay of a heartbeat that was accepted but never
-    processed): market state and LunqFX gates are left alone and strategies may only EXIT - a late bar never opens a
+    processed): market state is left alone and strategies may only EXIT - a late bar never opens a
     position - but fills / stops / strategy exits on that bar still run."""
     st = app.state
     p = acc.payload
@@ -67,23 +67,8 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
     key = f"{acc.symbol}-{p.profile}"
     lock = st.signal_locks.setdefault(key, asyncio.Lock())
     async with lock:  # one evaluation at a time per symbol+profile (webhooks for one bar arrive concurrently)
-        state = st.market.states.get((acc.symbol, p.profile)) if replay else st.market.apply(acc.symbol, p)
-
-        def work() -> list[SignalUpdate]:
-            with st.sessionmaker() as s:
-                return process(
-                    s,
-                    state,
-                    rules=st.rules.rules,
-                    clock=st.clock,
-                    calendar=st.calendar,
-                    event=p.event,
-                    event_time_ms=p.bar_time_ms,
-                    one_to_one=st.rules.rules.one_to_one_mode.enabled
-                    or st.rules.rules.scalp_mode.enabled
-                    or (st.rules.eval_mode_on and st.rules.rules.eval_mode.one_to_one),
-                    cache=st.stats_cache,
-                )
+        if not replay:
+            st.market.apply(acc.symbol, p)
 
         def strategies() -> Any:  # D55: NOISE / OPEN_DRIVE from the stored 1-minute TradingView bars
             from datetime import UTC, datetime
@@ -102,7 +87,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                     exits_only=replay,
                 )
 
-        def order_flow() -> Any:  # D95: ORDER_FLOW alert → paper-only strategy signal (never the LunqFX engine)
+        def order_flow() -> Any:  # D95: ORDER_FLOW alert → paper-only strategy signal
             from app.signals import strategy_service
 
             with st.sessionmaker() as s:
@@ -112,10 +97,9 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
 
         exits: list[tuple[int, str]] = []
         try:
+            updates: list[SignalUpdate] = []
             if p.event == "ORDER_FLOW":
                 updates = [] if replay else (await _run_sync(st, order_flow)).updates
-            else:
-                updates = [] if replay else await _run_sync(st, work)
             if p.event == "HEARTBEAT" and p.price is not None:
                 strat = await _run_sync(st, strategies)
                 updates = [*updates, *strat.updates]
@@ -178,8 +162,6 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
             "signal.updated",
             {"id": u.signal_id, "model_key": u.model_key, "status": u.status, "reason": u.reason, "score": u.score},
         )
-    if p.event == "MODEL_FAILED":
-        await st.hub.broadcast("cooldown.changed", {"symbol": acc.symbol, "profile": p.profile})
 
 
 @router.post("/webhook/tradingview")
@@ -206,6 +188,8 @@ async def tradingview(request: Request, background: BackgroundTasks) -> JSONResp
             )
 
     res = await _run_sync(st, work)
+    if isinstance(res, Ignored):  # D105: LunqFX alerts are acknowledged and dropped - no signal, no banner
+        return JSONResponse({"ok": True, "ignored": True, "code": res.code, "detail": res.detail})
     if isinstance(res, Accepted):
         if not res.duplicate:
             background.add_task(after_accept, request.app, res)
