@@ -918,3 +918,13 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   tests/integration/test_orderflow_api.py, frontend/src/pages/OrderFlow.test.tsx.
 - Known gaps: canvas drawing and the lightweight-charts rendering are not exercised in jsdom (mocked) — check the page once in a
   browser; no tick feed exists yet; the estimated split cannot show true absorption/imbalance inside a bar.
+
+## D99 (user 2026-11-11, final update): only MANDATORY connections block live start; rule-compliance matrix
+- Pre-flight/arming: only mandatory items (broker route, TradingView heartbeat + webhook secret, public URL, calendar, positions
+  attestation, clock sync, last pre-flight) can fail it. Optional items (TradingAgents bias, AI keys, Discord, Trading-R1, data vendors,
+  update token) are warnings only: bias-dependent strategies skip/shadow, others trade. No mandatory or money/Lucid check loosened.
+- Clock drift is now measured by the server (monitor/clocksync.py); it blocks only when the drift is KNOWN > 2 s, otherwise "unknown" + notice.
+- New test matrix (tests/integration/test_rule_matrix.py): every strategy x every plan (Pro/Flex/Daily 25K-150K) x EVAL/FUNDED — caps from
+  config, worst-case stop within DLL/MLL room, 1 open position, hedge lock, 16:00 flat order, Order Flow/unverified strategies paper-only.
+- Finding fixed: ORDER_FLOW was missing from the controller's fixed-size table (would have raised KeyError on the first Order Flow signal) —
+  now uses order_flow_cfg.contracts (1 micro).

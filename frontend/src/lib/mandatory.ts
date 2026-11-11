@@ -11,8 +11,10 @@
  *   attestation    – external-positions attestation each session before arming (§1.11)
  *   clock sync     – pre-flight clock drift < 2 s (§13)
  *   pre-flight     – the server refuses SEMI/FULL automation unless the last pre-flight passed
- * Optional (normal colour): Discord/notifications, AI keys (TradingAgents, Vibe-Trading, Alpha Vantage, FRED),
- * Trading-R1, Databento/OpenBB/Fincept data, Lucid dashboard link, GitHub updates.
+ * Optional (normal colour, NEVER block starting/arming — D99): Discord/notifications, AI keys (TradingAgents daily
+ * bias, Vibe-Trading, Alpha Vantage, FRED), Trading-R1, Databento/OpenBB/Fincept data, Lucid dashboard link, GitHub
+ * updates. Missing daily bias only makes bias-dependent strategies skip with a notice (server: pre-flight "bias" is a
+ * warning, not a failure).
  */
 import type { ConnectionsResponse, WebhookStatus } from "./api";
 
@@ -27,7 +29,13 @@ export interface CheckItem { id: string; label: string; state: CheckState; detai
 export interface PlanSlice {
   calendar_loaded?: boolean;
   attested_today?: boolean;
-  preflight?: { ok: boolean; failures: string[]; at: string } | null;
+  preflight?: {
+    ok: boolean;
+    failures: string[];
+    warnings?: string[];
+    checks?: { check: string; ok: boolean; detail: string; optional?: boolean; unknown?: boolean }[];
+    at: string;
+  } | null;
 }
 export interface ChecklistInput {
   conns?: ConnectionsResponse;
@@ -97,10 +105,14 @@ function attestation(plan?: PlanSlice): CheckItem {
     : { id: "attestation", label, state: "fail", detail: "Not done yet — attest on Today or Trade before arming" };
 }
 
-function clock(): CheckItem {
-  // The server's pre-flight currently feeds clock_drift_s = 0.0 (not measured), so its "ok" proves nothing.
-  return { id: "clock", label: "Clock sync (drift < 2 s)", state: "unknown",
-    detail: "unknown — the server does not measure clock drift yet (pre-flight assumes 0 s)" };
+function clock(plan?: PlanSlice): CheckItem {
+  // D99: the server measures the drift (HTTP Date header of a reliable host). "unknown" = not measurable right now:
+  // it never blocks, but it is never shown as OK either. Only a KNOWN drift over 2 s fails.
+  const label = "Clock sync (drift < 2 s)";
+  const c = plan?.preflight?.checks?.find((x) => x.check === "clock_drift");
+  if (!c) return { id: "clock", label, state: "unknown", detail: "unknown — the server does not measure clock drift yet (no pre-flight result)" };
+  if (c.unknown) return { id: "clock", label, state: "unknown", detail: c.detail || "unknown — not measurable (no time source reachable)" };
+  return c.ok ? { id: "clock", label, state: "ok", detail: c.detail } : { id: "clock", label, state: "fail", detail: c.detail };
 }
 
 function preflight(plan?: PlanSlice): CheckItem {
@@ -120,7 +132,7 @@ export function buildChecklist(x0: ChecklistInput): { items: CheckItem[]; ready:
     plan: x0.plan && typeof x0.plan === "object" ? x0.plan : undefined,
   };
   const items = [broker(x.conns), heartbeat(x.conns), secret(x.webhook), publicUrl(x.conns), calendar(x.plan),
-    attestation(x.plan), clock(), preflight(x.plan)];
+    attestation(x.plan), clock(x.plan), preflight(x.plan)];
   const ready: Readiness = items.some((i) => i.state === "fail") ? "no"
     : items.some((i) => i.state === "unknown") ? "unconfirmed" : "yes";
   return { items, ready };

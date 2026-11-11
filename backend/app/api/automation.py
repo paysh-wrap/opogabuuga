@@ -94,6 +94,9 @@ async def _preflight(request: Request, db: Session) -> dict[str, Any]:
     reconciled = not await c.reconcile(db)
     sess = session_date(now)
     proxy = st.rules.rules.instrument("MNQ").bias_proxy
+    from app.monitor.clocksync import cached_measure
+
+    clk = await cached_measure(st)  # D99: measured (HTTP Date header); unknown never blocks
     res = run_preflight(
         PreflightInput(
             broker_ok=True,
@@ -106,18 +109,28 @@ async def _preflight(request: Request, db: Session) -> dict[str, Any]:
             reconciled=reconciled,
             orphan_orders=0,
             attested_today=stt.attested_today(db, now),
-            clock_drift_s=0.0,
+            webhook_secret_set=bool(st.settings.webhook_secret.get_secret_value()),
+            clock_drift_s=clk.drift_s,
+            clock_uncertainty_s=clk.uncertainty_s,
+            clock_detail=clk.detail,
             rules_error=st.rules.error,
             conservative_mode=conservative_mode(c.adapter),
         )
     )
-    out = {"ok": res.ok, "checks": res.checks, "failures": res.failures}
+    out = {"ok": res.ok, "checks": res.checks, "failures": res.failures, "warnings": res.warnings}
     prev = getattr(st, "last_preflight", None)
     if not res.ok and (prev is None or prev.get("ok")):  # notify on the transition only (UI polls every 30 s)
         c.notify("error", "Pre-flight failed", ", ".join(res.failures)[:500], "preflight")
         c.publish("system.status", {"preflight_ok": False, "failures": res.failures})
     elif res.ok and prev is not None and not prev.get("ok"):
         c.publish("system.status", {"preflight_ok": True})
+    if res.warnings and (prev is None or prev.get("warnings") != res.warnings):  # D99: optional items never block
+        c.notify(
+            "warn",
+            "Optional item missing (not blocking)",
+            "bias: no daily bias today — LunqFX/AI strategies skip, NOISE and the others keep trading",
+            "preflight",
+        )
     st.last_preflight = {**out, "at": now.isoformat()}  # shown on the Today page
     return out
 

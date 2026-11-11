@@ -42,8 +42,8 @@ test("any missing item → NO", () => {
   const noAttest = buildChecklist({ conns: allGood, webhook: hook(true), plan: { ...goodPlan, attested_today: false } });
   expect(noAttest.ready).toBe("no");
   expect(state(noAttest, "attestation")).toBe("fail");
-  const pf = buildChecklist({ conns: allGood, webhook: hook(true), plan: { ...goodPlan, preflight: { ok: false, failures: ["calendar", "bias"], at: "" } } });
-  expect(pf.items.find((i) => i.id === "preflight")?.detail).toBe("Failed: calendar, bias");
+  const pf = buildChecklist({ conns: allGood, webhook: hook(true), plan: { ...goodPlan, preflight: { ok: false, failures: ["calendar", "clock_drift"], at: "" } } });
+  expect(pf.items.find((i) => i.id === "preflight")?.detail).toBe("Failed: calendar, clock_drift");
   expect(buildChecklist({ conns: conns([]), webhook: hook(true), plan: goodPlan }).items.find((i) => i.id === "broker")?.state).toBe("fail");
 });
 
@@ -67,4 +67,49 @@ test("a malformed payload counts as unavailable, not OK", () => {
   expect(state(r, "broker")).toBe("unknown");
   expect(state(r, "webhook_secret")).toBe("unknown");
   expect(state(r, "calendar")).toBe("unknown");
+});
+
+const pfWith = (check: { ok: boolean; detail: string; unknown?: boolean }) => ({
+  ...goodPlan,
+  preflight: { ok: check.ok, failures: check.ok ? [] : ["clock_drift"], at: "", checks: [{ check: "clock_drift", ...check }] },
+});
+
+test("D99 clock sync: measured OK → ok; unmeasurable → unknown (not blocking); known drift > 2 s → fail", () => {
+  const ok = buildChecklist({ conns: allGood, webhook: hook(true), plan: pfWith({ ok: true, detail: "+0.40 s (±0.50, 2 source(s))" }) });
+  expect(state(ok, "clock")).toBe("ok");
+  expect(ok.ready).toBe("yes");
+  const unk = buildChecklist({ conns: allGood, webhook: hook(true), plan: pfWith({ ok: true, unknown: true, detail: "unknown — no reliable time source reachable" }) });
+  expect(state(unk, "clock")).toBe("unknown");
+  expect(unk.ready).toBe("unconfirmed");
+  const bad = buildChecklist({ conns: allGood, webhook: hook(true), plan: pfWith({ ok: false, detail: "+9.00 s (±0.50, 2 source(s))" }) });
+  expect(state(bad, "clock")).toBe("fail");
+  expect(bad.ready).toBe("no");
+});
+
+test("D99 optional connections (Discord, AI keys, TradingAgents, Trading-R1, data vendors, GitHub) never make readiness NO", () => {
+  const optionals = ["discord", "tradingagents", "vibetrading", "alpha_vantage", "fred", "trading_r1", "databento", "openbb", "github_updates"]
+    .map((id) => c(id, "failed", { detail: "not set / failed" }));
+  const all = conns([...allGood.connections, ...optionals]);
+  const okPlan = pfWith({ ok: true, detail: "+0.10 s (±0.50, 1 source(s))" });
+  const r = buildChecklist({ conns: all, webhook: hook(true), plan: okPlan });
+  expect(r.ready).toBe("yes");
+  expect(r.items.map((i) => i.id)).toEqual(["broker", "heartbeat", "webhook_secret", "public_url", "calendar", "attestation", "clock", "preflight"]);
+});
+
+test("D99 every mandatory item missing alone → NO", () => {
+  const okPlan = pfWith({ ok: true, detail: "+0.10 s (±0.50, 1 source(s))" });
+  const bad: Record<string, Parameters<typeof buildChecklist>[0]> = {
+    broker: { conns: conns(allGood.connections.filter((x) => x.id !== "crosstrade")), webhook: hook(true), plan: okPlan },
+    heartbeat: { conns: conns(allGood.connections.map((x) => (x.id === "tradingview" ? c("tradingview", "waiting", { detail: "Waiting for the first TradingView heartbeat" }) : x))), webhook: hook(true), plan: okPlan },
+    webhook_secret: { conns: allGood, webhook: hook(false), plan: okPlan },
+    public_url: { conns: conns(allGood.connections.map((x) => (x.id === "ngrok" ? c("ngrok", "not_set", { tunnel: { mode: "none", public_url: "", permanent: false, error: "" } }) : x))), webhook: hook(true), plan: okPlan },
+    calendar: { conns: allGood, webhook: hook(true), plan: { ...okPlan, calendar_loaded: false } },
+    attestation: { conns: allGood, webhook: hook(true), plan: { ...okPlan, attested_today: false } },
+    preflight: { conns: allGood, webhook: hook(true), plan: { ...okPlan, preflight: { ok: false, failures: ["calendar"], at: "", checks: okPlan.preflight.checks } } },
+  };
+  for (const [id, input] of Object.entries(bad)) {
+    const r = buildChecklist(input);
+    expect([id, r.ready]).toEqual([id, "no"]);
+    expect(state(r, id)).toBe("fail");
+  }
 });

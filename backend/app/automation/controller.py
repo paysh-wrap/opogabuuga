@@ -467,6 +467,7 @@ class Controller:
                 "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
                 "PM_FADE": r.strategy.pm_fade_cfg.contracts,
                 "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
+                "ORDER_FLOW": r.strategy.order_flow_cfg.contracts,  # D99: fixed 1 micro (matrix test found the gap)
             }[strategy]
             if strategy
             else None
