@@ -260,10 +260,12 @@ export default function Connections() {
       <TradingViewSetup publicBase={base} permanent={!!permanent} />
       <TestAlert />
 
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-gold">TradingView indicators</h2>
-        <div className="grid gap-3 md:grid-cols-2">{indicators.map((i) => <IndicatorCard key={i.id} ind={i} />)}</div>
-      </section>
+      {indicators.length > 0 && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold text-gold">TradingView indicators</h2>
+          <div className="grid gap-3 md:grid-cols-2">{indicators.map((i) => <IndicatorCard key={i.id} ind={i} />)}</div>
+        </section>
+      )}
 
       {GROUPS.map(([cat, title]) => {
         const items = connections.filter((c) => c.category === cat);

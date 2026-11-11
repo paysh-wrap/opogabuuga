@@ -1090,3 +1090,4 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   vs the injected Clock (`monitor/feed.py: bar_lag_s/data_feed_status`, config `webhook.realtime_max_lag_s` default 90 s);
   DELAYED → controller blocks NEW entries for all strategies (`FEED_DELAYED`) + safety banner + notify; flatten rules unchanged.
   UI: "CME real-time data: OK / DELAYED / unknown" on Connections; Strategy page note. Latest real delta kept on SymbolState.
+- D113 (user 2026-11-11): BigBeluga MSO card removed from the Connections page (INDICATORS empty; empty section hidden). Tunnel test now hints "try https://…" when the URL has no scheme.

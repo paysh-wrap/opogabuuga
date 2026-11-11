@@ -41,7 +41,7 @@ def test_lists_every_service_with_links(authed, mock_http):
     lucid = _get(authed, "lucid")
     assert lucid["status"] == "link" and lucid["detail"] == "" and "never logs into Lucid" in lucid["note"]
     names = [i["name"] for i in body["indicators"]]
-    assert names == ["Market Structure Oscillator [BigBeluga]"]  # D105: LunqFX indicator card removed
+    assert names == []  # D105 LunqFX card + D113 BigBeluga card removed
 
 
 def test_save_test_connected_then_failed_is_write_only(authed, mock_http):
@@ -138,12 +138,9 @@ def test_tradingagents_version_mismatch_fails(fake_ta, mock_http, tmp_path):
     assert v["status"] == "failed" and "pinned 0.7.1" in v["detail"]
 
 
-def test_indicator_source_license(authed, mock_http):
+def test_indicator_cards_removed(authed, mock_http):
     src = "// This work is licensed under Attribution-NonCommercial-ShareAlike 4.0\n//@version=6\nindicator('x')"
-    r = authed.put("/api/indicators/bigbeluga_mso", json={"source": src})
-    ind = next(i for i in r.json()["indicators"] if i["id"] == "bigbeluga_mso")
-    assert ind["source_on_file"] and ind["license"] == "CC BY-NC-SA 4.0" and ind["personal_use_only"]
-    assert authed.put("/api/indicators/bigbeluga_mso", json={"source": "not pine at all"}).status_code == 422
+    assert authed.put("/api/indicators/bigbeluga_mso", json={"source": src}).status_code == 404  # D113: removed
     assert authed.put("/api/indicators/lunqfx", json={"source": src}).status_code == 404  # D105: removed
 
 

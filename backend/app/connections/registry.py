@@ -416,16 +416,8 @@ PROVIDERS: tuple[Provider, ...] = (
     ),
 )
 
-INDICATORS: tuple[dict[str, str], ...] = (
-    {
-        "id": "bigbeluga_mso",
-        "name": BIGBELUGA_NAME,
-        "author": "BigBeluga",
-        "role": "OFF by default (D91) — optional: structure turn, trend side, divergence veto (gates G4–G6)",
-        "link": _tv_search("Market Structure Oscillator BigBeluga"),
-        "setting": "Default settings",
-    },
-)
+# D113 (user 2026-11-11): BigBeluga card removed from Connections; no indicator needs a source on file.
+INDICATORS: tuple[dict[str, str], ...] = ()
 
 
 def get_provider(pid: str) -> Provider:

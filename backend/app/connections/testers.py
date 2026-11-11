@@ -90,7 +90,8 @@ async def _discord(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
 async def _tunnel(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     base = v["public_url"].rstrip("/")
     if not base.startswith("https://"):
-        return TestResult(False, "Must start with https:// (TradingView only posts to 443/80)")
+        hint = f" — try https://{base}" if base and "://" not in base else ""
+        return TestResult(False, f"Must start with https:// (TradingView only posts to 443/80){hint}")
     r = await http.get(f"{base}/api/health")
     if r.status_code == 200 and r.json().get("app") == "paytience":
         return TestResult(True, "Reachable from the internet — this is your webhook base URL")

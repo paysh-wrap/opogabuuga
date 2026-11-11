@@ -16,9 +16,7 @@ function payload(status: Connection["status"], hints: Record<string, string> = {
   return {
     connections: [{ ...base, id: "databento", name: "Databento (historical futures data)", status, hints,
       detail: status === "connected" ? "Key accepted" : "" }],
-    indicators: [{ id: "bigbeluga_mso", name: "Market Structure Oscillator [BigBeluga]", author: "BigBeluga",
-      role: "WHERE / WHAT", link: "https://www.tradingview.com/scripts/search/x/", setting: "Require C2 to close back inside C1 = ON",
-      source_on_file: false, license: null, personal_use_only: null, alerts_status: "waiting", alerts_detail: "Waiting" }],
+    indicators: [],
     summary: { connected: status === "connected" ? 1 : 0, total: 1, required_ready: false },
     webhook_path: "/api/webhook/tradingview", master_key_set: true,
   };
@@ -47,7 +45,7 @@ afterEach(() => vi.restoreAllMocks());
 
 test("shows indicator names, external links in new tab, and Not set status", async () => {
   setup([payload("not_set")]);
-  expect(await screen.findByText("Market Structure Oscillator [BigBeluga]")).toBeInTheDocument();
+  expect(await screen.findByText("Databento (historical futures data)")).toBeInTheDocument();
   const card = screen.getByTestId("conn-databento");
   expect(within(card).getByTestId("status")).toHaveAttribute("data-status", "not_set");
   const link = within(card).getByRole("link", { name: /API keys/ });
