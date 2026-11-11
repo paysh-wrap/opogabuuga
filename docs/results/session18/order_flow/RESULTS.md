@@ -88,3 +88,45 @@ is a crude stand-in for aggressor volume - only that this proxy is not tradable.
 signal = POC rejection, heavy delta k = 1.5 x avg|5m delta| (20 bars), target 1.5R, stop 1 tick beyond the bar low/high or POC,
 entries 09:35-15:30 ET, flat 16:00, 1 micro, max 3/day, no context filter; label all deltas "estimated". Re-test with real `trades` data
 (aggressor side) when Databento is unlocked before anything trades. NOISE stays the main strategy.
+
+## Teacher CZT framework (Jesse Rogers 4h, strategy chapters only; TEACHER_RULES_4H.md) - same 1-year walk-forward, ESTIMATED order flow
+Script `czt1y.py` -> `czt1y.json` (108 configs). Uses only the Condition / Zone / Trigger / Management rules (Delta, Absorption, Volume Profile,
+Context/Premium-Discount, volatility). Gamma exposure skipped (no options data); LVNs and weekly profile not built.
+- **Condition:** prior RTH volume profile from 1m closes (2-pt bins, 70% value area: POC/VAH/VAL). Open above VAH -> longs only, below VAL ->
+  shorts only, inside -> reversals at VAL (long) / VAH (short) only. "Flat" day (prior value-area width < 20th pct of last 60) -> no trade.
+- **Zone:** prior VAH/VAL/POC, overnight (18:00-09:30) high/low, 100-pt round numbers; touched within 2 ticks and closed back on the right side.
+- **Trigger (5m, estimated delta):** ABSORB = heavy opposing delta (> k x avg|delta|) but close in the other half; EXHAUST = push into zone on
+  volume < 0.7 avg and |delta| < 0.5 avg, close turning; AGGR = break through a zone in the lean direction with heavy same-side delta and the
+  next bar holding beyond it (acceptance).
+- **Stop** 1 tick beyond zone/bar (3 ticks off round numbers). **Exits:** fixed 2R vs teacher-style trail (after +1R, stop under the last
+  15-min balance, ratchet only, no TP) vs trail capped at 3R; flat 16:00; max 2 attempts/day. Grid k in {1,1.5,2}, condition on/off.
+
+| variant (picked on PICK PF, n>=25) | PICK n / win% / PF | JUDGE n | win % | PF | $/trade | net | max DD | boot PASS/BUST % | med d |
+|---|---|---|---|---|---|---|---|---|---|
+| Best on PICK: ABSORB, no condition, k1, trail3R | 31 / 35.5 / 1.43 | 16 | 18.8 | **0.51** | -24.47 | -392 | 570 | 0 / 59 | - |
+| ABSORB, no condition, k1, trail | 31 / 32 / 1.15 | 16 | 18.8 | 1.14 | 6.91 | 110 | 570 | 47 / 35 | 112 |
+| ABSORB+EXHAUST, no cond, k1.5, trail3R | 134 / 24 / 1.03 | 80 | 27.5 | 1.31 | 8.08 | 646 | 525 | 94 / 2* | 116 |
+| Full CZT (condition ON, all triggers, k1.5, 2R) | 87 / 25 / 0.60 | 46 | 39.1 | 0.92 | -4.15 | -191 | 1,235 | 8 / 89 | 109 |
+| Full CZT, trail | 86 / 20 / 0.59 | 46 | 34.8 | 0.86 | -5.48 | -252 | 1,014 | 0 / 89 | - |
+| Full CZT, trail3R | 87 / 22 / 0.69 | 46 | 34.8 | 0.98 | -0.82 | -38 | 872 | 8 / 75 | 156 |
+| Same, condition OFF, 2R | 221 / 32 / 0.95 | 110 | 38.2 | 0.96 | -2.27 | -250 | 2,046 | 21 / 79 | 47 |
+| AGGR (continuation), cond ON, k2, trail3R | 25 / 32 / 1.06 | 9 | 33.3 | 0.90 | -4.39 | -40 | 384 | 5 / 20 | 176 |
+| Generic estimated signals, best combo (above) | 458 / 40 / 1.30 | 241 | 31.5 | 1.00 | -0.10 | -24 | 1,508 | 31 / 69 | 33 |
+| **NOISE preset C** | 100 / 57 / 1.44 | 49 | 51.0 | **1.72** | **52.53** | 2,574 | 977 | **67 / 33** | 23 |
+
+\* PICK PF 1.03 (no edge where it was chosen); "PASS 94%" is the bootstrap of a slow, tiny-DD stream over 4 months - not evidence.
+- The teacher's **condition filter made things worse** on the picking data (PF 0.95 -> 0.60) and did not help on judge (0.96 -> 0.92);
+  with it, absorption fires almost never (1-2 trades) because a bar-level CLV delta rarely shows "heavy opposing delta" at the right zone.
+- **Trail vs 2R:** no consistent winner; trail lowers win % (20-35%) and both are about break-even after costs.
+
+## Final verdict (supersedes the one above)
+Neither generic estimated order flow nor the teacher's CZT framework, rebuilt from 1-minute bars, shows an edge on the held-out 4 months:
+the best picked variant collapses (PF 1.43 -> 0.51) and everything else sits around PF 0.9-1.0, far below NOISE. The likely reason is the data,
+not necessarily the method: CZT is read from real footprint/aggressor volume, and CLV delta is a weak stand-in. 1 year (8+4 months) is a small sample.
+
+**Order Flow button:** default **OFF**, SHADOW/paper logging only, never eval/funded, until re-tested on real `trades` data (Databento unlock).
+Shadow parameters (teacher CZT as faithfully as bars allow): condition = open vs prior RTH value area (70%, 2-pt bins) with skip if prior
+value-area width < 20th pct of 60 days; zones = prior VAH/VAL/POC, overnight high/low, 100-pt rounds (touch within 2 ticks); triggers =
+absorption (|est. 5m delta| > 1.5 x avg of 20, close in opposite half) + exhaustion (vol < 0.7 avg, |delta| < 0.5 avg) + aggression with
+1-bar acceptance; stop 1 tick beyond zone (3 ticks off round numbers); trail under last 15-min balance after +1R, cap 3R; max 2 attempts/day;
+entries 09:35-15:30 ET, flat 16:00, 1 micro; all deltas labelled "estimated". NOISE stays the main strategy.
