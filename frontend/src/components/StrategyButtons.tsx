@@ -11,6 +11,7 @@ export interface Strat {
   enabled: boolean; setting: string;
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
+  ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
 }
 export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;

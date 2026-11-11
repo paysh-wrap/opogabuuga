@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import Principal, current_user, get_db
 from app.clock import ET
 from app.engine import footprint as FP
-from app.models import Bar, Event
+from app.models import AuditLog, Bar, Event
 
 router = APIRouter(prefix="/api")
 
@@ -63,6 +63,77 @@ def _profile(p: FP.Profile) -> dict[str, Any]:
     }
 
 
+AR_KEYS = ("env", "location_zone", "fib", "value_side", "path_zone", "path_side", "delta_source", "confirm_time")
+SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/order_flow.py), by AR layer
+    "OF_COMPRESSION": "Environment: compression / low participation — no trade",
+    "OF_ENVIRONMENT": "Environment not allowed by the plan",
+    "OF_LOCATION": "Location: not in the 0.705–0.886 zone / wrong value-area side",
+    "OF_PATH_UNKNOWN": "Path: Asia range zone unknown",
+    "OF_PATH_EXHAUSTED": "Path: move already beyond the Asia + ATR zone limit",
+    "OF_NO_CONFIRM": "Confirmation: no (recent) confirmation candle",
+    "OF_DELTA_ESTIMATED": "Confirmation: estimated delta only (real delta required)",
+}
+
+
+def ar_rules(rules: Any) -> dict[str, Any]:
+    """D101: the AR-Model layer rules as configured in the plan file (strategy.order_flow_cfg.ar)."""
+    r = rules.strategy
+    a = r.order_flow_cfg.ar
+    return {
+        "enabled": r.order_flow,
+        "paper_only": r.order_flow_cfg.paper_only,
+        "verified": False,
+        "layers": [
+            {"key": "ENVIRONMENT", "on": True, "rule": f"trade only in {' / '.join(a.allowed_envs)}; COMPRESSION = no trade"},
+            {
+                "key": "LOCATION",
+                "on": a.location_filter,
+                "rule": f"fib {a.fib_min}–{a.fib_max} of the swing range, {a.value_side.replace('_', ' ').lower()}; "
+                "a close beyond 0.886 invalidates",
+            },
+            {
+                "key": "PATH",
+                "on": a.path_filter,
+                "rule": f"Asia range + daily ATR(20) zones; no trade with the move at/beyond {a.path_block_zone}",
+            },
+            {
+                "key": "CONFIRMATION",
+                "on": True,
+                "rule": f"absorption / delta flip / stacked imbalance candle, entry pullback ≤ {a.confirm_max_age_min} min"
+                f"{' (real delta only)' if a.require_real_delta else ''}; stop beyond the absorption zone",
+            },
+        ],
+    }
+
+
+def _skips(db: Session, symbol: str, day: date | None) -> list[dict[str, Any]]:
+    """D101: Order Flow alerts the engine refused (audit `order_flow.skip`) for this ET day, newest first."""
+    if day is None:
+        return []
+    rows = db.execute(
+        select(AuditLog)
+        .where(AuditLog.action == "order_flow.skip", AuditLog.entity == f"{symbol}-OF-{day.isoformat()}")
+        .order_by(AuditLog.id.desc())
+        .limit(50)
+    ).scalars()
+    out = []
+    for a in rows:
+        p = a.payload or {}
+        code = str(p.get("code") or "")
+        out.append(
+            {
+                "time_ms": p.get("bar_time_ms"),
+                "direction": p.get("direction"),
+                "code": code,
+                "layer": p.get("layer") or "PLAN",
+                "label": SKIP_LABELS.get(code, code),
+                "detail": p.get("detail"),
+                "ar": {k: p.get(k) for k in AR_KEYS},
+            }
+        )
+    return out
+
+
 def _bars_in(rows: list[Bar]) -> list[FP.BarIn]:
     return [FP.BarIn(int(_utc(b.close_time).timestamp() * 1000) - 60_000, b.o, b.h, b.l, b.c, b.v) for b in rows]
 
@@ -104,8 +175,10 @@ def orderflow(
         "tick": str(tick),
         "row_size": str(row),
         "sessions": [d.isoformat() for d in days],
+        "ar": ar_rules(request.app.state.rules.rules),
     }
     cur = session if session is not None else (days[-1] if days else None)
+    base["skips"] = _skips(db, symbol, cur)
     if cur is None or cur not in by:
         return base | {
             "session": cur.isoformat() if cur else None,
@@ -136,13 +209,15 @@ def orderflow(
     ).scalars()
     signals = []
     for e in evs:
-        kind = str((e.payload.get("order_flow") or {}).get("kind") or "")
+        of = e.payload.get("order_flow") or {}
+        kind = str(of.get("kind") or "")
         signals.append(
             {
                 "time_ms": int(_utc(e.bar_time).timestamp() * 1000),
                 "kind": kind,
                 "label": LABELS.get(kind, kind),
                 "direction": e.direction,
+                "ar": {k: of.get(k) for k in AR_KEYS},  # D101 layers as the indicator sent them
             }
         )
     sources = {b.source for b in fp}

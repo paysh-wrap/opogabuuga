@@ -142,9 +142,11 @@ CATALOG: list[dict[str, object]] = [
     {
         "key": "order_flow",
         "name": "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED · paper only",
-        "source": "D95: Pine indicator 'Paytience Order Flow' (lower-timeframe up/down volume delta, cumulative delta, "
-        "session POC / value area): absorption, delta divergence, stacked-imbalance proxy, liquidity sweep, POC magnet "
-        "→ webhook alert; stop 1 tick beyond the defended level, 2R target, 1 micro",
+        "source": "D101 AR Model (main teacher, D100): ENVIRONMENT (expansion / rotation; compression = no trade) → "
+        "LOCATION (swing fib 0.705–0.886 + fixed-range value area) → PATH (Asia range + daily ATR(20) zones) → "
+        "CONFIRMATION (absorption / delta flip / stacked imbalance candle, then a pullback entry candle) from the Pine "
+        "indicator 'Paytience Order Flow' (real TradingView footprint delta when available, else estimated — sent as "
+        "delta_source) → webhook alert; stop beyond the absorption zone, 2R target, 1 micro",
         "verified": False,
         "status": "UNVERIFIED · PAPER ONLY",
         "win_pct": None,
@@ -154,8 +156,8 @@ CATALOG: list[dict[str, object]] = [
         "held_out_trades": 0,
         "pro25k_pass_pct": None,
         "pro25k_bust_pct": None,
-        "period": "NOT tested: no order-flow backtest exists (tick data unavailable, session 18). TradingView volume "
-        "delta is an approximation of real bid/ask order flow.",
+        "period": "NOT tested on real order flow. Session-18 AR study on ESTIMATED 1-minute delta: the full 4-layer "
+        "model did not beat NOISE; location and path did not help (they are switches in the plan file).",
         "note": "Default OFF. Needs the 'Paytience Order Flow' alert on a 1-minute MNQ1! and/or MGC1! chart (D96: MGC "
         "is on for Order Flow only — every other strategy keeps gold off). The app rebuilds stop and target itself "
         "(never trusts the alert's prices); window, news, hedge lock (METALS for MGC), DLL, consistency and the "

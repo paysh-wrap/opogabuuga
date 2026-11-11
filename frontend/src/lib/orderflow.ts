@@ -7,12 +7,25 @@ export interface FlowBar {
   delta: string; cvd: string; zone: "premium" | "discount" | "value" | "unknown"; source: FlowSource; levels: FlowLevel[];
 }
 export interface FlowProfile { rows: { p: string; v: string }[]; poc: string | null; vah: string | null; val: string | null; hvn: string[]; lvn: string[] }
-export interface FlowSignal { time_ms: number; kind: string; label: string; direction: string }
+// D101 AR Model layers as the indicator sent them (null = not sent)
+export interface ArValues { env: string | null; location_zone: string | null; fib: string | null; value_side: string | null; path_zone: string | null; path_side: string | null; delta_source: string | null; confirm_time: number | null }
+export interface FlowSignal { time_ms: number; kind: string; label: string; direction: string; ar?: ArValues }
+export interface ArLayer { key: "ENVIRONMENT" | "LOCATION" | "PATH" | "CONFIRMATION"; on: boolean; rule: string }
+export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[] }
+export interface FlowSkip { time_ms: number | null; direction: string | null; code: string; layer: string; label: string; detail: string | null; ar: ArValues }
 export interface OrderFlowData {
   symbol: string; symbols: string[]; source: FlowSource; estimated: boolean; note: string; method: string;
   tick: string; row_size: string; sessions: string[]; session: string | null;
   bars: FlowBar[]; profile: FlowProfile | null; prior: (FlowProfile & { session: string }) | null;
-  round_levels: string[]; signals: FlowSignal[];
+  round_levels: string[]; signals: FlowSignal[]; ar?: ArRules; skips?: FlowSkip[];
+}
+
+/** One-line text of an alert's AR layers (env · location · path · delta source); "—" for a missing value. */
+export function arSummary(a: ArValues | undefined): string {
+  if (!a) return "no AR fields";
+  const loc = a.location_zone ?? (a.fib != null ? `fib ${a.fib}` : "—");
+  const path = a.path_zone ? `${a.path_zone}${a.path_side && a.path_side !== "INSIDE" ? ` ${a.path_side.toLowerCase()} Asia` : ""}` : "—";
+  return `${a.env ?? "—"} · ${loc}${a.value_side ? ` ${a.value_side}` : ""} · ${path} · delta ${a.delta_source ?? "—"}`;
 }
 
 /** Snap each signal to the last bar that opened at/before it (markers must sit on a bar). */

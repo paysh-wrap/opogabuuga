@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { CandleDeltaChart, EstimatedBadge, FootprintGrid, VolumeProfile } from "../components/OrderFlowChart";
-import { signed, snapSignals, type OrderFlowData } from "../lib/orderflow";
+import { arSummary, signed, snapSignals, type OrderFlowData } from "../lib/orderflow";
 
 const ZONE: Record<string, string> = { premium: "PREMIUM (above prior VAH)", discount: "DISCOUNT (below prior VAL)", value: "inside prior value", unknown: "no prior session" };
 
@@ -41,6 +41,34 @@ export default function OrderFlow() {
         </label>
         <p className="max-w-xl text-xs text-blue">Display only — nothing here places trades. From your recorded 1-minute bars (TradingView heartbeats). {d?.estimated ? `Method: ${d.method}.` : ""}</p>
       </section>
+      {d?.ar && (
+        <section className="rounded-xl border border-border bg-card p-4 text-sm" data-testid="of-ar">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="font-semibold text-gold">Order Flow strategy · AR Model layers</h2>
+            <span className="rounded border border-gold px-2 py-0.5 text-xs text-gold" data-testid="of-unverified">UNVERIFIED · PAPER ONLY</span>
+            <span className="text-xs text-blue">Strategy button {d.ar.enabled ? "ON" : "OFF"} · the signal comes last: every layer must agree</span>
+          </div>
+          <ol className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {d.ar.layers.map((l, i) => (
+              <li key={l.key} className="rounded border border-border p-2">
+                <div className="text-xs text-blue">{i + 1}. {l.key}</div>
+                <div className="font-semibold text-gold">{l.on ? "ON" : "OFF (plan file switch)"}</div>
+                <div className="text-xs text-blue">{l.rule}</div>
+              </li>
+            ))}
+          </ol>
+          <h3 className="mt-3 font-semibold text-gold">Refused alerts (skip reasons)</h3>
+          {(d.skips ?? []).length === 0 ? <p className="text-xs text-blue">No Order Flow alert was refused this session.</p> : (
+            <ul className="mt-1 text-xs" data-testid="of-skips">
+              {(d.skips ?? []).map((k, i) => (
+                <li key={i} className="border-t border-border py-1">
+                  {k.time_ms != null ? new Date(k.time_ms).toLocaleTimeString() : "—"} · {k.direction === "LONG" ? "▲ LONG" : k.direction === "SHORT" ? "▼ SHORT" : "—"} · <span className="text-gold">{k.layer}</span> · <b className="text-gold">{k.code}</b> — {k.label} · {arSummary(k.ar)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
       {q.isLoading && <p role="status">Loading…</p>}
       {q.error && <p role="alert">Cannot load order flow: {String((q.error as Error).message)}</p>}
       {d && d.bars.length === 0 && (
@@ -73,11 +101,11 @@ export default function OrderFlow() {
           </div>
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="font-semibold text-gold">Order Flow strategy alerts this session</h2>
-            <p className="text-xs text-blue">ORDER_FLOW webhook alerts (pine/Paytience_OrderFlow.pine, D95 — UNVERIFIED, paper only). ABS absorption · EXH exhaustion (delta divergence) · AGG aggression (stacked imbalance) · SWP sweep · POC magnet.</p>
+            <p className="text-xs text-blue">ORDER_FLOW webhook alerts (pine/Paytience_OrderFlow.pine, D95/D101 AR Model — UNVERIFIED, paper only). ABS absorption · EXH exhaustion / delta flip · AGG aggression (stacked imbalance) · SWP sweep · POC magnet. Layers: environment · location · path · delta source.</p>
             {d.signals.length === 0 ? <p className="mt-2 text-sm">No order-flow alerts this session.</p> : (
               <ul className="mt-2 text-sm" data-testid="of-signals">
                 {snapSignals(d.bars, d.signals).map((s, i) => (
-                  <li key={i} className="border-t border-border py-1">{new Date(s.time_ms).toLocaleTimeString()} · {s.direction === "LONG" ? "▲ LONG" : "▼ SHORT"} · <span className="text-gold">{s.label}</span></li>
+                  <li key={i} className="border-t border-border py-1">{new Date(s.time_ms).toLocaleTimeString()} · {s.direction === "LONG" ? "▲ LONG" : "▼ SHORT"} · <span className="text-gold">{s.label}</span> · <span className="text-xs text-blue">{arSummary(s.ar)}</span></li>
                 ))}
               </ul>
             )}

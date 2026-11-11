@@ -237,6 +237,7 @@ def test_strategies_card_lists_order_flow_markets(authed):
     of = next(x for x in d["strategies"] if x["key"] == "order_flow")
     assert of["instruments"] == ["MNQ"] and of["paper_only"] is True and of["flat_at"] == "16:00"
     assert "MNQ + MGC" in of["name"]
+    assert [x["key"] for x in of["ar_layers"]] == ["ENVIRONMENT", "LOCATION", "PATH", "CONFIRMATION"]  # D101
     assert "instruments" not in next(x for x in d["strategies"] if x["key"] == "noise")
 
 
