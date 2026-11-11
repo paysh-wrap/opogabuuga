@@ -75,7 +75,16 @@ def test_strategies_endpoint(authed):
     assert r.status_code == 200, r.text
     body = r.json()
     keys = [x["key"] for x in body["strategies"]]
-    assert keys == ["pm_fade", "noise", "ai_bias", "ai_duo", "noise_ai_split", "order_flow", "order_flow_amt"]
+    assert keys == [
+        "pm_fade",
+        "noise",
+        "ai_bias",
+        "ai_duo",
+        "noise_ai_split",
+        "order_flow",
+        "order_flow_amt",
+        "order_flow_zone",
+    ]
     noise = body["strategies"][1]
     assert noise["win_pct"] == 45.0 and noise["pro25k_pass_pct"] == 56.9 and noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10

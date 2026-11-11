@@ -1062,3 +1062,24 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   UNVERIFIED (no real order-flow data; the trader's 43% win / 3.5 avg-win-loss claims are not ours); only removes trades
   or picks a TP inside the R window; 1 micro; every Order Flow and Lucid gate unchanged. Not implemented (no data):
   gamma exposure, Bookmap / heat-map liquidity, weekly TPO, hold-vs-scalp by payout distance.
+- D111 (user 2026-11-11, "create final strategy from this or add it as a separate type of order flow trading toggle";
+  docs/results/session18/order_flow/ICEBERG_ATR_RULES.md — Scott / Chart Fanatics): a SEPARATE Order Flow TYPE, plan
+  file `strategy.order_flow_cfg.zone_atr` (ZoneAtrCfg, 9 yamls; default OFF). Toggles: Order Flow page (on/off +
+  POSITION / REVERSION selector) and a Strategy-page card "Order Flow · ATR zones" (also turns Order Flow on); My
+  Settings keys zone_atr.enabled / modes / a_plus_only / dead_zone_filter / last_minutes_filter / price_change_confirm /
+  tick_filter. The event is an iceberg PROXY (no MBO data): Pine (kind ZONE) marks a footprint absorption / large-volume
+  bar (volume ≥ 2.5× average or heavy delta) as the event zone (bar range) and sends zone_signal EVENT / POSITION /
+  REVERSION with event_zone_hi/lo, event_kind, event_time, event_size, atr5 (Wilder ATR(14) of the last closed 5m bar),
+  rev_level, prior_event_hi/lo, rvol (proxy: 5-bar volume vs ~5 sessions), range5_atr, tick (optional NYSE TICK input).
+  engine/zone_atr.py (pure): check_zone codes OF_ZONE_NOT_ENTRY / MODE_OFF / NO_EVENT / EVENT_SMALL (MNQ 150, MGC 150) /
+  LAST_MINUTES (last 10 min before 16:00) / DEAD_ZONE (11:15–13:30 ET needs rvol ≥ 1.5) / NOT_PROVEN (POSITION entry ≥
+  115% ATR outside the zone) / REV_LEVEL / NO_PRICE_CHANGE (5-min range ≥ 0.70 ATR) / PROGRAM_DAY (|TICK| ≥ 1000 against
+  the fade; off without TICK) / NOT_A_PLUS; plan_zone: POSITION stop back through the zone + 115% ATR, TP rr (2R; AMT
+  level target when on); REVERSION target = zone edge, stop at the next ATR line (A+: also outside the prior event), TP
+  capped at 3R — the rr_min 1.5 floor (D49) stays, so 1-ATR reversions (1R) skip RR_BELOW_MIN and only 2/3-ATR levels
+  trade. max_risk_ticks 400 for the wide ATR stop; still 1 micro and every Lucid risk / DLL / MLL check. Trail: a new
+  same-direction EVENT ratchets `zone_trail_stop` to its 115%-ATR line (never breakeven), enforced at bar close
+  (OF_ZONE_TRAIL exit; the broker stop stays as the protective stop); an opposite EVENT exits (OF_ZONE_OPPOSING_EVENT).
+  `exclusive` (default false) makes AR-type alerts skip OF_ZONE_EXCLUSIVE. Strategy gates: ZONE_EVENT / ZONE_TIME /
+  ZONE_SETUP on the Order Flow card. UNVERIFIED. Not implemented (no data): real iceberg/stop events (MBO), GEX / hero,
+  heat-map liquidity, partial scalps around the runner.

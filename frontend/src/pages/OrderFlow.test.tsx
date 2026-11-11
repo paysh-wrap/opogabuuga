@@ -30,7 +30,8 @@ const DATA: OrderFlowData = {
     { key: "ENVIRONMENT", on: true, rule: "trade only in EXPANSION / ROTATION" }, { key: "LOCATION", on: true, rule: "fib" },
     { key: "PATH", on: false, rule: "Asia" }, { key: "CONFIRMATION", on: true, rule: "absorption" }],
     casper: [{ key: "PRICE_CONFIRMS", on: true, rule: "close away from the trapped side" }, { key: "CVD", on: false, rule: "CVD moves with the trade" }],
-    amt: [{ key: "CONTEXT", on: true, rule: "acceptance vs prior RTH value" }, { key: "LOCATION", on: true, rule: "key level" }, { key: "TARGET", on: false, rule: "next level" }], amt_enabled: true },
+    amt: [{ key: "CONTEXT", on: true, rule: "acceptance vs prior RTH value" }, { key: "LOCATION", on: true, rule: "key level" }, { key: "TARGET", on: false, rule: "next level" }], amt_enabled: true,
+    zone: [{ key: "EVENT", on: true, rule: "iceberg PROXY (no MBO data)" }, { key: "REVERSION", on: false, rule: "1/2/3 ATR" }], zone_enabled: true, zone_setting: "strategy.order_flow_cfg.zone_atr.enabled", zone_modes: ["POSITION"] },
   skips: [{ time_ms: 125_000, direction: "SHORT", code: "OF_COMPRESSION", layer: "ENVIRONMENT", label: "Environment: compression", detail: null,
     ar: { env: "COMPRESSION", location_zone: null, fib: null, value_side: null, path_zone: null, path_side: null, delta_source: "est", confirm_time: null } }],
 };
@@ -63,6 +64,9 @@ test("Order Flow page labels every panel ESTIMATED, shows summary, profile and a
   expect(casperSummary(undefined)).toBe("none configured");
   expect(screen.getByTestId("of-amt")).toHaveTextContent("AMT+ context → location (button ON)");
   expect(screen.getByTestId("of-amt")).toHaveTextContent("CONTEXT");
+  expect(screen.getByTestId("of-zone-type")).toHaveTextContent("iceberg PROXY (no MBO data)");
+  expect(screen.getByTestId("of-zone-type")).toHaveTextContent("✓ POSITION");
+  expect(screen.getByTestId("of-zone-toggle")).toHaveTextContent("ON — turn off");
   expect(screen.getByTestId("of-footprint")).toBeInTheDocument();
   expect(document.title).toBe("Paytience · Order Flow");
 });

@@ -19,7 +19,8 @@ export interface ArLayer { key: "ENVIRONMENT" | "LOCATION" | "PATH" | "CONFIRMAT
 // D108 Casper 4h course refinements of the AR Model (each a plan-file switch)
 export interface CasperRule { key: "PRICE_CONFIRMS" | "STACKED" | "CVD" | "CONDITION" | "BUNCHED" | "ROUND_STOP"; on: boolean; rule: string }
 export interface AmtLayer { key: "CONTEXT" | "LOCATION" | "TARGET"; on: boolean; rule: string }
-export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[]; casper?: CasperRule[]; amt?: AmtLayer[]; amt_enabled?: boolean }
+export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[]; casper?: CasperRule[]; amt?: AmtLayer[]; amt_enabled?: boolean;
+  zone?: { key: string; on: boolean; rule: string }[]; zone_enabled?: boolean; zone_setting?: string; zone_modes?: string[] }
 export interface FlowSkip { time_ms: number | null; direction: string | null; code: string; layer: string; label: string; detail: string | null; ar: ArValues }
 export interface OrderFlowData {
   symbol: string; symbols: string[]; source: FlowSource; estimated: boolean; note: string; method: string;

@@ -95,6 +95,26 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
       require_real_delta: false # true → delta_source "est" alerts skipped (OF_DELTA_ESTIMATED)
       trail_candle_min: 5       # trail behind the last closed 5m candle (pure helper; not wired yet, D101)
       be_after_r: 1.0           # break-even after 1R follow-through
+    zone_atr:   # D111 ATR-zone Order Flow TYPE (iceberg PROXY, no MBO data; UNVERIFIED; codes OF_ZONE_*)
+      enabled: false            # Order Flow page / Strategy page toggle
+      modes: [POSITION]         # POSITION and/or REVERSION
+      exclusive: false          # true = AR-type alerts do not trade while the zone type is on
+      entry_atr_pct: 1.15       # POSITION entry 115% ATR(5m) outside the event zone
+      stop_atr_pct: 1.15        # stop back through the zone + 115% ATR beyond; trail only to new events, never BE
+      reversion_levels: [1, 2, 3]   # entry k ATR away, target the zone, stop at k+1 (rr_min 1.5 still applies)
+      a_plus_only: false        # REVERSION only in front of a prior event
+      min_event_size: {MNQ: 150, MGC: 150}   # proxy contracts (NQ / GC thresholds)
+      max_risk_ticks: 400       # the ATR stop is wide by design; 1 micro, Lucid DLL/MLL checks still size
+      dead_zone_filter: true
+      dead_zone: ["11:15", "13:30"]   # ET; needs relative volume >= dead_zone_min_rvol
+      dead_zone_min_rvol: 1.5
+      last_minutes_filter: true # no new trades in the last N min of RTH
+      rth_close: "16:00"
+      last_minutes: 10
+      price_change_confirm: true   # REVERSION: 5-min range >= price_change_pct x ATR
+      price_change_pct: 0.70
+      tick_filter: true         # |TICK| >= tick_extreme against the fade = program day (off without a TICK field)
+      tick_extreme: 1000
     amt:   # D110 AMT+ Order Flow button (UNVERIFIED; CONTEXT → LOCATION → order flow last; codes OF_AMT_*; only removes trades)
       enabled: false            # Strategy-page button 'AMT+ Order Flow' (My Settings)
       balance_mode: skip        # BALANCE context: skip | edges (LONG only at prior VAL, SHORT only at prior VAH)

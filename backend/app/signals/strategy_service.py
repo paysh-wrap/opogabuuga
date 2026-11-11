@@ -30,6 +30,7 @@ from app.engine import order_flow as OF
 from app.engine import pm_fade as PF
 from app.engine import structure_filter as SF
 from app.engine import ta_mgc as TM
+from app.engine import zone_atr as ZA
 from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
 from app.indicators.bars import Bar as IBar
@@ -360,6 +361,60 @@ def run_order_flow(
         if am.enabled
         else None
     )
+    z = cfg.zone_atr  # D111 ATR-zone type (iceberg PROXY): a ZONE alert never runs the AR / Casper layers
+    is_zone = of.kind == "ZONE" or of.zone_signal is not None
+    if is_zone and not z.enabled:
+        return out  # the type is off: zone alerts are ignored
+    zf = ZA.ZoneFields(
+        signal=of.zone_signal,
+        zone_hi=of.event_zone_hi,
+        zone_lo=of.event_zone_lo,
+        event_size=of.event_size,
+        atr5=of.atr5,
+        rev_level=of.rev_level,
+        prior_hi=of.prior_event_hi,
+        prior_lo=of.prior_event_lo,
+        rvol=of.rvol,
+        range5_atr=of.range5_atr,
+        tick=of.tick,
+    )
+    if is_zone and of.zone_signal == "EVENT":
+        out.exits += _zone_event(s, clock, symbol, day, direction, zf, z.stop_atr_pct, inst.tick, at)
+        s.commit()
+        return out
+    if is_zone:
+        zr = ZA.ZoneRules(
+            modes=frozenset(z.modes),
+            entry_atr_pct=z.entry_atr_pct,
+            stop_atr_pct=z.stop_atr_pct,
+            reversion_levels=frozenset(z.reversion_levels),
+            a_plus_only=z.a_plus_only,
+            min_event_size=z.min_event_size.get(symbol, 150),
+            dead_zone_filter=z.dead_zone_filter,
+            dead_zone=(_mod(z.dead_zone[0]), _mod(z.dead_zone[1])),
+            dead_zone_min_rvol=z.dead_zone_min_rvol,
+            last_minutes_filter=z.last_minutes_filter,
+            rth_close=_mod(z.rth_close),
+            last_minutes=z.last_minutes,
+            price_change_confirm=z.price_change_confirm,
+            price_change_pct=z.price_change_pct,
+            tick_filter=z.tick_filter,
+            tick_extreme=z.tick_extreme,
+        )
+        res = res or ZA.check_zone(direction, of.entry, at.hour * 60 + at.minute, zf, zr)
+        res = res or ZA.plan_zone(
+            direction,
+            of.entry,
+            zf,
+            zr,
+            tick=inst.tick,
+            rr=cfg.rr,
+            rr_min=cfg.rr_min,
+            min_risk_ticks=max(cfg.min_risk_ticks, inst.min_stop_ticks or 0),
+            max_risk_ticks=z.max_risk_ticks,
+        )
+    elif z.enabled and z.exclusive:
+        res = res or OF.OrderFlowSkip("OF_ZONE_EXCLUSIVE", "ATR-zone type is exclusive: AR alerts do not trade", "ZONE")
     # D101 AR Model: ENVIRONMENT → LOCATION → PATH → CONFIRMATION first ("the signal comes last"), then the plan
     res = res or OF.check_ar(
         direction,
@@ -415,7 +470,7 @@ def run_order_flow(
         alert_stop=of.stop,
         absorption=absorption,
     )
-    if c.round_stop and isinstance(res, OF.OrderFlowPlan) and symbol in c.round_step:
+    if c.round_stop and not is_zone and isinstance(res, OF.OrderFlowPlan) and symbol in c.round_step:
         res = OF.casper_round_stop(
             res,
             tick=inst.tick,
@@ -425,7 +480,8 @@ def run_order_flow(
             rr_min=cfg.rr_min,
             max_risk_ticks=cfg.max_risk_ticks,
         )
-    if am.enabled and am.target_to_level and isinstance(res, OF.OrderFlowPlan):  # D110: TP at the next level
+    pos_ok = not is_zone or of.zone_signal == "POSITION"  # a reversion targets its own zone
+    if am.enabled and am.target_to_level and pos_ok and isinstance(res, OF.OrderFlowPlan):  # D110: next level
         res = OF.amt_target(res, of.target_level, tick=inst.tick, rr_min=cfg.rr_min, max_rr=am.target_max_rr)
     layers = {
         "context": of.context,
@@ -510,6 +566,19 @@ def run_order_flow(
             "paper_only": cfg.paper_only,
             "unverified": True,
             "ar": layers,  # D101: the four AR-Model layers this signal passed
+            **(
+                {
+                    "zone": {
+                        "signal": of.zone_signal,
+                        "hi": str(of.event_zone_hi),
+                        "lo": str(of.event_zone_lo),
+                        "atr5": str(of.atr5),
+                        "proxy": "iceberg PROXY (no MBO data)",
+                    }
+                }
+                if is_zone
+                else {}
+            ),
             **({"ta_advice": ta_note} if ta_note is not None else {}),  # D109 advisory annotation
         },
         plan=("ORDER_FLOW", res.entry, res.stop, res.take_profit, res.risk_pts, res.rr),
@@ -517,6 +586,40 @@ def run_order_flow(
     s.commit()
     out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
+
+
+def _zone_event(
+    s: Session,
+    clock: Clock,
+    symbol: str,
+    day: str,
+    direction: Direction,
+    zf: ZA.ZoneFields,
+    pct: Decimal,
+    tick: Decimal,
+    at: datetime,
+) -> list[tuple[int, str]]:
+    """D111: a new event (iceberg PROXY) for open ZONE positions — same direction: trail to its 115%-ATR line (ratchet,
+    never breakeven; enforced at bar close by order_flow_exits); opposite direction: exit (OF_ZONE_OPPOSING_EVENT)."""
+    exits: list[tuple[int, str]] = []
+    if zf.zone_hi is None or zf.zone_lo is None or zf.atr5 is None:
+        return exits
+    for x in _today_signals(s, symbol, "OF", day):
+        zone = x.features.get("zone")
+        if not zone or not _holds_position(s, x):
+            continue
+        d = Direction(x.direction)
+        if d is not direction:
+            _close(s, x, "OF_ZONE_OPPOSING_EVENT", at, clock)
+            exits.append((x.id, "OF_ZONE_OPPOSING_EVENT"))
+            continue
+        plan = s.execute(select(TradePlanRow).where(TradePlanRow.signal_id == x.id)).scalar_one_or_none()
+        cur = Decimal(str(x.features.get("zone_trail_stop") or (plan.stop if plan is not None else 0)))
+        new = ZA.zone_trail(d, cur, zf.zone_hi, zf.zone_lo, zf.atr5, pct, tick) if cur > 0 else None
+        if new is not None:
+            x.features = {**x.features, "zone_trail_stop": str(new)}
+            audit.record(s, clock, "engine", "order_flow.zone_trail", x.model_key, {"from": str(cur), "to": str(new)})
+    return exits
 
 
 def order_flow_exits(s: Session, rules: RulesConfig, clock: Clock, symbol: str, at: datetime) -> StrategyOutput:
@@ -531,6 +634,18 @@ def order_flow_exits(s: Session, rules: RulesConfig, clock: Clock, symbol: str, 
         if x.features.get("state") == "OPEN" and "exit_requested" not in x.features:
             _close(s, x, "OF_FLAT_1600", at, clock)
             out.exits.append((x.id, "OF_FLAT_1600"))
+    return out
+
+
+def zone_trail_exits(s: Session, symbol: str, close: Decimal, at: datetime, clock: Clock) -> StrategyOutput:
+    """D111: a closed bar beyond a ZONE position's trail line (set only by a new same-direction event) exits it."""
+    out = StrategyOutput()
+    for x in _today_signals(s, symbol, "OF", at.astimezone(ET).date().isoformat()):
+        t = x.features.get("zone_trail_stop")
+        live = t and x.features.get("state") == "OPEN" and "exit_requested" not in x.features
+        if live and ZA.trail_hit(Direction(x.direction), Decimal(str(t)), close):
+            _close(s, x, "OF_ZONE_TRAIL", at, clock)
+            out.exits.append((x.id, "OF_ZONE_TRAIL"))
     return out
 
 
@@ -991,5 +1106,10 @@ def run(
         out.updates += r.updates
         out.exits += r.exits
     out.exits += order_flow_exits(s, rules, clock, symbol, at).exits
+    bar = s.execute(
+        select(Bar).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time <= at).order_by(Bar.close_time.desc())
+    ).first()
+    if bar is not None:  # D111: ZONE trail line (new same-direction event), checked on the closed bar
+        out.exits += zone_trail_exits(s, symbol, bar[0].c, at, clock).exits
     s.commit()
     return out

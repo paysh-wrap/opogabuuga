@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, type ConnectionsResponse, type WebhookStatus } from "../lib/api";
-import { publicBaseOf, type TaAdvisor } from "../lib/orderflow";
+import { publicBaseOf, type ArRules, type TaAdvisor } from "../lib/orderflow";
 
 const card = "rounded-xl border border-border bg-card p-4 text-sm";
 
@@ -70,6 +70,49 @@ export function TaAdvisorPanel({ a, symbol }: { a: TaAdvisor; symbol: string }) 
           ) : adv ? <>{symbol} {a.session}: no advice today ({adv.raw ?? "no result"}) — trading unaffected</> : <>{symbol} {a.session}: not run yet (due {a.at} ET)</>}
         </p>
       )}
+      {err && <p role="alert" className="mt-1 text-xs text-goldLight">{err}</p>}
+    </section>
+  );
+}
+
+/** D111: ATR-zone Order Flow TYPE (iceberg PROXY — no MBO data): on/off + POSITION / REVERSION selector + layer list. */
+export function ZoneTypePanel({ ar }: { ar: ArRules }) {
+  const qc = useQueryClient();
+  const [err, setErr] = useState("");
+  const modes = ar.zone_modes ?? ["POSITION"];
+  const save = useMutation({
+    mutationFn: (changes: Record<string, unknown>) => api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: "Order Flow: ATR-zone type" }) }),
+    onSuccess: () => { setErr(""); void qc.invalidateQueries({ queryKey: ["orderflow"] }); },
+    onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
+  });
+  const flip = (m: string) => {
+    const next = modes.includes(m) ? modes.filter((x) => x !== m) : [...modes, m];
+    if (next.length > 0) save.mutate({ "strategy.order_flow_cfg.zone_atr.modes": next });
+  };
+  return (
+    <section className={card} data-testid="of-zone-type">
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="font-semibold text-gold">Order Flow type · ATR zones</h2>
+        <span className="rounded border border-gold px-2 py-0.5 text-xs text-gold">iceberg PROXY (no MBO data) · UNVERIFIED</span>
+        <button className="rounded border border-blue px-2 py-0.5 text-xs text-blue" data-testid="of-zone-toggle" disabled={save.isPending}
+          onClick={() => save.mutate({ [ar.zone_setting ?? "strategy.order_flow_cfg.zone_atr.enabled"]: !ar.zone_enabled, ...(ar.zone_enabled ? {} : { "strategy.order_flow": true }) })}>
+          {ar.zone_enabled ? "ON — turn off" : "OFF — turn on"}
+        </button>
+        {["POSITION", "REVERSION"].map((m) => (
+          <button key={m} aria-pressed={modes.includes(m)} className="rounded border border-gold px-2 py-0.5 text-xs text-gold" onClick={() => flip(m)} disabled={save.isPending}>
+            {modes.includes(m) ? "✓ " : ""}{m}
+          </button>
+        ))}
+      </div>
+      <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {(ar.zone ?? []).map((c) => (
+          <li key={c.key} className="rounded border border-border p-2">
+            <div className="text-xs text-blue">{c.key}</div>
+            <div className="font-semibold text-gold">{c.on ? "ON" : "OFF"}</div>
+            <div className="text-xs text-blue">{c.rule}</div>
+          </li>
+        ))}
+      </ul>
       {err && <p role="alert" className="mt-1 text-xs text-goldLight">{err}</p>}
     </section>
   );

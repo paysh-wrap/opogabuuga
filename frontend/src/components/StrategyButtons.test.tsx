@@ -10,6 +10,7 @@ const resp: StrategiesResp = {
     { key: "noise_ai_split", name: "NOISE + AI Duo — 50/50 risk split", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
     { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: false, flat_at: "16:00", ar_layers: [{ key: "ENVIRONMENT", on: true, rule: "no compression" }, { key: "PATH", on: false, rule: "Asia zones" }] },
     { key: "order_flow_amt", name: "AMT+ Order Flow — context → location → order flow last — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.amt.enabled", also: ["strategy.order_flow"], amt_layers: [{ key: "CONTEXT", on: false, rule: "acceptance vs prior RTH value" }] },
+    { key: "order_flow_zone", name: "Order Flow · ATR zones (iceberg PROXY) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.zone_atr.enabled", also: ["strategy.order_flow"], zone_layers: [{ key: "EVENT", on: false, rule: "footprint absorption zone" }] },
     { key: "ai_bias", name: "AI only — TradingAgents + Vibe-Trading (MNQ)", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: 1.35, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT back-testable", note: "n", enabled: false, setting: "strategy.ai_bias" },
   ],
   noise_warmup: { sessions: 3, needed: 10, ready: false },
@@ -38,7 +39,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(await screen.findByTestId("win-noise")).toHaveTextContent("45.0%");
   expect(screen.getByTestId("pass-noise")).toHaveTextContent("56.9%");
   expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
-  expect(screen.getAllByText("— (not testable)").length).toBe(4); // AI only + D92 split + D95 order flow + D110 AMT+
+  expect(screen.getAllByText("— (not testable)").length).toBe(5); // AI only + D92 split + D95 order flow + D110 AMT+ + D111 zones
   expect(screen.getByTestId("order-flow-badge")).toHaveTextContent("UNVERIFIED"); // D95 (D102: no paper-only label)
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("Paytience_OrderFlow.pine");
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("1-minute MNQ1! / MGC1!"); // D96
@@ -46,7 +47,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("order-flow-markets")).toHaveTextContent("MGC (gold) is on for Order Flow only");
   expect(screen.getByTestId("order-flow-layers")).toHaveTextContent("ENVIRONMENT — no compression");  // D101
   expect(screen.getByTestId("order-flow-layers")).toHaveTextContent("PATH (OFF) — Asia zones");
-  expect(screen.getByRole("button", { name: /OFF · Order Flow/ })).toHaveAttribute("aria-pressed", "false");
+  expect(screen.getByRole("button", { name: /OFF · Order Flow — TradingView/ })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByTestId("noise-warmup")).toHaveTextContent("3/10");
   expect(screen.getByTestId("ai-ledger")).toHaveTextContent("ADVISORY");
   expect(screen.getByText(/MGC \(gold\) is off/)).toHaveTextContent("exception: Order Flow, D96");
@@ -58,6 +59,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   await userEvent.click(screen.getByRole("button", { name: /OFF · NOISE \+ AI Duo — 50\/50 risk split/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.noise_ai_split":true,"strategy.noise":true,"strategy.ai_duo":true'))).toBe(true));
   // D110: AMT+ button lists its layers and turns Order Flow on with it
+  expect(screen.getByTestId("zone-layers")).toHaveTextContent("EVENT (OFF) — footprint absorption zone");
   expect(screen.getByTestId("amt-layers")).toHaveTextContent("CONTEXT (OFF) — acceptance vs prior RTH value");
   await userEvent.click(screen.getByRole("button", { name: /OFF · AMT\+ Order Flow/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.order_flow_cfg.amt.enabled":true,"strategy.order_flow":true'))).toBe(true));

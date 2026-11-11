@@ -54,6 +54,10 @@ accPct    = input.float(70.0, "AMT+: acceptance = >= % of those closes above / b
 lvlTicks  = input.int(8, "AMT+: key level within N ticks of the signal bar", minval = 1, maxval = 40)
 lvnPct    = input.float(30.0, "AMT+: LVN = prior RTH row volume <= % of the POC row", minval = 5, maxval = 60)
 outK      = input.float(3.0, "AMT+: delta outlier = |delta| >= k x average |delta|", minval = 1.5)
+zoneOn    = input.bool(true, "D111 ATR zones: send ZONE alerts (iceberg PROXY, no MBO data)")
+evVolK    = input.float(2.5, "Zone event: volume >= k x average volume (or heavy delta)", minval = 1.0)
+useTick   = input.bool(false, "Zone: send NYSE TICK (program-day filter)")
+tickSym   = input.symbol("USI:TICK", "Zone: TICK symbol")
 showMarks = input.bool(true, "Show markers")
 
 if timeframe.period != "1"
@@ -482,6 +486,81 @@ if sig != 0
           ',"prev_rth_vah":' + f_px(pVah) + ',"prev_rth_val":' + f_px(pVal) + ',"prev_rth_poc":' + f_px(pPoc) +
           ',"eth_vwap":' + f_px(ethVwap) + ',"context":' + f_q(ctx) + ',"ctx_session":' + f_q(ctxSess) +
           ',"key_level_type":' + f_q(keyLvl) + ',"target_level":' + f_px(f_target(sig, entry)) + "}}",
+          alert.freq_once_per_bar_close)
+
+// ---------- D111 ATR-zone type: event zone (iceberg PROXY = footprint absorption / large volume, NO MBO data) ----------
+// ATR = Wilder ATR(14) of the last CLOSED 5-minute bar. POSITION alert once per zone at 115% ATR outside it; REVERSION
+// alert at 1/2/3 ATR away (the app checks every rule; k=1 rarely passes its 1.5R floor). EVENT alerts move the trail.
+float atr5 = request.security(syminfo.tickerid, "5", ta.atr(14)[1], lookahead = barmerge.lookahead_on)
+float sum5 = math.sum(volume, 5)
+float rvol = ta.sma(sum5, 1950) > 0 ? sum5 / ta.sma(sum5, 1950) : na   // proxy: vs ~5 sessions of 5-bar volume
+float range5 = ta.highest(high, 5) - ta.lowest(low, 5)
+float tickV = useTick ? request.security(tickSym, "1", close) : na
+float rowV = rowTicks * syminfo.mintick
+float evSize = real ? volume / math.max(1, math.round((high - low) / rowV)) * 2 : volume / math.max(1, math.round((high - low) / rowV))
+bool zEvent = barstate.isconfirmed and not na(avgVol) and (volume >= evVolK * avgVol or heavyD)
+var float zHi = na
+var float zLo = na
+var int zT = na
+var float zSize = na
+var string zKind = ""
+var float pzHi = na
+var float pzLo = na
+var bool zPosDone = false
+var int zRevUp = 0
+var int zRevDn = 0
+string zSig = ""
+int zDir = 0
+int zK = na
+if zoneOn and zEvent
+    pzHi := zHi
+    pzLo := zLo
+    zHi := high
+    zLo := low
+    zT := time_close
+    zSize := evSize
+    zKind := heavyD ? "ABSORPTION" : "LARGE_VOLUME"
+    zPosDone := false
+    zRevUp := 0
+    zRevDn := 0
+    zSig := "EVENT"
+    zDir := close >= hl2 ? 1 : -1
+else if zoneOn and barstate.isconfirmed and not na(zHi) and not na(atr5) and atr5 > 0
+    if not zPosDone and close >= zHi + 1.15 * atr5
+        zSig := "POSITION"
+        zDir := 1
+        zPosDone := true
+    else if not zPosDone and close <= zLo - 1.15 * atr5
+        zSig := "POSITION"
+        zDir := -1
+        zPosDone := true
+    else
+        int kDn = int(math.floor((zLo - close) / atr5))
+        int kUp = int(math.floor((close - zHi) / atr5))
+        if kDn >= 1 and kDn <= 3 and kDn > zRevDn
+            zSig := "REVERSION"
+            zDir := 1
+            zK := kDn
+            zRevDn := kDn
+        else if kUp >= 1 and kUp <= 3 and kUp > zRevUp
+            zSig := "REVERSION"
+            zDir := -1
+            zK := kUp
+            zRevUp := kUp
+if zSig != ""
+    string zd = zDir == 1 ? "LONG" : "SHORT"
+    alert('{"v":1,"secret":"' + secret + '","id":"' + syminfo.ticker + "-TIGHT-" + str.tostring(time_close) +
+          "-ZONE_" + zSig + "-" + zd + '","symbol":"' + syminfo.ticker + '","profile":"TIGHT","tf":"' + timeframe.period +
+          '","bar_time_ms":' + str.tostring(time_close) + ',"event":"ORDER_FLOW","direction":"' + zd +
+          '","order_flow":{"kind":"ZONE","entry":' + f_px(close) + ',"defended":' + f_px(zDir == 1 ? zLo : zHi) +
+          ',"delta_source":"' + dSrc + '","zone_signal":"' + zSig + '","event_zone_hi":' + f_px(zHi) +
+          ',"event_zone_lo":' + f_px(zLo) + ',"event_kind":' + f_q(zKind) + ',"event_time":' + str.tostring(zT) +
+          ',"event_size":' + str.tostring(zSize, "#") + ',"atr5":' + f_px(atr5) +
+          ',"rev_level":' + (na(zK) ? "null" : str.tostring(zK)) + ',"prior_event_hi":' + f_px(pzHi) +
+          ',"prior_event_lo":' + f_px(pzLo) + ',"rvol":' + (na(rvol) ? "null" : str.tostring(rvol, "#.##")) +
+          ',"range5_atr":' + (na(atr5) or atr5 <= 0 ? "null" : str.tostring(range5 / atr5, "#.##")) +
+          ',"tick":' + (na(tickV) ? "null" : str.tostring(math.round(tickV))) +
+          ',"context":' + f_q(ctx) + ',"key_level_type":' + f_q(f_keyLevel()) + ',"target_level":' + f_px(f_target(zDir, close)) + "}}",
           alert.freq_once_per_bar_close)
 
 plotshape(showMarks and sig == 1, "Order flow LONG", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)

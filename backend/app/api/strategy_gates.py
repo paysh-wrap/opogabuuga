@@ -201,8 +201,48 @@ def describe(r: Any) -> list[dict[str, Any]]:
         if am.enabled
         else []
     )
+    z = of.zone_atr  # D111 ATR-zone type (iceberg PROXY)
+    zone = (
+        [
+            _g(
+                "ZONE_EVENT",
+                "Zone · Event (iceberg PROXY)",
+                f"Footprint absorption / large-volume zone ≥ min size; modes {', '.join(z.modes)}.",
+                (
+                    "OF_ZONE_NOT_ENTRY",
+                    "OF_ZONE_MODE_OFF",
+                    "OF_ZONE_NO_EVENT",
+                    "OF_ZONE_EVENT_SMALL",
+                    "OF_ZONE_EXCLUSIVE",
+                ),
+            ),
+            _g(
+                "ZONE_TIME",
+                "Zone · Time filters",
+                f"Dead zone {z.dead_zone[0]}–{z.dead_zone[1]} ET needs rel. volume ≥ {z.dead_zone_min_rvol}; "
+                f"no new trades in the last {z.last_minutes} min of RTH.",
+                ("OF_ZONE_DEAD_ZONE", "OF_ZONE_LAST_MINUTES"),
+            ),
+            _g(
+                "ZONE_SETUP",
+                "Zone · ATR setup",
+                f"POSITION {z.entry_atr_pct}×ATR out of the zone; REVERSION at 1/2/3 ATR with price-change confirm, "
+                "no fade on a TICK program day.",
+                (
+                    "OF_ZONE_NOT_PROVEN",
+                    "OF_ZONE_REV_LEVEL",
+                    "OF_ZONE_NO_PRICE_CHANGE",
+                    "OF_ZONE_PROGRAM_DAY",
+                    "OF_ZONE_NOT_A_PLUS",
+                ),
+            ),
+        ]
+        if z.enabled
+        else []
+    )
     flow = [
         *amt,
+        *zone,
         _g(
             "ENVIRONMENT",
             "AR · Environment",

@@ -152,4 +152,27 @@ CATALOG: list[dict[str, object]] = [
         "setting_key": "strategy.order_flow_cfg.amt.enabled",
         "also": ["strategy.order_flow"],
     },
+    {
+        "key": "order_flow_zone",
+        "name": "Order Flow · ATR zones (iceberg PROXY) — UNVERIFIED",
+        "source": "D111 Scott / Chart Fanatics (docs/results/session18/order_flow/ICEBERG_ATR_RULES.md): volume EVENT "
+        "(iceberg PROXY = footprint absorption / large volume, no MBO data) + ATR(5m) zones. POSITION: entry 115% ATR "
+        "outside the zone, stop back through the zone + 115% ATR, trail only to new events (never breakeven). "
+        "REVERSION: 1/2/3 ATR away back to the zone, stop at the next ATR; exit on an opposing event",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "NOT tested (no MBO / real order-flow data); the trader's claims are not verified by us.",
+        "note": "Default OFF. A separate Order Flow type (turns Order Flow on with it). Filters: dead zone 11:15–13:30 "
+        "ET needs relative volume ≥ 150%, no new trades in the last 10 min of RTH, price-change confirm, TICK "
+        "program-day no-fade, min event size 150. Codes OF_ZONE_*. 1 micro; every Lucid gate applies.",
+        "setting_key": "strategy.order_flow_cfg.zone_atr.enabled",
+        "also": ["strategy.order_flow"],
+    },
 ]

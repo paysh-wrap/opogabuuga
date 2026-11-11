@@ -88,6 +88,19 @@ SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/ord
     "OF_AMT_COUNTER_CONTEXT": "AMT+: against the accepted context (prior RTH value area)",
     "OF_AMT_BALANCE": "AMT+: balance context — stand aside / VA edges only",
     "OF_AMT_NO_LEVEL": "AMT+: not at a key level",
+    # D111 ATR-zone type (iceberg PROXY)
+    "OF_ZONE_NOT_ENTRY": "Zone: not an entry alert",
+    "OF_ZONE_MODE_OFF": "Zone: this mode (POSITION / REVERSION) is off",
+    "OF_ZONE_NO_EVENT": "Zone: event zone / ATR missing",
+    "OF_ZONE_EVENT_SMALL": "Zone: event too small (iceberg proxy)",
+    "OF_ZONE_LAST_MINUTES": "Zone: last minutes of RTH — no new trades",
+    "OF_ZONE_DEAD_ZONE": "Zone: dead zone without enough relative volume",
+    "OF_ZONE_NOT_PROVEN": "Zone: price not 115% ATR out of the zone",
+    "OF_ZONE_REV_LEVEL": "Zone: not at a 1/2/3 ATR reversion level",
+    "OF_ZONE_NO_PRICE_CHANGE": "Zone: no price-change (too far too fast) confirm",
+    "OF_ZONE_PROGRAM_DAY": "Zone: TICK program day — no fade",
+    "OF_ZONE_NOT_A_PLUS": "Zone: not in front of a prior event (A+ only)",
+    "OF_ZONE_EXCLUSIVE": "Zone type exclusive: AR alert not traded",
 }
 
 
@@ -120,6 +133,30 @@ def amt_rules(m: Any) -> list[dict[str, Any]]:
          "rule": f"signal at a key level ({', '.join(m.levels)})"},
         {"key": "TARGET", "on": m.enabled and m.target_to_level,
          "rule": f"TP = next key level beyond entry when it gives rr_min–{m.target_max_rr}R, else the normal target"},
+    ]  # fmt: skip
+
+
+def zone_rules(z: Any) -> list[dict[str, Any]]:
+    """D111: the ATR-zone Order Flow type (iceberg PROXY, no MBO data), strategy.order_flow_cfg.zone_atr."""
+    on = z.enabled
+    return [
+        {"key": "EVENT", "on": on,
+         "rule": "iceberg PROXY (no MBO data): footprint absorption / large-volume zone, size ≥ "
+         + ", ".join(f"{k} {v}" for k, v in z.min_event_size.items())},
+        {"key": "POSITION", "on": on and "POSITION" in z.modes,
+         "rule": f"entry {z.entry_atr_pct}×ATR(5m) outside the zone; stop back through it + {z.stop_atr_pct}×ATR; "
+         "trail only to a new same-direction event, never breakeven"},
+        {"key": "REVERSION", "on": on and "REVERSION" in z.modes,
+         "rule": f"entry {'/'.join(map(str, z.reversion_levels))} ATR away, target the zone, stop at the next ATR"
+         f"{'; A+ only (in front of a prior event)' if z.a_plus_only else ''}; exit on an opposing event"},
+        {"key": "DEAD_ZONE", "on": on and z.dead_zone_filter,
+         "rule": f"{z.dead_zone[0]}–{z.dead_zone[1]} ET only with relative volume ≥ {z.dead_zone_min_rvol}×"},
+        {"key": "LAST_MINUTES", "on": on and z.last_minutes_filter,
+         "rule": f"no new trades in the last {z.last_minutes} min before {z.rth_close} ET"},
+        {"key": "PRICE_CHANGE", "on": on and z.price_change_confirm,
+         "rule": f"reversion needs a 5-min range ≥ {z.price_change_pct}×ATR"},
+        {"key": "PROGRAM_DAY", "on": on and z.tick_filter,
+         "rule": f"no fade with |TICK| ≥ {z.tick_extreme} against it (off when the alert has no TICK)"},
     ]  # fmt: skip
 
 
@@ -159,6 +196,10 @@ def ar_rules(rules: Any) -> dict[str, Any]:
         "casper": casper_rules(r.order_flow_cfg.casper),  # D108: refinement layer list (each a switch)
         "amt": amt_rules(r.order_flow_cfg.amt),  # D110: AMT+ layers (button)
         "amt_enabled": r.order_flow_cfg.amt.enabled,
+        "zone": zone_rules(r.order_flow_cfg.zone_atr),  # D111: ATR-zone type
+        "zone_enabled": r.order_flow_cfg.zone_atr.enabled,
+        "zone_setting": "strategy.order_flow_cfg.zone_atr.enabled",
+        "zone_modes": list(r.order_flow_cfg.zone_atr.modes),
     }
 
 

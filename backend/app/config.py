@@ -434,7 +434,10 @@ class ZoneAtrCfg(_M):
         if any(v < 1 for v in self.min_event_size.values()):
             raise ValueError("order_flow.zone_atr: min_event_size ≥ 1")
         times = [*self.dead_zone, self.rth_close]
-        if not all(re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t) for t in times) or self.dead_zone[0] >= self.dead_zone[1]:
+        if (
+            not all(re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t) for t in times)
+            or self.dead_zone[0] >= self.dead_zone[1]
+        ):
             raise ValueError("order_flow.zone_atr: times are HH:MM, dead_zone start < end")
         if not (D("1") <= self.dead_zone_min_rvol <= D("3")) or not (D("0.3") <= self.price_change_pct <= D("1.5")):
             raise ValueError("order_flow.zone_atr: dead_zone_min_rvol 1–3, price_change_pct 0.3–1.5")
