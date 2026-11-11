@@ -19,6 +19,9 @@ class SymbolState:
     last_price: dict[str, Decimal] | None = None
     mso: dict[str, Any] | None = None
     mso_events: list[tuple[str, str, int]] = field(default_factory=list)  # (event, direction, confirm_ms)
+    data_feed: str = "unknown"  # D112 realtime | delayed | unknown (set by the webhook route)
+    feed_lag_s: float | None = None
+    real_delta: dict[str, Decimal] | None = None  # latest up_volume/down_volume/delta from the heartbeat
     trend: TrendState = field(default_factory=TrendState)  # D44 VWAP / EMA200 5m / UT Bot 5m
 
 
@@ -50,6 +53,12 @@ class MarketStateStore:
         if p.event == "HEARTBEAT" and p.price is not None and newer:
             st.last_heartbeat_ms = p.bar_time_ms
             st.last_price = p.price.model_dump()
+            pr = p.price
+            st.real_delta = (
+                {"up_volume": pr.up_volume, "down_volume": pr.down_volume, "delta": pr.delta}
+                if pr.delta is not None and pr.up_volume is not None and pr.down_volume is not None
+                else None
+            )
             _feed_trend(st.trend, p)
         if p.mso is not None and (st.mso is None or p.mso.confirm_time_ms >= st.mso.get("confirm_time_ms", 0)):
             st.mso = p.mso.model_dump()

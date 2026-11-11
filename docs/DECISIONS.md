@@ -1083,3 +1083,10 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   `exclusive` (default false) makes AR-type alerts skip OF_ZONE_EXCLUSIVE. Strategy gates: ZONE_EVENT / ZONE_TIME /
   ZONE_SETUP on the Order Flow card. UNVERIFIED. Not implemented (no data): real iceberg/stop events (MBO), GEX / hero,
   heat-map liquidity, partial scalps around the runner.
+
+- D112 (user 2026-11-11, "make all strategies take advantage that I have CME real time data"): data plumbing only, no strategy
+  logic change. Heartbeat may carry `data_feed` (Pine timenow vs time_close) and price.up_volume/down_volume/delta (absent =
+  tolerated; Bridge sends data_feed + real volume, the Order Flow script keeps its own real delta). Backend computes bar-close lag
+  vs the injected Clock (`monitor/feed.py: bar_lag_s/data_feed_status`, config `webhook.realtime_max_lag_s` default 90 s);
+  DELAYED → controller blocks NEW entries for all strategies (`FEED_DELAYED`) + safety banner + notify; flatten rules unchanged.
+  UI: "CME real-time data: OK / DELAYED / unknown" on Connections; Strategy page note. Latest real delta kept on SymbolState.

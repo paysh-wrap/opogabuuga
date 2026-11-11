@@ -31,7 +31,7 @@ function setup(responses: ConnectionsResponse[]) {
       return new Response(JSON.stringify(responses[Math.min(i++, responses.length - 1)]));
     if (String(url) === "/api/webhook/status")
       return new Response(JSON.stringify({ path: "/api/webhook/tradingview", secret_set: true,
-        feeds: [{ symbol: "MNQ", profile: "TIGHT", last_heartbeat: null, status: "FRESH" }], accepted: { HEARTBEAT: 3 },
+        feeds: [{ symbol: "MNQ", profile: "TIGHT", last_heartbeat: null, data_feed: "delayed", status: "FRESH" }], accepted: { HEARTBEAT: 3 },
         rejected: {}, last_rejection: null }));
     return new Response(JSON.stringify({}));
   });
@@ -122,4 +122,9 @@ test("D93: only mandatory EVAL/LIVE connections get the standout tag; optional o
   expect(dc).not.toHaveAttribute("data-mandatory");
   expect(within(dc).queryByTestId("mandatory-tag")).toBeNull();
   expect(screen.getByTestId("mandatory-checklist")).toBeInTheDocument();
+});
+
+test("shows the CME real-time data chip (D112)", async () => {
+  setup([payload("not_set")]);
+  expect(await screen.findByTestId("cme-realtime")).toHaveTextContent("CME real-time data: DELAYED");
 });

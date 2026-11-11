@@ -101,7 +101,7 @@ export interface Health {
 export interface WebhookStatus {
   path: string;
   secret_set: boolean;
-  feeds: { symbol: string; profile: string; last_heartbeat: string | null; status: "FRESH" | "STALE" | "CLOSED" | "NO_DATA" }[];
+  feeds: { symbol: string; profile: string; last_heartbeat: string | null; data_feed?: "realtime" | "delayed" | "unknown"; status: "FRESH" | "STALE" | "CLOSED" | "NO_DATA" }[];
   accepted: Record<string, number>;
   rejected: Record<string, number>;
   last_rejection: { code: string; detail: string; at: string } | null;

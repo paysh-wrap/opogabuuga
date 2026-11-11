@@ -17,6 +17,8 @@ export default function TradingViewSetup({ publicBase, permanent }: { publicBase
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
   const feeds = st.data?.feeds ?? [];
+  const dfs = feeds.map((f) => f.data_feed ?? "unknown");
+  const cme = dfs.includes("delayed") ? "DELAYED" : dfs.includes("realtime") ? "OK" : "unknown";
   const accepted = st.data?.accepted ?? {};
   const rejected = st.data?.rejected ?? {};
   const url = publicBase ? `${publicBase.replace(/\/$/, "")}${st.data?.path ?? "/api/webhook/tradingview"}` : undefined;
@@ -76,6 +78,7 @@ export default function TradingViewSetup({ publicBase, permanent }: { publicBase
       </div>
 
       <h3 className="mt-4 text-sm font-semibold text-gold">Live feeds</h3>
+      <p className="text-sm" data-testid="cme-realtime">CME real-time data: <b className="text-gold">{cme}</b></p>
       {st.data && feeds.length === 0 && <p className="text-sm" data-testid="no-feeds">No heartbeats received yet.</p>}
       <ul className="mt-1 grid gap-1 text-sm sm:grid-cols-2">
         {feeds.map((f) => (

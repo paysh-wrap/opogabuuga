@@ -239,6 +239,7 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
                 {
                     "profile": prof,
                     "feed": feed_status(ss.last_heartbeat_ms, tf, now, 2),
+                    "data_feed": ss.data_feed,
                     "mso_trend": (ss.mso or {}).get("trend"),
                     "mso_osc": (ss.mso or {}).get("osc"),
                     "last_mso_event": ss.mso_events[-1][:2] if ss.mso_events else None,

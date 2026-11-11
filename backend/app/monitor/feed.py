@@ -30,3 +30,21 @@ def feed_status(last_close_ms: int | None, tf_min: int, now: datetime, multiple:
         return "NO_DATA"
     age_ms = int(now.timestamp() * 1000) - last_close_ms
     return "STALE" if age_ms > multiple * tf_min * 60_000 else "FRESH"
+
+
+DataFeed = Literal["realtime", "delayed", "unknown"]
+
+
+def bar_lag_s(bar_close_ms: int, now: datetime) -> float:
+    """Seconds between a bar's CLOSE and now (injected clock). Negative skew is clamped to 0."""
+    return max(0.0, (now.timestamp() * 1000 - bar_close_ms) / 1000)
+
+
+def data_feed_status(declared: str | None, lag_s: float | None, max_lag_s: int, tf_min: int = 1) -> DataFeed:
+    """D112: CME real-time check. A declared 'delayed' (Pine timenow vs time_close) or a lag above the limit
+    (scaled by bar size above 1m is NOT applied: lag is measured from the bar close) = delayed."""
+    if declared == "delayed" or (lag_s is not None and lag_s > max_lag_s):
+        return "delayed"
+    if declared == "realtime" and lag_s is not None:
+        return "realtime"
+    return "unknown"

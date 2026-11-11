@@ -35,6 +35,9 @@ class Ohlcv(_M):
     l: Decimal  # noqa: E741
     c: Decimal
     v: Decimal = Decimal(0)
+    up_volume: Decimal | None = None  # D112 optional real split (absent → unknown)
+    down_volume: Decimal | None = None
+    delta: Decimal | None = None
 
 
 class FractalFields(_M):
@@ -129,6 +132,7 @@ class WebhookPayload(_M):
     event: EventName
     direction: Literal["LONG", "SHORT", "NONE"]
     price: Ohlcv | None = None
+    data_feed: Literal["realtime", "delayed", "unknown"] | None = None  # D112 Pine timenow vs time_close
     fractal: FractalFields | None = None
     mso: MsoFields | None = None
     order_flow: OrderFlowFields | None = None

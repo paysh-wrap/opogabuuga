@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 export interface Safety {
   unmanaged: { account: string; reason: string }[];
   feed: { symbol: string; state: "WARN" | "LOST" }[];
+  feed_delayed?: { symbol: string; lag_s: number }[];
   pending_exits: { signal_id: number; symbol: string; reason: string; since: string | null }[];
   missed_checks: { symbol: string; minute_et: string; key: string }[];
 }
@@ -34,6 +35,13 @@ export default function SafetyBanners() {
         ⚠ <b className="text-gold">Price feed lost while in a position</b> ({f.symbol}). No new entries.{" "}
         {f.state === "LOST" ? "The position is being closed (FEED_LOST)." : "It will be closed automatically if bars do not return soon."}{" "}
         Check the TradingView alert and the tunnel on <Link className="text-blue underline" to="/connections">Connections</Link>.
+      </div>,
+    ),
+  );
+  (d.feed_delayed ?? []).forEach((f) =>
+    items.push(
+      <div key={`d-${f.symbol}`} role="alert" data-testid={`banner-delayed-${f.symbol}`} className={box}>
+        ⚠ <b className="text-gold">CME data is DELAYED</b> ({f.symbol}, {f.lag_s} s behind). CME real-time data is expected, so no new entries (FEED_DELAYED).
       </div>,
     ),
   );

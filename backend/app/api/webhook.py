@@ -131,6 +131,20 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
             continue
         await st.hub.broadcast("order.updated", {"signal": sid, "exit": why, "trades": n})
     if p.event == "HEARTBEAT" and p.price is not None:
+        from app.monitor.feed import bar_lag_s, data_feed_status
+
+        lag = bar_lag_s(p.bar_time_ms, st.clock.now())
+        df = data_feed_status(p.data_feed, lag, st.rules.rules.webhook.realtime_max_lag_s)
+        ss0 = st.market.states.get((acc.symbol, p.profile))
+        if ss0 is not None and not replay:
+            ss0.data_feed, ss0.feed_lag_s = df, lag
+        if df == "delayed" and not replay:
+            if acc.symbol not in ctl.feed_delayed:
+                detail = f"{acc.symbol}: {int(lag)} s behind - new entries blocked"
+                ctl.notify("error", "CME data is DELAYED", detail, "feed")
+            ctl.feed_delayed[acc.symbol] = lag
+        elif not replay and ctl.feed_delayed.pop(acc.symbol, None) is not None:
+            ctl.notify("info", "CME data is real-time again", acc.symbol, "feed")
         finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
         if finest:
             await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
@@ -203,6 +217,11 @@ async def tradingview(request: Request, background: BackgroundTasks) -> JSONResp
     return JSONResponse({"ok": False, "code": res.code, "detail": res.detail}, status_code=res.status)
 
 
+def _df(st: Any, sym: str, prof: str) -> str:
+    ss = st.market.states.get((sym, prof))
+    return ss.data_feed if ss is not None else "unknown"
+
+
 @router.get("/webhook/status")
 def webhook_status(request: Request, _: Principal = Depends(current_user)) -> dict[str, Any]:
     st = request.app.state
@@ -222,6 +241,7 @@ def webhook_status(request: Request, _: Principal = Depends(current_user)) -> di
                 "symbol": sym,
                 "profile": prof,
                 "last_heartbeat": last.isoformat() if last else None,
+                "data_feed": _df(st, sym, prof),
                 "status": feed_status(last_ms, tf_minutes(ltf), now, st.rules.rules.webhook.stale_after_bar_multiple),
             }
         )

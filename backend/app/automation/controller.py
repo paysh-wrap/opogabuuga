@@ -113,6 +113,7 @@ class Controller:
     _bar_feeds: dict[str, dict[int, datetime]] = field(default_factory=dict)  # symbol → {tf minutes: last bar seen}
     _pending_exits: dict[str, str] = field(default_factory=dict)  # D55 strategy exits still inside the minimum hold
     bus: Any = None  # app.events.EventBus: stored notifications + WS events (§19)
+    feed_delayed: dict[str, float] = field(default_factory=dict)  # D112 symbol → lag s (CME data not real-time)
     feed_state: dict[str, str] = field(default_factory=dict)  # symbol → WARN | LOST (position open, no 1-minute bar)
     _exposure_since: dict[str, datetime] = field(default_factory=dict)  # symbol → first seen with an open position
     _exit_alerted: set[str] = field(default_factory=set)  # trade ids whose failed strategy exit already alerted
@@ -307,6 +308,8 @@ class Controller:
             sig = s.get(Signal, signal_id)
             if sig is None or sig.status != "PASS":
                 return [AccountResult(0, False, "SIGNAL_NOT_TRADEABLE")]
+            if sig.symbol in self.feed_delayed:
+                return [AccountResult(0, False, "FEED_DELAYED")]  # D112: CME data not real-time → no NEW entries
             if self.feed_state.get(sig.symbol):
                 return [AccountResult(0, False, "FEED_LOST")]  # position open + no price bars: no NEW entries
             plan0 = self._plan(s, sig)
@@ -1617,6 +1620,7 @@ class Controller:
         return {
             "unmanaged": unmanaged,
             "feed": [{"symbol": k, "state": v} for k, v in self.feed_state.items()],
+            "feed_delayed": [{"symbol": k, "lag_s": int(v)} for k, v in self.feed_delayed.items()],
             "pending_exits": pending,
         }
 

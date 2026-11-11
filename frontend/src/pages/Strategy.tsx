@@ -29,6 +29,7 @@ export default function Strategy() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
+      <p className="text-xs" data-testid="real-volume-note">Strategies use real CME volume (VWAP-based ones) when the TradingView feed provides it.</p>
       <StrategyPresets />
       <StrategyButtons />
       <TaMgcCard />

@@ -1038,6 +1038,7 @@ class WebhookCfg(_M):
     rate_limit_per_min: int = Field(ge=10)
     max_body_bytes: int = Field(ge=1024, le=1_048_576)
     stale_after_bar_multiple: int = Field(ge=1, le=10)
+    realtime_max_lag_s: int = Field(default=90, ge=5, le=900)  # D112: 1m bar close → app receipt above this = DELAYED
 
 
 class ReliabilityCfg(_M):
