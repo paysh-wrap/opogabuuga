@@ -7,6 +7,18 @@ export const theme = {
   bg: "#0A1020",
   card: "#111A33",
   border: "#1E2A4A",
+  // D93: brighter gold-family highlight used ONLY for connections that are mandatory to trade EVAL/LIVE.
+  mandatory: "#FFC93C",
+} as const;
+
+// D93 "mission control" surfaces (tiles, hairlines). Backgrounds only, never font colours.
+export const mission = {
+  bg: "#080D1C",
+  tile: "#0F1832",
+  tile2: "#111A33",
+  line: "#22305A",
+  lineStrong: "#2F4585",
+  navOn: "#1B2A55",
 } as const;
 
 export const badge = { ok: "#22C55E", bad: "#EF4444" } as const; // icons only, never text

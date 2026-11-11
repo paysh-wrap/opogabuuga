@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import Header from "./Header";
 import SafetyBanners from "./SafetyBanners";
 import { UpdateBanner } from "./UpdatePanel";
+import MobileDock from "./MobileDock";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
@@ -23,7 +24,7 @@ const NAV = [
 
 export default function Layout() {
   return (
-    <div className="min-h-screen">
+    <div className="mission min-h-screen">
       <div className="app-chrome">
       <Header />
       <nav aria-label="Main" className="border-b border-border bg-card/40 px-4">
@@ -43,6 +44,7 @@ export default function Layout() {
         <UpdateBanner />
         <Outlet />
       </main>
+      <MobileDock />
     </div>
   );
 }
