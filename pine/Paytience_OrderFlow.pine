@@ -26,6 +26,9 @@
 //  + D108 Casper 4h-course refinement fields (each gated by its own app switch): close_pos (entry close in its range),
 //    cvd_slope (sum of delta over the last N bars), open_vs_value (RTH open vs PRIOR RTH value area 09:30-16:00 ET),
 //    prior_va_width_atr (prior value-area width in daily ATR(20)) — docs/results/session18/order_flow/TEACHER_RULES_4H.md.
+//  + D110 AMT+ fields (used only with the app's AMT+ button): prev_rth_vah/val/poc, eth_vwap, context (acceptance vs the
+//    prior RTH value area at each session open: ACCEPT_ABOVE | ACCEPT_BELOW | BALANCE), ctx_session, key_level_type
+//    (ETH_VWAP / PRIOR_VAH / PRIOR_VAL / PRIOR_POC / PRIOR_HIGH / PRIOR_LOW / LVN / DELTA_OUTLIER), target_level.
 // The indicator SENDS every confirmed setup with its layer values; the app decides (skip codes are shown in the app).
 // Stop = beyond the absorption zone (+ buffer). The app rebuilds stop/target itself and never trusts these prices.
 indicator("Paytience Order Flow", overlay = true, max_labels_count = 200, max_bars_back = 1000)
@@ -46,6 +49,11 @@ vaPct     = input.float(70.0, "Value area %", minval = 10, maxval = 100)
 maxBack   = input.int(600, "Swing profile: max 1m bars back", minval = 50, maxval = 990)
 bufTicks  = input.int(1, "Stop buffer beyond the absorption zone (ticks)", minval = 1)
 cvdBars   = input.int(3, "Casper: CVD slope over N bars", minval = 1, maxval = 30)
+accN      = input.int(30, "AMT+: acceptance read = first N 1m bars of a session", minval = 5, maxval = 120)
+accPct    = input.float(70.0, "AMT+: acceptance = >= % of those closes above / below prior RTH value", minval = 50, maxval = 100)
+lvlTicks  = input.int(8, "AMT+: key level within N ticks of the signal bar", minval = 1, maxval = 40)
+lvnPct    = input.float(30.0, "AMT+: LVN = prior RTH row volume <= % of the POC row", minval = 5, maxval = 60)
+outK      = input.float(3.0, "AMT+: delta outlier = |delta| >= k x average |delta|", minval = 1.5)
 showMarks = input.bool(true, "Show markers")
 
 if timeframe.period != "1"
@@ -224,10 +232,36 @@ if inRth and not inRth[1]
 if inRth
     float rb = math.floor(hlc3 / (rowTicks * syminfo.mintick)) * (rowTicks * syminfo.mintick)
     map.put(rthProf, rb, (map.contains(rthProf, rb) ? map.get(rthProf, rb) : 0.0) + volume)
+var float pPoc = na
+var float pHi = na
+var float pLo = na
+var float rHi = na
+var float rLo = na
+var array<float> lvns = array.new<float>()
+if inRth and not inRth[1]
+    rHi := high
+    rLo := low
+else if inRth
+    rHi := math.max(rHi, high)
+    rLo := math.min(rLo, low)
 if not inRth and inRth[1] and map.size(rthProf) > 0
     [h1, l1] = f_vaMap(rthProf)
     pVah := h1
     pVal := l1
+    // D110 AMT+: prior RTH POC, high / low and LVN rows (single-print-like low-volume rows inside the session range)
+    array<float> ks = map.keys(rthProf)
+    float rpv = -1.0
+    for k in ks
+        float kv = map.get(rthProf, k)
+        if kv > rpv
+            rpv := kv
+            pPoc := k + rowTicks * syminfo.mintick / 2
+    array.clear(lvns)
+    for k in ks
+        if map.get(rthProf, k) <= rpv * lvnPct / 100 and array.size(lvns) < 40
+            array.push(lvns, k + rowTicks * syminfo.mintick / 2)
+    pHi := rHi
+    pLo := rLo
     map.clear(rthProf)
 if not inRth and inRth[1]
     rthOpen := na   // outside RTH there is no 'today's open' until 09:30
@@ -235,6 +269,30 @@ string openVsValue = na(pVah) or na(rthOpen) ? "" : rthOpen > pVah ? "ABOVE_VAH"
 float vaWidthAtr = na(pVah) or na(atrD) or atrD <= 0 ? na : (pVah - pVal) / atrD
 float cvdSlope = math.sum(delta, cvdBars)
 float closePos = high > low ? (close - low) / (high - low) : 0.5
+
+// ---------- D110 AMT+ (AMT_PLUS_RULES.md): CONTEXT -> LOCATION -> order flow LAST ----------
+// ETH VWAP anchored at the 18:00 ET Globex open; context = acceptance vs the PRIOR RTH value area during the first accN
+// bars of each session (Asia 18:00, London 03:00, RTH 09:30); it holds until the next session's read.
+float ethVwap = ta.vwap(hlc3, timeframe.change("D"))
+bool inLondon = not na(time(timeframe.period, "0300-0930", "America/New_York"))
+bool inAsiaS = not na(time(timeframe.period, "1800-0300", "America/New_York"))
+string sessNow = inRth ? "RTH" : inLondon ? "LONDON" : inAsiaS ? "ASIA" : ""
+var int accBars = 0
+var int accAbove = 0
+var int accBelow = 0
+var string ctx = ""
+var string ctxSess = ""
+if sessNow != "" and sessNow != sessNow[1]
+    accBars := 0
+    accAbove := 0
+    accBelow := 0
+if sessNow != "" and not na(pVah) and accBars < accN
+    accBars += 1
+    accAbove += close > pVah ? 1 : 0
+    accBelow += close < pVal ? 1 : 0
+    if accBars == accN
+        ctx := accAbove >= accN * accPct / 100 ? "ACCEPT_ABOVE" : accBelow >= accN * accPct / 100 ? "ACCEPT_BELOW" : "BALANCE"
+        ctxSess := sessNow
 
 // ---------- 3 PATH (Asia range + daily ATR(20) zones) ----------
 bool inAsia = not na(time(timeframe.period, "1800-0300", "America/New_York"))
@@ -269,6 +327,45 @@ if not na(lockH) and not na(atrD) and atrD > 0
 float liqHi = ta.highest(high, liqLen)[1]
 float liqLo = ta.lowest(low, liqLen)[1]
 float avgAbsD = ta.sma(math.abs(delta), avgLen)
+var array<float> outliers = array.new<float>()
+if timeframe.change("D")
+    array.clear(outliers)
+if barstate.isconfirmed and not na(avgAbsD) and math.abs(delta) >= outK * avgAbsD and array.size(outliers) < 20
+    array.push(outliers, hlc3)
+float lvlTol = lvlTicks * syminfo.mintick
+f_near(float lvl) => not na(lvl) and low - lvlTol <= lvl and high + lvlTol >= lvl
+f_keyLevel() =>
+    string t = ""
+    if f_near(ethVwap)
+        t := "ETH_VWAP"
+    else if f_near(pVah)
+        t := "PRIOR_VAH"
+    else if f_near(pVal)
+        t := "PRIOR_VAL"
+    else if f_near(pPoc)
+        t := "PRIOR_POC"
+    else if f_near(pHi)
+        t := "PRIOR_HIGH"
+    else if f_near(pLo)
+        t := "PRIOR_LOW"
+    if t == ""
+        for x in lvns
+            if f_near(x)
+                t := "LVN"
+                break
+    if t == ""
+        for x in outliers
+            if f_near(x)
+                t := "DELTA_OUTLIER"
+                break
+    t
+// nearest key level at least 1 tick beyond the entry on the trade side (the app checks it gives 1.5-3R)
+f_target(int d, float px) =>
+    float best = na
+    for lv in array.from(ethVwap, pVah, pVal, pPoc, pHi, pLo)
+        if not na(lv) and (lv - px) * d >= syminfo.mintick and (na(best) or math.abs(lv - px) < math.abs(best - px))
+            best := lv
+    best
 float avgVol = ta.sma(volume, avgLen)
 bool heavyD = not na(avgAbsD) and math.abs(delta) >= absK * avgAbsD
 bool quiet = not na(avgVol) and volume <= exhK * avgVol
@@ -368,6 +465,7 @@ if sig != 0
         fib := 2.0   // reversal idea invalidated (a close beyond 0.886): outside every allowed zone
     [vah, val] = f_va(math.min(swHt, swLt))
     string vSide = na(vah) ? "" : close > vah ? "ABOVE_VAH" : close < val ? "BELOW_VAL" : "IN_VALUE"
+    string keyLvl = f_keyLevel()
     alert('{"v":1,"secret":"' + secret + '","id":"' + syminfo.ticker + "-TIGHT-" + str.tostring(time_close) +
           "-ORDER_FLOW-" + dir + '","symbol":"' + syminfo.ticker + '","profile":"TIGHT","tf":"' + timeframe.period +
           '","bar_time_ms":' + str.tostring(time_close) + ',"event":"ORDER_FLOW","direction":"' + dir +
@@ -380,7 +478,10 @@ if sig != 0
           ',"stacked":' + str.tostring(sig == 1 ? stackBuy : stackSell) +
           ',"close_pos":' + str.tostring(closePos, "#.###") + ',"cvd_slope":' + str.tostring(cvdSlope, "#.##") +
           ',"open_vs_value":' + f_q(openVsValue) +
-          ',"prior_va_width_atr":' + (na(vaWidthAtr) ? "null" : str.tostring(vaWidthAtr, "#.###")) + "}}",
+          ',"prior_va_width_atr":' + (na(vaWidthAtr) ? "null" : str.tostring(vaWidthAtr, "#.###")) +
+          ',"prev_rth_vah":' + f_px(pVah) + ',"prev_rth_val":' + f_px(pVal) + ',"prev_rth_poc":' + f_px(pPoc) +
+          ',"eth_vwap":' + f_px(ethVwap) + ',"context":' + f_q(ctx) + ',"ctx_session":' + f_q(ctxSess) +
+          ',"key_level_type":' + f_q(keyLvl) + ',"target_level":' + f_px(f_target(sig, entry)) + "}}",
           alert.freq_once_per_bar_close)
 
 plotshape(showMarks and sig == 1, "Order flow LONG", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)

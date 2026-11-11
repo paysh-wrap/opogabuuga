@@ -9,6 +9,7 @@ const resp: StrategiesResp = {
     { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
     { key: "noise_ai_split", name: "NOISE + AI Duo — 50/50 risk split", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
     { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: false, flat_at: "16:00", ar_layers: [{ key: "ENVIRONMENT", on: true, rule: "no compression" }, { key: "PATH", on: false, rule: "Asia zones" }] },
+    { key: "order_flow_amt", name: "AMT+ Order Flow — context → location → order flow last — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.amt.enabled", also: ["strategy.order_flow"], amt_layers: [{ key: "CONTEXT", on: false, rule: "acceptance vs prior RTH value" }] },
     { key: "ai_bias", name: "AI only — TradingAgents + Vibe-Trading (MNQ)", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: 1.35, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT back-testable", note: "n", enabled: false, setting: "strategy.ai_bias" },
   ],
   noise_warmup: { sessions: 3, needed: 10, ready: false },
@@ -37,7 +38,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(await screen.findByTestId("win-noise")).toHaveTextContent("45.0%");
   expect(screen.getByTestId("pass-noise")).toHaveTextContent("56.9%");
   expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
-  expect(screen.getAllByText("— (not testable)").length).toBe(3); // AI only + the D92 split card + D95 order flow
+  expect(screen.getAllByText("— (not testable)").length).toBe(4); // AI only + D92 split + D95 order flow + D110 AMT+
   expect(screen.getByTestId("order-flow-badge")).toHaveTextContent("UNVERIFIED"); // D95 (D102: no paper-only label)
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("Paytience_OrderFlow.pine");
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("1-minute MNQ1! / MGC1!"); // D96
@@ -56,6 +57,10 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("win-noise_ai_split")).toHaveTextContent("—");
   await userEvent.click(screen.getByRole("button", { name: /OFF · NOISE \+ AI Duo — 50\/50 risk split/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.noise_ai_split":true,"strategy.noise":true,"strategy.ai_duo":true'))).toBe(true));
+  // D110: AMT+ button lists its layers and turns Order Flow on with it
+  expect(screen.getByTestId("amt-layers")).toHaveTextContent("CONTEXT (OFF) — acceptance vs prior RTH value");
+  await userEvent.click(screen.getByRole("button", { name: /OFF · AMT\+ Order Flow/ }));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.order_flow_cfg.amt.enabled":true,"strategy.order_flow":true'))).toBe(true));
   // D58: the MAIN card is first and turns NOISE on with the fade
   expect(screen.getAllByRole("button")[0]).toHaveTextContent("MAIN");
   expect(screen.getByTestId("pass-pm_fade")).toHaveTextContent("65.7%");

@@ -343,8 +343,25 @@ def run_order_flow(
         if of.absorption_low is not None and of.absorption_high is not None
         else None
     )
+    am = cfg.amt  # D110 AMT+ (button): CONTEXT → LOCATION before any order-flow layer ("order flow LAST")
+    amt_f = OF.AmtFields(context=of.context, key_level_type=of.key_level_type, target_level=of.target_level)
+    res: OF.OrderFlowPlan | OF.OrderFlowSkip | None = (
+        OF.check_amt(
+            direction,
+            amt_f,
+            OF.AmtRules(
+                balance_mode=am.balance_mode,
+                level_filter=am.level_filter,
+                levels=frozenset(am.levels),
+                target_to_level=am.target_to_level,
+                target_max_rr=am.target_max_rr,
+            ),
+        )
+        if am.enabled
+        else None
+    )
     # D101 AR Model: ENVIRONMENT → LOCATION → PATH → CONFIRMATION first ("the signal comes last"), then the plan
-    res: OF.OrderFlowPlan | OF.OrderFlowSkip | None = OF.check_ar(
+    res = res or OF.check_ar(
         direction,
         payload.bar_time_ms,
         ar,
@@ -408,7 +425,17 @@ def run_order_flow(
             rr_min=cfg.rr_min,
             max_risk_ticks=cfg.max_risk_ticks,
         )
+    if am.enabled and am.target_to_level and isinstance(res, OF.OrderFlowPlan):  # D110: TP at the next level
+        res = OF.amt_target(res, of.target_level, tick=inst.tick, rr_min=cfg.rr_min, max_rr=am.target_max_rr)
     layers = {
+        "context": of.context,
+        "ctx_session": of.ctx_session,
+        "key_level_type": of.key_level_type,
+        "target_level": None if of.target_level is None else str(of.target_level),
+        "eth_vwap": None if of.eth_vwap is None else str(of.eth_vwap),
+        "prev_rth_vah": None if of.prev_rth_vah is None else str(of.prev_rth_vah),
+        "prev_rth_val": None if of.prev_rth_val is None else str(of.prev_rth_val),
+        "prev_rth_poc": None if of.prev_rth_poc is None else str(of.prev_rth_poc),
         "env": of.env,
         "location_zone": of.location_zone,
         "fib": None if of.fib is None else str(of.fib),

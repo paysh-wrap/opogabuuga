@@ -351,9 +351,9 @@ def _presets(r: Any) -> dict[str, Any]:
 
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
     """D96: the Order Flow card lists the markets it trades (plan file strategy.order_flow_cfg.instruments)."""
-    if c["key"] != "order_flow":
+    if c["key"] not in ("order_flow", "order_flow_amt"):
         return {}
-    from app.api.orderflow import ar_rules
+    from app.api.orderflow import amt_rules, ar_rules
 
     cfg = r.strategy.order_flow_cfg
     return {
@@ -361,6 +361,7 @@ def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
         "paper_only": cfg.paper_only,
         "flat_at": cfg.flat_at,
         "ar_layers": ar_rules(r)["layers"],  # D101: ENVIRONMENT → LOCATION → PATH → CONFIRMATION
+        "amt_layers": amt_rules(r.strategy.order_flow_cfg.amt),  # D110: AMT+ context / location / target
     }
 
 
@@ -380,6 +381,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "ai_bias": r.strategy.ai_bias,
         "ai_duo": r.strategy.ai_duo,
         "order_flow": r.strategy.order_flow,
+        "order_flow_amt": r.strategy.order_flow and r.strategy.order_flow_cfg.amt.enabled,  # D110
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
@@ -396,7 +398,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             {
                 **c,
                 "enabled": on[str(c["key"])],
-                "setting": f"strategy.{c['key']}",
+                "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
             }
             for c in CATALOG

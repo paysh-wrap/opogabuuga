@@ -71,6 +71,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo",  # D83
         "strategy.order_flow",  # D95 (paper only, UNVERIFIED)
         "strategy.order_flow_cfg.ta_advisor",  # D109: TradingAgents advisor toggle (Order Flow page)
+        "strategy.order_flow_cfg.amt.enabled",  # D110: AMT+ Order Flow button (Strategy page)
+        "strategy.order_flow_cfg.amt.balance_mode",  # D110: BALANCE context: skip | edges
         "strategy.noise_ai_split",  # D92: split risk button (share lives in the plan file)
         "strategy.ai_duo_cfg.markets",
         "strategy.ai_duo_cfg.windows",

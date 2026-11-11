@@ -175,7 +175,34 @@ def describe(r: Any) -> list[dict[str, Any]]:
         _g("FLAT", "Flat", f"Closed on the {du.flat_at} ET bar.", (), "exit"),
     ]
     a = of.ar
+    am = of.amt  # D110 AMT+ button: CONTEXT → LOCATION before the AR layers
+    amt = (
+        [
+            _g(
+                "AMT_CONTEXT",
+                "AMT+ · Context",
+                "Trade only with the acceptance vs the prior RTH value area (above = longs, below = shorts); balance: "
+                + ("VA-edge trades only." if am.balance_mode == "edges" else "no trade."),
+                ("OF_AMT_NO_CONTEXT", "OF_AMT_COUNTER_CONTEXT", "OF_AMT_BALANCE"),
+            ),
+            *(
+                [
+                    _g(
+                        "AMT_LOCATION",
+                        "AMT+ · Key level",
+                        f"Signal at a key level ({', '.join(am.levels)}).",
+                        ("OF_AMT_NO_LEVEL",),
+                    )
+                ]
+                if am.level_filter
+                else []
+            ),
+        ]
+        if am.enabled
+        else []
+    )
     flow = [
+        *amt,
         _g(
             "ENVIRONMENT",
             "AR · Environment",
@@ -217,7 +244,12 @@ def describe(r: Any) -> list[dict[str, Any]]:
             "PLAN",
             "Stop + R:R plan",
             f"Stop beyond the absorption zone + {of.buffer_ticks} tick(s), {of.min_risk_ticks}–{of.max_risk_ticks} "
-            f"ticks, target {of.rr}R, ≥ {of.rr_min}R.",
+            f"ticks, target {of.rr}R, ≥ {of.rr_min}R"
+            + (
+                f"; AMT+ target = next key level when {of.rr_min}–{am.target_max_rr}R."
+                if am.enabled and am.target_to_level
+                else "."
+            ),
             PLAN_CODES,
         ),
         _g("WINDOW", "Trading window", f"Market in Order Flow markets ({', '.join(of.instruments)}).", WINDOW_CODES),

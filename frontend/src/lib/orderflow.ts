@@ -11,12 +11,15 @@ export interface FlowProfile { rows: { p: string; v: string }[]; poc: string | n
 // D101 AR Model layers as the indicator sent them (null = not sent)
 export interface ArValues { env: string | null; location_zone: string | null; fib: string | null; value_side: string | null; path_zone: string | null; path_side: string | null; delta_source: string | null; confirm_time: number | null;
   // D108 Casper refinement fields (optional: older alerts omit them)
-  close_pos?: string | null; cvd_slope?: string | null; open_vs_value?: string | null; prior_va_width_atr?: string | null }
+  close_pos?: string | null; cvd_slope?: string | null; open_vs_value?: string | null; prior_va_width_atr?: string | null;
+  // D110 AMT+ fields (optional)
+  context?: string | null; ctx_session?: string | null; key_level_type?: string | null; target_level?: string | null }
 export interface FlowSignal { time_ms: number; kind: string; label: string; direction: string; ar?: ArValues }
 export interface ArLayer { key: "ENVIRONMENT" | "LOCATION" | "PATH" | "CONFIRMATION"; on: boolean; rule: string }
 // D108 Casper 4h course refinements of the AR Model (each a plan-file switch)
 export interface CasperRule { key: "PRICE_CONFIRMS" | "STACKED" | "CVD" | "CONDITION" | "BUNCHED" | "ROUND_STOP"; on: boolean; rule: string }
-export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[]; casper?: CasperRule[] }
+export interface AmtLayer { key: "CONTEXT" | "LOCATION" | "TARGET"; on: boolean; rule: string }
+export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[]; casper?: CasperRule[]; amt?: AmtLayer[]; amt_enabled?: boolean }
 export interface FlowSkip { time_ms: number | null; direction: string | null; code: string; layer: string; label: string; detail: string | null; ar: ArValues }
 export interface OrderFlowData {
   symbol: string; symbols: string[]; source: FlowSource; estimated: boolean; note: string; method: string;

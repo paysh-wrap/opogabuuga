@@ -1043,3 +1043,22 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   → Add to chart on MNQ1!/MGC1! 1m, Premium/Ultimate for request.footprint else delta_source=est, CME real-time data,
   alert "Any alert() function call", Webhook URL from the Connections tunnel, message {{alert message}}, open-ended
   expiry note, one alert per symbol); the webhook secret is never printed there (Connections page only).
+- D110 (user 2026-11-11, "AMT+ Order flow button"; docs/results/session18/order_flow/AMT_PLUS_RULES.md — a prop-firm
+  trader who trades Lucid): Strategy-page button "AMT+ Order Flow" = My Settings key `strategy.order_flow_cfg.amt.enabled`
+  (default OFF; turning it on also turns `strategy.order_flow` on; `amt.balance_mode` skip|edges also editable). Plan
+  file `strategy.order_flow_cfg.amt` (AmtCfg, all 9 yamls): balance_mode skip, level_filter on, levels [ETH_VWAP,
+  PRIOR_VAH, PRIOR_VAL, PRIOR_POC, LVN, DELTA_OUTLIER, PRIOR_HIGH, PRIOR_LOW], target_to_level on, target_max_rr 3.0
+  (validator 1.5–3.0 and ≥ rr_min: TP ≤ 3R pillar). Top-down, checked BEFORE the AR layers ("order flow LAST"):
+  engine/order_flow.check_amt — CONTEXT (alert `context` ACCEPT_ABOVE → longs only, ACCEPT_BELOW → shorts only,
+  BALANCE → skip, or with `edges` only LONG at PRIOR_VAL / SHORT at PRIOR_VAH; codes OF_AMT_NO_CONTEXT /
+  OF_AMT_COUNTER_CONTEXT / OF_AMT_BALANCE) → LOCATION (`key_level_type` must be an allowed key level, OF_AMT_NO_LEVEL);
+  `amt_target` uses the alert's `target_level` (nearest key level beyond entry) as TP when it gives rr_min…target_max_rr,
+  else the normal 2R. Pine (Paytience_OrderFlow.pine) now sends prev_rth_vah/val/poc, eth_vwap (anchored 18:00 ET),
+  context (acceptance = ≥ accPct 70% of the first accN 30 one-minute closes of each session — Asia 18:00 / London 03:00
+  / RTH 09:30 — above / below the prior RTH value area; holds until the next session's read), ctx_session,
+  key_level_type (within lvlTicks 8 ticks of the signal bar; LVN = prior RTH rows ≤ 30% of the POC row; DELTA_OUTLIER =
+  bars with |delta| ≥ 3× average this Globex day) and target_level. Shown on the Strategy page (card + layer list), the
+  Strategy gates list (AMT_CONTEXT / AMT_LOCATION on the Order Flow card) and the Order Flow page ("First layer").
+  UNVERIFIED (no real order-flow data; the trader's 43% win / 3.5 avg-win-loss claims are not ours); only removes trades
+  or picks a TP inside the R window; 1 micro; every Order Flow and Lucid gate unchanged. Not implemented (no data):
+  gamma exposure, Bookmap / heat-map liquidity, weekly TPO, hold-vs-scalp by payout distance.

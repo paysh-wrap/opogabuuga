@@ -90,6 +90,18 @@ class OrderFlowFields(_M):
     cvd_slope: Decimal | None = None
     open_vs_value: Literal["BELOW_VAL", "IN_VALUE", "ABOVE_VAH"] | None = None
     prior_va_width_atr: Decimal | None = Field(default=None, ge=0, le=100)
+    # D110 AMT+ (optional; with the AMT+ button on, a missing context / level skips OF_AMT_NO_CONTEXT / OF_AMT_NO_LEVEL)
+    prev_rth_vah: Decimal | None = Field(default=None, gt=0)
+    prev_rth_val: Decimal | None = Field(default=None, gt=0)
+    prev_rth_poc: Decimal | None = Field(default=None, gt=0)
+    eth_vwap: Decimal | None = Field(default=None, gt=0)
+    context: Literal["ACCEPT_ABOVE", "ACCEPT_BELOW", "BALANCE"] | None = None
+    ctx_session: Literal["ASIA", "LONDON", "RTH"] | None = None
+    key_level_type: (
+        Literal["ETH_VWAP", "PRIOR_VAH", "PRIOR_VAL", "PRIOR_POC", "LVN", "DELTA_OUTLIER", "PRIOR_HIGH", "PRIOR_LOW"]
+        | None
+    ) = None
+    target_level: Decimal | None = Field(default=None, gt=0)
 
 
 class WebhookPayload(_M):

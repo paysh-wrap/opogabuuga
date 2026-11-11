@@ -367,6 +367,32 @@ class CasperCfg(_M):
         return self
 
 
+AmtLevel = Literal["ETH_VWAP", "PRIOR_VAH", "PRIOR_VAL", "PRIOR_POC", "LVN", "DELTA_OUTLIER", "PRIOR_HIGH", "PRIOR_LOW"]
+
+
+class AmtCfg(_M):
+    """D110 (user 2026-11-11 "AMT+ Order flow button"): the prop-firm trader's top-down framing
+    (docs/results/session18/order_flow/AMT_PLUS_RULES.md) — CONTEXT → LOCATION → order flow LAST. Strategy-page button
+    `enabled` (default OFF). UNVERIFIED; the gates only remove trades (engine/order_flow.check_amt, OF_AMT_*); the
+    level target may only pick a TP inside rr_min … target_max_rr (else the normal rr)."""
+
+    enabled: bool = False
+    balance_mode: Literal["skip", "edges"] = "skip"  # BALANCE context: stand aside, or VA-edge trades only
+    level_filter: bool = True  # LOCATION: the signal must form at a key level (else OF_AMT_NO_LEVEL)
+    levels: list[AmtLevel] = ["ETH_VWAP", "PRIOR_VAH", "PRIOR_VAL", "PRIOR_POC", "LVN", "DELTA_OUTLIER",
+                              "PRIOR_HIGH", "PRIOR_LOW"]  # fmt: skip
+    target_to_level: bool = True  # TP = nearest liquidity / key level beyond entry when its R fits
+    target_max_rr: D = D("3.0")  # §7 pillar cap (TP ≤ 3R)
+
+    @model_validator(mode="after")
+    def _check(self) -> AmtCfg:
+        if not self.levels or len(set(self.levels)) != len(self.levels):
+            raise ValueError("order_flow.amt: levels needs ≥ 1 key level, no duplicates")
+        if not (D("1.5") <= self.target_max_rr <= D("3.0")):
+            raise ValueError("order_flow.amt: 1.5 ≤ target_max_rr ≤ 3.0 (TP ≤ 3R pillar)")
+        return self
+
+
 class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
     alerts) — UNVERIFIED (no order-flow backtest: no tick data); D102: not forced paper-only (contracts stay 1).
@@ -390,6 +416,7 @@ class OrderFlowCfg(_M):
     # existing bias job runs ta_advisor_lead_min before the earliest Order Flow entry window start (ET). Advisory only:
     # an opposite ORDER_FLOW signal is annotated + warned; it is skipped (OF_TA_DISAGREES) only when
     # ta_advisor_blocks is true AND the AI-accuracy ledger has proven the call (ai_gate_min_accuracy).
+    amt: AmtCfg = AmtCfg()  # D110: AMT+ context / location gates + level target (Strategy-page button)
     ta_advisor: bool = False
     ta_advisor_blocks: bool = False
     ta_advisor_lead_min: int = Field(default=60, ge=15, le=240)
@@ -404,6 +431,8 @@ class OrderFlowCfg(_M):
             raise ValueError("order_flow: rr_min ≥ 1.5 and rr ≥ rr_min")
         if self.min_risk_ticks > self.max_risk_ticks:
             raise ValueError("order_flow: min_risk_ticks ≤ max_risk_ticks")
+        if self.amt.target_max_rr < self.rr_min:
+            raise ValueError("order_flow.amt: target_max_rr ≥ rr_min")
         if self.contracts != 1:  # D102: paper_only is a user choice now; the fixed 1 micro stays (D95)
             raise ValueError("order_flow: UNVERIFIED — contracts must stay 1 (D95)")
         return self

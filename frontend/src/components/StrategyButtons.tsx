@@ -12,6 +12,7 @@ export interface Strat {
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
   ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
+  amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
 }
 export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;
@@ -112,6 +113,15 @@ export default function StrategyButtons() {
                   <li>Paste the webhook secret (Connections page) into the indicator settings.</li>
                   <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
                   <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
+                </ol>
+              </div>
+            )}
+            {s.key === "order_flow_amt" && s.amt_layers && (
+              <div className="mt-2 text-xs" data-testid="amt-setup">
+                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span>
+                <p className="mt-1 text-blue">Top-down (D110): context first, location next, the order-flow signal LAST. Turning it on also turns Order Flow on; it only removes trades (codes OF_AMT_*).</p>
+                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="amt-layers">
+                  {s.amt_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
               </div>
             )}

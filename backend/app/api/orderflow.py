@@ -66,6 +66,7 @@ def _profile(p: FP.Profile) -> dict[str, Any]:
 AR_KEYS = (
     "env", "location_zone", "fib", "value_side", "path_zone", "path_side", "delta_source", "confirm_time",
     "close_pos", "cvd_slope", "open_vs_value", "prior_va_width_atr",  # D108 Casper fields
+    "context", "ctx_session", "key_level_type", "target_level",  # D110 AMT+ fields
 )  # fmt: skip
 SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/order_flow.py), by AR layer
     "OF_COMPRESSION": "Environment: compression / low participation — no trade",
@@ -82,6 +83,11 @@ SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/ord
     "OF_CASPER_CONDITION": "Casper: against the open vs prior value-area lean",
     "OF_CASPER_BUNCHED": "Casper: levels bunched (narrow prior value area) — no trade",
     "OF_CASPER_ROUND_STOP": "Casper: stop moved off the round number no longer fits risk / R:R",
+    # D110 AMT+ (CONTEXT → LOCATION before the order-flow layers)
+    "OF_AMT_NO_CONTEXT": "AMT+: context unknown (indicator sent no acceptance read)",
+    "OF_AMT_COUNTER_CONTEXT": "AMT+: against the accepted context (prior RTH value area)",
+    "OF_AMT_BALANCE": "AMT+: balance context — stand aside / VA edges only",
+    "OF_AMT_NO_LEVEL": "AMT+: not at a key level",
 }
 
 
@@ -101,6 +107,19 @@ def casper_rules(c: Any) -> list[dict[str, Any]]:
          "rule": f"no trade when the prior value area < {c.min_va_width_atr} × daily ATR(20)"},
         {"key": "ROUND_STOP", "on": c.round_stop,
          "rule": f"stop {c.round_buffer_ticks} ticks beyond a nearby round number ({steps})"},
+    ]  # fmt: skip
+
+
+def amt_rules(m: Any) -> list[dict[str, Any]]:
+    """D110: the AMT+ layers as configured (strategy.order_flow_cfg.amt); all OFF while the button is off."""
+    return [
+        {"key": "CONTEXT", "on": m.enabled,
+         "rule": "acceptance vs the prior RTH value area at the session open: above = longs only, below = shorts "
+         f"only; balance = {'VA-edge trades only' if m.balance_mode == 'edges' else 'no trade'}"},
+        {"key": "LOCATION", "on": m.enabled and m.level_filter,
+         "rule": f"signal at a key level ({', '.join(m.levels)})"},
+        {"key": "TARGET", "on": m.enabled and m.target_to_level,
+         "rule": f"TP = next key level beyond entry when it gives rr_min–{m.target_max_rr}R, else the normal target"},
     ]  # fmt: skip
 
 
@@ -138,6 +157,8 @@ def ar_rules(rules: Any) -> dict[str, Any]:
             },
         ],
         "casper": casper_rules(r.order_flow_cfg.casper),  # D108: refinement layer list (each a switch)
+        "amt": amt_rules(r.order_flow_cfg.amt),  # D110: AMT+ layers (button)
+        "amt_enabled": r.order_flow_cfg.amt.enabled,
     }
 
 

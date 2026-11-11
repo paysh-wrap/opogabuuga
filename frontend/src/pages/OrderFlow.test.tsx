@@ -29,7 +29,8 @@ const DATA: OrderFlowData = {
   ar: { enabled: false, paper_only: false, verified: false, layers: [
     { key: "ENVIRONMENT", on: true, rule: "trade only in EXPANSION / ROTATION" }, { key: "LOCATION", on: true, rule: "fib" },
     { key: "PATH", on: false, rule: "Asia" }, { key: "CONFIRMATION", on: true, rule: "absorption" }],
-    casper: [{ key: "PRICE_CONFIRMS", on: true, rule: "close away from the trapped side" }, { key: "CVD", on: false, rule: "CVD moves with the trade" }] },
+    casper: [{ key: "PRICE_CONFIRMS", on: true, rule: "close away from the trapped side" }, { key: "CVD", on: false, rule: "CVD moves with the trade" }],
+    amt: [{ key: "CONTEXT", on: true, rule: "acceptance vs prior RTH value" }, { key: "LOCATION", on: true, rule: "key level" }, { key: "TARGET", on: false, rule: "next level" }], amt_enabled: true },
   skips: [{ time_ms: 125_000, direction: "SHORT", code: "OF_COMPRESSION", layer: "ENVIRONMENT", label: "Environment: compression", detail: null,
     ar: { env: "COMPRESSION", location_zone: null, fib: null, value_side: null, path_zone: null, path_side: null, delta_source: "est", confirm_time: null } }],
 };
@@ -60,6 +61,8 @@ test("Order Flow page labels every panel ESTIMATED, shows summary, profile and a
   expect(screen.getByTestId("of-casper")).toHaveTextContent("PRICE_CONFIRMS");
   expect(screen.getByTestId("of-casper")).toHaveTextContent("OFF (plan file switch)");
   expect(casperSummary(undefined)).toBe("none configured");
+  expect(screen.getByTestId("of-amt")).toHaveTextContent("AMT+ context → location (button ON)");
+  expect(screen.getByTestId("of-amt")).toHaveTextContent("CONTEXT");
   expect(screen.getByTestId("of-footprint")).toBeInTheDocument();
   expect(document.title).toBe("Paytience · Order Flow");
 });

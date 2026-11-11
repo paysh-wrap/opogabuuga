@@ -75,6 +75,21 @@ export default function OrderFlow() {
               </ul>
             </div>
           )}
+          {(d.ar.amt ?? []).length > 0 && (
+            <div className="mt-3" data-testid="of-amt">
+              <h3 className="font-semibold text-gold">First layer · AMT+ context → location ({d.ar.amt_enabled ? "button ON" : "button OFF"})</h3>
+              <p className="text-xs text-blue">Prop-firm trader's top-down framing (D110): checked BEFORE the AR layers — the order-flow signal comes last. Skip codes OF_AMT_&lt;RULE&gt;. Strategy page button "AMT+ Order Flow".</p>
+              <ul className="mt-1 grid gap-2 sm:grid-cols-3">
+                {(d.ar.amt ?? []).map((c) => (
+                  <li key={c.key} className="rounded border border-border p-2">
+                    <div className="text-xs text-blue">{c.key}</div>
+                    <div className="font-semibold text-gold">{c.on ? "ON" : "OFF"}</div>
+                    <div className="text-xs text-blue">{c.rule}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <h3 className="mt-3 font-semibold text-gold">Refused alerts (skip reasons)</h3>
           {(d.skips ?? []).length === 0 ? <p className="text-xs text-blue">No Order Flow alert was refused this session.</p> : (
             <ul className="mt-1 text-xs" data-testid="of-skips">

@@ -279,3 +279,62 @@ def casper_round_stop(
     if got < rr_min:
         return _cs("ROUND_STOP", f"R:R {got} < {rr_min} after moving the stop off {level}")
     return OrderFlowPlan(plan.direction, plan.kind, plan.entry, plan.defended, stop, tp, risk, got)
+
+
+# ---------- D110 AMT+ (docs/results/session18/order_flow/AMT_PLUS_RULES.md): CONTEXT → LOCATION → order flow LAST ----
+LEVELS = frozenset(
+    {"ETH_VWAP", "PRIOR_VAH", "PRIOR_VAL", "PRIOR_POC", "LVN", "DELTA_OUTLIER", "PRIOR_HIGH", "PRIOR_LOW"}
+)
+
+
+@dataclass(frozen=True)
+class AmtFields:
+    """AMT+ values one alert carries (None = not sent → the active gate skips: no silent pass)."""
+
+    context: str | None = None  # ACCEPT_ABOVE | ACCEPT_BELOW | BALANCE (vs the prior RTH value area)
+    key_level_type: str | None = None  # the key level the signal formed at (LEVELS)
+    target_level: Decimal | None = None  # nearest liquidity / key level beyond the entry (trade side)
+
+
+@dataclass(frozen=True)
+class AmtRules:
+    balance_mode: str = "skip"  # skip | edges (BALANCE: only LONG at PRIOR_VAL / SHORT at PRIOR_VAH)
+    level_filter: bool = True
+    levels: frozenset[str] = LEVELS
+    target_to_level: bool = True
+    target_max_rr: Decimal = Decimal("3.0")
+
+
+def _amt(code: str, detail: str, layer: str) -> OrderFlowSkip:
+    return OrderFlowSkip(f"OF_AMT_{code}", detail, layer)
+
+
+def check_amt(direction: Direction, f: AmtFields, r: AmtRules) -> OrderFlowSkip | None:
+    """None = context and location agree with the side; else the first failing AMT+ gate (layer CONTEXT/LOCATION)."""
+    long = direction is Direction.LONG
+    ctx = f.context
+    if ctx not in ("ACCEPT_ABOVE", "ACCEPT_BELOW", "BALANCE"):
+        return _amt("NO_CONTEXT", f"context {ctx} unknown", "CONTEXT")
+    if (ctx == "ACCEPT_ABOVE" and not long) or (ctx == "ACCEPT_BELOW" and long):
+        return _amt("COUNTER_CONTEXT", f"{direction.value} against {ctx}", "CONTEXT")
+    if ctx == "BALANCE":
+        edge = "PRIOR_VAL" if long else "PRIOR_VAH"
+        if r.balance_mode != "edges" or f.key_level_type != edge:
+            return _amt("BALANCE", f"balance ({r.balance_mode}): {direction.value} at {f.key_level_type}", "CONTEXT")
+    if r.level_filter and (f.key_level_type is None or f.key_level_type not in r.levels):
+        return _amt("NO_LEVEL", f"key level {f.key_level_type} not allowed", "LOCATION")
+    return None
+
+
+def amt_target(
+    plan: OrderFlowPlan, target_level: Decimal | None, *, tick: Decimal, rr_min: Decimal, max_rr: Decimal
+) -> OrderFlowPlan:
+    """TP = the nearest liquidity / key level beyond the entry when it gives rr_min ≤ R ≤ max_rr; else the plan's 2R."""
+    s = plan.direction.sign
+    if target_level is None or (target_level - plan.entry) * s <= 0:
+        return plan
+    tp = round_to_tick(target_level, tick, toward=plan.entry)
+    got = abs(tp - plan.entry) / plan.risk_pts
+    if (tp - plan.entry) * s <= 0 or got < rr_min or got > max_rr:
+        return plan
+    return OrderFlowPlan(plan.direction, plan.kind, plan.entry, plan.defended, plan.stop, tp, plan.risk_pts, got)

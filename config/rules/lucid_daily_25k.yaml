@@ -293,6 +293,13 @@ strategy:   # D101: Order Flow AR-Model defaults (legacy Daily plan: everything 
       require_real_delta: false # true → delta_source "est" alerts skipped (OF_DELTA_ESTIMATED)
       trail_candle_min: 5       # trail behind the last closed 5m candle (pure helper; not wired yet, D101)
       be_after_r: 1.0           # break-even after 1R follow-through
+    amt:   # D110 AMT+ Order Flow button (UNVERIFIED; CONTEXT → LOCATION → order flow last; codes OF_AMT_*; only removes trades)
+      enabled: false            # Strategy-page button 'AMT+ Order Flow' (My Settings)
+      balance_mode: skip        # BALANCE context: skip | edges (LONG only at prior VAL, SHORT only at prior VAH)
+      level_filter: true        # signal must form at a key level (else OF_AMT_NO_LEVEL)
+      levels: [ETH_VWAP, PRIOR_VAH, PRIOR_VAL, PRIOR_POC, LVN, DELTA_OUTLIER, PRIOR_HIGH, PRIOR_LOW]
+      target_to_level: true     # TP = next key level beyond entry when it gives rr_min … target_max_rr, else rr
+      target_max_rr: 3.0        # §7 pillar: TP ≤ 3R (validator 1.5–3.0)
     ta_advisor: false          # D109 TradingAgents advisor (Order Flow page toggle); advisory only, never blocks unless below
     ta_advisor_blocks: false   # D109 true → opposite-side alert skipped OF_TA_DISAGREES, and only once the AI ledger is proven
     ta_advisor_lead_min: 60    # D109 run the bias job this many minutes before the first Order Flow entry window (ET)

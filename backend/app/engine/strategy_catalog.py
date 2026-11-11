@@ -127,4 +127,29 @@ CATALOG: list[dict[str, object]] = [
         "(never trusts the alert's prices); window, news, hedge lock (METALS for MGC), DLL, consistency and the "
         "16:00 ET flat all still apply. 1 micro.",
     },
+    {
+        "key": "order_flow_amt",
+        "name": "AMT+ Order Flow — context → location → order flow last — UNVERIFIED",
+        "source": "D110 prop-firm trader (trades Lucid; docs/results/session18/order_flow/AMT_PLUS_RULES.md): CONTEXT "
+        "(acceptance above / below the prior RTH value area at the session open; balance = stand aside or VA edges) → "
+        "LOCATION (ETH VWAP, prior VAH / VAL / POC, LVN / single prints, delta outlier, prior-session high / low) → "
+        "the Order Flow signal LAST; target = the next key level when it gives 1.5–3R, else 2R",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "NOT tested (no real order-flow data). The trader's own claims (43% win, avg win/loss 3.5) are not "
+        "verified by us.",
+        "note": "Default OFF. Adds the AMT+ gates to the Order Flow strategy (turns Order Flow on with it); "
+        "only removes trades (codes OF_AMT_*). Needs the current 'Paytience Order Flow' indicator "
+        "(sends context + key level). "
+        "Every Order Flow and Lucid gate still applies. 1 micro.",
+        "setting_key": "strategy.order_flow_cfg.amt.enabled",
+        "also": ["strategy.order_flow"],
+    },
 ]
