@@ -27,6 +27,8 @@ ASSET = "Paytience-Windows.zip"
 RELEASE_URL = f"https://api.github.com/repos/{REPO}/releases/tags/{TAG}"
 HEALTHY_FLAG = "healthy.flag"
 FAILED_FLAG = "update-failed.txt"
+EXPECTED_FILE = "expected-commit.txt"  # D97: commit the NEW app must report before it counts as healthy
+UNHEALTHY_FLAG = "unhealthy.flag"  # D97: written by a new app that runs the WRONG commit -> the .bat rolls back
 _SHA = re.compile(r"commit:\s*([0-9a-f]{7,40})", re.IGNORECASE)
 
 
@@ -179,11 +181,43 @@ def extract(zip_path: Path, staging: Path) -> Path:
     raise UpdateError("Update zip has no Paytience.exe + _internal")
 
 
-def updater_script(app_dir: Path, new_dir: Path, backup: Path, updates_dir: Path, pid: int, wait_s: int = 120) -> str:
+def commits_match(a: str, b: str) -> bool:
+    """Short and full SHAs compare by prefix; an empty or 'dev' commit never matches anything."""
+    a, b = a.strip().lower(), b.strip().lower()
+    if a in ("", "dev") or b in ("", "dev"):
+        return False
+    return a.startswith(b) or b.startswith(a)
+
+
+def updater_script(
+    app_dir: Path,
+    new_dir: Path,
+    backup: Path,
+    updates_dir: Path,
+    pid: int,
+    wait_s: int = 120,
+    expected_commit: str = "",
+    port: int = 8000,
+) -> str:
     """Windows batch file. Swaps only Paytience.exe + _internal; never touches paytience-data."""
     log = updates_dir / "update.log"
     flag = updates_dir / HEALTHY_FLAG
     failed = updates_dir / FAILED_FLAG
+    unhealthy = updates_dir / UNHEALTHY_FLAG
+    want = re.sub(r"[^0-9a-f]", "", expected_commit.lower())[:7]  # hex only: safe inside the batch file
+    # D97: after the app says "healthy", /api/health must ALSO report the new commit (skipped if curl is missing)
+    if want:
+        verify = [
+            ":verify",
+            "where curl >nul 2>&1 || goto ok",
+            f"curl -s --max-time 3 http://127.0.0.1:{port}/api/health"
+            f' | findstr /R /C:"commit.:.{want}" >nul && goto ok',
+            f'echo [%date% %time%] /api/health does not report the new commit {want} >> "%LOG%"',
+            "goto stopnew",
+        ]
+        healthy_target = "verify"
+    else:
+        verify, healthy_target = [], "ok"
     lines = [
         "@echo off",
         "setlocal",
@@ -201,6 +235,7 @@ def updater_script(app_dir: Path, new_dir: Path, backup: Path, updates_dir: Path
         ":exited",
         'echo [%date% %time%] old app exited >> "%LOG%"',
         f'del "{flag}" 2>nul',
+        f'del "{unhealthy}" 2>nul',
         f'mkdir "{backup}" || goto fail',
         f'move "{app_dir}\\Paytience.exe" "{backup}\\" >> "%LOG%" 2>&1 || goto restore',
         f'move "{app_dir}\\_internal" "{backup}\\" >> "%LOG%" 2>&1 || goto restore',
@@ -210,11 +245,13 @@ def updater_script(app_dir: Path, new_dir: Path, backup: Path, updates_dir: Path
         f'start "" "{app_dir}\\Paytience.exe"',
         "set /a n=0",
         ":health",
-        f'if exist "{flag}" goto ok',
+        f'if exist "{unhealthy}" goto stopnew',
+        f'if exist "{flag}" goto {healthy_target}',
         "set /a n+=1",
         f"if %n% geq {wait_s} goto stopnew",
         "timeout /t 1 /nobreak >nul",
         "goto health",
+        *verify,
         ":ok",
         'echo [%date% %time%] new app healthy, update done >> "%LOG%"',
         "exit /b 0",
@@ -237,10 +274,22 @@ def updater_script(app_dir: Path, new_dir: Path, backup: Path, updates_dir: Path
     return "\r\n".join(lines) + "\r\n"
 
 
-def on_healthy_start(updates_dir: Path) -> str | None:
-    """Called by the new app once /api/health answers: confirm to the .bat, drop backups, report a failed update."""
+def on_healthy_start(updates_dir: Path, running_commit: str | None = None) -> str | None:
+    """Called by the new app once ITS OWN /api/health answers: confirm to the .bat, drop backups, report a failure.
+
+    D97: after an install the .bat left `expected-commit.txt`; the app only confirms when the commit it is actually
+    running matches. A mismatch (old UI/server still around, wrong files) writes `unhealthy.flag` instead, so the .bat
+    restores the backup and sets the failed flag.
+    """
     if not updates_dir.is_dir():
         return None
+    exp_file = updates_dir / EXPECTED_FILE
+    if exp_file.exists() and running_commit is not None:
+        expected = exp_file.read_text(encoding="utf-8").strip()
+        if not commits_match(running_commit, expected):
+            (updates_dir / UNHEALTHY_FLAG).write_text("mismatch", encoding="utf-8")
+            return f"Update check failed: this app runs build {running_commit[:7]} but {expected[:7]} was expected"
+        exp_file.unlink(missing_ok=True)
     (updates_dir / HEALTHY_FLAG).write_text("ok", encoding="utf-8")
     for old in updates_dir.glob("old-*"):
         shutil.rmtree(old, ignore_errors=True)

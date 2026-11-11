@@ -8,6 +8,7 @@ All user data lives next to the executable in ./paytience-data (keys, database, 
 
 from __future__ import annotations
 
+import json
 import os
 import secrets
 import socket
@@ -194,19 +195,65 @@ def ensure_ai_tools() -> None:
               "Close and reopen Paytience later to retry.")
 
 
+PORT = 8000
+RUN_DIR = DATA / "run"
+TOKEN_FILE = RUN_DIR / "shutdown.token"
+
+
+def free_port_or_exit() -> None:
+    """D97: never let an OLD Paytience keep serving :8000 (stale UI/server). Retire a verified old Paytience, else stop."""
+    from app.portguard import PortBusy, ensure_port_free
+
+    try:
+        ensure_port_free(PORT, TOKEN_FILE, say=say)
+    except PortBusy as e:
+        msg = str(e)
+        print(f"\n✗ {msg}", flush=True)
+        if WIN:  # the console may be hidden/closing: also show a window
+            try:
+                import ctypes
+
+                ctypes.windll.user32.MessageBoxW(0, msg, "Paytience", 0x10)  # type: ignore[attr-defined]
+            except Exception:  # noqa: BLE001 - the printed message is enough
+                pass
+        sys.exit(2)
+
+
+def publish_shutdown_token() -> None:
+    """Per-process secret that lets a NEWER Paytience ask this one to exit (local-only endpoint). Written only after
+    the port guard ran, so we never overwrite the token of the process we are about to retire."""
+    from app.buildinfo import SHUTDOWN_TOKEN_ENV
+
+    token = secrets.token_urlsafe(32)
+    os.environ[SHUTDOWN_TOKEN_ENV] = token
+    RUN_DIR.mkdir(parents=True, exist_ok=True)
+    TOKEN_FILE.write_text(token, encoding="utf-8")
+
+
 def serve(host: str) -> None:
     import uvicorn
 
     from app.main import create_app
 
     say(f"Paytience is running at {URL}  (PAPER mode — close this window to stop)")
-    uvicorn.run(create_app(), host=host, port=8000, log_level="warning")
+    app = create_app()
+    server = uvicorn.Server(uvicorn.Config(app, host=host, port=PORT, log_level="warning"))
+    app.state.request_shutdown = lambda: setattr(server, "should_exit", True)  # graceful exit for /api/system/shutdown
+    try:
+        server.run()
+    except SystemExit:  # uvicorn exits with 1 when it cannot bind: say so instead of a vanishing window
+        print(f"\n✗ Paytience could not open port {PORT}. Close the program using it and start Paytience again.", flush=True)
+        raise
+    finally:
+        TOKEN_FILE.unlink(missing_ok=True)
 
 
 def main() -> None:
     sys.path.insert(0, str(BUNDLE / "backend"))
     os.chdir(BUNDLE / "backend")
     ensure_env()
+    free_port_or_exit()  # before the DB is touched and before uvicorn binds
+    publish_shutdown_token()
     migrate()
     ensure_login()
     ensure_ai_tools()
@@ -234,12 +281,15 @@ def main() -> None:
     def open_when_ready() -> None:
         for _ in range(120):
             try:
-                urllib.request.urlopen(URL + "/api/health", timeout=1)
+                with urllib.request.urlopen(URL + "/api/health", timeout=1) as r:
+                    h = json.loads(r.read().decode("utf-8"))
+                if h.get("pid") != os.getpid():  # D97: an OLD server answering is not "ready" — never open its UI
+                    raise RuntimeError("health answered by another process")
                 if FROZEN:  # D88: tell a pending update the new version started; drop backups (old-*)
                     from app.updater import on_healthy_start
 
                     try:
-                        failed = on_healthy_start(DATA / "updates")
+                        failed = on_healthy_start(DATA / "updates", str((h.get("build") or {}).get("commit", "")))
                         if failed:
                             print(f"  ⚠ {failed}")
                     except OSError as e:
@@ -249,6 +299,7 @@ def main() -> None:
             except Exception:  # noqa: BLE001 - still starting
                 time.sleep(1)
 
+    free_port_or_exit()  # again: the AI-tool install above can take minutes
     threading.Thread(target=open_when_ready, daemon=True).start()
     serve(host)
 

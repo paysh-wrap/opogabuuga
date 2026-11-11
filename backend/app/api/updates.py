@@ -138,7 +138,12 @@ async def install(
         new_dir = updater.extract(zip_path, updates / "staging")
         backup = updates / f"old-{int(time.time())}"
         script = updates / "apply-update.bat"
-        script.write_text(updater.updater_script(app_dir, new_dir, backup, updates, os.getpid()), encoding="utf-8")
+        expected = res["commit"] or ""
+        (updates / updater.EXPECTED_FILE).write_text(expected, encoding="utf-8")  # D97: new app must run THIS commit
+        script.write_text(
+            updater.updater_script(app_dir, new_dir, backup, updates, os.getpid(), expected_commit=expected),
+            encoding="utf-8",
+        )
         (updates / updater.FAILED_FLAG).unlink(missing_ok=True)
     except (updater.UpdateError, OSError) as e:
         _fail(request, "Update failed — old version kept", str(e))

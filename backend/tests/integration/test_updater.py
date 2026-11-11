@@ -243,6 +243,8 @@ def test_install_dry_run_writes_script(authed, mock_http, monkeypatch, tmp_path)
     r = authed.post("/api/updates/install")
     assert r.status_code == 200, r.text
     assert (up / "apply-update.bat").exists() and (up / "staging" / "Paytience" / "Paytience.exe").exists()
+    assert (up / updater.EXPECTED_FILE).read_text() == "b" * 40  # D97: the new app must report exactly this commit
+    assert 'findstr /R /C:"commit.:.bbbbbbb"' in (up / "apply-update.bat").read_text()
     # checksum mismatch → aborted, banner/notify, no script
     (up / "apply-update.bat").unlink()
     routes[updater.RELEASE_URL] = lambda r: httpx.Response(200, json=_release(data, "sha256:" + "1" * 64))

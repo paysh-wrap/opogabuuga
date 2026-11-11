@@ -13,6 +13,7 @@ from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+from starlette.types import Scope
 
 from app.api.ai_ledger import router as ai_ledger_router
 from app.api.automation import router as automation_router
@@ -35,6 +36,7 @@ from app.api.research import router as research_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
+from app.api.system import router as system_router
 from app.api.updates import router as updates_router
 from app.api.webhook import router as webhook_router
 from app.auth import SESSION_COOKIE, RateLimiter, resolve_session
@@ -557,6 +559,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(market_router)
     app.include_router(replay_router)
     app.include_router(updates_router)
+    app.include_router(system_router)  # D97: local-only shutdown for a newer start
 
     @app.websocket("/api/ws")
     @app.websocket("/ws")
@@ -578,7 +581,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
     dist = settings.web_dist
     if dist.exists():
-        app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+        app.mount("/assets", _ImmutableAssets(directory=dist / "assets"), name="assets")
 
         @app.get("/{path:path}", include_in_schema=False)
         async def spa(path: str) -> Response:
@@ -586,10 +589,24 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
                 return JSONResponse({"detail": "Not Found"}, status_code=404)
             f = (dist / path).resolve()
             if path and f.is_file() and dist.resolve() in f.parents:
-                return FileResponse(f)
-            return FileResponse(dist / "index.html")
+                return FileResponse(f, headers=NO_CACHE)  # sw.js, manifest, icons: always revalidate
+            return FileResponse(dist / "index.html", headers=NO_STORE)  # D97: never serve a cached old interface
 
     return app
+
+
+NO_STORE = {"Cache-Control": "no-store"}  # D97: index.html + SPA fallback
+NO_CACHE = {"Cache-Control": "no-cache"}
+
+
+class _ImmutableAssets(StaticFiles):
+    """Vite's /assets/* names contain a content hash, so they can be cached forever; index.html never is."""
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        resp = await super().get_response(path, scope)
+        if resp.status_code == 200:
+            resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return resp
 
 
 def _decimal_guard() -> None:

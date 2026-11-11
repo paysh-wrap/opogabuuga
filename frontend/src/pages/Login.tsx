@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import { BuildFooter, StaleUiBanner } from "../components/BuildGuard";
 
 export default function Login() {
   usePageTitle("Login");
@@ -29,6 +30,8 @@ export default function Login() {
   }
 
   return (
+    <>
+    <StaleUiBanner />
     <div className="flex min-h-screen items-center justify-center p-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-2xl border border-border bg-card p-7 shadow-[0_0_40px_-12px_#D4AF37]">
         <div className="text-center">
@@ -49,5 +52,7 @@ export default function Login() {
         <p className="text-center text-xs opacity-70">Locks for 1 minute after 5 failed attempts</p>
       </form>
     </div>
+    <div className="-mt-16"><BuildFooter /></div>
+    </>
   );
 }

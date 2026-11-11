@@ -1,6 +1,6 @@
 // Paytience service worker: caches ONLY the static app shell. API calls, websockets and every
 // non-GET request always go straight to the network and are never stored (trading data must be live).
-const CACHE = "paytience-shell-v1";
+const CACHE = "paytience-shell-v2";
 const SHELL = ["/", "/manifest.webmanifest", "/icon.svg"];
 
 self.addEventListener("install", (e) => {

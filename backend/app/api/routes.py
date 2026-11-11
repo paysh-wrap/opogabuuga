@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.auth import CSRF_COOKIE, SESSION_COOKIE, authenticate, close_session, open_session
+from app.buildinfo import build_info
 from app.connections import service as conn
 from app.connections.registry import LLM_PROVIDERS, get_provider
 from app.crypto import MasterKeyMissing, Vault
@@ -28,6 +29,7 @@ def health(request: Request) -> dict[str, Any]:
         "time": st.clock.now().isoformat(),
         "mode": "LIVE" if st.settings.allow_live else "PAPER",
         "ws_clients": st.hub.count,
+        **build_info(request),  # D97: build commit, start time, executable (pid/path only for local requests)
     }
 
 

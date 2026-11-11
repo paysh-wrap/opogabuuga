@@ -3,6 +3,7 @@ import Header from "./Header";
 import SafetyBanners from "./SafetyBanners";
 import { UpdateBanner } from "./UpdatePanel";
 import MobileDock from "./MobileDock";
+import { BuildFooter, StaleUiBanner } from "./BuildGuard";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
@@ -25,6 +26,7 @@ const NAV = [
 export default function Layout() {
   return (
     <div className="mission min-h-screen">
+      <StaleUiBanner />
       <div className="app-chrome">
       <Header />
       <nav aria-label="Main" className="border-b border-border bg-card/40 px-4">
@@ -44,6 +46,7 @@ export default function Layout() {
         <UpdateBanner />
         <Outlet />
       </main>
+      <BuildFooter />
       <MobileDock />
     </div>
   );
