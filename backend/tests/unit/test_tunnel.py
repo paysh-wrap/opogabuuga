@@ -37,6 +37,7 @@ def test_config_is_private_and_token_not_on_cmdline(tmp_path):
 
 def test_ensure_ngrok_extracts_and_caches(tmp_path, monkeypatch):
     monkeypatch.setattr(tunnel, "platform_key", lambda: ("linux", "amd64"))
+    monkeypatch.setattr(tunnel, "MIN_NGROK_BYTES", 1)  # the fake agent here is tiny
     buf = io.BytesIO()
     with tarfile.open(fileobj=buf, mode="w:gz") as t:
         data = b"#!/bin/sh\n"
@@ -221,3 +222,71 @@ def test_cloudflare_retry_timer_returns_to_ngrok(tmp_path):
         retry_ngrok_s=0.05,
     )
     assert mgr.run_cloudflare_until(time.time() - 1, True) == ""
+
+
+def test_ensure_ngrok_falls_back_to_users_own_ngrok(tmp_path, monkeypatch):
+    """D114: download blocked (OSError) → the user's own ngrok is used; none installed → the error is kept."""
+    monkeypatch.setattr(tunnel.shutil, "which", lambda n: "/usr/local/bin/ngrok")
+
+    def blocked(url, sha):
+        raise OSError("blocked by firewall")
+
+    assert str(tunnel.ensure_ngrok(tmp_path, fetch=blocked)) == "/usr/local/bin/ngrok"
+    monkeypatch.setattr(tunnel.shutil, "which", lambda n: None)
+    with pytest.raises(OSError, match="blocked"):
+        tunnel.ensure_ngrok(tmp_path, fetch=blocked)
+
+
+def test_spawn_retries_with_users_ngrok_when_downloaded_exe_is_blocked(monkeypatch):
+    calls = []
+
+    class P:
+        pass
+
+    def popen(cmd, **k):
+        calls.append(cmd[0])
+        if cmd[0] == "/blocked/ngrok":
+            raise PermissionError("access denied")
+        return P()
+
+    monkeypatch.setattr(tunnel.subprocess, "Popen", popen)
+    monkeypatch.setattr(tunnel.shutil, "which", lambda n: "/mine/ngrok")
+    assert isinstance(tunnel.spawn(["/blocked/ngrok", "http", "8000"]), P)
+    assert calls == ["/blocked/ngrok", "/mine/ngrok"]
+    monkeypatch.setattr(tunnel.shutil, "which", lambda n: None)
+    with pytest.raises(PermissionError):
+        tunnel.spawn(["/blocked/ngrok", "http", "8000"])
+
+
+def test_ensure_ngrok_redownloads_a_damaged_cached_exe(tmp_path):
+    """D114: a tiny/half-written ngrok.exe (WinError 193) is deleted and fetched again, written atomically."""
+    exe = tmp_path / "ngrok" / tunnel.NGROK_VERSION / tunnel._exe_name("ngrok")
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"MZ")  # damaged
+    tunnel._write_exe(exe.with_name("other.exe"), b"x" * 10)
+    assert not exe.with_name("other.exe.part").exists()
+    seen = []
+
+    def fake_fetch(url, sha):
+        seen.append(url)
+        raise OSError("offline")
+
+    with pytest.raises(OSError, match="offline"):
+        tunnel.ensure_ngrok(tmp_path, fetch=fake_fetch)
+    assert seen and not exe.exists()
+
+
+def test_spawn_winerror_193_deletes_exe_and_explains(tmp_path, monkeypatch):
+    exe = tmp_path / "ngrok.exe"
+    exe.write_bytes(b"MZ")
+
+    def popen(cmd, **k):
+        err = OSError("[WinError 193] %1 is not a valid Win32 application")
+        err.winerror = 193
+        raise err
+
+    monkeypatch.setattr(tunnel.subprocess, "Popen", popen)
+    monkeypatch.setattr(tunnel.shutil, "which", lambda n: None)
+    with pytest.raises(RuntimeError, match="WinError 193"):
+        tunnel.spawn([str(exe), "http", "8000"])
+    assert not exe.exists()

@@ -12,6 +12,7 @@ import io
 import os
 import platform
 import re
+import shutil
 import stat
 import subprocess
 import tarfile
@@ -52,6 +53,7 @@ NGROK_HOSTS = (".ngrok-free.app", ".ngrok-free.dev", ".ngrok.app", ".ngrok.dev",
 QUICK_RE = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
 ERR_RE = re.compile(r"ERR_NGROK_\d+")
 WEBHOOK_PATH = "/api/webhook/tradingview"
+MIN_NGROK_BYTES = 5_000_000  # the real agent is ~25 MB; anything tiny is a damaged download
 
 
 def clean_domain(raw: str) -> str:
@@ -92,7 +94,26 @@ def _exe_name(name: str) -> str:
 def ensure_ngrok(tools: Path, fetch: Callable[[str, str], bytes] = _fetch) -> Path:
     exe = tools / "ngrok" / NGROK_VERSION / _exe_name("ngrok")
     if exe.exists():
-        return exe
+        if exe.stat().st_size >= MIN_NGROK_BYTES:
+            return exe
+        exe.unlink()  # D114: a half-written/empty exe (WinError 193 "not a valid Win32 application") is re-downloaded
+    try:
+        return _download_ngrok(tools, exe, fetch)
+    except OSError:  # D114: download/write blocked (firewall, antivirus) → use an ngrok the user already installed
+        local = shutil.which("ngrok")
+        if local:
+            return Path(local)
+        raise
+
+
+def _write_exe(exe: Path, data: bytes) -> None:
+    """Write to a temp name, then rename: a killed process can never leave a truncated ngrok.exe behind."""
+    tmp = exe.with_name(exe.name + ".part")
+    tmp.write_bytes(data)
+    tmp.replace(exe)
+
+
+def _download_ngrok(tools: Path, exe: Path, fetch: Callable[[str, str], bytes]) -> Path:
     sysname, arch = platform_key()
     ext = "zip" if sysname in ("windows", "darwin") else "tgz"
     key = f"{sysname}-{arch}.{ext}"
@@ -100,13 +121,13 @@ def ensure_ngrok(tools: Path, fetch: Callable[[str, str], bytes] = _fetch) -> Pa
     exe.parent.mkdir(parents=True, exist_ok=True)
     if ext == "zip":
         with zipfile.ZipFile(io.BytesIO(data)) as z:
-            exe.write_bytes(z.read(_exe_name("ngrok")))
+            _write_exe(exe, z.read(_exe_name("ngrok")))
     else:
         with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as t:
             f = t.extractfile("ngrok")
             if f is None:
                 raise RuntimeError("ngrok archive is missing the ngrok binary")
-            exe.write_bytes(f.read())
+            _write_exe(exe, f.read())
     exe.chmod(exe.stat().st_mode | stat.S_IXUSR)
     return exe
 
@@ -148,9 +169,27 @@ def ngrok_cmd(exe: Path, cfg: Path, domain: str, port: int) -> list[str]:
 
 def spawn(cmd: list[str]) -> subprocess.Popen[str]:
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0  # type: ignore[attr-defined,unused-ignore]
-    return subprocess.Popen(  # noqa: S603
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=flags, bufsize=1
-    )
+    try:
+        return subprocess.Popen(  # noqa: S603
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=flags, bufsize=1
+        )
+    except OSError as e:  # D114: the downloaded ngrok is blocked (antivirus/SmartScreen) → try the user's own ngrok
+        alt = shutil.which("ngrok")
+        if not alt or Path(alt) == Path(cmd[0]):
+            if (
+                getattr(e, "winerror", None) == 193
+            ):  # damaged / wrong-CPU exe: delete it so the next try downloads afresh
+                with contextlib.suppress(OSError):
+                    Path(cmd[0]).unlink()
+                raise RuntimeError(
+                    "The downloaded ngrok does not run on this PC (WinError 193: damaged or wrong CPU type). It was "
+                    "deleted — press Save & test again to re-download, or install ngrok from ngrok.com/download "
+                    "(Paytience then uses your installed ngrok)."
+                ) from e
+            raise
+        return subprocess.Popen(  # noqa: S603
+            [alt, *cmd[1:]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=flags, bufsize=1
+        )
 
 
 def explain(err_code: str | None, line: str) -> str:

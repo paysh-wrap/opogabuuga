@@ -112,7 +112,10 @@ async def _ngrok(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     try:
         ok, msg = await tunnel.verify_ngrok(get_settings().tools_dir, v["authtoken"], domain)
     except Exception as e:
-        return TestResult(False, f"Could not run ngrok: {type(e).__name__}")
+        why = str(e).replace(v["authtoken"], "***")[
+            :220
+        ]  # D114: say WHY (blocked file, no internet…); token never shown
+        return TestResult(False, f"Could not run ngrok: {type(e).__name__}: {why}")
     finally:
         if m is not None:
             m.poke()
