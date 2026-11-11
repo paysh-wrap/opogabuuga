@@ -1125,3 +1125,4 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   Tests: tests/unit/test_dynamic_trail.py, test_cushion.py, order manager + trade_state cases,
   tests/integration/test_cushion_trail.py (controller, webhook bar feed, dashboard, settings validation);
   frontend TrailCushionCard.test.tsx.
+- D124 (user 2026-11-11): Neon Gold style is the default UI (frontend/src/style-switch.ts); ?style=classic shows the previous look.
