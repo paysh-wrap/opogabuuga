@@ -928,3 +928,9 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   config, worst-case stop within DLL/MLL room, 1 open position, hedge lock, 16:00 flat order, Order Flow/unverified strategies paper-only.
 - Finding fixed: ORDER_FLOW was missing from the controller's fixed-size table (would have raised KeyError on the first Order Flow signal) —
   now uses order_flow_cfg.contracts (1 micro).
+
+- D100 (user 2026-11-11): the AR Model (Creamer) order-flow course is the MAIN source of the Order Flow strategy
+  (environment → location → path → confirmation; docs/results/session18/order_flow/AR_MODEL_RULES.md). Casper 4h, Mind
+  Math Money, ICT, SMC, volume profile etc. are STUDY references only (may refine, never override AR Model rules).
+  Safety unchanged: still UNVERIFIED → paper-only, default OFF until proven on real tick data (non-negotiable 5 /
+  win-rate rule); NOISE stays the live main strategy until Order Flow beats it on held-out data.
