@@ -47,7 +47,7 @@ def test_long_entry_on_first_vwap_pullback_close(db, loaded_rules):
         assert [u.status for u in out.updates] == ["PASS"]
         sig = s.get(Signal, out.updates[0].signal_id)
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
-        assert sig.direction == "LONG" and sig.features["strategy"] == "AI_DUO" and sig.features["paper_only"] is True
+        assert sig.direction == "LONG" and sig.features["strategy"] == "AI_DUO" and sig.features["paper_only"] is False
         assert plan.mode == "AI_DUO" and plan.entry == D(20005) and plan.stop < plan.entry < plan.take_profit
         assert plan.rr == D("2.00") and sig.features["stop_capped"] is False
         assert s.query(AuditLog).filter_by(action="ai_duo.decision").one().payload["code"] == "TAKEN"
@@ -200,8 +200,8 @@ def test_same_bar_tie_noise_wins_and_duo_skips(db, loaded_rules):
         assert s.get(Signal, by["NOISE"].signal_id).direction == "SHORT"
 
 
-def test_duo_signal_never_executes_on_a_non_paper_account(authed, clock):
-    """D83: paper_only is forced True; the controller refuses AI_DUO on any account that is not a simulator account."""
+def test_duo_is_not_forced_paper_only_but_an_opt_in_is_honoured(authed, clock):
+    """D102 (user 2026-11-11): AI_DUO is no longer forced paper-only; a plan that opts in still refuses non-paper."""
     import asyncio
     from datetime import UTC, datetime
 
@@ -224,8 +224,14 @@ def test_duo_signal_never_executes_on_a_non_paper_account(authed, clock):
         )  # fmt: skip
         s.commit()
         sid = sig.id
+    r = st.rules.rules
+    duo = r.strategy.ai_duo_cfg.model_copy(update={"paper_only": True})
+    st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"ai_duo_cfg": duo})})
     res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
     assert res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY", res
+    st.rules.rules = r  # default (D102): not refused as paper-only
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    assert res[0].reason != "PAPER_ONLY_STRATEGY", res
 
 
 # ---------- D83 update: London-open window (03:00 ET) and MGC ----------

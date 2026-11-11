@@ -45,7 +45,7 @@ export default function OrderFlow() {
         <section className="rounded-xl border border-border bg-card p-4 text-sm" data-testid="of-ar">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="font-semibold text-gold">Order Flow strategy · AR Model layers</h2>
-            <span className="rounded border border-gold px-2 py-0.5 text-xs text-gold" data-testid="of-unverified">UNVERIFIED · PAPER ONLY</span>
+            <span className="rounded border border-gold px-2 py-0.5 text-xs text-gold" data-testid="of-unverified">UNVERIFIED</span>
             <span className="text-xs text-blue">Strategy button {d.ar.enabled ? "ON" : "OFF"} · the signal comes last: every layer must agree</span>
           </div>
           <ol className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
@@ -101,7 +101,7 @@ export default function OrderFlow() {
           </div>
           <section className="rounded-xl border border-border bg-card p-4">
             <h2 className="font-semibold text-gold">Order Flow strategy alerts this session</h2>
-            <p className="text-xs text-blue">ORDER_FLOW webhook alerts (pine/Paytience_OrderFlow.pine, D95/D101 AR Model — UNVERIFIED, paper only). ABS absorption · EXH exhaustion / delta flip · AGG aggression (stacked imbalance) · SWP sweep · POC magnet. Layers: environment · location · path · delta source.</p>
+            <p className="text-xs text-blue">ORDER_FLOW webhook alerts (pine/Paytience_OrderFlow.pine, D95/D101 AR Model — UNVERIFIED). ABS absorption · EXH exhaustion / delta flip · AGG aggression (stacked imbalance) · SWP sweep · POC magnet. Layers: environment · location · path · delta source.</p>
             {d.signals.length === 0 ? <p className="mt-2 text-sm">No order-flow alerts this session.</p> : (
               <ul className="mt-2 text-sm" data-testid="of-signals">
                 {snapSignals(d.bars, d.signals).map((s, i) => (

@@ -87,7 +87,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                     exits_only=replay,
                 )
 
-        def order_flow() -> Any:  # D95: ORDER_FLOW alert → paper-only strategy signal
+        def order_flow() -> Any:  # D95: ORDER_FLOW alert → strategy signal
             from app.signals import strategy_service
 
             with st.sessionmaker() as s:

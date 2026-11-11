@@ -13,7 +13,7 @@ CATALOG: list[dict[str, object]] = [
         "name": "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)",
         "source": "D58: NOISE (fixed $250 emergency stop) + 13:00–15:29 VWAP ±2 sd fade on days NOISE didn't trade",
         "verified": True,
-        "status": "MAIN · fade on PAPER first",
+        "status": "MAIN",
         "win_pct": 50.0,
         "profit_factor": 1.33,
         "usd_per_trade": 19.63,
@@ -23,7 +23,7 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_bust_pct": 32.2,
         "period": "5 years 2021-11 → 2026-10 (Databento MNQ, 1 micro): +$25,345, no losing full year; pass 71% "
         "(2021–23) / 66% (2024–26)",
-        "note": "Turns NOISE + the fade on together. The fade trades paper accounts only until it proves itself live. "
+        "note": "Turns NOISE + the fade on together. "
         "Grid of stop sizes: fade $200–400 all ≈ equal; NOISE $250 is a narrow peak (±$50 → ≈ 60% pass).",
         "also": ["strategy.noise"],
     },
@@ -46,10 +46,10 @@ CATALOG: list[dict[str, object]] = [
     },
     {
         "key": "open_drive",
-        "name": "Opening-drive pullback (MNQ) — paper only",
+        "name": "Opening-drive pullback (MNQ)",
         "source": "Session 9 research (mean-reversion agent): 09:30–10:00 drive → 38.2% pullback limit",
         "verified": False,
-        "status": "PAPER ONLY",
+        "status": "UNVERIFIED",
         "win_pct": 58.3,
         "profit_factor": 1.29,
         "usd_per_trade": 9.95,
@@ -59,14 +59,14 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_bust_pct": 8.8,
         "period": "held-out 2024-01 → 2026-11 (2019–2023: PF 1.00, not verified)",
         "note": "R:R ≈ 0.95 (below 1.5). At 1 micro most evals neither pass nor bust within 120 days. "
-        "Trades paper accounts only until it proves itself.",
+        "Unverified: every live gate still applies (D102).",
     },
     {
         "key": "ai_bias",
-        "name": "AI only — TradingAgents + Vibe-Trading (MNQ) — paper only",
+        "name": "AI only — TradingAgents + Vibe-Trading (MNQ)",
         "source": "D56: both tools must agree strongly on the day's side; enter 09:31, 0.5% stop, flat 16:00",
         "verified": False,
-        "status": "PAPER ONLY",
+        "status": "UNVERIFIED",
         "win_pct": None,
         "profit_factor": None,
         "usd_per_trade": None,
@@ -77,16 +77,16 @@ CATALOG: list[dict[str, object]] = [
         "period": "NOT back-testable (LLMs can't be run on past dates). Hindsight 1y MNQ, 1 micro, per trade: "
         "perfect call +$267 (PF 5.3) · 70% +$111 · 60% +$59 · 55% +$33 · 50% +$8. Real LLM accuracy ≈ 50–55%.",
         "note": "Only trades on days both tools agree (~27% of days). Real results build in the AI ledger; "
-        "paper accounts only until the ledger proves ≥ 60% accuracy.",
+        "the AI bias stays advisory until the ledger proves ≥ 70% accuracy.",
     },
     {
         "key": "ai_duo",
-        "name": "AI Duo — both AIs agree, VWAP pullback entry (MNQ + MGC) — paper only",
+        "name": "AI Duo — both AIs agree, VWAP pullback entry (MNQ + MGC)",
         "source": "D83: TradingAgents + Vibe-Trading must pick the same side (Vibe only gives an opinion); first "
         "5-min VWAP pullback close 03:00–11:30 ET (09:30–09:35 excluded); structure stop capped at the NOISE $ "
         "stop; 2.0R target (floor 1.5R); 1 micro; MNQ and MGC",
         "verified": False,
-        "status": "PAPER ONLY",
+        "status": "UNVERIFIED",
         "win_pct": None,
         "profit_factor": None,
         "usd_per_trade": None,
@@ -99,16 +99,15 @@ CATALOG: list[dict[str, object]] = [
         "note": "Window 03:00 (London open) → 11:30 ET and markets MNQ / MGC are editable in My Settings (MGC: AI "
         "Duo only, NOISE stays MNQ). Never trades when the AIs disagree, either fails or says NEUTRAL; never "
         "opposite a NOISE position (hedge lock: NOISE open → Duo skips, Duo open first → NOISE blocked, same-bar "
-        "tie → NOISE wins). Every day logs a decision with a reason code. Paper accounts only until the AI "
-        "ledger proves ≥ 70%.",
+        "tie → NOISE wins). Every day logs a decision with a reason code. Unverified (not back-testable).",
     },
     {
         "key": "noise_ai_split",
-        "name": "NOISE + AI Duo — split risk 50/50 — AI Duo paper only",
+        "name": "NOISE + AI Duo — split risk 50/50",
         "source": "D92: with NOISE and AI Duo both on, each side trades half size (rounded down, minimum 1 micro) "
         "and may use half of the daily loss limit",
         "verified": False,
-        "status": "PAPER ONLY",
+        "status": "UNVERIFIED",
         "win_pct": None,
         "profit_factor": None,
         "usd_per_trade": None,
@@ -118,20 +117,19 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_bust_pct": None,
         "period": "NOT measured: the AI Duo half cannot be back-tested. NOISE alone stays the main strategy.",
         "note": "Default OFF. Turns NOISE and AI Duo on together. Only tightens: every other size, DLL, MLL, "
-        "consistency and hedge-lock check still applies. AI Duo never sends an order to a non-paper account; "
-        "there NOISE still trades at half size.",
+        "consistency and hedge-lock check still applies.",
         "also": ["strategy.noise", "strategy.ai_duo"],
     },
     {
         "key": "order_flow",
-        "name": "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED · paper only",
+        "name": "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED",
         "source": "D101 AR Model (main teacher, D100): ENVIRONMENT (expansion / rotation; compression = no trade) → "
         "LOCATION (swing fib 0.705–0.886 + fixed-range value area) → PATH (Asia range + daily ATR(20) zones) → "
         "CONFIRMATION (absorption / delta flip / stacked imbalance candle, then a pullback entry candle) from the Pine "
         "indicator 'Paytience Order Flow' (real TradingView footprint delta when available, else estimated — sent as "
         "delta_source) → webhook alert; stop beyond the absorption zone, 2R target, 1 micro",
         "verified": False,
-        "status": "UNVERIFIED · PAPER ONLY",
+        "status": "UNVERIFIED",
         "win_pct": None,
         "profit_factor": None,
         "usd_per_trade": None,
@@ -144,6 +142,6 @@ CATALOG: list[dict[str, object]] = [
         "note": "Default OFF. Needs the 'Paytience Order Flow' alert on a 1-minute MNQ1! and/or MGC1! chart (D96: MGC "
         "is on for Order Flow only — every other strategy keeps gold off). The app rebuilds stop and target itself "
         "(never trusts the alert's prices); window, news, hedge lock (METALS for MGC), DLL, consistency and the "
-        "16:00 ET flat all still apply. 1 micro. Never sends an order to a non-paper account.",
+        "16:00 ET flat all still apply. 1 micro.",
     },
 ]

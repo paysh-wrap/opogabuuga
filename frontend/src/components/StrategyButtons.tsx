@@ -101,8 +101,8 @@ export default function StrategyButtons() {
             <p className="mt-2 text-xs text-blue">{s.note}</p>
             {s.key === "order_flow" && (
               <div className="mt-2 text-xs" data-testid="order-flow-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED · paper only</span>
-                <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only !== false && " · PAPER accounts only"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
+                <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED</span>
+                <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
                 <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
                 {s.ar_layers && (
                   <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="order-flow-layers">
@@ -159,7 +159,7 @@ export default function StrategyButtons() {
       )}
       {d.ai_duo_log && d.ai_duo_log.length > 0 && (
         <div className="mt-3 text-sm" data-testid="duo-log">
-          <b className="text-gold">AI Duo decisions (paper only) — one per day, with the reason code:</b>
+          <b className="text-gold">AI Duo decisions — one per day, with the reason code:</b>
           <ul className="text-blue">
             {d.ai_duo_log.map((r) => (
               <li key={`${r.symbol}${r.day}`}>{r.day}{r.symbol ? ` ${r.symbol}` : ""}: <b className="text-gold">{r.status === "PASS" ? `TRADE ${r.direction}` : "NO TRADE"}</b> · {r.code} · {r.mode === "RESEARCH" ? "TradingAgents research setup" : `AI call ${r.label || "none"}`}{r.below_preferred_2r ? " · below preferred 2R" : ""}{r.agrees_with_noise != null && (r.agrees_with_noise ? " · same side as NOISE" : "")}</li>
@@ -176,7 +176,7 @@ export default function StrategyButtons() {
           </p>
         ))}
       </div>
-      {d.markets.MGC === false && <p className="mt-2 text-xs text-blue">MGC (gold) is off — every gold strategy failed the 2019–2026 test{d.strategies.some((x) => x.key === "order_flow" && x.instruments?.includes("MGC")) && " (exception: Order Flow, paper only, D96)"}.</p>}
+      {d.markets.MGC === false && <p className="mt-2 text-xs text-blue">MGC (gold) is off — every gold strategy failed the 2019–2026 test{d.strategies.some((x) => x.key === "order_flow" && x.instruments?.includes("MGC")) && " (exception: Order Flow, D96)"}.</p>}
     </section>
   );
 }

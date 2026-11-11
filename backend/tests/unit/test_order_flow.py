@@ -51,9 +51,10 @@ def test_skips(kw, code):
     assert isinstance(r, OF.OrderFlowSkip) and r.code == code
 
 
-def test_config_forces_paper_only_and_floor():
-    assert OrderFlowCfg().paper_only and OrderFlowCfg().contracts == 1
-    for bad in ({"paper_only": False}, {"contracts": 2}, {"rr_min": D("1.4")}, {"rr": D("1.5"), "rr_min": D("1.6")},
+def test_config_paper_only_is_a_choice_and_floor_stays():
+    assert not OrderFlowCfg().paper_only and OrderFlowCfg().contracts == 1  # D102
+    assert OrderFlowCfg(paper_only=True).paper_only
+    for bad in ({"contracts": 2}, {"rr_min": D("1.4")}, {"rr": D("1.5"), "rr_min": D("1.6")},
                 {"min_risk_ticks": 50, "max_risk_ticks": 10}, {"instruments": []}, {"instruments": ["MNQ", "MNQ"]},
                 {"instruments": ["MES"]}, {"flat_at": "4pm"}):  # fmt: skip
         with pytest.raises(ValueError):

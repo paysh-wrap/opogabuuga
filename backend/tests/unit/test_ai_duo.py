@@ -79,13 +79,12 @@ def test_plan_skips():
     assert DU.plan(Direction.LONG, D(20005), b(20000, 20006, 19989, 20005), None, **kw) == "RR_BELOW_MIN"
 
 
-def test_config_refuses_low_rr_and_live():
-    assert AiDuoCfg().paper_only is True and AiDuoCfg().rr_min == D("1.5")
+def test_config_refuses_low_rr():
+    assert AiDuoCfg().paper_only is False and AiDuoCfg().rr_min == D("1.5")  # D102
     with pytest.raises(ValueError, match="rr_min"):
         AiDuoCfg(rr_min=D("1.4"))
     with pytest.raises(ValueError, match="rr_min"):
         AiDuoCfg(rr_target=D("1.2"))
     with pytest.raises(ValueError, match="bar_minutes"):
         AiDuoCfg(contracts=0)
-    with pytest.raises(ValueError):
-        AiDuoCfg(paper_only=False)
+    assert AiDuoCfg(paper_only=True).paper_only is True  # opt-in still allowed

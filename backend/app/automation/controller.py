@@ -382,15 +382,17 @@ class Controller:
         equity = bal + opnl
         base = risk_base(equity, mll.mll)
         strategy = plan0.mode if plan0.mode in STRATEGY_MODES else ""
+        # D102 (user 2026-11-11): no strategy is FORCED paper-only (defaults false). A plan file may still opt a
+        # strategy into paper-only (tighten-only). Live trading itself stays behind every live gate (§1.5).
         paper_only = {
             "OPEN_DRIVE": r.strategy.open_drive_cfg.paper_only,
             "AI_BIAS": r.strategy.ai_bias_cfg.paper_only,
             "PM_FADE": r.strategy.pm_fade_cfg.paper_only,
-            "AI_DUO": r.strategy.ai_duo_cfg.paper_only,  # D83: not back-testable → paper accounts only
-            "ORDER_FLOW": r.strategy.order_flow_cfg.paper_only,  # D95: UNVERIFIED → paper accounts only (forced)
+            "AI_DUO": r.strategy.ai_duo_cfg.paper_only,
+            "ORDER_FLOW": r.strategy.order_flow_cfg.paper_only,
         }
         if paper_only.get(strategy) and not a.is_sim:
-            return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # D55/D56: not verified → paper accounts only
+            return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # opted in by the plan file
         one_to_one = (
             plan0.mode == "ONE_TO_ONE"
             and a.stage in r.one_to_one_mode.stages

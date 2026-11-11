@@ -1,4 +1,4 @@
-"""D55 strategy runtime: NOISE (verified) and OPEN_DRIVE (paper-only) signals from TradingView 1-minute heartbeat bars.
+"""D55 strategy runtime: NOISE (verified) and OPEN_DRIVE (unverified) signals from TradingView 1-minute heartbeat bars.
 
 Called after every accepted 1-minute HEARTBEAT (non-negotiable #1: TradingView webhooks are the only signal source —
 the bars stored by webhook/service.py). Decisions use app/engine/noise.py and app/engine/open_drive.py (pure, the same
@@ -379,9 +379,9 @@ def run_open_drive(
 def run_order_flow(
     s: Session, *, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, symbol: str, payload: Any
 ) -> StrategyOutput:
-    """D95: one ORDER_FLOW webhook alert (pine/Paytience_OrderFlow.pine) → at most one paper-only signal. Commits.
+    """D95: one ORDER_FLOW webhook alert (pine/Paytience_OrderFlow.pine) → at most one signal. Commits.
     The plan is rebuilt by engine/order_flow.py; G1 (window/news/calendar), a signal-level hedge lock and the daily
-    cap are checked here; sizing, DLL, consistency, household hedge lock and paper-only are the controller's."""
+    cap are checked here; sizing, DLL, consistency, household hedge lock and opt-in paper-only: the controller."""
     out = StrategyOutput()
     st = rules.strategy
     cfg = st.order_flow_cfg

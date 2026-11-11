@@ -86,7 +86,7 @@ def test_strategies_endpoint(authed):
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_bias": True}, "note": "test"})
     assert r.status_code == 200, r.text
     ai = authed.get("/api/strategies").json()["strategies"][3]
-    assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "PAPER ONLY"
+    assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "UNVERIFIED"
 
 
 def test_gate_chain_and_ai_threshold_from_config(authed):

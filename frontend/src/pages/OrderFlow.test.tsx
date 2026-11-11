@@ -26,7 +26,7 @@ const DATA: OrderFlowData = {
   prior: { session: "2026-11-04", rows: [], poc: "98.00", vah: "99.00", val: "97.00", hvn: [], lvn: [] },
   round_levels: ["100"], signals: [{ time_ms: 130_000, kind: "ABSORPTION", label: "Absorption", direction: "LONG",
     ar: { env: "EXPANSION", location_zone: "F0788", fib: "0.79", value_side: "BELOW_VAL", path_zone: "AVR", path_side: "BELOW", delta_source: "real", confirm_time: 70_000 } }],
-  ar: { enabled: false, paper_only: true, verified: false, layers: [
+  ar: { enabled: false, paper_only: false, verified: false, layers: [
     { key: "ENVIRONMENT", on: true, rule: "trade only in EXPANSION / ROTATION" }, { key: "LOCATION", on: true, rule: "fib" },
     { key: "PATH", on: false, rule: "Asia" }, { key: "CONFIRMATION", on: true, rule: "absorption" }] },
   skips: [{ time_ms: 125_000, direction: "SHORT", code: "OF_COMPRESSION", layer: "ENVIRONMENT", label: "Environment: compression", detail: null,
@@ -49,7 +49,7 @@ test("Order Flow page labels every panel ESTIMATED, shows summary, profile and a
   expect(screen.getByTestId("of-profile")).toHaveTextContent("POC");
   expect(screen.getByTestId("of-signals")).toHaveTextContent("▲ LONG · Absorption · EXPANSION · F0788 BELOW_VAL · AVR below Asia · delta real");
   // D101: four AR layers, UNVERIFIED label, refused alerts with reason codes
-  expect(screen.getByTestId("of-unverified")).toHaveTextContent("UNVERIFIED · PAPER ONLY");
+  expect(screen.getByTestId("of-unverified")).toHaveTextContent("UNVERIFIED");
   expect(screen.getByTestId("of-ar")).toHaveTextContent("3. PATH");
   expect(screen.getByTestId("of-ar")).toHaveTextContent("OFF (plan file switch)");
   expect(screen.getByTestId("of-skips")).toHaveTextContent("▼ SHORT · ENVIRONMENT · OF_COMPRESSION");

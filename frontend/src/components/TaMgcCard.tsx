@@ -14,7 +14,7 @@ export default function TaMgcCard() {
   const s = r?.setup;
   return (
     <section className={card} data-testid="ta-mgc">
-      <h2 className="font-semibold text-gold">TradingAgents MGC research (part of AI Duo) — paper only</h2>
+      <h2 className="font-semibold text-gold">TradingAgents MGC research (part of AI Duo)</h2>
       <p className="text-xs text-blue">Gold drivers (US dollar, real yields, Fed/CPI, risk sentiment, trend and levels) → one setup a day, taken only if Vibe-Trading agrees on the side. Stop beyond the invalidation, target about 2R (1:2 preferred, never below 1.5R), 1 micro, 09:36–11:30 ET.</p>
       {!t.connected && <p className="mt-2 text-sm text-gold" data-testid="ta-mgc-key">{t.message ?? "AI key not connected"} — nothing runs until the TradingAgents key is saved on the API Keys page.</p>}
       {t.connected && !t.enabled && <p className="mt-2 text-sm text-blue">Off — turn on the AI Duo button (with MGC in its markets) to run the research each morning.</p>}

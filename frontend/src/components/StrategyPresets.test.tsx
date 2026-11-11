@@ -46,7 +46,7 @@ test("three presets with labels, warning badges, recommended default and audited
 test("picking an older preset shows the size, the fade and a plan-size mismatch notice", async () => {
   const calls = setup();
   await userEvent.click(await screen.findByTestId("preset-pro25k_classic"));
-  expect(screen.getByTestId("preset-detail")).toHaveTextContent("afternoon fade ON (paper accounts)");
+  expect(screen.getByTestId("preset-detail")).toHaveTextContent("afternoon fade ON");
   expect(screen.getByTestId("preset-detail")).toHaveTextContent("no profit lock");
   expect(screen.getByTestId("preset-mismatch")).toHaveTextContent("150K");
   await userEvent.click(screen.getByRole("button", { name: "Apply Pro 25K classic" }));

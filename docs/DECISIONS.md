@@ -961,6 +961,14 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   (clean hook missing); positions keep the broker bracket + 16:00 flat.
 - Known gaps: Pine NOT compiled here (static tests only) — the `request.footprint` / `volume_row` method names are from the
   Pine v6 docs as we know them; if TradingView refuses them, set `footprint fp = na` (estimated only). No real-delta test.
+- D102 (user 2026-11-11, typed: "Make no strategy stay paper only"): no strategy is FORCED paper-only any more. Order Flow,
+  AI Duo, AI bias, Opening-drive and the afternoon fade ship `paper_only: false` (config defaults); the validators that forced
+  it (`OrderFlowCfg` paper_only must be true, `AiDuoCfg.paper_only: Literal[True]`) are gone. The controller's
+  PAPER_ONLY_STRATEGY check stays as a plan-file OPT-IN (tighten-only). UNCHANGED: default PAPER mode,
+  PAYTIENCE_ALLOW_LIVE=true + Settings toggle + typed "I ACCEPT LIVE RISK" + Live-Readiness Checklist, VERIFY badges, every
+  risk/DLL/MLL/consistency/hedge/news/flat rule, Order Flow fixed 1 micro (validator), rr floors. UI: "paper only" labels
+  removed, UNVERIFIED badges kept. Rule matrix: `test_no_strategy_is_forced_paper_only_per_plan` + opt-in check.
+  Supersedes the paper-only parts of D55/D56/D83/D92/D95 and CLAUDE.md's "AI Duo stays paper-only".
 - D103 (user 2026-11-11): each desktop build opens under its own browser origin http://paytience-<commit7>.localhost:8000
   (desktop/paytience_app.py ui_url(): paytience-<commit7>-<build time>; after "Install now" the page itself jumps to the new name, frontend uiOrigin()); *.localhost resolves to this PC, so an old build's cached page/service worker can never
   show a blank or stale UI for a new one. Health checks stay on 127.0.0.1. Browser login/cookies are per name → sign in again after an update.
@@ -976,3 +984,8 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   StrategyCfg). Deleted: engine/lunq_structure.py + its test. Left DORMANT (pure, unused at runtime; deleting touches
   shared types/tests and risked the risk/phase code): engine/confluence.py, engine/state_machine.py,
   indicators/lunqfx_fractal.py, bigbeluga_mso.py, backtest/parity.py, Cooldown table/API. Risk/phase/management untouched.
+  Tests (D105 follow-up): LunqFX-only tests deleted; the safety/infra tests (automation, kill switch, restart recovery,
+  watchdog, reliability, every stage, news flatten) now get their tradeable signal from a direct fixture
+  (tests/integration/test_signals_flow.py `confirm`: PASS signal + §7 plan from engine/trade_plan) dispatched through
+  the real `app.api.webhook.dispatch_updates` (SEMI approval / FULL execute) - same controller/risk/OM path, same
+  assertions.

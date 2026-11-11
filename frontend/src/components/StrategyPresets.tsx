@@ -72,7 +72,7 @@ export default function StrategyPresets() {
       </div>
       {chosen && (
         <div className="mt-3 text-sm" data-testid="preset-detail">
-          <p><b className="text-gold">{chosen.label}</b> sets: NOISE ${Math.round(Number(chosen.stop_usd))} stop per micro · afternoon fade <b className="text-gold">{chosen.fade ? "ON (paper accounts)" : "OFF"}</b> · {chosen.profit_lock ? <>profit lock: at +{chosen.profit_lock.trigger_pts} pt the stop moves to entry +{chosen.profit_lock.lock_pts} pt, and a locked-stop exit ends NOISE for the day</> : "no profit lock"} · size: <b className="text-gold">{sizeText(chosen)}</b></p>
+          <p><b className="text-gold">{chosen.label}</b> sets: NOISE ${Math.round(Number(chosen.stop_usd))} stop per micro · afternoon fade <b className="text-gold">{chosen.fade ? "ON" : "OFF"}</b> · {chosen.profit_lock ? <>profit lock: at +{chosen.profit_lock.trigger_pts} pt the stop moves to entry +{chosen.profit_lock.lock_pts} pt, and a locked-stop exit ends NOISE for the day</> : "no profit lock"} · size: <b className="text-gold">{sizeText(chosen)}</b></p>
           {!chosen.matches_plan && (
             <p className="mt-1 text-xs text-gold" data-testid="preset-mismatch"><span aria-hidden style={{ color: badge.bad }}>▲</span> Built for a {chosen.account} account; the loaded plan is {k$(d.plan_account_size)} — the size above still applies to every account, so check it fits.</p>
           )}

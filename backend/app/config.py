@@ -297,7 +297,7 @@ class NoiseCfg(_M):
 
 class OpenDriveCfg(_M):
     """D55 (user button, 2026-11-09): opening-drive pullback on MNQ — NOT verified (flat in-sample, PF 1.29 held-out)
-    → PAPER accounts only. R:R ≈ 0.95 (below the 1.5 pillar) by the user's explicit choice."""
+    → unverified (D102: not forced paper-only). R:R ≈ 0.95 (below the 1.5 pillar) by the user's explicit choice."""
 
     symbol: str = "MNQ"
     drive_min_range_frac: D = D("0.35")  # |close(09:59 bar) − RTH open| ≥ this × 14-day average RTH range
@@ -351,7 +351,7 @@ class ArModelCfg(_M):
 
 class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
-    alerts) — UNVERIFIED (no order-flow backtest: no tick data) → PAPER accounts only, always (validator).
+    alerts) — UNVERIFIED (no order-flow backtest: no tick data); D102: not forced paper-only (contracts stay 1).
     D101: rebuilt around the AR Model (`ar`)."""
 
     # D96 (user 2026-11-11, override of D55 for Order Flow ONLY): the markets Order Flow may trade. MGC here is a
@@ -402,7 +402,8 @@ class AiDuoCfg(_M):
     (Vibe-Trading is an opinion only, never trades); enter on the first 5-minute VWAP pullback close in that direction
     inside the entry window (09:36–11:30 ET per market, D86); structure stop capped at the NOISE
     dollar stop; target rr_target R (floor 1.5R); 1 micro. Markets: MNQ and/or MGC (AI Duo only; NOISE stays MNQ).
-    NOT back-testable. D102 (user 2026-11-11): no longer forced paper-only; every live gate still applies. Design: docs/results/session16/ai_combined_strategy_design.md."""
+    NOT back-testable. D102 (user 2026-11-11): no longer forced paper-only; every live gate still applies.
+    Design: docs/results/session16/ai_combined_strategy_design.md."""
 
     markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
     # entry window per market, ET (D86, user 2026-11-10: back to the best-tested hours; 03:00 starts lost,

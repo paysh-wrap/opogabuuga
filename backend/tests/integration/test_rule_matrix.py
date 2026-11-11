@@ -9,12 +9,14 @@ Asserted per cell:
 - contracts never exceed the firm plan cap, the internal cap or the strategy's own cap (Order Flow: 1 micro);
 - worst-case stop loss of the trade (qty x (stop ticks x tick value + fee + slippage)) + the DLL safety margin fits
   the DLL room and the MLL room (distance to the MLL minus the kill-switch distance), also with an absurdly wide stop;
-- max open positions: 1 per account (AI Duo only up to its own config on its big accounts, paper only);
+- max open positions: 1 per account (AI Duo only up to its own config on its big accounts);
 - household hedge lock: EQUITY_INDEX (also across instruments) and METALS;
 - strategy flat time is not after the plan's auto flatten / hard flat / session flat; news margins are not smaller
   than the firm's; consistency cap/day-stop present exactly where the plan states a consistency rule;
-- unverified strategies (Open-drive, AI Duo, split's AI side, Order Flow MNQ + MGC) are PAPER-only: a non-paper
-  account is refused (PAPER_ONLY_STRATEGY) in EVAL and FUNDED.
+- D102 (user 2026-11-11, "Make no strategy stay paper only"): no strategy is FORCED paper-only - every plan ships
+  paper_only false and no button is refused as PAPER_ONLY_STRATEGY; a plan that opts one in is still honoured.
+  Live trading itself stays behind the unchanged live gates (default PAPER, PAYTIENCE_ALLOW_LIVE, typed consent,
+  Live-Readiness Checklist) - covered by the live API tests.
 """
 
 from __future__ import annotations
@@ -56,20 +58,19 @@ class Spec:
     mode: str  # TradePlan mode the strategy writes
     symbol: str
     flags: dict[str, Any]  # StrategyCfg switches turned on for this cell
-    paper_only: bool
 
 
-SPECS = [
-    Spec("NOISE", "NOISE", "MNQ", {"noise": True}, False),
-    Spec("LUNQFX", "STANDARD", "MNQ", {"lunqfx": True}, False),
-    Spec("OPEN_DRIVE", "OPEN_DRIVE", "MNQ", {"open_drive": True}, True),
-    Spec("AI_DUO_MNQ", "AI_DUO", "MNQ", {"ai_duo": True}, True),
-    Spec("AI_DUO_MGC", "AI_DUO", "MGC", {"ai_duo": True}, True),
-    Spec("SPLIT_NOISE", "NOISE", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}, False),
-    Spec("SPLIT_AI_DUO", "AI_DUO", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}, True),
-    Spec("ORDER_FLOW_MNQ", "ORDER_FLOW", "MNQ", {"order_flow": True}, True),
-    Spec("ORDER_FLOW_MGC", "ORDER_FLOW", "MGC", {"order_flow": True}, True),
+SPECS = [  # D105: LunqFX removed
+    Spec("NOISE", "NOISE", "MNQ", {"noise": True}),
+    Spec("OPEN_DRIVE", "OPEN_DRIVE", "MNQ", {"open_drive": True}),
+    Spec("AI_DUO_MNQ", "AI_DUO", "MNQ", {"ai_duo": True}),
+    Spec("AI_DUO_MGC", "AI_DUO", "MGC", {"ai_duo": True}),
+    Spec("SPLIT_NOISE", "NOISE", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
+    Spec("SPLIT_AI_DUO", "AI_DUO", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
+    Spec("ORDER_FLOW_MNQ", "ORDER_FLOW", "MNQ", {"order_flow": True}),
+    Spec("ORDER_FLOW_MGC", "ORDER_FLOW", "MGC", {"order_flow": True}),
 ]
+CFG_OF = {"OPEN_DRIVE": "open_drive_cfg", "AI_DUO": "ai_duo_cfg", "ORDER_FLOW": "order_flow_cfg"}
 
 
 # ------------------------------------------------------------------------------------------------ config helpers
@@ -145,7 +146,7 @@ class Ctx:
 
     def set_rules(self, spec_flags: dict[str, Any]) -> RulesConfig:
         base = rules_of(self.stem)
-        off = {k: False for k in ("lunqfx", "noise", "open_drive", "ai_bias", "pm_fade", "ai_duo", "order_flow")}
+        off = {k: False for k in ("noise", "open_drive", "ai_bias", "pm_fade", "ai_duo", "order_flow")}
         strat = base.strategy.model_copy(update={**off, **spec_flags})
         r = base.model_copy(update={"strategy": strat})
         self.st.rules.rules = r
@@ -292,7 +293,9 @@ def test_sizing_worst_case_one_position_and_hedge_lock_per_plan(authed, clock, s
 
 
 @pytest.mark.parametrize("stem", PLAN_IDS)
-def test_unverified_strategies_are_paper_only_per_plan(authed, clock, stem):
+def test_no_strategy_is_forced_paper_only_per_plan(authed, clock, stem):
+    """D102: with the shipped plan no button is refused as PAPER_ONLY_STRATEGY on a non-paper account; a plan that
+    opts a strategy into paper_only is still honoured (tighten-only)."""
     ctx = Ctx(authed.app, clock, authed, stem)
     out: list[str] = []
     for stage in STAGES:
@@ -300,18 +303,24 @@ def test_unverified_strategies_are_paper_only_per_plan(authed, clock, stem):
             r = ctx.set_rules(spec.flags)
             aid = ctx.account(stage, paper=False)
             res = ctx.execute(ctx.signal(spec, realistic_stop_pts(r, spec), "np"), aid)
-            refused = res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY"
-            if spec.paper_only and not (refused and not ctx.trades(aid)):
-                out.append(f"{stem}/{stage}/{spec.name}: not refused on a non-paper account: {res[0]}")
-            if not spec.paper_only and res[0].reason == "PAPER_ONLY_STRATEGY":
-                out.append(f"{stem}/{stage}/{spec.name}: verified strategy wrongly refused as paper-only")
+            if res[0].reason == "PAPER_ONLY_STRATEGY":
+                out.append(f"{stem}/{stage}/{spec.name}: still forced paper-only: {res[0]}")
             ctx.flat_all()
+            if spec.mode in CFG_OF:  # opt-in still refuses a non-paper account
+                cfg_name = CFG_OF[spec.mode]
+                cfg = getattr(r.strategy, cfg_name).model_copy(update={"paper_only": True})
+                ctx.st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={cfg_name: cfg})})
+                aid = ctx.account(stage, paper=False)
+                res = ctx.execute(ctx.signal(spec, realistic_stop_pts(r, spec), "opt"), aid)
+                if not (res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY" and not ctx.trades(aid)):
+                    out.append(f"{stem}/{stage}/{spec.name}: opt-in paper_only not honoured: {res[0]}")
+                ctx.flat_all()
     assert not out, "\n".join(out)
 
 
 # ------------------------------------------------------------------------------------------------ config-only checks
 @pytest.mark.parametrize("stem", PLAN_IDS)
-def test_unverified_strategy_flags_are_paper_only_in_config(stem):
+def test_no_strategy_ships_paper_only_in_config(stem):
     st = rules_of(stem).strategy
     for name, cfg in (
         ("open_drive", st.open_drive_cfg),
@@ -320,7 +329,7 @@ def test_unverified_strategy_flags_are_paper_only_in_config(stem):
         ("ai_duo", st.ai_duo_cfg),
         ("order_flow", st.order_flow_cfg),
     ):
-        assert cfg.paper_only is True, f"{stem}: {name} must stay paper-only"
+        assert cfg.paper_only is False, f"{stem}: {name} must not be forced paper-only (D102)"
     assert st.order_flow_cfg.contracts == 1 and st.order_flow_cfg.rr_min >= D("1.5")
     # every unverified button defaults OFF
     assert not (st.open_drive or st.ai_bias or st.ai_duo or st.order_flow), f"{stem}: unverified button ON by default"

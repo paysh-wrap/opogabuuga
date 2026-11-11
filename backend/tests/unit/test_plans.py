@@ -103,7 +103,7 @@ def test_strategy_buttons_d55(plan):
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
     assert n.contracts == 1  # fallback; D63 size_table sizes each account
-    assert s.open_drive_cfg.paper_only
+    assert not s.open_drive_cfg.paper_only  # D102: no strategy forced paper-only
 
 
 def test_legacy_daily_plan_loads_without_lunqfx():

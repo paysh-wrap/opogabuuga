@@ -1,4 +1,4 @@
-"""D95 Order Flow button: ORDER_FLOW webhook alert → paper-only strategy signal (UNVERIFIED)."""
+"""D95 Order Flow button: ORDER_FLOW webhook alert → strategy signal (UNVERIFIED; D102: not forced paper-only)."""
 
 from __future__ import annotations
 
@@ -56,7 +56,7 @@ def test_signal_plan_gates_and_skips(client, loaded_rules):
         out = _run(s, rules, _p())
         assert len(out.updates) == 1 and out.updates[0].status == "PASS"
         sig = s.get(Signal, out.updates[0].signal_id)
-        assert sig.features["strategy"] == "ORDER_FLOW" and sig.features["paper_only"] is True
+        assert sig.features["strategy"] == "ORDER_FLOW" and sig.features["paper_only"] is False
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert (plan.mode, plan.stop, plan.take_profit, plan.rr) == ("ORDER_FLOW", D("19999.75"), D("20030.5"), 2)
         assert _run(s, rules, _p()).updates == []  # same alert twice
@@ -109,7 +109,8 @@ def test_webhook_accepts_order_flow_and_rejects_incomplete(client, clock):
     assert r.status_code == 422 and r.json()["code"] == "BAD_PAYLOAD"
 
 
-def test_order_flow_never_executes_on_a_non_paper_account(authed, clock):
+def test_order_flow_is_not_forced_paper_only_but_an_opt_in_is_honoured(authed, clock):
+    """D102 (user 2026-11-11): Order Flow may run on a non-paper account (live gates unchanged); opt-in refuses."""
     st = authed.app.state
     clock.set(AT)
     aid = authed.post("/api/accounts", json={"label": "P", "stage": "EVAL", "balance": "25000"}).json()["id"]
@@ -125,8 +126,15 @@ def test_order_flow_never_executes_on_a_non_paper_account(authed, clock):
         )  # fmt: skip
         s.commit()
         sid = sig.id
+    r = st.rules.rules
+    of = r.strategy.order_flow_cfg.model_copy(update={"paper_only": True})
+    st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow_cfg": of})})
     res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
     assert res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY", res
+    st.rules.rules = r
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    assert res[0].reason != "PAPER_ONLY_STRATEGY", res
+    assert res[0].contracts <= 1  # D95: fixed 1 micro stays
 
 
 # ---------- D96: MGC on for Order Flow ONLY (plan file strategy.order_flow_cfg.instruments) ----------
@@ -229,7 +237,7 @@ def test_webhook_maps_mgc1_and_plan_files(client, clock):
     for p in sorted((Path(__file__).resolve().parents[3] / "config" / "rules").glob("lucid_*.yaml")):
         lr = load_rules(p).rules
         assert lr.instruments["MGC"].enabled is False, p.name  # MGC stays off for every other strategy (D55)
-        assert lr.strategy.order_flow is False and lr.strategy.order_flow_cfg.paper_only, p.name  # default OFF
+        assert lr.strategy.order_flow is False and not lr.strategy.order_flow_cfg.paper_only, p.name  # OFF; D102
         want = ["MNQ"] if "daily" in p.name else ["MNQ", "MGC"]
         assert lr.strategy.order_flow_cfg.instruments == want, p.name
 
@@ -237,7 +245,7 @@ def test_webhook_maps_mgc1_and_plan_files(client, clock):
 def test_strategies_card_lists_order_flow_markets(authed):
     d = authed.get("/api/strategies").json()
     of = next(x for x in d["strategies"] if x["key"] == "order_flow")
-    assert of["instruments"] == ["MNQ"] and of["paper_only"] is True and of["flat_at"] == "16:00"
+    assert of["instruments"] == ["MNQ"] and of["paper_only"] is False and of["flat_at"] == "16:00"
     assert "MNQ + MGC" in of["name"]
     assert [x["key"] for x in of["ar_layers"]] == ["ENVIRONMENT", "LOCATION", "PATH", "CONFIRMATION"]  # D101
     assert "instruments" not in next(x for x in d["strategies"] if x["key"] == "noise")

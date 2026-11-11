@@ -209,7 +209,7 @@ def test_open_drive_signal_and_time_stop(db, loaded_rules):
         )
         assert len(out.updates) == 1 and out.updates[0].status == "PASS"
         sig = s.get(Signal, out.updates[0].signal_id)
-        assert sig.features["strategy"] == "OPEN_DRIVE" and sig.features["paper_only"] is True
+        assert sig.features["strategy"] == "OPEN_DRIVE" and sig.features["paper_only"] is False
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert plan.mode == "OPEN_DRIVE" and plan.stop < plan.entry < plan.take_profit and plan.rr < 1
         assert datetime.fromisoformat(sig.features["entry_expires_at"]).astimezone(UTC).hour == 16  # 12:31 ET
@@ -297,7 +297,7 @@ def test_pm_fade_fades_a_stretch_only_on_noise_free_days(db, loaded_rules):
         sig = s.get(Signal, out.updates[0].signal_id)
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert sig.direction == "SHORT" and plan.mode == "PM_FADE" and plan.stop - plan.entry == D(124)
-        assert plan.take_profit < plan.entry and sig.features["paper_only"] is True
+        assert plan.take_profit < plan.entry and sig.features["paper_only"] is False
         # one per day
         at2 = at + timedelta(minutes=1)
         assert (

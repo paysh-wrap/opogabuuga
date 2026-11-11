@@ -59,7 +59,7 @@ def test_setup_in_zone_with_vibe_agreement_becomes_a_paper_plan(db, loaded_rules
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert sig.symbol == "MGC" and sig.direction == "LONG" and sig.features["mode"] == "RESEARCH"
         assert plan.mode == "AI_DUO" and plan.entry == D(2701) and plan.stop == D("2689.6")
-        assert D("1.5") <= plan.rr <= D("3.0") and sig.features["paper_only"] is True
+        assert D("1.5") <= plan.rr <= D("3.0") and sig.features["paper_only"] is False
         assert sig.features["reasons"] == ["DXY falling"] and sig.features["zone"] == ["2700", "2702"]
         assert _go(s, rules, today, 6).updates == []  # one decision per day
         assert s.query(AuditLog).filter_by(action="ai_duo.decision").one().payload["code"] == "TAKEN"

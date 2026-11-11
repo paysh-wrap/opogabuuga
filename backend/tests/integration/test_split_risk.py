@@ -1,4 +1,4 @@
-"""D92: NOISE + AI Duo split-risk button: half size, half the daily loss budget per side, AI Duo paper only."""
+"""D92: NOISE + AI Duo split-risk button: half size, half the daily loss budget per side (D102: no forced paper)."""
 
 import asyncio
 from datetime import UTC, datetime
@@ -135,14 +135,16 @@ def test_a_loss_from_yesterday_does_not_use_todays_budget(authed, clock):
     assert res[0].ok is True, res
 
 
-def test_ai_duo_never_sends_an_order_to_a_non_paper_account_even_with_the_split_on(authed, clock):
+def test_ai_duo_on_a_non_paper_account_is_not_forced_paper_only_with_the_split_on(authed, clock):
+    """D102: AI Duo is no longer forced paper-only; the split still halves it (1 micro here)."""
     st, (aid,) = _setup(authed, clock, [("live", "25000")], noise=True, ai_duo=True, noise_ai_split=True)
     with st.sessionmaker() as s:
         s.get(Account, aid).is_sim = False
         s.commit()
     ext = _ext(st, aid)
     res = asyncio.run(st.controller.execute(_sig(st, "AI_DUO", "D1"), "automation", only=[aid]))
-    assert res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY" and _qty(st, ext) == 0
+    assert res[0].reason != "PAPER_ONLY_STRATEGY", res
+    assert _qty(st, ext) <= 1
 
 
 def test_noise_on_a_non_paper_account_still_trades_at_half_size(authed, clock):
@@ -168,7 +170,7 @@ def test_button_is_default_off_turns_both_strategies_on_and_reflects_the_state(a
     body = authed.get("/api/strategies").json()
     card = next(x for x in body["strategies"] if x["key"] == "noise_ai_split")
     assert card["enabled"] is False and card["setting"] == "strategy.noise_ai_split"
-    assert card["also"] == ["strategy.noise", "strategy.ai_duo"] and card["status"] == "PAPER ONLY"
+    assert card["also"] == ["strategy.noise", "strategy.ai_duo"] and card["status"] == "UNVERIFIED"
     r = authed.put(
         "/api/risk/settings",
         json={

@@ -80,7 +80,7 @@ def test_orderflow_session_profile_prior_and_markers(authed):
     ]
     # D101: the four AR layers (from the plan file) and the alerts the engine refused, with their reason codes
     assert [x["key"] for x in r["ar"]["layers"]] == ["ENVIRONMENT", "LOCATION", "PATH", "CONFIRMATION"]
-    assert r["ar"]["paper_only"] is True and r["ar"]["verified"] is False
+    assert r["ar"]["paper_only"] is False and r["ar"]["verified"] is False
     sk = r["skips"][0]
     assert (sk["code"], sk["layer"], sk["direction"], sk["ar"]["env"]) == (
         "OF_COMPRESSION",
