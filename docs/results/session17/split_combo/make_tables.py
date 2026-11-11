@@ -40,7 +40,7 @@ def main_table(scen, sizing, era="HO"):
 
 def delta_table(scen, sizing, base="noise_full", era="HO"):
     """split minus NOISE alone, in percentage points: rolling PASS / BUST and bootstrap PASS / BUST, + net $"""
-    R = json.load(open(f"{HERE}/results_{scen}.json"))["res"]; out = ["| account | AI acc | roll PASS d | roll BUST d | boot PASS d | boot BUST d | net $ d | beats? |", "|---|---|---|---|---|---|---|---|"]
+    R = json.load(open(f"{HERE}/results_{scen}.json"))["res"]; out = ["| account | AI acc | roll PASS d | roll BUST d | boot PASS d | boot BUST d | net $ d | seeds better* | beats? |", "|---|---|---|---|---|---|---|---|---|"]
     verdict = {}
     for acct in ACCTS:
         bb = dict(flat(B[f"{sizing}|{acct}"][base][era]))
@@ -55,7 +55,11 @@ def delta_table(scen, sizing, base="noise_full", era="HO"):
             elif bbu < -1 and db <= 1 and dp < -1: ok = "SAFER, SLOWER"
             else: ok = "no"
             verdict[(acct, acc)] = ok
-            out.append(f"| {acct} | {int(float(acc)*100)}% | {dp:+.0f} | {db:+.0f} | {bp:+.0f} | {bbu:+.0f} | {dn:+,.0f} | {ok} |")
+            fr = "-"
+            if "vals" in d[p + "boot.pas"]:
+                bs = list(zip(d[p + "boot.pas"]["vals"], d[p + "boot.bust"]["vals"]))
+                fr = f"{100 * sum(1 for a_, b_ in bs if a_ > bb['boot.pas'] and b_ < bb['boot.bust']) / len(bs):.0f}%"
+            out.append(f"| {acct} | {int(float(acc)*100)}% | {dp:+.0f} | {db:+.0f} | {bp:+.0f} | {bbu:+.0f} | {dn:+,.0f} | {fr} | {ok} |")
     return "\n".join(out), verdict
 
 

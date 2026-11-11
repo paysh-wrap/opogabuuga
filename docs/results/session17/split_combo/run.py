@@ -67,7 +67,7 @@ def base(a):
 
 def agg(vals):
     v = np.array([x for x in vals if x == x], float)
-    return dict(mean=float(v.mean()), min=float(v.min()), max=float(v.max()), sd=float(v.std())) if len(v) else dict(mean=float("nan"), min=float("nan"), max=float("nan"), sd=float("nan"))
+    return dict(mean=float(v.mean()), min=float(v.min()), max=float(v.max()), sd=float(v.std()), vals=[round(float(x), 2) for x in v]) if len(v) else dict(mean=float("nan"), min=float("nan"), max=float("nan"), sd=float("nan"), vals=[])
 
 
 def flat(d, pre=""):
