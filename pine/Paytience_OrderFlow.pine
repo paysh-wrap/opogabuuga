@@ -491,9 +491,10 @@ if sig != 0
 // ---------- D111 ATR-zone type: event zone (iceberg PROXY = footprint absorption / large volume, NO MBO data) ----------
 // ATR = Wilder ATR(14) of the last CLOSED 5-minute bar. POSITION alert once per zone at 115% ATR outside it; REVERSION
 // alert at 1/2/3 ATR away (the app checks every rule; k=1 rarely passes its 1.5R floor). EVENT alerts move the trail.
-float atr5 = request.security(syminfo.tickerid, "5", ta.atr(14)[1], lookahead = barmerge.lookahead_on)
+float zAtr5 = request.security(syminfo.tickerid, "5", ta.atr(14)[1], lookahead = barmerge.lookahead_on)
 float sum5 = math.sum(volume, 5)
-float rvol = ta.sma(sum5, 1950) > 0 ? sum5 / ta.sma(sum5, 1950) : na   // proxy: vs ~5 sessions of 5-bar volume
+float sum5Avg = ta.sma(sum5, 1950)
+float rvol = sum5Avg > 0 ? sum5 / sum5Avg : na   // proxy: vs ~5 sessions of 5-bar volume
 float range5 = ta.highest(high, 5) - ta.lowest(low, 5)
 float tickV = useTick ? request.security(tickSym, "1", close) : na
 float rowV = rowTicks * syminfo.mintick
@@ -525,18 +526,18 @@ if zoneOn and zEvent
     zRevDn := 0
     zSig := "EVENT"
     zDir := close >= hl2 ? 1 : -1
-else if zoneOn and barstate.isconfirmed and not na(zHi) and not na(atr5) and atr5 > 0
-    if not zPosDone and close >= zHi + 1.15 * atr5
+else if zoneOn and barstate.isconfirmed and not na(zHi) and not na(zAtr5) and zAtr5 > 0
+    if not zPosDone and close >= zHi + 1.15 * zAtr5
         zSig := "POSITION"
         zDir := 1
         zPosDone := true
-    else if not zPosDone and close <= zLo - 1.15 * atr5
+    else if not zPosDone and close <= zLo - 1.15 * zAtr5
         zSig := "POSITION"
         zDir := -1
         zPosDone := true
     else
-        int kDn = int(math.floor((zLo - close) / atr5))
-        int kUp = int(math.floor((close - zHi) / atr5))
+        int kDn = int(math.floor((zLo - close) / zAtr5))
+        int kUp = int(math.floor((close - zHi) / zAtr5))
         if kDn >= 1 and kDn <= 3 and kDn > zRevDn
             zSig := "REVERSION"
             zDir := 1
@@ -555,10 +556,10 @@ if zSig != ""
           '","order_flow":{"kind":"ZONE","entry":' + f_px(close) + ',"defended":' + f_px(zDir == 1 ? zLo : zHi) +
           ',"delta_source":"' + dSrc + '","zone_signal":"' + zSig + '","event_zone_hi":' + f_px(zHi) +
           ',"event_zone_lo":' + f_px(zLo) + ',"event_kind":' + f_q(zKind) + ',"event_time":' + str.tostring(zT) +
-          ',"event_size":' + str.tostring(zSize, "#") + ',"atr5":' + f_px(atr5) +
+          ',"event_size":' + str.tostring(zSize, "#") + ',"atr5":' + f_px(zAtr5) +
           ',"rev_level":' + (na(zK) ? "null" : str.tostring(zK)) + ',"prior_event_hi":' + f_px(pzHi) +
           ',"prior_event_lo":' + f_px(pzLo) + ',"rvol":' + (na(rvol) ? "null" : str.tostring(rvol, "#.##")) +
-          ',"range5_atr":' + (na(atr5) or atr5 <= 0 ? "null" : str.tostring(range5 / atr5, "#.##")) +
+          ',"range5_atr":' + (na(zAtr5) or zAtr5 <= 0 ? "null" : str.tostring(range5 / zAtr5, "#.##")) +
           ',"tick":' + (na(tickV) ? "null" : str.tostring(math.round(tickV))) +
           ',"context":' + f_q(ctx) + ',"key_level_type":' + f_q(f_keyLevel()) + ',"target_level":' + f_px(f_target(zDir, close)) + "}}",
           alert.freq_once_per_bar_close)
