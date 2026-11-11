@@ -149,6 +149,12 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                 if (x := st.market.states.get((acc.symbol, prof))) is not None
             }
             await ctl.defence_check(acc.symbol, p.price.h, p.price.l, ss.mso, ss.mso_events, by_profile)
+    await dispatch_updates(st, updates)
+
+
+async def dispatch_updates(st: Any, updates: list[SignalUpdate]) -> None:
+    """A PASS → automation (SEMI approval / FULL execute); every update → WS. Shared by every strategy signal."""
+    ctl = st.controller
     for u in updates:
         if u.status == "PASS":
             what = ctl.on_signal_pass(u.signal_id)
