@@ -255,3 +255,23 @@ def test_install_dry_run_writes_script(authed, mock_http, monkeypatch, tmp_path)
     assert authed.get("/api/updates").json()["failed_update"] == "Update failed"
     authed.post("/api/updates/dismiss-failure")
     assert authed.get("/api/updates").json()["failed_update"] is None
+
+
+def test_install_unexpected_error_names_cause(authed, mock_http, monkeypatch, tmp_path):
+    """D101: an unexpected exception during install is reported with its type, not a bare 'internal error'."""
+    monkeypatch.setenv("PAYTIENCE_APP_DIR", str(tmp_path))
+    monkeypatch.setenv("PAYTIENCE_UPDATES_DIR", str(tmp_path / "updates"))
+    monkeypatch.setenv("PAYTIENCE_UPDATE_DRY_RUN", "1")
+    vf = tmp_path / "version.json"
+    vf.write_text(json.dumps({"commit": OLD.commit, "built_at": OLD.built_at}))
+    monkeypatch.setenv("PAYTIENCE_VERSION_FILE", str(vf))
+    routes = _save_token(authed, mock_http)
+    data = _zip()
+    routes[updater.RELEASE_URL] = lambda r: httpx.Response(200, json=_release(data))
+
+    async def boom(*a, **k):
+        raise RuntimeError("disk exploded")
+
+    monkeypatch.setattr(updater, "download", boom)
+    r = authed.post("/api/updates/install")
+    assert r.status_code == 502 and "RuntimeError" in r.json()["detail"] and "old version kept" in r.json()["detail"]

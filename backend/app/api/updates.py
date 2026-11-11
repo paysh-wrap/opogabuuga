@@ -148,9 +148,20 @@ async def install(
     except (updater.UpdateError, OSError) as e:
         _fail(request, "Update failed — old version kept", str(e))
         raise HTTPException(502, str(e)) from e
-    audit.record(db, st.clock, p.user.username, "app.update_install", res["commit"] or "", {})
-    db.commit()
-    log.info("update.launching", script=str(script))
-    if os.name == "nt":  # pragma: no cover
-        _launch(script)
+    except Exception as e:  # D101: name the real cause, never a bare "internal error"
+        log.exception("update.install_failed", error=type(e).__name__)
+        msg = f"{type(e).__name__}: {str(e)[:200]}"
+        _fail(request, "Update failed — old version kept", msg)
+        raise HTTPException(502, f"Update failed — old version kept ({msg})") from e
+    try:
+        audit.record(db, st.clock, p.user.username, "app.update_install", res["commit"] or "", {})
+        db.commit()
+        log.info("update.launching", script=str(script))
+        if os.name == "nt":  # pragma: no cover
+            _launch(script)
+    except Exception as e:  # launch/audit failure must say why and leave the old version running
+        log.exception("update.launch_failed", error=type(e).__name__)
+        msg = f"{type(e).__name__}: {str(e)[:200]}"
+        _fail(request, "Update could not start — old version kept", msg)
+        raise HTTPException(502, f"Update could not start — old version kept ({msg})") from e
     return {"ok": True, "commit": res["commit"], "restarting": os.name == "nt"}

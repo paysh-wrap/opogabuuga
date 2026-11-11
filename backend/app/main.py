@@ -534,7 +534,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
 
     @app.exception_handler(Exception)
     async def unhandled(request: Request, exc: Exception) -> JSONResponse:  # §1.9: never silent
-        log.error("unhandled", path=request.url.path, error=type(exc).__name__)
+        log.error("unhandled", path=request.url.path, error=type(exc).__name__, detail=str(exc)[:300], exc_info=True)
         return JSONResponse({"detail": "internal error — see logs"}, status_code=500)
 
     app.include_router(router)
