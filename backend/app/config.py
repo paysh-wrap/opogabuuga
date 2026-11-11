@@ -313,9 +313,41 @@ class OpenDriveCfg(_M):
     paper_only: bool = True
 
 
+PATH_ZONES = ("INSIDE", "L1", "AVR-", "AVR", "AVR+", "MAX")  # D101: Asia range + daily ATR(20) zones, in order
+
+
+class ArModelCfg(_M):
+    """D101 (user D100: the AR Model is the MAIN Order Flow source, docs/results/session18/order_flow/AR_MODEL_RULES.md):
+    ENVIRONMENT → LOCATION → PATH → CONFIRMATION gates on every ORDER_FLOW alert (engine/order_flow.check_ar).
+    UNVERIFIED (no tick-data test) — these only ever REMOVE trades; the validators refuse anything looser than the
+    teacher's rules (fib zone inside 0.5–0.886, compression never allowed, path block at MAX or tighter)."""
+
+    required: bool = True  # an alert WITHOUT the AR fields (pre-D101 indicator) → OF_NO_CONFIRM
+    allowed_envs: list[Literal["EXPANSION", "ROTATION"]] = ["EXPANSION", "ROTATION"]  # COMPRESSION: never (type)
+    fib_min: D = D("0.705")  # retracement depth of the swing range (bias side) — focus zone 0.705–0.886
+    fib_max: D = D("0.886")  # a close beyond 0.886 invalidates the reversal idea
+    value_side: Literal["OUTSIDE_VALUE", "NOT_OPPOSITE"] = "OUTSIDE_VALUE"  # LONG below VAL / SHORT above VAH
+    path_block_zone: Literal["L1", "AVR-", "AVR", "AVR+", "MAX"] = "MAX"  # at/beyond this zone WITH the move → skip
+    confirm_max_age_min: int = Field(default=3, ge=1, le=15)  # entry candle at most this many minutes after confirm
+    require_real_delta: bool = False  # True → delta_source "est" alerts are skipped (OF_DELTA_ESTIMATED)
+    trail_candle_min: Literal[5, 15] = 5  # trail behind the last closed 5m (or 15m) candle — ratchet only
+    be_after_r: D = D("1.0")  # break-even once follow-through reaches this many R
+
+    @model_validator(mode="after")
+    def _check(self) -> ArModelCfg:
+        if not self.allowed_envs or len(set(self.allowed_envs)) != len(self.allowed_envs):
+            raise ValueError("order_flow.ar: allowed_envs needs EXPANSION and/or ROTATION, no duplicates")
+        if not (D("0.5") <= self.fib_min < self.fib_max <= D("0.886")):
+            raise ValueError("order_flow.ar: 0.5 ≤ fib_min < fib_max ≤ 0.886 (AR Model location zone)")
+        if not (D("0.25") <= self.be_after_r <= D("3")):
+            raise ValueError("order_flow.ar: be_after_r within 0.25–3 R")
+        return self
+
+
 class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
-    alerts) — UNVERIFIED (no order-flow backtest: no tick data) → PAPER accounts only, always (validator)."""
+    alerts) — UNVERIFIED (no order-flow backtest: no tick data) → PAPER accounts only, always (validator).
+    D101: rebuilt around the AR Model (`ar`)."""
 
     # D96 (user 2026-11-11, override of D55 for Order Flow ONLY): the markets Order Flow may trade. MGC here is a
     # per-strategy switch — the global instruments.MGC.enabled stays false, so every other strategy keeps MGC off.
@@ -329,6 +361,7 @@ class OrderFlowCfg(_M):
     contracts: int = 1
     paper_only: bool = True
     flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
+    ar: ArModelCfg = ArModelCfg()  # D101: AR Model layers
 
     @model_validator(mode="after")
     def _check(self) -> OrderFlowCfg:
