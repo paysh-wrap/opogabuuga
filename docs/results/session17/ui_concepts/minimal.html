@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paytience · Minimal Focus concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#D4AF37;--goldL:#F2D27A;--blue:#3B82F6;--blueL:#93C5FD;--blueS:#C6D9F7;--blueM:#8DA3CC;
+  --bg:#0A1020;--card:#101933;--card2:#0D1530;--border:#1E2A4A;--ok:#22C55E;--bad:#EF4444;
+  --serif:Fraunces,Georgia,serif;--sans:Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--blueS);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh}
+.gold{color:var(--gold)}.goldL{color:var(--goldL)}.muted{color:var(--blueM)}.blue{color:var(--blueL)}
+.num{font-variant-numeric:tabular-nums}
+.col{max-width:600px;margin:0 auto;padding:20px 16px 32px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px}
+.brand{font:600 22px var(--serif);color:var(--goldL);letter-spacing:.01em}
+.brand small{font:500 13px var(--sans);color:var(--blueM);margin-left:8px;letter-spacing:0}
+.concept{font:700 10px/1 var(--sans);letter-spacing:.14em;color:var(--goldL);border:1px solid rgba(242,210,122,.5);padding:6px 9px;border-radius:999px;white-space:nowrap}
+.seg{display:flex;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:4px;margin-bottom:22px}
+.seg a{flex:1;text-align:center;padding:11px 0;border-radius:10px;color:var(--blueM);text-decoration:none;font-weight:600;font-size:14.5px;min-height:44px;transition:.2s}
+.seg a:hover{color:var(--blueS)}
+.seg a.on{background:var(--card);color:var(--goldL);box-shadow:0 1px 0 rgba(255,255,255,.04),0 4px 14px rgba(0,0,0,.3)}
+.screen{display:none}.screen.on{display:block}
+.hero{background:linear-gradient(180deg,#121D3B,var(--card));border:1px solid var(--border);border-radius:28px;padding:28px 24px 24px;box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.eyebrow{font-size:12.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:8px}
+.state{white-space:nowrap;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--blueS);background:rgba(147,197,253,.07);border-radius:999px;padding:5px 11px 5px 9px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+.hero h1{font:500 40px/1.12 var(--serif);color:var(--goldL);margin:14px 0 8px;letter-spacing:-.01em}
+.hero h1 .s{color:var(--blueS)}
+.hero p.lead{margin:0 0 22px;color:var(--blueS);font-size:16.5px}
+.bar{position:relative;height:8px;border-radius:999px;background:rgba(147,197,253,.12)}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--gold)}
+.bar .t{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--blueL);border-radius:2px}
+.barlab{display:flex;justify-content:space-between;font-size:13px;color:var(--blueM);margin-top:10px}
+.divider{height:1px;background:var(--border);margin:24px -24px}
+.next{display:flex;gap:14px;align-items:flex-start}
+.next .ic{width:44px;height:44px;border-radius:14px;background:rgba(212,175,55,.12);border:1px solid rgba(212,175,55,.35);display:grid;place-items:center;color:var(--goldL);font-size:20px;flex:none}
+.next b{display:block;color:var(--goldL);font-size:17px;font-weight:600}
+.next span{font-size:14.5px;color:var(--blueS)}
+.cta{display:flex;gap:10px;margin-top:20px}
+.btn{flex:1;appearance:none;min-height:56px;border-radius:16px;font:600 16px var(--sans);cursor:pointer;transition:.18s;border:1px solid var(--border);background:transparent;color:var(--blueL)}
+.btn:hover{border-color:var(--blueL);background:rgba(147,197,253,.06)}
+.btn:active{transform:scale(.98)}
+.btn:focus-visible,.row summary:focus-visible,.opt:focus-visible{outline:2px solid var(--blueL);outline-offset:2px}
+.btn.p{background:var(--gold);color:#0A1020;border-color:var(--gold)}
+.btn.p:hover{background:var(--goldL)}
+/* mini rail */
+.rail{position:relative;height:56px;margin:22px 4px 0}
+.rail .ln{position:absolute;left:0;right:0;top:27px;height:2px;background:linear-gradient(90deg,var(--blue),rgba(147,197,253,.3) 45%,var(--gold))}
+.rail .m{position:absolute;top:0;transform:translateX(-50%);text-align:center;font-size:11.5px;font-weight:600;color:var(--blueM);white-space:nowrap}
+.rail .m i{display:block;width:10px;height:10px;border-radius:50%;margin:5px auto;background:var(--bg);border:2px solid currentColor}
+.rail .m.dn{top:auto;bottom:0}
+.rail .m.dn i{margin:0 auto 5px}
+.rail .m.now{color:var(--goldL)}.rail .m.now i{background:var(--goldL);width:14px;height:14px;margin-top:3px;box-shadow:0 0 0 5px rgba(242,210,122,.15)}
+.rail .m.st{color:var(--blueL)}.rail .m.tg{color:var(--gold)}
+/* collapsed rows */
+.list{margin-top:18px;border:1px solid var(--border);border-radius:22px;overflow:hidden;background:var(--card2)}
+.row{border-top:1px solid var(--border)}
+.row:first-child{border-top:0}
+.row summary{list-style:none;display:flex;align-items:center;gap:14px;padding:0 20px;min-height:68px;cursor:pointer;transition:background .15s}
+.row summary::-webkit-details-marker{display:none}
+.row summary:hover{background:rgba(147,197,253,.04)}
+.row .k{white-space:nowrap;font-weight:600;color:var(--goldL);font-size:15.5px}
+.row .v{margin-left:auto;font-size:14px;color:var(--blueS);text-align:right;display:flex;align-items:center;gap:8px}
+.row .chev{width:9px;height:9px;border-right:2px solid var(--blueM);border-bottom:2px solid var(--blueM);transform:rotate(-45deg);transition:.2s;margin-left:6px;flex:none}
+.row[open] .chev{transform:rotate(45deg)}
+.row .body{padding:2px 20px 20px;font-size:14.5px;color:var(--blueS)}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv div{background:rgba(147,197,253,.05);border-radius:14px;padding:12px 14px}
+.kv small{display:block;font-size:12px;color:var(--blueM);font-weight:600;letter-spacing:.04em}
+.kv b{font:600 20px var(--serif);color:var(--goldL)}
+.kill{margin-top:18px;width:100%;min-height:64px;border-radius:20px;border:1.5px solid rgba(212,175,55,.55);background:transparent;color:var(--goldL);font:700 15px var(--sans);letter-spacing:.14em;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:.18s}
+.kill:hover{background:rgba(212,175,55,.08)}
+.kill:active{transform:scale(.985)}
+.kill small{font:500 12.5px var(--sans);letter-spacing:0;color:var(--blueM)}
+/* presets */
+.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:4px 0 6px}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;border:1px solid var(--border);border-radius:18px;padding:16px 10px;text-align:center;min-height:112px;transition:.18s;background:rgba(147,197,253,.03)}
+.opt:hover{border-color:rgba(147,197,253,.45)}
+.opt.sel{border-color:var(--gold);background:rgba(212,175,55,.08);box-shadow:inset 0 0 0 1px var(--gold)}
+.opt .L{font:600 30px/1 var(--serif);color:var(--goldL)}
+.opt .n{font-size:12.5px;color:var(--blueS);margin-top:6px;font-weight:600}
+.opt .r{font-size:12.5px;color:var(--blueM);margin-top:6px}
+.opt .r b{color:var(--goldL)}
+.tiny{font-size:12.5px;color:var(--blueM)}
+input.type{width:100%;margin-top:12px;min-height:52px;background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:0 14px;color:var(--goldL);font:600 15px var(--sans)}
+input.type::placeholder{color:#6d82ab}
+.foot{text-align:center;font-size:12px;color:var(--blueM);margin-top:22px}
+@media (min-width:1000px){
+  .col{max-width:640px;padding-top:44px}
+  .hero{padding:36px 36px 30px}
+  .divider{margin:28px -36px}
+  .hero h1{font-size:46px}
+}
+@media (max-width:420px){.brand small{display:none}.hero h1{font-size:34px}.opt .L{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="col">
+  <div class="top"><div class="brand">Paytience<small id="pg">· Today</small></div><span class="concept">CONCEPT — SAMPLE DATA</span></div>
+  <nav class="seg"><a href="#dashboard" data-s="dashboard">Today</a><a href="#strategy" data-s="strategy">Strategy</a><a>More</a></nav>
+
+  <!-- ============ DASHBOARD ============ -->
+  <section class="screen" id="dashboard">
+    <div class="hero">
+      <div class="eyebrow">Tue · 10:42 ET <span class="state" style="margin-left:auto"><span class="dot ok"></span>Armed · Paper</span></div>
+      <h1>▲ +$312.50 <span class="s">today.</span></h1>
+      <p class="lead">$125 more and Paytience stops for the day to protect the 40% consistency rule.</p>
+      <div class="bar"><i style="width:62.5%"></i><span class="t" style="left:87.5%" title="day stop"></span></div>
+      <div class="barlab num"><span>$312.50 of $500 cap</span><span class="blue">stop $437.50</span></div>
+      <div class="divider"></div>
+      <div class="next"><div class="ic">◎</div><div><b>Holding MNQ long — nothing to do.</b><span>Stop is at break-even, so this trade can no longer lose. Target 1.75R.</span></div></div>
+      <div class="rail" id="rail"></div>
+      <div class="cta"><button class="btn">Position details</button><button class="btn p">Approve next</button></div>
+    </div>
+
+    <div class="list">
+      <details class="row"><summary><span class="k">Account health</span><span class="v num">$1,612 cushion</span><i class="chev"></i></summary>
+        <div class="body"><div class="kv"><div><small>TO LOSS LIMIT</small><b class="num">$1,612.40</b></div><div><small>DLL ROOM</small><b class="num">$600</b></div><div><small>EVAL TARGET</small><b class="num">49%</b></div><div><small>KILL AT</small><b class="num">$100</b></div></div></div></details>
+      <details class="row"><summary><span class="k">Accounts</span><span class="v">2 of 2 armed <span class="dot ok"></span></span><i class="chev"></i></summary><div class="body">Pro 25K #1 · EVAL · $25,612.40 · ▲ +$312.50<br>Pro 25K #2 · FUNDED · $25,612.50 · $0.00</div></details>
+      <details class="row"><summary><span class="k">Safety checks</span><span class="v">8 / 8 passed <span class="dot ok"></span></span><i class="chev"></i></summary><div class="body">Broker, token, heartbeat, calendar, bias, reconciled, attestation, clock.</div></details>
+      <details class="row"><summary><span class="k">Next news</span><span class="v">13:30 ET</span><i class="chev"></i></summary><div class="body">Entries are blocked around high-impact news.</div></details>
+    </div>
+    <button class="kill">KILL SWITCH <small>flatten all</small></button>
+  </section>
+
+  <!-- ============ STRATEGY ============ -->
+  <section class="screen" id="strategy">
+    <div class="hero">
+      <div class="eyebrow">Today's plan <span class="state" style="margin-left:auto"><span class="dot ok"></span>Paper</span></div>
+      <h1>NOISE on MNQ, <span class="s">the calm way.</span></h1>
+      <p class="lead">Preset C passed 77% of simulated Pro evaluations and busted 18% — the safest of the three.</p>
+      <div class="opts" role="radiogroup" aria-label="Strategy preset">
+        <button class="opt" role="radio" aria-checked="false"><div class="L">A</div><div class="n">Pro 25K classic</div><div class="r"><b>63%</b> pass · 36% bust</div></button>
+        <button class="opt" role="radio" aria-checked="false"><div class="L">B</div><div class="n">Pro 100K low risk</div><div class="r"><b>63%</b> pass · 22% bust</div></button>
+        <button class="opt sel" role="radio" aria-checked="true"><div class="L">C</div><div class="n">Pro 150K low risk</div><div class="r"><b>77%</b> pass · 18% bust</div></button>
+      </div>
+      <p class="tiny" style="margin:10px 0 0">Study picked on 2019–23, judged on 2024–26. Past results do not guarantee future results.</p>
+      <div class="divider"></div>
+      <div class="next"><div class="ic">→</div><div><b>Apply preset C</b><span>Takes effect on the next new trade. Mode stays PAPER.</span></div></div>
+      <div class="cta"><button class="btn">Compare</button><button class="btn p">Apply C</button></div>
+    </div>
+
+    <div class="list">
+      <details class="row"><summary><span class="k">AI Duo</span><span class="v">Both LONG · advisory</span><i class="chev"></i></summary>
+        <div class="body">TradingAgents and Vibe-Trading both say <b class="goldL">LONG</b>. Paper only. It may block entries only after 30+ scored calls prove ≥ 70% accuracy — <b class="goldL">0 / 30</b> so far.</div></details>
+      <details class="row" open><summary><span class="k">Fast Evaluation</span><span class="v">Off · EVAL only</span><i class="chev"></i></summary>
+        <div class="body">
+          <div class="kv"><div><small>RISK TIERS</small><b class="num">10 · 12 · 14%</b></div><div><small>NORMALLY</small><b class="num">7 · 9 · 11%</b></div><div><small>MAX RISK</small><b class="num">$140</b></div><div><small>WARM-UP</small><b class="num">10 trades</b></div></div>
+          <p class="tiny" style="margin:12px 0 0">Only sizing changes. Gates, R:R, loss limits and the kill switch stay exactly the same.</p>
+          <input class="type" placeholder='Type "ENABLE EVALUATION MODE"' aria-label="Confirmation phrase">
+          <div class="cta" style="margin-top:12px"><button class="btn">Impact Preview</button><button class="btn p" disabled style="opacity:.4;cursor:not-allowed">Enable</button></div>
+        </div></details>
+      <details class="row"><summary><span class="k">Gates</span><span class="v">8 / 8 on last signal <span class="dot ok"></span></span><i class="chev"></i></summary><div class="body">G1 window · G2 bias · G3 model · G4 MSO · G5 CHoCH · G6 divergence · G7 plan · G8 risk.</div></details>
+    </div>
+  </section>
+  <p class="foot">Paytience · concept mockup · all numbers are sample data</p>
+</div>
+<script>
+(function(){
+  const r=document.getElementById('rail'),lo=21014,hi=21066,p=v=>(v-lo)/(hi-lo)*100;
+  const m=[['Stop',21018,'st'],['BE',21035,'dn'],['Now',21047.75,'now'],['Target',21062.75,'tg dn']];
+  r.innerHTML='<div class="ln"></div>'+m.map(([l,v,c])=>`<div class="m ${c}" style="left:${p(v)}%">${c.includes('dn')?'<i></i>'+l:l+'<i></i>'}</div>`).join('');
+})();
+function show(){const s=(location.hash||'#dashboard').slice(1);document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===s));document.querySelectorAll('[data-s]').forEach(a=>a.classList.toggle('on',a.dataset.s===s));document.getElementById('pg').textContent=s==='strategy'?'· Strategy':'· Today';document.title='Paytience · '+(s==='strategy'?'Strategy':'Today')+' (Minimal concept)'}
+addEventListener('hashchange',show);show();
+document.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{document.querySelectorAll('.opt').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});b.classList.add('sel');b.setAttribute('aria-checked','true')});
+</script>
+</body>
+</html>

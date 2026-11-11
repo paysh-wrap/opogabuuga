@@ -1,0 +1,646 @@
+diff --git a/backend/alembic/versions/c5d9e3f7a2b4_account_purchased_at.py b/backend/alembic/versions/c5d9e3f7a2b4_account_purchased_at.py
+new file mode 100644
+index 0000000..1705f17
+--- /dev/null
++++ b/backend/alembic/versions/c5d9e3f7a2b4_account_purchased_at.py
+@@ -0,0 +1,28 @@
++"""D89: accounts.purchased_at (when the Lucid account was purchased / last reset)
++
++Revision ID: c5d9e3f7a2b4
++Revises: b4c8d2e6f1a3
++Create Date: 2026-11-11 12:00:00
++
++"""
++
++from typing import Sequence, Union
++
++from alembic import op
++import sqlalchemy as sa
++import app.db  # noqa: F401  (custom column types)
++
++revision: str = "c5d9e3f7a2b4"
++down_revision: Union[str, Sequence[str], None] = "b4c8d2e6f1a3"
++branch_labels: Union[str, Sequence[str], None] = None
++depends_on: Union[str, Sequence[str], None] = None
++
++
++def upgrade() -> None:
++    with op.batch_alter_table("accounts", schema=None) as batch_op:
++        batch_op.add_column(sa.Column("purchased_at", app.db.UTCDateTime(), nullable=True))
++
++
++def downgrade() -> None:
++    with op.batch_alter_table("accounts", schema=None) as batch_op:
++        batch_op.drop_column("purchased_at")
+diff --git a/backend/app/api/automation.py b/backend/app/api/automation.py
+index cbfd4aa..eed6708 100644
+--- a/backend/app/api/automation.py
++++ b/backend/app/api/automation.py
+@@ -2,6 +2,7 @@
+ 
+ from __future__ import annotations
+ 
++from datetime import datetime
+ from decimal import Decimal
+ from typing import Any, Literal
+ 
+@@ -195,6 +196,8 @@ class AccountPatch(BaseModel):
+     clear_pause: str | None = None  # typed "RESUME" to clear a pause that never auto-resumes
+     drawdown_type: Literal["eod", "intraday"] | None = None  # must match the account at Lucid
+     mode_override: Literal["inherit", "SEMI", "OFF"] | None = None  # §13: only more restrictive than global
++    purchased_at: datetime | None = None  # D89: when the Lucid account was bought / last reset (consistency limit 40 vs 35)
++    clear_purchased_at: bool = False
+ 
+ 
+ @router.patch("/accounts/{acct_id}")
+@@ -223,6 +226,12 @@ async def patch_account(
+         a.drawdown_type = body.drawdown_type
+     if body.mode_override is not None:
+         a.mode_override = None if body.mode_override == "inherit" else body.mode_override
++    if body.purchased_at is not None:
++        if body.purchased_at.tzinfo is None:
++            raise HTTPException(422, "purchased_at needs a time zone (e.g. 2025-12-01T10:00:00-05:00)")
++        a.purchased_at = body.purchased_at
++    elif body.clear_purchased_at:
++        a.purchased_at = None
+     for k in ("armed", "selected", "priority", "label"):
+         v = getattr(body, k)
+         if v is not None:
+@@ -233,7 +242,7 @@ async def patch_account(
+         p.user.username,
+         "account.updated",
+         a.broker_account_id,
+-        body.model_dump(exclude_none=True),
++        body.model_dump(mode="json", exclude_none=True),
+     )
+     c = _ctl(request)
+     if body.armed and c.mode == "FULL":  # §13: an account in its first sessions of a stage may only run OFF/SEMI
+diff --git a/backend/app/api/dashboard.py b/backend/app/api/dashboard.py
+index 5cea70f..83fdd8a 100644
+--- a/backend/app/api/dashboard.py
++++ b/backend/app/api/dashboard.py
+@@ -16,6 +16,7 @@ from app.clock import session_date
+ from app.execution.adapters.base import BrokerError
+ from app.management.drawdown_guard import GuardCfgView, guard_active
+ from app.models import Account, BiasDecision, Signal, Trade
++from app.payouts.service import consistency_view
+ from app.phases.phase_engine import stage_rules
+ from app.risk.checks import dll_remaining
+ from app.risk.eval_mode import eval_mode_effective
+@@ -75,6 +76,7 @@ async def dashboard(
+             "dll_left": _s(dll_remaining(dll, day.today_pnl, day.today_peak_pnl)) if dll is not None else None,
+             "consistency_cap": _s(cons.cap) if cons else None,
+             "consistency_stop": _s(cons.day_stop) if cons else None,
++            "payout_consistency": consistency_view(db, r, a),  # D89 (FUNDED + Pro only)
+             "target_left": str(max(start + r.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
+             "mll_locked": a.mll_locked,
+             "guard_on": guard_active(a.drawdown_type, bool(a.mll_locked), GuardCfgView(r.drawdown_guard.mode)),
+diff --git a/backend/app/api/payouts.py b/backend/app/api/payouts.py
+index 5c2d83a..6cddd28 100644
+--- a/backend/app/api/payouts.py
++++ b/backend/app/api/payouts.py
+@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
+ from app import audit
+ from app.api.deps import Principal, current_user, get_db
+ from app.models import Account, Payout
+-from app.payouts.service import session_check, weekly_check
++from app.payouts.service import consistency_view, payout_consistency_for, session_check, weekly_check
+ 
+ router = APIRouter(prefix="/api")
+ NEXT = {"ready": {"submitted", "cancelled"}, "submitted": {"processed", "cancelled"}}
+@@ -39,6 +39,18 @@ def list_payouts(_: Principal = Depends(current_user), db: Session = Depends(get
+     return {"payouts": [_row(p, db.get(Account, p.account_id)) for p in rows]}
+ 
+ 
++@router.get("/payouts/consistency")
++def consistency(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
++    """D89: Lucid payout-consistency status of every FUNDED account (largest day / cycle profit vs the limit)."""
++    r = request.app.state.rules.rules
++    out = []
++    for a in db.execute(select(Account).where(Account.stage == "FUNDED").order_by(Account.priority, Account.id)).scalars():
++        v = consistency_view(db, r, a)
++        if v is not None:
++            out.append({"account_id": a.id, "label": a.label or a.broker_account_id, **v})
++    return {"accounts": out}
++
++
+ @router.post("/payouts/check")
+ async def run_check(request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+     st = request.app.state
+@@ -64,6 +76,12 @@ async def set_status(
+     if body.status not in NEXT.get(row.status, set()):
+         raise HTTPException(409, f"cannot go from {row.status} to {body.status}")
+     a = db.get(Account, row.account_id)
++    if body.status == "submitted" and a is not None:  # D89: never submit while Lucid's consistency rule is not met
++        got = payout_consistency_for(db, st.rules.rules, a)
++        if got is not None and not got[0].eligible:
++            from app.risk.consistency import payout_consistency_text
++
++            raise HTTPException(409, "Payout consistency not met. " + payout_consistency_text(got[0]))
+     now = st.clock.now()
+     row.status = body.status
+     if body.status == "submitted":
+diff --git a/backend/app/api/risk.py b/backend/app/api/risk.py
+index 93f8397..3bfc74b 100644
+--- a/backend/app/api/risk.py
++++ b/backend/app/api/risk.py
+@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
+ 
+ from app.api.deps import Principal, current_user, get_db
+ from app.models import Account, RiskProfile, RuleProfile
++from app.payouts.service import consistency_view
+ from app.phases.phase_engine import stage_rules
+ from app.risk import settings_store as ss
+ from app.risk.eval_mode import eval_mode_effective
+@@ -333,6 +334,8 @@ def list_accounts(
+                 "paused_reason": a.paused_reason,
+                 "mode_override": a.mode_override or "inherit",
+                 "consistency_pct": _consistency_pct(request.app.state.rules.rules, a.stage),
++                "purchased_at": a.purchased_at.isoformat() if a.purchased_at else None,  # D89
++                "payout_consistency": consistency_view(db, request.app.state.rules.rules, a),
+             }
+             for a in rows
+         ]
+diff --git a/backend/app/automation/controller.py b/backend/app/automation/controller.py
+index e307ebe..5cde175 100644
+--- a/backend/app/automation/controller.py
++++ b/backend/app/automation/controller.py
+@@ -39,6 +39,7 @@ from app.phases.mll_tracker import MllState, update_mll
+ from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
+ from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
+ from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
++from app.risk.consistency import live_day_stop_hit
+ from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
+ from app.risk.hedge_lock import OpenPosition, hedge_conflict
+ from app.risk.holder import RulesHolder
+@@ -1106,6 +1107,18 @@ class Controller:
+             if dll is not None and dll_remaining(dll, day.today_pnl, day.today_peak_pnl) <= 0 and opnl != 0:
+                 await self._flatten_account(s, a, "DLL_LIMIT")
+                 st.day_stats(s, a, self.clock.now()).stopped_reason = "DLL_LIMIT"
++                continue
++            if opnl > 0 and any(t.account == a.broker_account_id and t.strategy for t in self.om.trades.values()):
++                # N6: fixed-size strategy trades are not fitted to the consistency cap before entry, so the day stop is
++                # enforced here, live: flatten once today's realised + open profit reaches it (protective, never waits)
++                clim = st.consistency(s, a, r)
++                fcfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
++                if clim is not None and fcfg is not None:
++                    clim = harvest_limits(clim, fcfg, r.eval.profit_target)
++                if clim is not None and live_day_stop_hit(day.today_profit_for_consistency, opnl, clim):
++                    await self._flatten_account(s, a, "CONSISTENCY_DAY_STOP")
++                    st.day_stats(s, a, self.clock.now()).stopped_reason = "CONSISTENCY_DAY_STOP"
++                    self.notify("warn", "Consistency day stop", f"{a.label}: strategy trades flattened at the day stop")
+ 
+     async def reconcile(self, s: Session) -> list[Any]:
+         """Broker vs our open trades; mismatching accounts are paused (§13)."""
+diff --git a/backend/app/config.py b/backend/app/config.py
+index 2cf1a44..7da46c9 100644
+--- a/backend/app/config.py
++++ b/backend/app/config.py
+@@ -8,6 +8,7 @@
+ from __future__ import annotations
+ 
+ import re
++from datetime import datetime
+ from decimal import Decimal
+ from functools import lru_cache
+ from pathlib import Path
+@@ -126,6 +127,23 @@ class ScaleTier(_M):
+     micros: int
+ 
+ 
++class PayoutConsistencyCfg(_M):
++    """D89: Lucid's payout-eligibility consistency rule (LucidPro funded). Limit = `pct`, or `legacy_pct` for accounts
++    purchased/reset on or before `legacy_cutoff`. A payout may only be requested while largest day ≤ limit × profit."""
++
++    pct: D = Field(gt=0, le=100)
++    legacy_pct: D = Field(gt=0, le=100)
++    legacy_cutoff: datetime
++
++    @model_validator(mode="after")
++    def _check(self) -> "PayoutConsistencyCfg":
++        if self.legacy_cutoff.tzinfo is None:
++            raise ValueError("legacy_cutoff needs a time zone offset, e.g. 2025-11-28T15:00:00-05:00")
++        if self.legacy_pct > self.pct:
++            raise ValueError("legacy_pct can't be looser than pct")
++        return self
++
++
+ class FundedRules(_M):
+     max_loss_limit: D
+     drawdown_type: DrawdownType
+@@ -140,6 +158,7 @@ class FundedRules(_M):
+     scaling: list[ScaleTier] | None = None  # LucidFlex funded: max micros by cycle profit
+     payouts_to_live: int | None = None
+     payouts_live_review: int | None = None
++    payout_consistency: PayoutConsistencyCfg | None = None  # D89 (LucidPro only; None = no such rule)
+     payout: PayoutRules
+ 
+ 
+diff --git a/backend/app/models/__init__.py b/backend/app/models/__init__.py
+index cfebff9..8623057 100644
+--- a/backend/app/models/__init__.py
++++ b/backend/app/models/__init__.py
+@@ -60,6 +60,7 @@ class Account(_Row, Base):
+     is_sim: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
+     starting_balance: Mapped[Decimal | None] = mapped_column(DecimalType, nullable=True)
+     stage_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
++    purchased_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)  # D89: bought / last reset at Lucid
+ 
+ 
+ class AccountStageHistory(_Row, Base):
+diff --git a/backend/app/payouts/service.py b/backend/app/payouts/service.py
+index 01fe5d3..cee48e8 100644
+--- a/backend/app/payouts/service.py
++++ b/backend/app/payouts/service.py
+@@ -15,6 +15,13 @@ from app.clock import ET, to_et
+ from app.execution.adapters.base import BrokerError
+ from app.models import Account, Payout, Trade
+ from app.phases.payout_plan import PayoutPlan, plan_payout
++from app.risk.consistency import (
++    PayoutConsistency,
++    payout_consistency,
++    payout_consistency_text,
++    payout_limit,
++    payout_rule_applies,
++)
+ 
+ 
+ def week_key(now: datetime) -> str:
+@@ -71,12 +78,65 @@ def _largest_day(s: Session, a: Account, since: datetime | None) -> Decimal:
+     return max(days.values(), default=Decimal(0))
+ 
+ 
++def cycle_start(s: Session, a: Account) -> datetime | None:
++    """D89: the payout cycle starts at the last processed payout, else at the FUNDED start (stage_started_at)."""
++    return _last_processed(s, a) or a.stage_started_at
++
++
++def cycle_day_profits(s: Session, a: Account) -> list[Decimal]:
++    from app.clock import session_date
++
++    q = select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_not(None))
++    since = cycle_start(s, a)
++    if since is not None:
++        q = q.where(Trade.closed_at >= since)
++    days: dict[str, Decimal] = {}
++    for t in s.execute(q).scalars():
++        assert t.closed_at is not None
++        k = session_date(t.closed_at).isoformat()
++        days[k] = days.get(k, Decimal(0)) + (t.pnl_usd or Decimal(0))
++    return list(days.values())
++
++
++def payout_consistency_for(s: Session, rules: Any, a: Account) -> tuple[PayoutConsistency, bool] | None:
++    """D89: (status, purchase date known) when Lucid's payout consistency rule applies to this account (FUNDED, plan has
++    it), else None. Unknown purchase/reset date → the stricter legacy limit."""
++    cfg = rules.funded.payout_consistency
++    if cfg is None or not payout_rule_applies(a.stage, True):
++        return None
++    limit, known = payout_limit(a.purchased_at, cfg.pct, cfg.legacy_pct, cfg.legacy_cutoff)
++    return payout_consistency(cycle_day_profits(s, a), limit), known
++
++
++def consistency_view(s: Session, rules: Any, a: Account) -> dict[str, Any] | None:
++    """JSON for the Payouts page and the Dashboard."""
++    got = payout_consistency_for(s, rules, a)
++    if got is None:
++        return None
++    c, known = got
++    return {
++        "pct": None if c.pct is None else str(c.pct.quantize(Decimal("0.1"))),
++        "limit": str(c.limit),
++        "largest_day": str(c.largest_day),
++        "cycle_profit": str(c.cycle_profit),
++        "eligible": c.eligible,
++        "needed_cycle_profit": str(c.needed_cycle_profit),
++        "still_needed": str(c.still_needed),
++        "text": payout_consistency_text(c),
++        "date_known": known,
++        "verify": None if known else "Purchase / last reset date unknown: the stricter legacy limit is used. Enter the date on the Accounts page.",
++    }
++
++
+ def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime) -> PayoutPlan:
+     pr, pc = rules.funded.payout, rules.payouts
+     last = _last_processed(s, a)
+     done = len(s.execute(select(Payout.id).where(Payout.account_id == a.id, Payout.status == "processed")).all())
+     if pr.max_payouts is not None and done >= pr.max_payouts:
+         return PayoutPlan(None, Decimal(0), Decimal(0), "MAX_PAYOUTS_REACHED")
++    pcons = payout_consistency_for(s, rules, a)
++    if pcons is not None and not pcons[0].eligible:  # D89: a payout may only be proposed while the rule is met
++        return PayoutPlan(None, Decimal(0), Decimal(0), "CONSISTENCY")
+     return plan_payout(
+         balance=balance,
+         week_profit=_sum(s, a, _week_start(now)),
+@@ -96,7 +156,7 @@ def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime
+         min_profitable_days=pr.min_profitable_days,
+         mode=pc.mode,
+         largest_day=_largest_day(s, a, last),
+-        consistency_pct=rules.funded.consistency_max_day_pct,
++        consistency_pct=pcons[0].limit if pcons is not None else rules.funded.consistency_max_day_pct,
+         min_pct_of_cap=pc.min_pct_of_cap,
+     )
+ 
+diff --git a/backend/app/risk/checks.py b/backend/app/risk/checks.py
+index b07fc44..fa31dff 100644
+--- a/backend/app/risk/checks.py
++++ b/backend/app/risk/checks.py
+@@ -256,7 +256,24 @@ def _finish(
+     open_risk: Decimal = Decimal(0),
+ ) -> PreTrade:
+     """Checks every trade passes after sizing: consistency cap, then worst case vs DLL left / MLL distance."""
+-    if consistency is not None:
++    if consistency is not None and lim.fixed_contracts is not None:
++        # N6 / D89: a fixed-size strategy trade exits by its own rules (NOISE: band/VWAP/hourly exits; the far take-profit
++        # is only a 10% safety order), so "the take-profit reward must fit the cap" would reject EVERY entry. The cap is
++        # enforced live instead: the controller flattens the account's strategy trades as soon as today's realised +
++        # open profit reaches consistency.day_stop (< cap), and no new entry opens once the day stop is reached.
++        room_ok = day.today_profit_for_consistency < consistency.cap
++        if not r.log(
++            "consistency_cap",
++            room_ok,
++            mode="live_day_stop",
++            today=day.today_profit_for_consistency,
++            cap=consistency.cap,
++            day_stop=consistency.day_stop,
++            contracts=n,
++        ):
++            r.reason = "CONSISTENCY_CAP"
++            return r
++    elif consistency is not None:
+         reward = (plan.take_profit - plan.entry) * plan.direction.sign / lim.tick * lim.tick_value - lim.fee_rt
+         fit = fit_contracts(n, day.today_profit_for_consistency, reward, consistency, lim.min_qty)
+         if not r.log(
+diff --git a/backend/app/risk/consistency.py b/backend/app/risk/consistency.py
+index 38d71d3..537eb60 100644
+--- a/backend/app/risk/consistency.py
++++ b/backend/app/risk/consistency.py
+@@ -3,7 +3,8 @@
+ from __future__ import annotations
+ 
+ from dataclasses import dataclass
+-from decimal import Decimal
++from datetime import datetime
++from decimal import ROUND_CEILING, Decimal
+ 
+ from app.risk.risk_base import money
+ 
+@@ -35,6 +36,11 @@ def day_stopped(today_profit: Decimal, lim: ConsistencyLimits) -> bool:
+     return today_profit >= lim.day_stop
+ 
+ 
++def live_day_stop_hit(today_realised: Decimal, open_pnl: Decimal, lim: ConsistencyLimits) -> bool:
++    """N6: the live flatten condition for fixed-size strategy trades — realised + open profit has reached the day stop."""
++    return today_realised + open_pnl >= lim.day_stop
++
++
+ def fit_contracts(
+     n: int, today_profit: Decimal, reward_per_contract_net: Decimal, lim: ConsistencyLimits, min_qty: int
+ ) -> int:
+@@ -55,3 +61,67 @@ def largest_day_ok(day_profits: list[Decimal], consistency_pct: Decimal) -> bool
+ 
+ def profitable_days(day_profits: list[Decimal]) -> int:
+     return sum(1 for p in day_profits if p > 0)
++
++
++# ---------- D89: Lucid's official PAYOUT-ELIGIBILITY consistency rule (LucidPro, stage FUNDED only) ----------
++# Lucid support, "Consistency Percentage" (2026-08-26): Largest Single Day Profit / Account Profit = Consistency
++# Percentage; it must be at or below the limit to be eligible to REQUEST a payout (not a breach), and the cycle resets
++# after each payout. It does not apply on LIVE. All numbers (limit, legacy limit, cutoff) come from the rules file.
++
++
++@dataclass(frozen=True)
++class PayoutConsistency:
++    cycle_profit: Decimal  # account profit this payout cycle (sum of day profits, losing days included)
++    largest_day: Decimal  # largest single day profit this cycle (0 when no profitable day)
++    pct: Decimal | None  # largest day / cycle profit × 100; None when the cycle profit is not positive
++    limit: Decimal
++    eligible: bool  # "exactly at the limit" counts as eligible (DECISIONS D89, VERIFY)
++    needed_cycle_profit: Decimal  # cycle profit at which today's largest day sits exactly at the limit
++    still_needed: Decimal  # extra cycle profit still to make (0 when eligible)
++
++
++def payout_rule_applies(stage: str, enabled: bool) -> bool:
++    """FUNDED only: the rule is gone on LIVE and never applies to EVAL."""
++    return enabled and stage == "FUNDED"
++
++
++def payout_limit(
++    purchased_at: datetime | None, pct: Decimal, legacy_pct: Decimal, legacy_cutoff: datetime
++) -> tuple[Decimal, bool]:
++    """(limit %, date_known). Accounts purchased/reset ON OR BEFORE the cutoff keep the legacy (35%) limit; unknown date
++    → the stricter of the two, so the UI can ask for the date (never assume the looser limit)."""
++    if purchased_at is None:
++        return min(pct, legacy_pct), False
++    return (legacy_pct if purchased_at <= legacy_cutoff else pct), True
++
++
++def consistency_percentage(day_profits: list[Decimal]) -> Decimal | None:
++    """Largest single day profit / account profit × 100 (Lucid's formula); None while the account profit is ≤ 0."""
++    total = sum(day_profits, Decimal(0))
++    if total <= 0:
++        return None
++    return max(max(day_profits), Decimal(0)) / total * D100
++
++
++def payout_consistency(day_profits: list[Decimal], limit: Decimal) -> PayoutConsistency:
++    total = sum(day_profits, Decimal(0))
++    largest = max(max(day_profits, default=Decimal(0)), Decimal(0))
++    pct = consistency_percentage(day_profits)
++    eligible = pct is not None and pct <= limit
++    needed = money((largest * D100 / limit).to_integral_value(rounding=ROUND_CEILING)) if largest > 0 else Decimal(0)
++    return PayoutConsistency(total, largest, pct, limit, eligible, needed, Decimal(0) if eligible else max(needed - total, Decimal(0)))
++
++
++def payout_consistency_text(c: PayoutConsistency) -> str:
++    """Plain sentence for the Payouts page and the Dashboard."""
++    if c.eligible:
++        return (
++            f"Consistency met: your largest day is {c.pct:.1f}% of the cycle profit (limit {c.limit}%). "
++            "Payout requests are allowed."
++        )
++    if c.largest_day <= 0:
++        return "No profitable day yet in this payout cycle: nothing to request."
++    return (
++        f"Largest day ${c.largest_day} must be at most {c.limit}% of the cycle profit: you need ${c.needed_cycle_profit} "
++        f"cycle profit (now ${c.cycle_profit}, ${c.still_needed} more) before a payout can be requested."
++    )
+diff --git a/backend/scripts/make_plans.py b/backend/scripts/make_plans.py
+index 6faad22..5ae3721 100644
+--- a/backend/scripts/make_plans.py
++++ b/backend/scripts/make_plans.py
+@@ -89,7 +89,13 @@ def make(plan: str, k: int) -> str:
+             f"max_first: {PRO_CAP[k][0]}, max_next: {PRO_CAP[k][1]}, max_payouts: 5}}   # 12890092, 16558826"
+         )
+         scaling = ""
++        pcons = (
++            '\n  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}'
++            '   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; '
++            "35% for accounts bought/reset on or before 11/28/2025 3 PM ET"
++        )
+     else:
++        pcons = ""
+         payout = (
+             f"  payout: {{split: 0.90, buffer: {lock}, min_request: 500, min_cycle_profit: 1, max_first: {FLEX_CAP[k]}, "
+             f"max_next: {FLEX_CAP[k]}, max_pct_of_profit: 0.5, min_profitable_days: 5, min_day_profit: {FLEX_DAY[k]}, "
+@@ -112,7 +118,7 @@ def make(plan: str, k: int) -> str:
+   news_breach_min_after: 1
+   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
+   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
+-  payouts_live_review: 5               # 16558826: review pool after payout 5{scaling}
++  payouts_live_review: 5               # 16558826: review pool after payout 5{scaling}{pcons}
+ {payout}""",
+     )
+     t = line(
+diff --git a/backend/tests/unit/test_payout_consistency.py b/backend/tests/unit/test_payout_consistency.py
+new file mode 100644
+index 0000000..012a2c8
+--- /dev/null
++++ b/backend/tests/unit/test_payout_consistency.py
+@@ -0,0 +1,75 @@
++"""D89: Lucid's official payout-eligibility consistency rule (pure functions)."""
++
++from datetime import datetime
++from decimal import Decimal as D
++from zoneinfo import ZoneInfo
++
++from app.risk.consistency import (
++    ConsistencyLimits,
++    consistency_percentage,
++    live_day_stop_hit,
++    payout_consistency,
++    payout_consistency_text,
++    payout_limit,
++    payout_rule_applies,
++)
++
++NY = ZoneInfo("America/New_York")
++CUTOFF = datetime(2025, 11, 28, 15, 0, tzinfo=NY)
++
++
++def test_formula_matches_lucid_example():  # $1,000 / $4,000 = 25%
++    days = [D(1000), D(1000), D(1000), D(1000)]
++    assert consistency_percentage(days) == D(25)
++    c = payout_consistency(days, D(40))
++    assert c.eligible and c.pct == D(25) and c.still_needed == 0
++
++
++def test_losing_days_count_in_account_profit_and_no_profit_is_not_eligible():
++    assert consistency_percentage([D(1000), D(-200), D(600)]) == D(1000) / D(1400) * 100
++    assert consistency_percentage([]) is None and consistency_percentage([D(-5), D(-1)]) is None
++    c = payout_consistency([D(-5)], D(40))
++    assert not c.eligible and c.pct is None and c.needed_cycle_profit == 0 and c.still_needed == 0
++    assert "No profitable day" in payout_consistency_text(c)
++
++
++def test_exactly_at_the_limit_is_eligible_and_just_above_is_not():  # VERIFY in DECISIONS D89
++    assert payout_consistency([D(400), D(600)], D(40)).eligible  # 400 / 1000 = 40%
++    over = payout_consistency([D(401), D(599)], D(40))
++    assert not over.eligible
++
++
++def test_what_is_still_needed():
++    c = payout_consistency([D(1000), D(500)], D(40))  # largest 1,000 → needs 2,500 cycle profit
++    assert not c.eligible and c.needed_cycle_profit == D(2500) and c.still_needed == D(1000)
++    assert c.limit == D(40)
++    t = payout_consistency_text(c)
++    assert "$2500" in t and "$1000 more" in t and "40%" in t
++    # keep trading exactly what is needed -> eligible at the limit
++    assert payout_consistency([D(1000), D(500), D(1000)], D(40)).eligible
++    assert "Consistency met" in payout_consistency_text(payout_consistency([D(100), D(300)], D(40)))
++    # a non-whole-dollar need rounds UP to the next whole dollar (never under-states)
++    assert payout_consistency([D(100)], D(35)).needed_cycle_profit == D(286)  # 285.71...
++
++
++def test_limit_40_after_cutoff_35_on_or_before_unknown_stricter():
++    args = (D(40), D(35), CUTOFF)
++    assert payout_limit(datetime(2025, 11, 28, 15, 0, 1, tzinfo=NY), *args) == (D(40), True)
++    assert payout_limit(CUTOFF, *args) == (D(35), True)  # "on or before"
++    assert payout_limit(datetime(2025, 1, 5, tzinfo=NY), *args) == (D(35), True)
++    assert payout_limit(None, *args) == (D(35), False)  # unknown -> stricter, flag for VERIFY
++    assert payout_limit(None, D(35), D(40), CUTOFF) == (D(35), False)  # stricter whichever way round
++
++
++def test_rule_applies_on_funded_only():
++    assert payout_rule_applies("FUNDED", True)
++    assert not payout_rule_applies("LIVE", True)  # gone once promoted to Live
++    assert not payout_rule_applies("EVAL", True)
++    assert not payout_rule_applies("FUNDED", False)
++
++
++def test_live_day_stop_hit_n6():
++    lim = ConsistencyLimits(D(500), D("437.50"))
++    assert not live_day_stop_hit(D(300), D(100), lim)
++    assert live_day_stop_hit(D(300), D("137.50"), lim)  # exactly the day stop
++    assert live_day_stop_hit(D(0), D(600), lim)
+diff --git a/backend/tests/unit/test_risk_phase4.py b/backend/tests/unit/test_risk_phase4.py
+index 1da5871..de0e3d1 100644
+--- a/backend/tests/unit/test_risk_phase4.py
++++ b/backend/tests/unit/test_risk_phase4.py
+@@ -476,7 +476,17 @@ def test_fixed_size_blocked_by_dll_and_mll_room():
+     assert not r.ok and r.reason == "WORST_CASE_EXCEEDS_LIMITS"
+     r = run(plan=NOISE_PLAN, lim=_fixed(0), consistency=None, acct_dll=None)
+     assert not r.ok and r.reason == "STOP_TOO_WIDE"
+-    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))  # consistency
++    # N6 / D89 (changed assertion): the far safety TP no longer rejects every fixed-size entry with CONSISTENCY_CAP;
++    # below the day stop the trade is allowed (the live monitor flattens at the day stop), at/after it the day stop blocks
++    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))
++    assert r.ok and any(c["check"] == "consistency_cap" and c["mode"] == "live_day_stop" for c in r.checks)
++    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(440), D(440)))
++    assert not r.ok and r.reason == "CONSISTENCY_DAY_STOP"
++
++
++def test_fixed_size_never_trades_at_or_above_the_cap_even_if_day_stop_were_looser():
++    loose = ConsistencyLimits(cap=D(500), day_stop=D(600))  # defensive: cap itself is still enforced
++    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, consistency=loose, day=DayState(1, 0, 1, D(500), D(500)))
+     assert not r.ok and r.reason == "CONSISTENCY_CAP"
+ 
+ 
+diff --git a/config/rules/lucid_pro_100k.yaml b/config/rules/lucid_pro_100k.yaml
+index 0b52a4a..81b11e0 100644
+--- a/config/rules/lucid_pro_100k.yaml
++++ b/config/rules/lucid_pro_100k.yaml
+@@ -31,6 +31,7 @@ funded:
+   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
+   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
+   payouts_live_review: 5               # 16558826: review pool after payout 5
++  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; 35% for accounts bought/reset on or before 11/28/2025 3 PM ET
+   payout: {split: 0.90, buffer: 103100, min_request: 500, min_cycle_profit: 750, max_first: 2500, max_next: 3000, max_payouts: 5}   # 12890092, 16558826
+ 
+ live: {starting_balance: 0, max_loss_limit: 3000, drawdown_type: eod, lock_trigger: 3100, lock_level: 100, sim_payout_cap_on_move: 0}   # 16558826 (lock at $100 once profit = start DD) VERIFY
+diff --git a/config/rules/lucid_pro_150k.yaml b/config/rules/lucid_pro_150k.yaml
+index 2d91740..cfb36eb 100644
+--- a/config/rules/lucid_pro_150k.yaml
++++ b/config/rules/lucid_pro_150k.yaml
+@@ -31,6 +31,7 @@ funded:
+   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
+   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
+   payouts_live_review: 5               # 16558826: review pool after payout 5
++  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; 35% for accounts bought/reset on or before 11/28/2025 3 PM ET
+   payout: {split: 0.90, buffer: 154600, min_request: 500, min_cycle_profit: 1000, max_first: 3000, max_next: 3500, max_payouts: 5}   # 12890092, 16558826
+ 
+ live: {starting_balance: 0, max_loss_limit: 4500, drawdown_type: eod, lock_trigger: 4600, lock_level: 100, sim_payout_cap_on_move: 0}   # 16558826 (lock at $100 once profit = start DD) VERIFY
+diff --git a/config/rules/lucid_pro_25k.yaml b/config/rules/lucid_pro_25k.yaml
+index 4404108..6ad97a5 100644
+--- a/config/rules/lucid_pro_25k.yaml
++++ b/config/rules/lucid_pro_25k.yaml
+@@ -31,6 +31,7 @@ funded:
+   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
+   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
+   payouts_live_review: 5               # 16558826: review pool after payout 5
++  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; 35% for accounts bought/reset on or before 11/28/2025 3 PM ET
+   payout: {split: 0.90, buffer: 26100, min_request: 500, min_cycle_profit: 250, max_first: 1000, max_next: 1500, max_payouts: 5}   # 12890092, 16558826
+ 
+ live: {starting_balance: 0, max_loss_limit: 1000, drawdown_type: eod, lock_trigger: 1100, lock_level: 100, sim_payout_cap_on_move: 0}   # 16558826 (lock at $100 once profit = start DD) VERIFY
+diff --git a/config/rules/lucid_pro_50k.yaml b/config/rules/lucid_pro_50k.yaml
+index a456ed0..8d3eede 100644
+--- a/config/rules/lucid_pro_50k.yaml
++++ b/config/rules/lucid_pro_50k.yaml
+@@ -31,6 +31,7 @@ funded:
+   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
+   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
+   payouts_live_review: 5               # 16558826: review pool after payout 5
++  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; 35% for accounts bought/reset on or before 11/28/2025 3 PM ET
+   payout: {split: 0.90, buffer: 52100, min_request: 500, min_cycle_profit: 500, max_first: 2000, max_next: 2500, max_payouts: 5}   # 12890092, 16558826
+ 
+ live: {starting_balance: 0, max_loss_limit: 2000, drawdown_type: eod, lock_trigger: 2100, lock_level: 100, sim_payout_cap_on_move: 0}   # 16558826 (lock at $100 once profit = start DD) VERIFY

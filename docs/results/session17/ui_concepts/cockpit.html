@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paytience · Cockpit concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#D4AF37;--goldL:#F2D27A;--blue:#3B82F6;--blueL:#93C5FD;--blueM:#7F9BCB;
+  --bg:#060B17;--bg2:#0A1020;--card:#0E1630;--card2:#111A33;--border:#1E2A4A;--line:#172240;
+  --ok:#22C55E;--bad:#EF4444;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;--sans:Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:radial-gradient(1200px 600px at 70% -10%,#10204a 0%,transparent 60%),var(--bg);color:var(--blueL);font:13px/1.45 var(--sans);min-height:100vh}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.gold{color:var(--gold)}.goldL{color:var(--goldL)}.blue{color:var(--blue)}.muted{color:var(--blueM)}
+/* top bar */
+.top{display:flex;align-items:center;gap:14px;padding:10px 20px;border-bottom:1px solid var(--border);background:rgba(6,11,23,.85);position:sticky;top:0;z-index:5;backdrop-filter:blur(6px)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--gold);font-size:16px;letter-spacing:.02em}
+.logo i{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--gold),#8a6d1a);display:grid;place-items:center;color:#0A1020;font-style:normal;font-weight:800;box-shadow:0 0 14px rgba(212,175,55,.45)}
+.chip{font:600 10.5px/1 var(--mono);letter-spacing:.08em;padding:5px 7px;border-radius:5px;border:1px solid var(--border);color:var(--blueL);white-space:nowrap}
+.chip.g{border-color:rgba(212,175,55,.6);color:var(--gold)}
+.chip.b{border-color:rgba(59,130,246,.6);color:var(--blue)}
+.concept{font:700 10px/1 var(--mono);letter-spacing:.14em;color:#0A1020;background:var(--goldL);padding:5px 8px;border-radius:4px;white-space:nowrap}
+.spacer{flex:1}
+.clock{font:600 14px var(--mono);color:var(--goldL)}
+.kill{font:700 12px var(--mono);letter-spacing:.1em;color:var(--goldL);background:linear-gradient(#1a1406,#120e04);border:1.5px solid var(--gold);border-radius:8px;padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.15s}
+.kill:hover{box-shadow:0 0 0 3px rgba(212,175,55,.2),0 0 18px rgba(212,175,55,.35)}
+.kill:active{transform:translateY(1px)}
+.kill .dot{width:8px;height:8px;border-radius:50%;background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.tabs a{color:var(--blueM);text-decoration:none;padding:10px 12px;font-weight:600;font-size:12.5px;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a:hover{color:var(--blueL)}
+.tabs a.on{color:var(--gold);border-color:var(--gold)}
+main{padding:16px 20px 28px;max-width:1440px;margin:0 auto}
+h1{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:4px 0 14px;display:flex;align-items:center;gap:10px}
+h1 small{font-size:11px;letter-spacing:.05em;text-transform:none;color:var(--blueM);font-weight:500}
+.panel{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;min-width:0}
+.panel h2{margin:0 0 10px;font:700 10.5px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:8px}
+.panel h2 .r{margin-left:auto;color:var(--blueM);letter-spacing:.06em;font-weight:600}
+.grid{display:grid;gap:12px}
+.screen{display:none}.screen.on{display:block}
+/* gauges */
+.gauge{display:flex;flex-direction:column;align-items:center;text-align:center}
+.gauge svg{width:100%;max-width:190px;height:auto;overflow:visible}
+.gauge .v{font:700 22px var(--mono);color:var(--goldL);margin-top:-84px;height:84px;line-height:70px}
+.gauge .s{font:500 10.5px var(--mono);color:var(--blueL);margin-top:3px}
+.gauge .k{font:700 10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-top:20px}
+.gauge .n{font-size:11px;color:var(--blueM);margin-top:4px;max-width:200px}
+/* status ring */
+.ringwrap{display:grid;place-items:center;position:relative}
+.ringwrap svg{width:220px;height:220px}
+.ringc{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+.ringc b{display:block;font:800 30px var(--mono);color:var(--goldL);letter-spacing:.04em;text-shadow:0 0 18px rgba(242,210,122,.35)}
+.ringc span{font:600 10.5px var(--mono);letter-spacing:.14em;color:var(--blueL)}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:1}}
+.glow{animation:pulse 2.8s ease-in-out infinite}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;font:500 11px var(--mono);margin-top:10px}
+.checks div{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.bd{width:7px;height:7px;border-radius:50%;flex:none}
+.bd.ok{background:var(--ok);box-shadow:0 0 6px rgba(34,197,94,.7)}
+.bd.bad{background:var(--bad);box-shadow:0 0 6px rgba(239,68,68,.7)}
+.bd.off{background:#475569}
+/* stat strip */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.kpi{background:var(--card);padding:10px 12px}
+.kpi .k{font:600 9.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--blueM)}
+.kpi .v{font:700 19px var(--mono);color:var(--goldL);margin-top:3px;white-space:nowrap}
+.kpi .v small{font-size:11px;color:var(--blueM);font-weight:500}
+/* ladder */
+.ladder{position:relative;height:120px;margin:12px 8px 6px}
+.rail{position:absolute;left:0;right:0;top:56px;height:8px;border-radius:4px;background:linear-gradient(90deg,rgba(59,130,246,.18),rgba(59,130,246,.35) 30%,rgba(212,175,55,.35) 70%,rgba(212,175,55,.6));}
+.risk{position:absolute;top:56px;height:8px;background:repeating-linear-gradient(45deg,rgba(147,197,253,.25) 0 4px,transparent 4px 8px);border-radius:4px 0 0 4px}
+.mk{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font:600 10px var(--mono);white-space:nowrap}
+.mk .lab{letter-spacing:.1em;color:var(--blueM)}
+.mk .px{color:var(--blueL);margin-top:1px}
+.mk .stem{width:2px;height:22px;margin-top:3px;background:var(--blueM)}
+.mk.low{top:auto;bottom:0;flex-direction:column-reverse}
+.mk.low .stem{margin:0 0 3px}
+.mk.stop .stem{background:var(--blue)} .mk.stop .lab{color:var(--blue)}
+.mk.tgt .stem{background:var(--gold)} .mk.tgt .lab,.mk.tgt .px{color:var(--gold)}
+.mk.last .lab{color:var(--goldL)} .mk.last .px{color:var(--goldL);font-size:12px}
+.mk.last .stem{background:var(--goldL);box-shadow:0 0 8px var(--goldL);width:3px}
+.mk.trail .stem{background:repeating-linear-gradient(var(--blueL) 0 3px,transparent 3px 6px)}
+table{width:100%;border-collapse:collapse;font:500 12px var(--mono)}
+th{font:600 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--blueM);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+td{padding:8px;border-bottom:1px solid var(--line);color:var(--blueL);white-space:nowrap}
+tr:hover td{background:rgba(59,130,246,.06)}
+.num{text-align:right}
+.tape{font:500 11px var(--mono);max-height:180px;overflow:hidden}
+.tape div{display:flex;gap:10px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.tape time{color:var(--blueM);flex:none}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--gold))}
+/* strategy */
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.preset{all:unset;cursor:pointer;display:block;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;transition:.15s}
+.preset:hover{border-color:rgba(59,130,246,.7);transform:translateY(-2px)}
+.preset:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.preset.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),0 0 26px rgba(212,175,55,.18);background:linear-gradient(180deg,#171a22,var(--card))}
+.letter{font:800 30px var(--mono);color:var(--gold);line-height:1}
+.preset .t{font-weight:700;color:var(--goldL);font-size:14px;margin-top:6px}
+.preset .d{color:var(--blueL);font-size:12px;margin-top:4px;min-height:34px}
+.pb{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;gap:8px;font:600 11px var(--mono);margin-top:7px}
+.pb .bar i.p{background:var(--gold)} .pb .bar i.x{background:var(--blue)}
+.tag{position:absolute;top:12px;right:12px;font:700 9.5px var(--mono);letter-spacing:.12em;padding:4px 6px;border-radius:4px;border:1px solid var(--gold);color:var(--gold)}
+.tag.a{border-color:var(--blue);color:var(--blue);right:auto;left:auto;position:static;display:inline-block;margin-left:6px}
+.btn{font:700 12px var(--sans);color:var(--blue);border:1px solid var(--blue);background:transparent;border-radius:8px;padding:9px 14px;cursor:pointer;transition:.15s}
+.btn:hover{background:rgba(59,130,246,.12)}
+.btn:active{transform:translateY(1px)}
+.btn.g{color:var(--gold);border-color:var(--gold)}
+.btn.g:hover{background:rgba(212,175,55,.12)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.duo{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center}
+.engine{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.engine .nm{font:700 10px var(--mono);letter-spacing:.14em;color:var(--blueM);text-transform:uppercase}
+.engine .vd{font:800 22px var(--mono);color:var(--goldL);margin-top:6px}
+.engine .cf{font:500 11px var(--mono);color:var(--blueL)}
+.link{width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);display:grid;place-items:center;font:800 11px var(--mono);color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.35);text-align:center;line-height:1.1}
+.tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.tier{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
+.tier .k{font:600 9.5px var(--mono);letter-spacing:.12em;color:var(--blueM)}
+.tier .v{font:700 18px var(--mono);color:var(--goldL);margin-top:2px}
+.tier .v s{color:var(--blueM);font-size:12px;font-weight:500;margin-right:6px}
+.gates{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.gate{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px;font:600 11px var(--mono);color:var(--blueL);display:flex;flex-direction:column;gap:5px}
+.gate b{color:var(--gold);display:flex;align-items:center;gap:6px}
+.gate span{font-weight:500;font-size:10.5px;color:var(--blueM);line-height:1.3}
+input.type{width:100%;background:var(--bg2);border:1px dashed var(--border);border-radius:8px;padding:10px;color:var(--goldL);font:600 12px var(--mono);letter-spacing:.06em}
+input.type::placeholder{color:#5a6f99}
+.small{font-size:11px;color:var(--blueM)}
+.sample{font:600 9.5px var(--mono);color:var(--blueM);letter-spacing:.08em}
+
+.dash-grid{grid-template-columns:300px 1fr 1fr 1fr}
+.strat-grid{grid-template-columns:1.25fr 1fr}
+@media (max-width:1100px){.dash-grid{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:repeat(3,1fr)}.gates{grid-template-columns:repeat(4,1fr)}.strat-grid{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .top{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .top .hide-sm{display:none}
+  .tabs{padding:0 10px}
+  main{padding:12px 14px 24px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .dash-grid{grid-template-columns:1fr}.span3,.span2{grid-column:auto!important}
+  .top{position:static}
+  .ladder .px{display:none}
+  .ladlist{display:grid!important}
+  .presets{grid-template-columns:1fr}
+  .gates{grid-template-columns:repeat(2,1fr)}
+  .duo{grid-template-columns:1fr auto 1fr;gap:6px}
+  .engine .vd{font-size:17px}
+  .link{width:50px;height:50px;font-size:9.5px}
+  .kill{padding:8px 10px}
+  .ladder{margin:12px 22px 6px}
+  .tbl-wrap{overflow-x:auto}
+  .panel h2{flex-wrap:wrap;line-height:1.4}.panel h2 .r{margin-left:0;flex-basis:100%;font-size:9.5px}
+  .tiers .v{font-size:15px}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo"><i>P</i>Paytience</div>
+  <span class="chip g">PAPER</span>
+  <span class="chip b hide-sm">SEMI-AUTO</span>
+  <span class="chip hide-sm">MNQ · NOISE</span>
+  <span class="concept">CONCEPT — SAMPLE DATA</span>
+  <span class="spacer"></span>
+  <span class="clock">10:42:18 ET</span>
+  <button class="kill" title="Flatten everything and disarm (never auto-resumes)"><span class="dot"></span>KILL SWITCH</button>
+</header>
+<nav class="tabs">
+  <a href="#dashboard" data-s="dashboard">Dashboard</a>
+  <a href="#strategy" data-s="strategy">Strategy</a>
+  <a>Today</a><a>Signals</a><a>Trade</a><a>Accounts</a><a>Risk</a><a>Payouts</a>
+</nav>
+
+<main>
+<!-- ============ DASHBOARD ============ -->
+<section class="screen" id="dashboard">
+  <h1>Paytience · Dashboard <small>Morning window 06:45–11:30 ET · flatten 16:40 · sample numbers</small></h1>
+  <div class="kpis">
+    <div class="kpi"><div class="k">Total balance</div><div class="v">$51,224.90</div></div>
+    <div class="kpi"><div class="k">Today</div><div class="v">▲ +$312.50</div></div>
+    <div class="kpi"><div class="k">Open P&amp;L</div><div class="v">▲ +$27.00</div></div>
+    <div class="kpi"><div class="k">Trades</div><div class="v">2 <small>/ 4 max</small></div></div>
+    <div class="kpi"><div class="k">Armed</div><div class="v">2 <small>/ 2</small></div></div>
+    <div class="kpi"><div class="k">Bias MNQ</div><div class="v">LONG <small>advisory</small></div></div>
+  </div>
+
+  <div class="grid dash-grid">
+    <div class="panel span-sm" style="grid-row:span 2">
+      <h2>System status <span class="r">pre-flight 06:40</span></h2>
+      <div class="ringwrap">
+        <svg viewBox="0 0 220 220" aria-hidden="true">
+          <defs><filter id="gl"><feGaussianBlur stdDeviation="4"/></filter>
+            <linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#D4AF37"/></linearGradient></defs>
+          <circle cx="110" cy="110" r="92" fill="none" stroke="#172240" stroke-width="12"/>
+          <g id="segs"></g>
+          <circle class="glow" cx="110" cy="110" r="92" fill="none" stroke="url(#rg)" stroke-width="5" filter="url(#gl)" opacity=".7"/>
+          <circle cx="110" cy="110" r="72" fill="none" stroke="#1E2A4A" stroke-dasharray="2 5"/>
+        </svg>
+        <div class="ringc"><div><b>ARMED</b><span>8 / 8 CHECKS OK</span></div></div>
+      </div>
+      <div class="checks">
+        <div><i class="bd ok"></i>Broker link</div><div><i class="bd ok"></i>Token 5h 12m</div>
+        <div><i class="bd ok"></i>Heartbeat 4s</div><div><i class="bd ok"></i>Calendar</div>
+        <div><i class="bd ok"></i>Bias loaded</div><div><i class="bd ok"></i>Reconciled</div>
+        <div><i class="bd ok"></i>Attestation</div><div><i class="bd ok"></i>Clock 0.3s</div>
+      </div>
+      <div style="margin-top:14px" class="small">Hedge lock: <span class="goldL">LONG household-wide</span> · news blackout next 13:30 (−2 min flat)</div>
+    </div>
+
+    <div class="panel"><h2>Cushion to MLL</h2>
+      <div class="gauge" data-gauge data-val="1612.40" data-max="2100" data-mark="100" data-marklabel="KILL">
+        <svg viewBox="0 0 200 130"></svg>
+        <div class="v">$1,612</div><div class="k">Pro 25K #1 · EVAL</div><div class="s">of $2,100 · MLL $24,000</div><div class="n">Kill switch fires within $100 of MLL</div></div></div>
+
+    <div class="panel"><h2>Day profit vs 40% cap</h2>
+      <div class="gauge" data-gauge data-val="312.50" data-max="500" data-mark="437.5" data-marklabel="STOP">
+        <svg viewBox="0 0 200 130"></svg>
+        <div class="v">$312.50</div><div class="k">Consistency 63%</div><div class="s">cap $500 · stop $437.50</div><div class="n">$125 to day stop — then no new entries</div></div></div>
+
+    <div class="panel"><h2>DLL room</h2>
+      <div class="gauge" data-gauge data-val="600" data-max="600">
+        <svg viewBox="0 0 200 130"></svg>
+        <div class="v">$600</div><div class="k">No losses today</div><div class="s">of $600 daily loss limit</div><div class="n">Risk + margin must fit inside</div></div></div>
+
+    <div class="panel span3" style="grid-column:span 3">
+      <h2>Open position · MNQ LONG 1 <span class="r">Pro 25K #1 · NOISE · entered 10:31:04</span></h2>
+      <div class="ladder" id="ladder"></div>
+      <div class="ladlist" style="display:none;grid-template-columns:1fr 1fr 1fr;gap:6px;font:500 11px var(--mono);margin:6px 0 10px"><span>Stop <span class="goldL">21,018.00</span></span><span>Entry <span class="goldL">21,034.25</span></span><span>BE <span class="goldL">21,035.00</span></span><span>Trail <span class="goldL">21,041.50</span></span><span>Last <span class="goldL">21,047.75</span></span><span>Target <span class="goldL">21,062.75</span></span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:8px;font:500 11.5px var(--mono)">
+        <span>Risk <span class="goldL">$32.50 · 1.00R</span></span>
+        <span>Now <span class="goldL">▲ +$27.00 · +0.83R</span></span>
+        <span>Target <span class="goldL">1.75R</span></span>
+        <span>BE armed at <span class="goldL">+0.75R</span> <i class="bd ok" style="display:inline-block"></i></span>
+        <span class="muted">Trail ratchets only · app exits hold ≥ 6 s</span>
+      </div>
+    </div>
+
+    <div class="panel span2" style="grid-column:span 2">
+      <h2>Accounts</h2>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Account</th><th>Stage</th><th class="num">Balance</th><th class="num">Today</th><th class="num">To MLL</th><th>Eval target</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="goldL">Pro 25K #1</td><td>EVAL</td><td class="num">$25,612.40</td><td class="num goldL">▲ +$312.50</td><td class="num">$1,612.40</td><td style="min-width:110px"><div class="bar"><i style="width:49%"></i></div><span class="small">$612 / $1,250</span></td><td><i class="bd ok" title="armed"></i></td></tr>
+          <tr><td class="goldL">Pro 25K #2</td><td>FUNDED</td><td class="num">$25,612.50</td><td class="num">$0.00</td><td class="num">$1,612.50</td><td class="small">locked at 25,100 soon</td><td><i class="bd ok" title="armed"></i></td></tr>
+        </tbody></table></div>
+    </div>
+    <div class="panel span2" style="grid-column:span 2">
+      <h2>Event tape</h2>
+      <div class="tape">
+        <div><time>10:38:51</time><span>Pro 25K #1 stop → BE 21,035.00 <span class="muted">(+0.75R reached)</span></span></div>
+        <div><time>10:31:04</time><span class="goldL">ENTERED MNQ LONG 1 @ 21,034.25 · score 78</span></div>
+        <div><time>10:12:40</time><span>Skip · G6 opposing divergence <span class="muted">(reason stored)</span></span></div>
+        <div><time>09:48:02</time><span class="goldL">TP MNQ LONG ▲ +$285.50 · +1.75R</span></div>
+        <div><time>06:40:00</time><span>Pre-flight passed · 8/8</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STRATEGY ============ -->
+<section class="screen" id="strategy">
+  <h1>Paytience · Strategy <small>Preset applies to the next NEW trade · mode stays PAPER</small></h1>
+  <div class="panel" style="margin-bottom:12px">
+    <h2>Strategy preset — NOISE on MNQ <span class="r">study: pick 2019–23 · judge 2024–26</span></h2>
+    <div class="presets" role="radiogroup" aria-label="Strategy preset">
+      <button class="preset" role="radio" aria-checked="false">
+        <div class="letter">A</div><div class="t">Pro 25K classic</div>
+        <div class="d">NOISE $250 stop + afternoon fade ON, 1 micro</div>
+        <div class="pb"><span class="goldL">Pass</span><div class="bar"><i class="p" style="width:63%"></i></div><span class="goldL">63%</span></div>
+        <div class="pb"><span class="blue">Bust</span><div class="bar"><i class="x" style="width:36%"></i></div><span class="blue">36%</span></div>
+      </button>
+      <button class="preset" role="radio" aria-checked="false">
+        <div class="letter">B</div><div class="t">Pro 100K low risk</div>
+        <div class="d">Fade ON, 3 micros, 1 micro while cushion &lt; 50% of loss limit</div>
+        <div class="pb"><span class="goldL">Pass</span><div class="bar"><i class="p" style="width:63%"></i></div><span class="goldL">63%</span></div>
+        <div class="pb"><span class="blue">Bust</span><div class="bar"><i class="x" style="width:22%"></i></div><span class="blue">22%</span></div>
+      </button>
+      <button class="preset sel" role="radio" aria-checked="true">
+        <span class="tag">RECOMMENDED</span>
+        <div class="letter">C</div><div class="t">Pro 150K low risk <span class="tag a">ACTIVE</span></div>
+        <div class="d">Profit lock +100 pt → stop to +10, fade OFF, 3 micros</div>
+        <div class="pb"><span class="goldL">Pass</span><div class="bar"><i class="p" style="width:77%"></i></div><span class="goldL">77%</span></div>
+        <div class="pb"><span class="blue">Bust</span><div class="bar"><i class="x" style="width:18%"></i></div><span class="blue">18%</span></div>
+      </button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px">
+      <button class="btn g">Apply preset C</button>
+      <span class="small">Built for a Pro 150K account — loaded plan is 25K, size applies to every account. Past results do not guarantee future results.</span>
+    </div>
+  </div>
+
+  <div class="grid strat-grid">
+    <div class="panel">
+      <h2>AI Duo · TradingAgents + Vibe-Trading <span class="r">paper only</span></h2>
+      <div class="duo">
+        <div class="engine"><div class="nm">TradingAgents</div><div class="vd">LONG</div><div class="cf">MNQ ← QQQ · 02:40</div></div>
+        <div class="link">BOTH<br>AGREE</div>
+        <div class="engine"><div class="nm">Vibe-Trading</div><div class="vd">LONG</div><div class="cf">MNQ + MGC · 03:00</div></div>
+      </div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center;font:500 11.5px var(--mono)">
+        <span>Proof ledger · scored calls</span><span class="goldL">0 / 30</span>
+        <div class="bar" style="grid-column:1/-1"><i style="width:2%"></i></div>
+        <span>Accuracy (Wilson lower bound)</span><span class="goldL">— needs ≥ 70%</span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <span class="chip g">ADVISORY</span><span class="small">May only block an entry after 30+ calls prove ≥ 70%. AI key not connected.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Fast Evaluation <span class="r">EVAL stage only</span></h2>
+      <div class="small">Changes ONLY the risk tiers, warm-up and max risk. Gates, score, R:R, DLL/MLL, kill switch — untouched.</div>
+      <div class="tiers">
+        <div class="tier"><div class="k">FLOOR</div><div class="v"><s>7%</s>10%</div></div>
+        <div class="tier"><div class="k">MIDDLE</div><div class="v"><s>9%</s>12%</div></div>
+        <div class="tier"><div class="k">CEILING</div><div class="v"><s>11%</s>14%</div></div>
+      </div>
+      <div style="display:flex;gap:18px;font:500 11.5px var(--mono);margin-bottom:10px;flex-wrap:wrap"><span>Max risk <span class="goldL">$140</span></span><span>Warm-up <span class="goldL">10 trades</span></span><span>Impact <span class="goldL">pass 77→81% · bust 18→21%</span> <span class="muted">(sample)</span></span></div>
+      <input class="type" placeholder='Type "ENABLE EVALUATION MODE"' aria-label="Confirmation phrase">
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn">Impact Preview</button><button class="btn g" disabled>Enable Fast Evaluation</button></div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px">
+    <h2>Gate chain · last signal #4182 ENTERED <span class="r">all must pass at entry-bar close</span></h2>
+    <div class="gates">
+      <div class="gate"><b><i class="bd ok"></i>G1</b><span>Window · news · feed · halt</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G2</b><span>Bias allows side</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G3</b><span>Model valid · C1 ≥ ATR</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G4</b><span>MSO structure agrees</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G5</b><span>CHoCH / BoS after sweep</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G6</b><span>No opposing divergence</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G7</b><span>TradePlan R:R 1.5–2.5</span></div>
+      <div class="gate"><b><i class="bd ok"></i>G8</b><span>Phase · guard · risk · hedge</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+// status ring segments
+(function(){
+  const g=document.getElementById('segs'),n=8,r=92,c=110,gap=6;
+  for(let i=0;i<n;i++){
+    const a0=(i/n)*360+gap/2-90,a1=((i+1)/n)*360-gap/2-90;
+    const p=a=>[c+r*Math.cos(a*Math.PI/180),c+r*Math.sin(a*Math.PI/180)];
+    const [x0,y0]=p(a0),[x1,y1]=p(a1);
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}`);
+    path.setAttribute('stroke',i%2?'#D4AF37':'#3B82F6');path.setAttribute('stroke-width','12');path.setAttribute('fill','none');
+    g.appendChild(path);
+  }
+})();
+// radial gauges (240° arc)
+document.querySelectorAll('[data-gauge]').forEach(el=>{
+  const svg=el.querySelector('svg'),v=+el.dataset.val,m=+el.dataset.max,mk=el.dataset.mark;
+  const cx=100,cy=100,r=78,start=150,sweep=240;
+  const pt=(f,rr=r)=>{const a=(start+sweep*f)*Math.PI/180;return [cx+rr*Math.cos(a),cy+rr*Math.sin(a)]};
+  const arc=(f0,f1,rr=r)=>{const [a,b]=pt(f0,rr),[c,d]=pt(f1,rr);return `M${a} ${b} A${rr} ${rr} 0 ${(f1-f0)*sweep>180?1:0} 1 ${c} ${d}`};
+  const f=Math.min(v/m,1),id='g'+Math.random().toString(36).slice(2);
+  let ticks='';for(let i=0;i<=20;i++){const [a,b]=pt(i/20,r+10),[c,d]=pt(i/20,r+(i%5?14:18));ticks+=`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="${i%5?'#1E2A4A':'#3b4f7f'}" stroke-width="${i%5?1:1.5}"/>`}
+  let mark='';if(mk){const mf=+mk/m,[a,b]=pt(mf,r-12),[c,d]=pt(mf,r+12),[tx,ty]=pt(mf,r+28);mark=`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="#F2D27A" stroke-width="2.5"/><text x="${tx}" y="${ty}" fill="#F2D27A" font-size="8.5" font-family="JetBrains Mono" font-weight="700" text-anchor="middle" dominant-baseline="middle">${el.dataset.marklabel}</text>`}
+  const [nx,ny]=pt(f,r);
+  svg.innerHTML=`<defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#D4AF37"/></linearGradient><filter id="${id}f"><feGaussianBlur stdDeviation="3"/></filter></defs>
+  ${ticks}<path d="${arc(0,1)}" stroke="#172240" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <path d="${arc(0,f)}" stroke="url(#${id})" stroke-width="12" fill="none" stroke-linecap="round" filter="url(#${id}f)" opacity=".6"/>
+  <path d="${arc(0,f)}" stroke="url(#${id})" stroke-width="12" fill="none" stroke-linecap="round"/>
+  <circle cx="${nx}" cy="${ny}" r="5" fill="#F2D27A" stroke="#060B17" stroke-width="2"/>${mark}`;
+});
+// position ladder
+(function(){
+  const L=document.getElementById('ladder');const lo=21012,hi=21066;
+  const pos=p=>((p-lo)/(hi-lo)*100);
+  const m=[['STOP',21018.00,'stop',0],['ENTRY',21034.25,'',1],['BE',21035.00,'',0],['TRAIL',21041.50,'trail',1],['LAST',21047.75,'last',0],['TARGET 1.75R',21062.75,'tgt',1]];
+  L.innerHTML=`<div class="rail"></div><div class="risk" style="left:${pos(21018)}%;width:${pos(21034.25)-pos(21018)}%"></div>`+
+   m.map(([l,p,c,low])=>`<div class="mk ${c} ${low?'low':''}" style="left:${pos(p)}%"><span class="lab">${l}</span><span class="px">${p.toFixed(2)}</span><span class="stem"></span></div>`).join('');
+})();
+// screens
+function show(){const s=(location.hash||'#dashboard').slice(1);document.querySelectorAll('.screen').forEach(e=>e.classList.toggle('on',e.id===s));document.querySelectorAll('.tabs a[data-s]').forEach(a=>a.classList.toggle('on',a.dataset.s===s));document.title='Paytience · '+(s==='strategy'?'Strategy':'Dashboard')+' (Cockpit concept)'}
+addEventListener('hashchange',show);show();
+document.querySelectorAll('.preset').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.preset').forEach(x=>{x.classList.remove('sel');x.setAttribute('aria-checked','false')});b.classList.add('sel');b.setAttribute('aria-checked','true')}));
+</script>
+</body>
+</html>

@@ -1,0 +1,530 @@
+diff --git a/backend/app/api/dashboard.py b/backend/app/api/dashboard.py
+index 5cea70f..345a30f 100644
+--- a/backend/app/api/dashboard.py
++++ b/backend/app/api/dashboard.py
+@@ -466,7 +466,7 @@ def _ta_mgc(db: Session, r: Any, sess: Any) -> dict[str, Any]:
+         "decision": None
+         if sig is None
+         else {
+-            "day": sig.model_key.rsplit("-DUO-", 1)[-1],
++            "day": sig.model_key.rsplit("-DUO-", 1)[-1][:10],
+             "status": sig.status,
+             "code": sig.skip_reason or "TAKEN",
+             "direction": sig.direction,
+@@ -512,6 +512,32 @@ def _presets(r: Any) -> dict[str, Any]:
+     }
+ 
+ 
++def _big_dog(r: Any) -> dict[str, Any]:
++    """D87: Big Dog Small Trade Aggressive — on/off setting, the limits and the per-plan table (config), for the UI."""
++    bd = r.strategy.ai_duo_cfg.big_dog
++    return {
++        "enabled": bd.enabled,
++        "setting": "strategy.ai_duo_cfg.big_dog.enabled",
++        "max_trades": bd.max_trades,
++        "max_losses": bd.max_losses,
++        "profit_stop_pct": str(bd.profit_stop_pct),
++        "profit_target": str(r.eval.profit_target),
++        "formula": f"per trade = {bd.per_trade_pct}% of MLL, day loss = {bd.day_loss_pct}% of MLL, micros = "
++        f"floor({bd.ref_micros} x MLL / {bd.ref_mll})",
++        "rows": [
++            {
++                "plan": x.plan,
++                "account_size": str(x.account_size),
++                "mll": str(x.mll),
++                "per_trade_usd": str(x.per_trade_usd),
++                "day_loss_usd": str(x.day_loss_usd),
++                "micros": x.micros,
++            }
++            for x in bd.table
++        ],
++    }
++
++
+ @router.get("/strategies")
+ def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
+     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
+@@ -550,6 +576,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
+         "presets": _presets(r),
+         "ta_mgc": _ta_mgc(db, r, sess),
+         "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
++        "big_dog": _big_dog(r),
+         "gate_chain": _gate_chain(r),
+         "lunqfx_flags": _lunqfx_flags(r),
+         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
+diff --git a/backend/app/automation/controller.py b/backend/app/automation/controller.py
+index c1dc4dc..f4e6d50 100644
+--- a/backend/app/automation/controller.py
++++ b/backend/app/automation/controller.py
+@@ -37,7 +37,8 @@ from app.management.trade_manage import ManageCfg
+ from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
+ from app.phases.mll_tracker import MllState, update_mll
+ from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
+-from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
++from app.risk import big_dog as BD
++from app.risk.checks import AccountView, DayLimits, TradeLimits, dll_remaining, pretrade
+ from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
+ from app.risk.hedge_lock import OpenPosition, hedge_conflict
+ from app.risk.holder import RulesHolder
+@@ -433,6 +434,20 @@ class Controller:
+                 plan = apply_guard(plan, inst.tick, fee_cover_ticks(inst.fee_rt, inst.tick_value))
+         acct_size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
+         big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
++        bdl: BD.BigDogLimits | None = None
++        if duo is not None and duo.big_dog.enabled:  # D87: Big Dog Small Trade Aggressive (per-plan table row)
++            bd = duo.big_dog
++            bdrow = bd.row_for(acct_size)
++            if bdrow is None:
++                return AccountResult(a.id, False, "BIGDOG_NO_PLAN_ROW")
++            bdl = BD.BigDogLimits(
++                bdrow.per_trade_usd,
++                bdrow.day_loss_usd,
++                min(bdrow.micros, r.max_contracts.micros),
++                bd.max_trades,
++                bd.max_losses,
++                BD.profit_stop_usd(r.eval.profit_target, bd.profit_stop_pct),  # 39% of THIS plan's target
++            )
+         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
+         positions = await self.open_positions(s)
+         n_open = max(sum(1 for p in positions if p.account == a.broker_account_id), len(mine))
+@@ -461,7 +476,13 @@ class Controller:
+                 "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
+                 "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
+                 "PM_FADE": r.strategy.pm_fade_cfg.contracts,
+-                "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
++                "AI_DUO": (
++                    bdl.micros
++                    if bdl is not None
++                    else r.strategy.ai_duo_cfg.max_qty
++                    if big
++                    else r.strategy.ai_duo_cfg.contracts
++                ),
+             }[strategy]
+             if strategy
+             else None
+@@ -563,7 +584,8 @@ class Controller:
+             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
+             fixed_contracts=fixed,
+             shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
+-            max_risk_usd=duo.max_risk_usd if duo is not None else None,  # D85: $250 per trade (config)
++            # D85: $250 per trade (config); D87 Big Dog: the plan's per-trade $ (12.5% of the MLL) instead
++            max_risk_usd=(bdl.per_trade_usd if bdl is not None else duo.max_risk_usd) if duo is not None else None,
+             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
+         )
+         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
+@@ -575,10 +597,13 @@ class Controller:
+             ctx=st.risk_ctx(s, a, base, now, r),
+             floor=fl,
+             day=st.day_state(s, a, opnl, now),
+-            day_limits=st.day_limits(r, a.stage),
++            day_limits=(
++                DayLimits(bdl.max_trades, bdl.max_losses) if bdl is not None else st.day_limits(r, a.stage)
++            ),  # D87: Big Dog's own 5 trades / 3 losses (user-approved) replace the generic day counts
+             consistency=st.consistency(s, a, r),
+             lim=lim,
+             hedge_conflict=hedge_conflict(r, sig.symbol, plan.direction.value, positions) is not None,
++            bigdog=bdl,
+         )
+         audit.record(
+             s,
+diff --git a/backend/app/automation/state.py b/backend/app/automation/state.py
+index 5d8390a..a46c0a5 100644
+--- a/backend/app/automation/state.py
++++ b/backend/app/automation/state.py
+@@ -126,6 +126,7 @@ def day_state(s: Session, acct: Account, open_pnl: Decimal, now: datetime) -> Da
+         today_pnl=pnl,
+         today_profit_for_consistency=realised,
+         today_peak_pnl=st.peak_pnl,
++        losses_today=st.losses,
+     )
+ 
+ 
+diff --git a/backend/app/bias/ledger.py b/backend/app/bias/ledger.py
+index cae038d..6ebf33b 100644
+--- a/backend/app/bias/ledger.py
++++ b/backend/app/bias/ledger.py
+@@ -191,7 +191,7 @@ def duo_decisions(s: Session, symbols: Sequence[str], limit: int = 20) -> list[d
+     return [
+         {
+             "symbol": x.symbol,
+-            "day": x.model_key.rsplit("-DUO-", 1)[-1],
++            "day": x.model_key.rsplit("-DUO-", 1)[-1][:10],
+             "status": x.status,
+             "code": x.skip_reason or "TAKEN",
+             "direction": x.direction,
+diff --git a/backend/app/config.py b/backend/app/config.py
+index 0a5195c..8982f93 100644
+--- a/backend/app/config.py
++++ b/backend/app/config.py
+@@ -308,6 +308,80 @@ class AiBiasCfg(_M):
+     paper_only: bool = True
+ 
+ 
++class BigDogRow(_M):
++    """One plan row of the Big Dog table (D87). Values are the formula results in app/risk/big_dog.py; a row may only be
++    TIGHTER than the formula (validated in BigDogCfg), never looser."""
++
++    plan: str
++    account_size: D
++    mll: D  # the plan's max loss limit (drawdown distance)
++    per_trade_usd: D
++    day_loss_usd: D
++    micros: int
++
++
++# D87 per-plan table. Formula (risk/big_dog.formula), reference Pro 25K (MLL $1,000, 3 micros):
++#   per_trade_usd = 12.5% x MLL | day_loss_usd = 37.5% x MLL | micros = floor(3 x MLL / 1000), capped by plan max micros
++_BIG_DOG_ROWS = [
++    BigDogRow(plan=p, account_size=D(sz), mll=D(m), per_trade_usd=D(pt), day_loss_usd=D(dl), micros=mc)
++    for p, sz, m, pt, dl, mc in [
++        ("lucid_pro_25k", 25000, 1000, "125.00", "375.00", 3),
++        ("lucid_flex_25k", 25000, 1000, "125.00", "375.00", 3),
++        ("lucid_daily_25k", 25000, 1000, "125.00", "375.00", 3),
++        ("lucid_pro_50k", 50000, 2000, "250.00", "750.00", 6),
++        ("lucid_flex_50k", 50000, 2000, "250.00", "750.00", 6),
++        ("lucid_pro_100k", 100000, 3000, "375.00", "1125.00", 9),
++        ("lucid_flex_100k", 100000, 3000, "375.00", "1125.00", 9),
++        ("lucid_pro_150k", 150000, 4500, "562.50", "1687.50", 13),
++        ("lucid_flex_150k", 150000, 4500, "562.50", "1687.50", 13),
++    ]
++]
++
++
++class BigDogCfg(_M):
++    """D87 (user 2026-11-10): "Big Dog Small Trade Aggressive", an AI Duo sub-mode (PAPER only through AI Duo's
++    guard, default OFF). Same markets / window / entry / SL / TP / BE / trail / lock as AI Duo; adds a small per-trade
++    risk with up to `micros` micros, a day loss cap, max trades, a stop after max_losses losses and a day profit stop
++    (profit_stop_pct of the plan's profit target, read from the plan file). Re-entry on later VWAP pullbacks on the
++    same AI side, one position per market."""
++
++    enabled: bool = False
++    ref_mll: D = D("1000")  # Pro 25K reference
++    ref_micros: int = 3
++    per_trade_pct: D = D("12.5")
++    day_loss_pct: D = D("37.5")
++    max_trades: int = 5
++    max_losses: int = 3
++    profit_stop_pct: D = D("39")
++    table: list[BigDogRow] = _BIG_DOG_ROWS
++
++    @model_validator(mode="after")
++    def _valid(self) -> BigDogCfg:
++        if self.ref_mll <= 0 or self.ref_micros < 1 or self.max_trades < 1 or self.max_losses < 1:
++            raise ValueError("big_dog: ref_mll > 0, ref_micros, max_trades, max_losses >= 1")
++        if not (D(0) < self.per_trade_pct <= self.day_loss_pct <= D(100)) or not (
++            D(0) < self.profit_stop_pct <= D(100)
++        ):
++            raise ValueError("big_dog: 0 < per_trade_pct <= day_loss_pct <= 100 and 0 < profit_stop_pct <= 100")
++        from app.risk.big_dog import formula  # pure helper, no config import
++
++        for row in self.table:
++            per, day, mc = formula(row.mll, self.per_trade_pct, self.day_loss_pct, self.ref_mll, self.ref_micros, 10**6)
++            if (
++                row.per_trade_usd > per
++                or row.day_loss_usd > day
++                or row.micros > mc
++                or min(row.per_trade_usd, row.day_loss_usd) <= 0
++                or row.micros < 1
++            ):
++                raise ValueError(f"big_dog: table row {row.plan} may only be tighter than the formula")
++        return self
++
++    def row_for(self, account_size: D) -> BigDogRow | None:
++        """The row for an account of this size (Pro / Flex / Daily of one size share their numbers)."""
++        return next((x for x in self.table if x.account_size == account_size), None)
++
++
+ class AiDuoCfg(_M):
+     """D83 (user button 2026-11-10, beside ai_bias): trade only when TradingAgents AND Vibe-Trading pick the same side
+     (Vibe-Trading is an opinion only, never trades); enter on the first 5-minute VWAP pullback close in that direction
+@@ -353,6 +427,7 @@ class AiDuoCfg(_M):
+     # ticks above the ORIGINAL stop (ratchet only, never through the market). User-set 2026-11-10 (D85 addendum):
+     # MGC 60 → 20. A market with a step trail does not use lock_pts; the AI setup's own level still replaces it.
+     step_trail: dict[Literal["MNQ", "MGC"], tuple[int, int]] = {"MGC": (60, 20)}
++    big_dog: BigDogCfg = BigDogCfg()  # D87: "Big Dog Small Trade Aggressive" sub-mode (default OFF)
+ 
+     @model_validator(mode="after")
+     def _valid(self) -> AiDuoCfg:
+diff --git a/backend/app/risk/checks.py b/backend/app/risk/checks.py
+index b124b54..4af5a9e 100644
+--- a/backend/app/risk/checks.py
++++ b/backend/app/risk/checks.py
+@@ -8,6 +8,7 @@ from decimal import ROUND_DOWN, Decimal
+ from typing import Any
+ 
+ from app.engine.trade_plan import TradePlan
++from app.risk import big_dog as BD
+ from app.risk.consistency import ConsistencyLimits, day_stopped, fit_contracts
+ from app.risk.risk_base import money
+ from app.risk.sizing import per_contract_risk, size_contracts
+@@ -22,6 +23,7 @@ class DayState:
+     today_pnl: Decimal  # realised + open, $
+     today_profit_for_consistency: Decimal  # realised net profit today, $
+     today_peak_pnl: Decimal = Decimal(0)  # best P&L (incl. open) reached today, $ (D18)
++    losses_today: int = 0  # D87: all losing trades today (Big Dog stops after N, not only consecutive ones)
+ 
+ 
+ @dataclass(frozen=True)
+@@ -141,6 +143,7 @@ def pretrade(
+     consistency: ConsistencyLimits | None,
+     lim: TradeLimits,
+     hedge_conflict: bool,
++    bigdog: BD.BigDogLimits | None = None,  # D87: Big Dog limits (AI Duo sub-mode); None = every other strategy
+ ) -> PreTrade:
+     r = PreTrade(ok=False, reason=None)
+ 
+@@ -190,6 +193,15 @@ def pretrade(
+             one = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks)
+             n = min(n, int(lim.max_risk_usd // one))
+             r.log("trade_risk_cap", n > 0, cap=lim.max_risk_usd, per_contract=money(one), contracts=n)
++        if bigdog is not None:  # D87: day stops first, then qty = min(micros, per-trade cap, day loss room)
++            why = BD.day_stop_reason(bigdog, day.trades_today, day.losses_today, day.today_profit_for_consistency)
++            if not r.log("bigdog_day_stop", why is None, reason=why, trades=day.trades_today, losses=day.losses_today):
++                return fail(why or "BIGDOG_DAY_STOP")
++            one = per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks)
++            room = BD.day_loss_room(bigdog, day.today_profit_for_consistency, acct.open_risk_usd)
++            n = BD.fit_qty(n, one, bigdog, day.today_profit_for_consistency, acct.open_risk_usd)
++            if not r.log("bigdog_size", n > 0, room=room, per_trade_cap=bigdog.per_trade_usd, contracts=n):
++                return fail("BIGDOG_DAY_LOSS_CAP" if room < one else "STOP_TOO_WIDE")
+         usd = money(n * per_contract_risk(stop_ticks, lim.tick_value, lim.fee_rt, lim.slippage_ticks))
+         if lim.shrink_fraction is not None and n > 0:
+             room0 = min(x for x in (dll_left, dist - lim.kill_switch_distance) if x is not None)
+diff --git a/backend/app/risk/settings_store.py b/backend/app/risk/settings_store.py
+index 6323d20..50eb35d 100644
+--- a/backend/app/risk/settings_store.py
++++ b/backend/app/risk/settings_store.py
+@@ -74,6 +74,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
+         "strategy.ai_duo_cfg.markets",
+         "strategy.ai_duo_cfg.windows",
+         "strategy.ai_duo_cfg.accounts",
++        "strategy.ai_duo_cfg.big_dog.enabled",  # D87
+         "strategy.pm_fade",
+         "strategy.high_risk",
+         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
+diff --git a/backend/app/signals/strategy_service.py b/backend/app/signals/strategy_service.py
+index f311f28..3013730 100644
+--- a/backend/app/signals/strategy_service.py
++++ b/backend/app/signals/strategy_service.py
+@@ -22,7 +22,7 @@ from app.bias import ledger
+ from app.bias import ta_mgc_research as TR
+ from app.bias.policy import Policy, combine
+ from app.clock import ET, Clock
+-from app.config import RulesConfig
++from app.config import AiDuoCfg, RulesConfig
+ from app.engine import ai_duo as DU
+ from app.engine import noise as N
+ from app.engine import open_drive as OD
+@@ -33,6 +33,7 @@ from app.engine.filters import in_windows, news_block
+ from app.engine.trade_plan import Direction
+ from app.indicators.bars import Bar as IBar
+ from app.models import Bar, BiasDecision, Signal, SignalGate, Trade, TradePlanRow
++from app.risk import big_dog as BD
+ from app.signals.service import CalendarProvider, SignalUpdate
+ 
+ HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing days
+@@ -528,6 +529,20 @@ def hedge_lock_vs(s: Session, symbol: str, tag: str, day: str, direction: Direct
+     return None
+ 
+ 
++def _bigdog_reentry(s: Session, cfg: AiDuoCfg, prior: list[Signal]) -> bool:
++    """D87 Big Dog re-entry: the day's earlier Duo signals in this market were all TRADES (no skip row ended the day),
++    none still holds a position, and fewer than max_trades were taken (the pure rule in risk/big_dog)."""
++    if not cfg.big_dog.enabled:
++        return False
++    taken = [x for x in prior if x.direction in ("LONG", "SHORT") and x.status == "PASS"]
++    return BD.reentry_allowed(
++        trades_taken=len(taken),
++        holding=any(_holds_position(s, x) for x in taken),
++        day_ended=len(taken) != len(prior),
++        max_trades=cfg.big_dog.max_trades,
++    )
++
++
+ def _duo_log(s: Session, clock: Clock, day: str, code: str, detail: dict[str, object]) -> None:
+     """Every Duo decision (taken or skipped) is audited with its reason code (ledger.duo_decisions lists them)."""
+     audit.record(s, clock, "engine", "ai_duo.decision", f"DUO-{day}", {"code": code, **detail})
+@@ -707,9 +722,16 @@ def run_ai_duo(
+         return out
+     if any(_mod(a) < m and m - n < _mod(b) for a, b in cfg.excluded):
+         return out  # the bar covers excluded minutes (09:30–09:35): never a trigger
+-    if _today_signals(s, symbol, "DUO", day):
+-        return out  # one decision per market per day
++    prior = _today_signals(s, symbol, "DUO", day)
++    if prior and not _bigdog_reentry(s, cfg, prior):
++        return out  # one decision per market per day (Big Dog: re-entry only under its own rules)
+     inst = rules.instrument(symbol)
++
++    def _skip(
++        *a: Any,
++    ) -> StrategyOutput:  # D87: a re-entry that finds no setup is silent (a skip row would end the day)
++        return out if prior else _duo_skip(*a)
++
+     last_call = list(
+         s.execute(
+             select(BiasDecision)
+@@ -718,18 +740,18 @@ def run_ai_duo(
+         ).scalars()
+     )[-1:]
+     if not last_call:
+-        return _duo_skip(s, clock, symbol, day, at, "AI_MISSING", {"label": None})
++        return _skip(s, clock, symbol, day, at, "AI_MISSING", {"label": None})
+     label = last_call[0].raw_rating
+     ta, vd, vc = ledger.parse_label(label)
+     side, code = DU.ai_side(ta, vd, vc, cfg.vt_min_conf)
+     info: dict[str, object] = {"label": label, "ta": ta, "vt": vd, "vt_conf": vc}
+     if side is None:
+-        return _duo_skip(s, clock, symbol, day, at, code, info)
++        return _skip(s, clock, symbol, day, at, code, info)
+     bars = _bars_by_minute(s, symbol, at)
+     win = [bars.get(i) for i in range(m - n + 1, m + 1)]
+     if any(b is None for b in win):
+         if m >= last:
+-            return _duo_skip(s, clock, symbol, day, at, "FEED_GAP", info)
++            return _skip(s, clock, symbol, day, at, "FEED_GAP", info)
+         return out  # a missing bar: wait for the next 5-minute close
+     cur = [b for b in win if b is not None]
+     since = [b for i, b in sorted(bars.items()) if i > first]  # session VWAP anchored at the window start
+@@ -739,7 +761,7 @@ def run_ai_duo(
+     prev = DU.aggregate([(b.o, b.h, b.l, b.c) for b in prev_win if b is not None]) if None not in prev_win else None
+     if not DU.pullback_trigger(side, bar, vw):
+         if m >= last:
+-            return _duo_skip(s, clock, symbol, day, at, "NO_PULLBACK", info)
++            return _skip(s, clock, symbol, day, at, "NO_PULLBACK", info)
+         return out
+     nc = rules.strategy.noise_cfg
+     slip = inst.slippage_ticks or rules.trade_plan.slippage_ticks
+@@ -761,7 +783,7 @@ def run_ai_duo(
+         rr_min=max(cfg.rr_min, rules.trade_plan.rr_min),
+     )
+     if isinstance(p, str):
+-        return _duo_skip(s, clock, symbol, day, at, p, info)
++        return _skip(s, clock, symbol, day, at, p, info)
+     gate = _gate(rules, symbol, at, calendar, enabled=symbol in cfg.markets)
+     # household hedge lock (unchanged rule): an open NOISE position/signal on the opposite side blocks Duo. NOISE is MNQ
+     # only; on MGC (METALS) there is nothing to clash with. Same-bar tie: NOISE ran first → NOISE wins.
+@@ -772,7 +794,7 @@ def run_ai_duo(
+         s,
+         clock,
+         symbol=symbol,
+-        key=f"{symbol}-DUO-{day}",
++        key=f"{symbol}-DUO-{day}" + (f"-{len(prior) + 1}" if prior else ""),
+         direction=side,
+         at=at,
+         gate=gate,
+diff --git a/docs/DECISIONS.md b/docs/DECISIONS.md
+index dadc0f9..4fa0d51 100644
+--- a/docs/DECISIONS.md
++++ b/docs/DECISIONS.md
+@@ -762,3 +762,9 @@ D79 addendum (session 13): TradingView connected (webhook secret in indicator +
+ User: "Go back to best hours". The session 16 window study (docs/results/session16/ai_duo_window) found 03:00 starts lose
+ the edge (70%-accuracy bound, 2024–26: 09:36–11:30 +$18,993 PF 1.40 vs 03:00–11:30 +$899 PF 1.03). Default
+ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editable in settings). Supersedes the D83 addendum hours.
++
++## D87 (user explicit approval 2026-11-10, session 16): "Big Dog Small Trade Aggressive" = AI Duo sub-mode
++- Setting `strategy.ai_duo_cfg.big_dog.enabled` (default OFF; Strategy page button under AI Duo; PAPER only because it only exists inside AI Duo). Same markets, window (09:36-11:30 ET), agreement rule, SL/TP (2R, 1.5R floor), BE/trail/profit lock/MGC step trail as AI Duo (reused, not copied).
++- Pro 25K: up to 3 micros, max loss per trade $125 (stop x qty + fees + slippage; qty = min(3, what fits)), day loss limit $375 (realised loss + open risk + new trade must fit), max 5 trades/day, stop after 3 losses, stop new entries once realised day profit >= 39% of the plan's profit target (read from the plan file, not hardcoded). Re-entry on later VWAP pullbacks on the same AI side, one position per market, up to 5 trades; a re-entry with no setup is silent (no skip row).
++- Other plans scale by MLL vs Pro 25K ($1,000): per trade 12.5% of MLL, day 37.5%, micros floor(3 x MLL/1000) capped by plan max micros. Table in `config.py` (`_BIG_DOG_ROWS`, rows may only be tighter than the formula - validated). Pure code `risk/big_dog.py`, hooked in `risk/checks.py` (`bigdog=`).
++- Everything else stays on top (DLL/MLL aggregate, kill switch, hedge lock, news, flat, hold rule, consistency, cushion brake). Notes: Big Dog's per-trade $ replaces AI Duo's $250 cap and its 5 trades / 3 losses replace the generic day counts (2 consecutive losses) for AI Duo trades only; account stays max 1 position (150K keeps D85 multi-position). No win rate claimed (not back-testable).
+diff --git a/frontend/src/components/StrategyButtons.test.tsx b/frontend/src/components/StrategyButtons.test.tsx
+index 34b4072..f852a69 100644
+--- a/frontend/src/components/StrategyButtons.test.tsx
++++ b/frontend/src/components/StrategyButtons.test.tsx
+@@ -18,6 +18,13 @@ const resp: StrategiesResp = {
+     { day: "2026-11-09", status: "SKIP", code: "AI_DISAGREE", direction: "NONE", label: "BUY·VT SHORT 85", agrees_with_noise: null },
+     { day: "2026-11-06", status: "PASS", code: "TAKEN", direction: "LONG", label: "BUY·VT LONG 80", agrees_with_noise: true },
+   ],
++  big_dog: {
++    enabled: false, setting: "strategy.ai_duo_cfg.big_dog.enabled", max_trades: 5, max_losses: 3, profit_stop_pct: "39", profit_target: "1250",
++    formula: "per trade = 12.5% of MLL", rows: [
++      { plan: "lucid_pro_25k", account_size: "25000", mll: "1000", per_trade_usd: "125.00", day_loss_usd: "375.00", micros: 3 },
++      { plan: "lucid_pro_150k", account_size: "150000", mll: "4500", per_trade_usd: "562.50", day_loss_usd: "1687.50", micros: 13 },
++    ],
++  },
+   size_profiles: {
+     active: "regular", setting: "strategy.high_risk",
+     regular: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 2 }],
+@@ -62,3 +69,19 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
+   await userEvent.click(screen.getByRole("button", { name: /OFF · High risk/ }));
+   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
+ });
++
++test("Big Dog button shows the per-plan table and toggles its setting", async () => {
++  const calls: string[] = [];
++  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
++    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
++    return new Response(JSON.stringify(String(url) === "/api/strategies" ? resp : {}));
++  });
++  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
++  const table = await screen.findByTestId("big-dog-table");
++  expect(table).toHaveTextContent("lucid_pro_25k");
++  expect(table).toHaveTextContent("$125");
++  expect(table).toHaveTextContent("$375");
++  expect(screen.getByTestId("big-dog")).toHaveTextContent("$488"); // 39% of the $1,250 target
++  await userEvent.click(screen.getByRole("button", { name: /OFF · Big Dog Small Trade Aggressive/ }));
++  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.ai_duo_cfg.big_dog.enabled":true'))).toBe(true));
++});
+diff --git a/frontend/src/components/StrategyButtons.tsx b/frontend/src/components/StrategyButtons.tsx
+index cfbc472..a0e57d4 100644
+--- a/frontend/src/components/StrategyButtons.tsx
++++ b/frontend/src/components/StrategyButtons.tsx
+@@ -27,8 +27,14 @@ export interface StrategiesResp {
+   size_profiles?: SizeProfiles;
+   presets?: PresetsResp;
+   ai_duo_log?: DuoRow[];
++  big_dog?: BigDogResp;
+   ta_mgc?: TaMgcResp;
+ }
++export interface BigDogRow { plan: string; account_size: string; mll: string; per_trade_usd: string; day_loss_usd: string; micros: number }
++export interface BigDogResp {
++  enabled: boolean; setting: string; max_trades: number; max_losses: number; profit_stop_pct: string; profit_target: string;
++  formula: string; rows: BigDogRow[];
++}
+ export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
+ export interface TaMgcResp {
+   enabled: boolean; connected: boolean; message: string | null;
+@@ -70,6 +76,11 @@ export default function StrategyButtons() {
+       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.high_risk": high }, note: `Size profile: ${high ? "high risk" : "regular"}` }) }),
+     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+   });
++  const bigDog = useMutation({
++    mutationFn: (b: BigDogResp) =>
++      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [b.setting]: !b.enabled }, note: `Strategy button: Big Dog Small Trade Aggressive ${b.enabled ? "off" : "on"}` }) }),
++    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
++  });
+   const d = q.data;
+   if (!d) return <p role="status">Loading strategies…</p>;
+   const w = d.noise_warmup;
+@@ -139,6 +150,24 @@ export default function StrategyButtons() {
+           <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit and $250-per-micro emergency stop in both profiles.</p>
+         </div>
+       )}
++      {d.big_dog && (
++        <div className="mt-4 rounded-lg border border-border p-3" data-testid="big-dog">
++          <button type="button" aria-pressed={d.big_dog.enabled} disabled={bigDog.isPending} onClick={() => bigDog.mutate(d.big_dog!)}
++            className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${d.big_dog.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}>
++            {d.big_dog.enabled ? "ON" : "OFF"} · Big Dog Small Trade Aggressive (AI Duo mode, paper only)
++          </button>
++          <p className="mt-2 text-xs text-blue">Same markets, window, entries, stops, targets and trade management as AI Duo (needs AI Duo ON). Small risk per trade, several micros, up to {d.big_dog.max_trades} trades a day with re-entry on later VWAP pullbacks (one position per market), stop after {d.big_dog.max_losses} losses, stop once the day&apos;s profit reaches {d.big_dog.profit_stop_pct}% of this plan&apos;s profit target (${Math.round(Number(d.big_dog.profit_target) * Number(d.big_dog.profit_stop_pct) / 100).toLocaleString()}). All account safety rules still apply on top. Untested strategy: no win rate is claimed.</p>
++          <table className="mt-2 w-full text-sm" data-testid="big-dog-table">
++            <thead><tr className="text-left text-gold"><th>Plan</th><th>Max loss limit</th><th>Max loss / trade</th><th>Day loss limit</th><th>Micros</th></tr></thead>
++            <tbody>
++              {d.big_dog.rows.map((x) => (
++                <tr key={x.plan}><td>{x.plan}</td><td>${Number(x.mll).toLocaleString()}</td><td className="text-gold">${Number(x.per_trade_usd).toLocaleString()}</td><td className="text-gold">${Number(x.day_loss_usd).toLocaleString()}</td><td className="text-gold">{x.micros}</td></tr>
++              ))}
++            </tbody>
++          </table>
++          <p className="mt-1 text-xs text-blue">Formula: {d.big_dog.formula} (capped by each plan&apos;s own limits).</p>
++        </div>
++      )}
+       {d.ai_duo_log && d.ai_duo_log.length > 0 && (
+         <div className="mt-3 text-sm" data-testid="duo-log">
+           <b className="text-gold">AI Duo decisions (paper only) — one per day, with the reason code:</b>
+diff --git a/frontend/tsconfig.tsbuildinfo b/frontend/tsconfig.tsbuildinfo
+index 2e0a2ba..b17861e 100644
+--- a/frontend/tsconfig.tsbuildinfo
++++ b/frontend/tsconfig.tsbuildinfo
+@@ -1 +1 @@
+-{"root":["./src/main.tsx","./src/test-setup.ts","./src/app/App.tsx","./src/app/live.tsx","./src/components/AiLedger.test.tsx","./src/components/AiLedger.tsx","./src/components/AiPricing.tsx","./src/components/BacktestCompare.tsx","./src/components/DashboardExtras.tsx","./src/components/FeedGuardSettings.tsx","./src/components/FlagToggle.tsx","./src/components/GateChain.test.tsx","./src/components/GateChain.tsx","./src/components/Header.tsx","./src/components/HeaderAlerts.tsx","./src/components/HeaderStatus.tsx","./src/components/HindsightNote.tsx","./src/components/IncomeProjection.test.tsx","./src/components/IncomeProjection.tsx","./src/components/Layout.tsx","./src/components/LunqFlags.tsx","./src/components/ManualTicket.tsx","./src/components/MarketPanel.tsx","./src/components/Markets.tsx","./src/components/PayoutPlan.tsx","./src/components/Phase5.test.tsx","./src/components/PnlCalendar.tsx","./src/components/ReplayChart.test.ts","./src/components/ReplayChart.tsx","./src/components/RiskPanels.tsx","./src/components/RuleMeters.tsx","./src/components/SafetyBanners.test.tsx","./src/components/SafetyBanners.tsx","./src/components/StatusBadge.tsx","./src/components/StrategyButtons.test.tsx","./src/components/StrategyButtons.tsx","./src/components/StrategyPresets.test.tsx","./src/components/StrategyPresets.tsx","./src/components/TaMgcCard.test.tsx","./src/components/TaMgcCard.tsx","./src/components/TestAlert.tsx","./src/components/TradeJournal.tsx","./src/components/TradingViewSetup.tsx","./src/components/WhyNoTrade.tsx","./src/components/usePageTitle.ts","./src/lib/api.test.ts","./src/lib/api.ts","./src/lib/flatten.test.ts","./src/lib/flatten.ts","./src/lib/insights.test.ts","./src/lib/insights.ts","./src/lib/notify.ts","./src/lib/theme.test.ts","./src/lib/theme.ts","./src/lib/time.test.ts","./src/lib/time.ts","./src/lib/ws.ts","./src/pages/Accounts.tsx","./src/pages/Audit.test.tsx","./src/pages/Automation.tsx","./src/pages/Backtest.tsx","./src/pages/Connections.test.tsx","./src/pages/Connections.tsx","./src/pages/Dashboard.tsx","./src/pages/Insights.test.tsx","./src/pages/Journal.tsx","./src/pages/Lab.tsx","./src/pages/Login.tsx","./src/pages/NotFound.tsx","./src/pages/Pages.test.tsx","./src/pages/Payouts.tsx","./src/pages/Replay.tsx","./src/pages/Risk.tsx","./src/pages/Settings.tsx","./src/pages/Signals.tsx","./src/pages/Strategy.tsx","./src/pages/Today.tsx","./src/pages/Trade.test.tsx","./src/pages/Trade.tsx","./vite.config.ts"],"version":"5.6.3"}
+\ No newline at end of file
++{"root":["./src/main.tsx","./src/test-setup.ts","./src/app/App.tsx","./src/app/live.tsx","./src/components/AiLedger.test.tsx","./src/components/AiLedger.tsx","./src/components/AiPricing.tsx","./src/components/BacktestCompare.tsx","./src/components/DashboardExtras.tsx","./src/components/DashboardLayout.test.tsx","./src/components/FeedGuardSettings.tsx","./src/components/FlagToggle.tsx","./src/components/GateChain.test.tsx","./src/components/GateChain.tsx","./src/components/Header.tsx","./src/components/HeaderAlerts.tsx","./src/components/HeaderStatus.tsx","./src/components/HindsightNote.tsx","./src/components/IncomeProjection.test.tsx","./src/components/IncomeProjection.tsx","./src/components/Layout.tsx","./src/components/LunqFlags.tsx","./src/components/ManualTicket.tsx","./src/components/MarketPanel.tsx","./src/components/Markets.tsx","./src/components/PayoutPlan.tsx","./src/components/Phase5.test.tsx","./src/components/PnlCalendar.tsx","./src/components/ReplayChart.test.ts","./src/components/ReplayChart.tsx","./src/components/RiskPanels.tsx","./src/components/RuleMeters.tsx","./src/components/SafetyBanners.test.tsx","./src/components/SafetyBanners.tsx","./src/components/StatusBadge.tsx","./src/components/StrategyButtons.test.tsx","./src/components/StrategyButtons.tsx","./src/components/StrategyPresets.test.tsx","./src/components/StrategyPresets.tsx","./src/components/TaMgcCard.test.tsx","./src/components/TaMgcCard.tsx","./src/components/TestAlert.tsx","./src/components/TradeJournal.tsx","./src/components/TradingViewSetup.tsx","./src/components/WhyNoTrade.tsx","./src/components/usePageTitle.ts","./src/lib/api.test.ts","./src/lib/api.ts","./src/lib/flatten.test.ts","./src/lib/flatten.ts","./src/lib/insights.test.ts","./src/lib/insights.ts","./src/lib/notify.ts","./src/lib/theme.test.ts","./src/lib/theme.ts","./src/lib/time.test.ts","./src/lib/time.ts","./src/lib/ws.ts","./src/pages/Accounts.tsx","./src/pages/Audit.test.tsx","./src/pages/Automation.tsx","./src/pages/Backtest.tsx","./src/pages/Connections.test.tsx","./src/pages/Connections.tsx","./src/pages/Dashboard.tsx","./src/pages/Insights.test.tsx","./src/pages/Journal.tsx","./src/pages/Lab.tsx","./src/pages/Login.tsx","./src/pages/NotFound.tsx","./src/pages/Pages.test.tsx","./src/pages/Payouts.tsx","./src/pages/Replay.tsx","./src/pages/Risk.tsx","./src/pages/Settings.tsx","./src/pages/Signals.tsx","./src/pages/Strategy.tsx","./src/pages/Today.tsx","./src/pages/Trade.test.tsx","./src/pages/Trade.tsx","./vite.config.ts"],"version":"5.6.3"}
+\ No newline at end of file

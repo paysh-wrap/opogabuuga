@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paytience · Gold Vault concept</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#D4AF37;--gl:#F2D27A;--blue:#3B82F6;--bl:#93C5FD;--mut:#8FA3C8;--navy:#060B1B;--card:#0C1531;--bd:#2a3250;--gbd:#5c4c1c;--ok:#22C55E;--bad:#EF4444;
+--brush:linear-gradient(115deg,#8a6d1a 0%,#F2D27A 22%,#b8922a 45%,#F2D27A 68%,#8a6d1a 100%)}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--navy);color:var(--bl);font-family:Inter,sans-serif;font-size:14px;overflow-x:hidden}
+body{background:radial-gradient(1000px 500px at 50% -10%,#16275a66,transparent),radial-gradient(600px 400px at 100% 100%,#3a2d0a33,transparent),var(--navy);min-height:100vh}
+.serif{font-family:'Cormorant Garamond',Georgia,serif}.mono{font-family:'JetBrains Mono',monospace}
+header{display:flex;align-items:center;gap:14px;padding:18px 40px;flex-wrap:wrap;border-bottom:1px solid var(--gbd)}
+.logo{font:700 28px 'Cormorant Garamond',serif;letter-spacing:.06em;background:var(--brush);-webkit-background-clip:text;background-clip:text;color:transparent;display:flex;align-items:center;gap:10px}
+.logo i{width:30px;height:30px;border:1.5px solid var(--gold);border-radius:50%;display:grid;place-items:center;font-size:16px;color:var(--gl);-webkit-text-fill-color:var(--gl);font-style:normal}
+.tag{border:1px solid var(--gbd);border-radius:3px;padding:3px 10px;font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;color:var(--gl)}
+.concept{background:var(--brush);color:#0a1020;border-radius:3px;padding:3px 10px;font:600 10.5px 'JetBrains Mono';letter-spacing:.1em}
+.sp{flex:1}
+nav{display:flex;gap:26px;padding:0 40px;border-bottom:1px solid var(--bd);overflow-x:auto}
+nav a{padding:14px 0;color:var(--mut);text-decoration:none;font:500 17px 'Cormorant Garamond',serif;letter-spacing:.04em;white-space:nowrap;border-bottom:1px solid transparent}
+nav a.on{color:var(--gl);border-color:var(--gold)}nav a:focus-visible,.btn:focus-visible,.tg:focus-visible{outline:2px solid var(--gl);outline-offset:3px}
+main{max-width:1440px;margin:auto;padding:30px 40px 60px}
+.screen{display:none}.screen.on{display:block;animation:f .5s}
+@keyframes f{from{opacity:0;transform:translateY(6px)}}
+h1{font:600 40px 'Cormorant Garamond',serif;color:var(--gl);margin-bottom:4px;letter-spacing:.01em}
+.sub{color:var(--mut);margin-bottom:26px}
+.rule{height:1px;background:linear-gradient(90deg,var(--gold),transparent);margin:6px 0 24px;opacity:.6}
+.panel{background:linear-gradient(160deg,#0f1a3c,#0a1230);border:1px solid var(--gbd);border-radius:6px;padding:24px;position:relative;min-width:0}
+.panel::before{content:"";position:absolute;inset:4px;border:1px solid #2a2f4a;border-radius:3px;pointer-events:none}
+.lbl{font:600 10.5px 'JetBrains Mono';letter-spacing:.2em;color:var(--gold);text-transform:uppercase;margin-bottom:12px}
+.big{font:600 64px/1 'Cormorant Garamond',serif;color:var(--gl);letter-spacing:-.01em}
+.big small{font-size:28px;color:var(--bl)}
+.hero{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:20px;margin-bottom:20px}
+.mid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.note{color:var(--mut);font-size:13px;margin-top:10px;line-height:1.55}
+.note b{color:var(--gl);font-weight:600}
+.track{height:10px;border-radius:6px;background:#141d3d;border:1px solid var(--bd);position:relative;margin:26px 0 8px}
+.track i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--brush)}
+.track u{position:absolute;top:-8px;bottom:-8px;width:2px;background:var(--bl);text-decoration:none}
+.track u span{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font:500 10px 'JetBrains Mono';color:var(--bl);white-space:nowrap}
+.scale{display:flex;justify-content:space-between;font:11px 'JetBrains Mono';color:var(--mut)}
+.ringwrap{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.ringtxt{flex:1;min-width:200px}
+.step{display:flex;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--bd)}
+.step:first-of-type{border:0}
+.step b{font:600 22px 'Cormorant Garamond',serif;color:var(--gl);min-width:90px}
+.step span{color:var(--mut);font-size:13px}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:999px;padding:2px 10px 2px 8px;font:600 10.5px 'JetBrains Mono';color:var(--bl);letter-spacing:.05em}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 6px var(--ok)}.dot.bad{background:var(--bad);box-shadow:0 0 6px var(--bad)}
+/* bank card */
+.bank{aspect-ratio:1.586;border-radius:16px;padding:22px;position:relative;overflow:hidden;border:1px solid var(--gbd);background:linear-gradient(135deg,#14224d 0%,#0a1230 55%,#1a1608 130%);box-shadow:0 18px 40px #0008,inset 0 1px 0 #ffffff14;display:flex;flex-direction:column;justify-content:space-between;transition:transform .3s}
+.bank:hover{transform:translateY(-4px) rotate(-.4deg)}
+.bank::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 40%,#F2D27A18 50%,transparent 60%);transform:translateX(-100%);animation:sh 6s infinite}
+@keyframes sh{40%,100%{transform:translateX(100%)}}
+.bank .top{display:flex;justify-content:space-between;align-items:flex-start}
+.chipic{width:38px;height:28px;border-radius:5px;background:var(--brush)}
+.bank .name{font:600 24px 'Cormorant Garamond',serif;color:var(--gl)}
+.bank .bal{font:600 34px 'Cormorant Garamond',serif;color:var(--gl)}
+.bank .row{display:flex;justify-content:space-between;font:11px 'JetBrains Mono';color:var(--bl);gap:8px}
+.bank .row span{color:var(--mut)}
+.bank.alt{background:linear-gradient(135deg,#1a1608 0%,#0e1633 60%,#14224d)}
+.bank.pause{background:linear-gradient(135deg,#101830,#0a1020);opacity:.85}
+/* strategy */
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.opt h3{font:600 26px 'Cormorant Garamond',serif;color:var(--gl);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.opt p{color:var(--mut);margin:8px 0 14px;line-height:1.55}
+.kv{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--bd);font:12.5px 'JetBrains Mono'}.kv span{color:var(--mut)}
+.tg{width:48px;height:26px;border-radius:14px;border:1px solid var(--bd);background:#101a3a;position:relative;flex:none;cursor:pointer}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.25s}
+.tg.on{border-color:var(--gold);background:#3a2f0e}.tg.on::after{left:25px;background:var(--brush)}
+.btn{background:var(--brush);color:#0a1020;border:0;border-radius:4px;padding:11px 22px;font:600 12px 'JetBrains Mono';letter-spacing:.12em;cursor:pointer}
+.btn.ghost{background:none;border:1px solid var(--gbd);color:var(--gl)}
+.seg{display:flex;border:1px solid var(--gbd);border-radius:4px;overflow:hidden;margin-bottom:12px}
+.seg button{flex:1;padding:10px;background:none;border:0;color:var(--mut);font:600 12px 'JetBrains Mono';cursor:pointer;letter-spacing:.08em}
+.seg button.on{background:#2c240d;color:var(--gl)}
+@media(max-width:1100px){.hero,.mid{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){
+ header{padding:14px 16px}nav{padding:0 16px;gap:18px}main{padding:22px 16px 40px}
+ h1{font-size:32px}.big{font-size:48px}.cards,.opts{grid-template-columns:1fr}.panel{padding:18px}
+ .logo{font-size:24px}.hide-m{display:none}
+}
+</style></head><body>
+<header><div class="logo"><i>P</i>Paytience</div><span class="tag">PAPER</span><span class="tag hide-m">SEMI-AUTO</span><span class="concept">CONCEPT — sample data</span><div class="sp"></div><span class="tag hide-m">Lucid · Pro 25K</span></header>
+<nav><a href="#dashboard" data-s="dashboard">Dashboard</a><a href="#strategy" data-s="strategy">Strategy</a><a>Accounts</a><a>Payouts</a><a>Risk</a><a>Signals</a></nav>
+<main>
+<section class="screen" id="dashboard">
+ <h1>Paytience · Dashboard</h1><div class="sub">Your accounts, your cushion, your next payout. Sample figures only.</div><div class="rule"></div>
+ <div class="hero">
+  <div class="panel"><div class="lbl">Total holdings</div><div class="big">$51,224<small>.90</small></div><div class="note">Today <b>▲ +$312.50</b> · open <b>▲ +$27.00</b> · 2 of 4 trades used</div></div>
+  <div class="panel"><div class="lbl">Cushion to drawdown</div><div class="big">$1,612</div><div class="note">Kill switch fires within <b>$100</b> of the limit. MLL $24,000.</div></div>
+  <div class="panel"><div class="lbl">Daily loss room</div><div class="big">$600</div><div class="note">No losses today. Limit <b>$600</b>.</div></div>
+ </div>
+ <div class="mid">
+  <div class="panel"><div class="lbl">Consistency ring · largest day ÷ cycle profit</div>
+   <div class="ringwrap">
+    <svg width="210" height="210" viewBox="0 0 210 210" role="img" aria-label="Consistency 53 percent against 40 percent limit">
+     <defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a6d1a"/><stop offset=".5" stop-color="#F2D27A"/><stop offset="1" stop-color="#b8922a"/></linearGradient></defs>
+     <circle cx="105" cy="105" r="84" fill="none" stroke="#141d3d" stroke-width="16"/>
+     <circle id="ring" cx="105" cy="105" r="84" fill="none" stroke="url(#gg)" stroke-width="16" stroke-linecap="round" transform="rotate(-90 105 105)" stroke-dasharray="528" stroke-dashoffset="528"/>
+     <g transform="rotate(144 105 105)"><line x1="105" x2="105" y1="6" y2="34" stroke="#93C5FD" stroke-width="3"/></g>
+     <text x="105" y="108" text-anchor="middle" fill="#F2D27A" font-family="Cormorant Garamond" font-size="52" font-weight="600">53%</text>
+     <text x="105" y="132" text-anchor="middle" fill="#8FA3C8" font-family="JetBrains Mono" font-size="10" letter-spacing="2">LIMIT 40%</text>
+    </svg>
+    <div class="ringtxt"><div class="step"><b>$520</b><span>largest day</span></div><div class="step"><b>$980</b><span>cycle profit so far</span></div>
+     <div class="step"><b>+$320</b><span>still needed: total profit must reach <b class="mono" style="font:600 13px 'JetBrains Mono';color:var(--gl)">$1,300</b> so $520 is ≤ 40%</span></div>
+     <div class="note">Meanwhile keep each new day under $520, or profit is not counted toward the fix.</div></div>
+   </div></div>
+  <div class="panel"><div class="lbl">Payout tracker · weekly, Friday 17:05</div>
+   <div class="big">$28,150<small> / $28,600</small></div>
+   <div class="track"><i style="width:82%"></i><u style="left:62%"><span>FLOOR 26,100</span></u><u style="left:97%"><span>SWEEP</span></u></div>
+   <div class="scale"><span>$25,100 locked</span><span>$26,100 floor</span><span>$28,600 sweep</span></div>
+   <div class="note">At <b>$28,600</b> the app sweeps down to <b>$28,100</b>. You are <b>$450</b> away. Balance never goes below $26,100.</div>
+   <div style="margin-top:14px"><span class="badge"><span class="dot"></span>no payout pending</span></div></div>
+ </div>
+ <div class="lbl" style="margin-top:8px">Lucid accounts</div>
+ <div class="cards">
+  <div class="bank"><div class="top"><div><div class="lbl" style="margin:0">LucidDaily 25K</div><div class="name">Pro #1</div></div><div class="chipic"></div></div><div><div class="bal">$25,612.40</div></div><div class="row"><div><span>STAGE</span><br>EVAL</div><div><span>TODAY</span><br>▲ +$312.50</div><div style="text-align:right"><span>TO MLL</span><br>$1,612</div></div></div>
+  <div class="bank alt"><div class="top"><div><div class="lbl" style="margin:0">LucidDaily 25K</div><div class="name">Pro #2</div></div><div class="chipic"></div></div><div><div class="bal">$25,612.50</div></div><div class="row"><div><span>STAGE</span><br>FUNDED</div><div><span>TODAY</span><br>$0.00</div><div style="text-align:right"><span>TO MLL</span><br>$1,612</div></div></div>
+  <div class="bank pause"><div class="top"><div><div class="lbl" style="margin:0">LucidDaily 25K</div><div class="name">Pro #3</div></div><span class="badge"><span class="dot bad"></span>PAUSED</span></div><div><div class="bal">$24,380.00</div></div><div class="row"><div><span>STAGE</span><br>EVAL</div><div><span>TODAY</span><br>$0.00</div><div style="text-align:right"><span>TO MLL</span><br>$380</div></div></div>
+ </div>
+</section>
+
+<section class="screen" id="strategy">
+ <h1>Paytience · Strategy</h1><div class="sub">Choose how the house trades. Rules stay locked in the profile.</div><div class="rule"></div>
+ <div class="opts">
+  <div class="panel opt"><h3>NOISE momentum <span class="tg on" role="switch" aria-checked="true" tabindex="0"></span></h3><p>Noise-area breakout on MNQ in regular hours. One micro contract, hourly exits, flat at 16:00 ET.</p>
+   <div class="kv"><span>Instrument</span><b class="mono" style="font-weight:500">MNQ</b></div><div class="kv"><span>Size</span><b class="mono" style="font-weight:500">1 micro</b></div><div class="kv"><span>Emergency stop</span><b class="mono" style="font-weight:500">1%</b></div></div>
+  <div class="panel opt"><h3>LunqFX fractal · ICT <span class="tg" role="switch" aria-checked="false" tabindex="0"></span></h3><p>Sweep of C1 then close back inside. Off means shadow mode: recorded, never sent.</p>
+   <div class="seg"><button>LIVE</button><button class="on">SHADOW</button></div><div class="kv"><span>Reward : risk</span><b class="mono" style="font-weight:500">1.75 to 3.0</b></div><div class="kv"><span>Shadow sessions</span><b class="mono" style="font-weight:500">7 / 10</b></div></div>
+  <div class="panel opt"><h3>AI Duo advisory</h3><p>TradingAgents and Vibe-Trading vote on the side of the day. Agreement sets the bias; a split makes it neutral.</p>
+   <div class="kv"><span>TradingAgents</span><b class="mono" style="font-weight:500;color:var(--gl)">LONG 71%</b></div><div class="kv"><span>Vibe-Trading</span><b class="mono" style="font-weight:500;color:var(--gl)">LONG 64%</b></div><div class="kv"><span>Verdict</span><span class="badge"><span class="dot"></span>AGREE</span></div></div>
+  <div class="panel opt"><h3>Opening drive <span class="tg" role="switch" aria-checked="false" tabindex="0"></span></h3><p>Paper accounts only. Locked whenever an account is funded or live.</p>
+   <div class="seg"><button class="on">NOISE</button><button>50 / 50</button><button>DUO</button></div>
+   <div style="display:flex;gap:10px"><button class="btn">SAVE</button><button class="btn ghost">RESET</button></div></div>
+ </div>
+</section>
+</main>
+<script>
+const S=['dashboard','strategy'];
+function route(){const h=(location.hash||'#dashboard').slice(1),s=S.includes(h)?h:'dashboard';S.forEach(x=>document.getElementById(x).classList.toggle('on',x===s));
+ document.querySelectorAll('nav a[data-s]').forEach(a=>a.classList.toggle('on',a.dataset.s===s));document.title='Paytience · '+(s==='dashboard'?'Dashboard':'Strategy');
+ setTimeout(()=>{const r=document.getElementById('ring');r.style.transition='stroke-dashoffset 1.4s ease';r.setAttribute('stroke-dashoffset',528*(1-.53))},50)}
+addEventListener('hashchange',route);
+document.querySelectorAll('.tg').forEach(t=>{t.onclick=()=>{t.classList.toggle('on');t.setAttribute('aria-checked',t.classList.contains('on'))};t.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();t.click()}}});
+document.querySelectorAll('.seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on')}));
+route();
+</script></body></html>

@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paytience · Trading Floor concept</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#D4AF37;--gl:#F2D27A;--blue:#3B82F6;--bl:#93C5FD;--mut:#8FA3C8;--bg:#070C1A;--card:#0E1630;--card2:#121C3B;--bd:#1E2A4A;--ok:#22C55E;--bad:#EF4444}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--bl);font-family:Inter,system-ui,sans-serif;font-size:14px;overflow-x:hidden}
+body{background:radial-gradient(900px 400px at 80% -10%,#14234d55,transparent),var(--bg);min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+header{display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--bd);flex-wrap:wrap;background:#0a1124}
+.logo{font-weight:700;font-size:20px;color:var(--gold);display:flex;align-items:center;gap:8px}
+.logo i{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--gl),#9a7b1c);color:#0a1020;display:grid;place-items:center;font-style:normal;font-size:16px}
+.chip{border:1px solid var(--bd);border-radius:6px;padding:3px 9px;font:600 11px 'JetBrains Mono';letter-spacing:.08em;color:var(--bl);white-space:nowrap}
+.chip.g{color:var(--gl);border-color:#6b5a1f}.chip.b{border-color:#2a4a8a}
+.concept{background:var(--gold);color:#0a1020;border-radius:5px;padding:3px 9px;font:700 11px 'JetBrains Mono';letter-spacing:.08em}
+.sp{flex:1}
+.clock{font:600 15px 'JetBrains Mono';color:var(--gl)}
+.kill{border:1px solid #6b5a1f;background:#1a1408;color:var(--gl);border-radius:8px;padding:8px 14px;font:700 12px 'JetBrains Mono';letter-spacing:.1em;cursor:pointer;display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.dot.bad{background:var(--bad);box-shadow:0 0 8px var(--bad)}.dot.pulse{animation:p 1.6s infinite}
+@keyframes p{50%{opacity:.35}}
+nav{display:flex;gap:4px;padding:0 24px;border-bottom:1px solid var(--bd);overflow-x:auto;background:#0a1124}
+nav a{padding:12px 14px;color:var(--mut);text-decoration:none;font-weight:500;white-space:nowrap;border-bottom:2px solid transparent}
+nav a.on{color:var(--gl);border-color:var(--gold)}
+main{padding:16px 24px 40px;max-width:1500px;margin:auto}
+h1{font:700 12px 'JetBrains Mono';letter-spacing:.18em;color:var(--gold);margin-bottom:12px;text-transform:uppercase}
+h1 small{color:var(--mut);letter-spacing:0;font-weight:400;margin-left:10px;font-family:Inter;text-transform:none;font-size:13px}
+.screen{display:none}.screen.on{display:block}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--bd);border-radius:12px;padding:14px;min-width:0}
+.lbl{font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
+.lbl span{color:var(--mut);letter-spacing:.04em;text-transform:none;font-weight:400}
+.ticker{display:flex;gap:0;overflow-x:auto;border:1px solid var(--bd);border-radius:12px;margin-bottom:14px;background:var(--card)}
+.ticker div{padding:10px 18px;border-right:1px solid var(--bd);white-space:nowrap;flex:1;min-width:130px}
+.ticker div:last-child{border:0}
+.ticker b{display:block;font:700 19px 'JetBrains Mono';color:var(--gl);margin-top:2px}
+.ticker em{font:600 10px 'JetBrains Mono';letter-spacing:.14em;color:var(--mut);font-style:normal}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+#chart{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font:500 11px 'JetBrains Mono';color:var(--mut)}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.agent{border:1px solid var(--bd);border-radius:10px;padding:10px;background:#0a1226}
+.agent h4{font:600 11px 'JetBrains Mono';letter-spacing:.08em;color:var(--bl)}
+.agent b{display:block;font:700 22px 'JetBrains Mono';color:var(--gl);margin:4px 0 2px}
+.agent p{font-size:12px;color:var(--mut)}
+.verdict{margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #6b5a1f;border-radius:10px;padding:9px 12px;background:#17130a;color:var(--gl);font-weight:600}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px 2px 7px;font:600 10.5px 'JetBrains Mono';border:1px solid var(--bd);color:var(--bl)}
+.pos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pc{border:1px solid var(--bd);border-radius:10px;padding:11px;background:#0a1226;position:relative;overflow:hidden}
+.pc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--blue)}
+.pc.long::before{background:var(--gold)}
+.pc h4{font:700 13px 'JetBrains Mono';color:var(--bl);display:flex;justify-content:space-between}
+.pc .pnl{font:700 20px 'JetBrains Mono';color:var(--gl);margin:6px 0}
+.pc small{display:block;color:var(--mut);font:11px 'JetBrains Mono';line-height:1.6}
+.bar{height:5px;border-radius:3px;background:#1a2547;margin-top:8px;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--gold))}
+.tape{font:12.5px 'JetBrains Mono';max-height:290px;overflow:hidden;position:relative;mask-image:linear-gradient(#000 80%,transparent)}
+.tape div{display:flex;gap:10px;padding:5px 0;border-bottom:1px dashed #1a2547;color:var(--bl)}
+.tape time{color:var(--mut);flex:none}.tape b{color:var(--gl);font-weight:600}
+.tape div:first-child{animation:in .6s}
+@keyframes in{from{opacity:0;transform:translateY(-8px)}}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+table{width:100%;border-collapse:collapse;font:12.5px 'JetBrains Mono'}
+th{text-align:left;color:var(--mut);font-weight:500;font-size:10px;letter-spacing:.12em;padding:4px 6px}td{padding:8px 6px;border-top:1px solid var(--bd);color:var(--bl);white-space:nowrap}td b{color:var(--gl)}
+.tablewrap{overflow-x:auto}
+/* strategy */
+.sgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.strat h3{font:700 15px Inter;color:var(--gl);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.strat p{color:var(--mut);font-size:12.5px;margin:6px 0 10px;line-height:1.5}
+.tg{width:44px;height:24px;border-radius:14px;background:#1a2547;border:1px solid var(--bd);position:relative;flex:none;cursor:pointer}
+.tg::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.2s}
+.tg.on{background:#6b5a1f;border-color:var(--gold)}.tg.on::after{left:22px;background:var(--gl)}
+.kv{display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid var(--bd);font:12px 'JetBrains Mono'}.kv span{color:var(--mut)}.kv b{color:var(--bl)}
+.seg{display:flex;border:1px solid var(--bd);border-radius:9px;overflow:hidden;margin:8px 0}
+.seg button{flex:1;background:none;border:0;color:var(--mut);padding:8px;font:600 12px 'JetBrains Mono';cursor:pointer}
+.seg button.on{background:#1d2b57;color:var(--gl)}
+.warn{border:1px solid #2a4a8a;background:#0c1838;border-radius:9px;padding:9px 11px;font-size:12px;color:var(--bl);margin-top:10px;line-height:1.5}
+.btn{background:linear-gradient(135deg,var(--gl),var(--gold));color:#0a1020;border:0;border-radius:8px;padding:9px 16px;font:700 12px 'JetBrains Mono';letter-spacing:.06em;cursor:pointer}
+.btn.ghost{background:none;border:1px solid #2a4a8a;color:var(--bl)}
+.btn:focus-visible,.tg:focus-visible,.seg button:focus-visible,nav a:focus-visible{outline:2px solid var(--gl);outline-offset:2px}
+.btn:hover{filter:brightness(1.1)}
+.rowflex{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}.sgrid{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){
+ header{padding:10px 14px}main{padding:12px 14px 30px}nav{padding:0 8px}
+ .sgrid,.two,.pos{grid-template-columns:1fr}.duo{grid-template-columns:1fr 1fr}
+ .clock{display:none}.ticker div{min-width:158px;flex:none}
+ .hide-m{display:none}
+}
+</style></head><body>
+<header>
+ <div class="logo"><i>P</i>Paytience</div>
+ <span class="chip g">PAPER</span><span class="chip b">SEMI-AUTO</span><span class="chip hide-m">PRO 25K</span>
+ <span class="concept">CONCEPT — sample data</span>
+ <div class="sp"></div><span class="clock">10:42:18 ET</span>
+ <button class="kill"><span class="dot bad pulse"></span>KILL SWITCH</button>
+</header>
+<nav><a href="#dashboard" data-s="dashboard">Dashboard</a><a href="#strategy" data-s="strategy">Strategy</a><a>Today</a><a>Signals</a><a>Trade</a><a>Accounts</a><a>Risk</a><a>Payouts</a></nav>
+<main>
+<section class="screen" id="dashboard">
+ <h1>Paytience · Trading Floor <small>live terminal · sample numbers</small></h1>
+ <div class="ticker">
+  <div><em>BALANCE</em><b>$51,224.90</b></div><div><em>TODAY</em><b>▲ +$312.50</b></div><div><em>OPEN P&amp;L</em><b>▲ +$27.00</b></div><div><em>TRADES</em><b>2 <small style="color:var(--mut);font-size:12px">/ 4</small></b></div><div><em>MNQ</em><b>21,047.75</b></div><div><em>VIX-LIKE</em><b>NOISE ON</b></div>
+ </div>
+ <div class="grid">
+  <div class="col">
+   <div class="card"><div class="lbl">MNQ · 5m · Pro 25K #1 <span>NOISE band · fractal model: ICT / LunqFX</span></div>
+    <svg id="chart" role="img" aria-label="Candlestick chart with stop, entry, break-even, trailing stop and target lines"></svg>
+    <div class="legend"><span><i style="border-color:#3B82F6"></i>Stop</span><span><i style="border-color:#93C5FD;border-top-style:dashed"></i>Entry</span><span><i style="border-color:#F2D27A;border-top-style:dotted"></i>Break-even</span><span><i style="border-color:#D4AF37"></i>Trailing stop</span><span><i style="border-color:#F2D27A"></i>Target 1.75R</span><span><i style="border-color:#3B82F6;opacity:.5;border-top-width:6px"></i>NOISE band</span></div>
+   </div>
+   <div class="card"><div class="lbl">Open positions <span>2 of 2 accounts</span></div>
+    <div class="pos">
+     <div class="pc long"><h4>PRO 25K #1 · MNQ LONG 1 <span class="badge"><span class="dot"></span>LIVE</span></h4><div class="pnl">▲ +$27.00</div><small>entry 21,034.25 · stop 21,018.00<br>BE armed · trail 21,041.50 · +0.83R</small><div class="bar"><i style="width:62%"></i></div></div>
+     <div class="pc"><h4>PRO 25K #2 · FLAT <span class="badge"><span class="dot"></span>ARMED</span></h4><div class="pnl">$0.00</div><small>Hedge lock: LONG household-wide<br>next window: waiting for signal</small><div class="bar"><i style="width:0"></i></div></div>
+    </div></div>
+  </div>
+  <div class="col">
+   <div class="card"><div class="lbl">AI Duo verdict <span>advisory only</span></div>
+    <div class="duo"><div class="agent"><h4>TradingAgents</h4><b>LONG</b><p>conf 71% · macro tilt up</p></div><div class="agent"><h4>Vibe-Trading</h4><b>LONG</b><p>conf 64% · momentum up</p></div></div>
+    <div class="verdict"><span class="badge"><span class="dot"></span>AGREE</span>Both say LONG — bias confirmed for NOISE</div>
+    <div class="legend" style="margin-top:10px"><span>Ledger accuracy 58% · needs ≥ 70% to gate</span></div>
+    <div class="bar"><i style="width:58%"></i></div>
+   </div>
+   <div class="card"><div class="lbl">Event tape <span>live</span></div>
+    <div class="tape" id="tape"></div></div>
+   <div class="card"><div class="lbl">Accounts</div><div class="tablewrap"><table><tr><th>ACCOUNT</th><th>STAGE</th><th>TO MLL</th><th>TODAY</th></tr>
+    <tr><td>Pro #1</td><td>EVAL</td><td>$1,612</td><td><b>▲ +$312.50</b></td></tr><tr><td>Pro #2</td><td>FUNDED</td><td>$1,612</td><td><b>$0.00</b></td></tr></table></div></div>
+  </div>
+ </div>
+</section>
+
+<section class="screen" id="strategy">
+ <h1>Paytience · Strategy <small>buttons only change settings; rules stay in the YAML profile</small></h1>
+ <div class="sgrid">
+  <div class="card strat"><h3>NOISE momentum <span class="tg on" role="switch" aria-checked="true" tabindex="0"></span></h3>
+   <p>Noise-area breakout on MNQ regular hours. One micro, hourly band and VWAP exits, flat at 16:00.</p>
+   <div class="kv"><span>Instrument</span><b>MNQ</b></div><div class="kv"><span>Size</span><b>1 micro fixed</b></div><div class="kv"><span>Emergency stop</span><b>1%</b></div><div class="kv"><span>Exit check</span><b>hourly</b></div><div class="kv"><span>Flatten</span><b>16:00 ET</b></div>
+   <div class="warn">Changing NOISE parameters is unverified until the research script is re-run.</div></div>
+  <div class="card strat"><h3>LunqFX fractal (ICT) <span class="tg" role="switch" aria-checked="false" tabindex="0"></span></h3>
+   <p>C2 sweeps C1 and closes back inside. Off means SHADOW: signals recorded, nothing sent.</p>
+   <div class="seg"><button>LIVE</button><button class="on">SHADOW</button></div>
+   <div class="kv"><span>R:R</span><b>1.75 – 3.0</b></div><div class="kv"><span>Min score</span><b>60</b></div><div class="kv"><span>Shadow sessions</span><b>7 / 10</b></div></div>
+  <div class="card strat"><h3>Opening drive <span class="tg" role="switch" aria-checked="false" tabindex="0"></span></h3>
+   <p>PAPER accounts only. Locked on any live or funded account.</p>
+   <div class="kv"><span>Scope</span><b>PAPER</b></div><div class="kv"><span>Window</span><b>09:35 – 10:15</b></div>
+   <div class="warn">Disabled while an account is LIVE.</div></div>
+  <div class="card strat" style="grid-column:span 2"><h3>AI Duo bias <span class="badge"><span class="dot"></span>advisory</span></h3>
+   <p>TradingAgents and Vibe-Trading each vote on the side. Agree → bias set. Disagree → NEUTRAL (needs score ≥ 75).</p>
+   <div class="duo"><div class="agent"><h4>TradingAgents</h4><b>LONG</b><p>last 20 calls: 11 right</p></div><div class="agent"><h4>Vibe-Trading</h4><b>SHORT</b><p>last 20 calls: 12 right</p></div></div>
+   <div class="verdict"><span class="badge"><span class="dot bad"></span>DISAGREE</span>Example state: bias NEUTRAL, entries need score ≥ 75</div></div>
+  <div class="card strat"><h3>Split mode</h3><p>Share risk between NOISE and the AI Duo.</p>
+   <div class="seg"><button>NOISE</button><button class="on">50 / 50</button><button>DUO</button></div>
+   <div class="rowflex"><button class="btn">Save settings</button><button class="btn ghost">Reset</button></div></div>
+ </div>
+</section>
+</main>
+<script>
+const screens=['dashboard','strategy'];
+function route(){const h=(location.hash||'#dashboard').slice(1);const s=screens.includes(h)?h:'dashboard';
+ screens.forEach(x=>document.getElementById(x).classList.toggle('on',x===s));
+ document.querySelectorAll('nav a[data-s]').forEach(a=>a.classList.toggle('on',a.dataset.s===s));
+ document.title='Paytience · '+(s==='dashboard'?'Dashboard':'Strategy');if(s==='dashboard')draw()}
+addEventListener('hashchange',route);addEventListener('resize',()=>{if(document.getElementById('dashboard').classList.contains('on'))draw()});
+document.querySelectorAll('.tg').forEach(t=>{t.onclick=()=>{t.classList.toggle('on');t.setAttribute('aria-checked',t.classList.contains('on'))};t.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();t.click()}}});
+document.querySelectorAll('.seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on')}));
+// chart
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const N=48,C=[];let p=21010;for(let i=0;i<N;i++){const o=p,d=(rnd()-.42)*9+ (i>30?1.4:0.2);const c=o+d;C.push({o,c,h:Math.max(o,c)+rnd()*4,l:Math.min(o,c)-rnd()*4});p=c}
+{const q=C[N-1];q.o=C[N-2].c;q.c=21047.75;q.h=Math.max(q.o,q.c)+1.5;q.l=Math.min(q.o,q.c)-1.5}
+function draw(){const svg=document.getElementById('chart');const W=svg.parentElement.clientWidth-28||800;const m=W<500;const H=m?300:400;
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);const padR=m?64:78,padL=8,padT=10,padB=22;
+ const lo=21008,hi=21068,Y=v=>padT+(hi-v)/(hi-lo)*(H-padT-padB),cw=(W-padL-padR)/N;
+ let s=`<defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3B82F6" stop-opacity=".16"/><stop offset="1" stop-color="#3B82F6" stop-opacity=".04"/></linearGradient></defs>`;
+ for(let v=21010;v<=21065;v+=10){s+=`<line x1="${padL}" x2="${W-padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="#1E2A4A" stroke-width="1"/><text x="${padL+2}" y="${Y(v)-3}" fill="#8FA3C8" font-size="10" font-family="JetBrains Mono">${v}</text>`}
+ // noise band polygon
+ let up=[],dn=[];for(let i=0;i<N;i++){const x=padL+cw*i+cw/2,w=6+i*0.28;up.push(`${x},${Y(21034+w)}`);dn.unshift(`${x},${Y(21034-w-2)}`)}
+ s+=`<polygon points="${up.join(' ')} ${dn.join(' ')}" fill="url(#bg)" stroke="#3B82F6" stroke-opacity=".5" stroke-dasharray="3 3"/>`;
+ s+=`<text x="${padL+6}" y="${Y(21034+6+0.28)-6}" fill="#93C5FD" font-size="10" font-family="JetBrains Mono">NOISE BAND</text>`;
+ // vwap
+ let vw=C.map((c,i)=>`${padL+cw*i+cw/2},${Y(21030+Math.sin(i/6)*3+i*.1)}`).join(' ');
+ s+=`<polyline points="${vw}" fill="none" stroke="#F2D27A" stroke-opacity=".45" stroke-width="1.5"/>`;
+ C.forEach((c,i)=>{const x=padL+cw*i+cw/2,up=c.c>=c.o,col=up?'#D4AF37':'#3B82F6';
+  s+=`<line x1="${x}" x2="${x}" y1="${Y(c.h)}" y2="${Y(c.l)}" stroke="${col}" stroke-width="1.2"/><rect x="${x-cw*.32}" y="${Y(Math.max(c.o,c.c))}" width="${cw*.64}" height="${Math.max(1.5,Math.abs(Y(c.o)-Y(c.c)))}" fill="${up?col:'#0E1630'}" stroke="${col}"/>`});
+ const ex=padL+cw*30;
+ const L=[[21018,'STOP','#3B82F6','',0],[21034.25,'ENTRY','#93C5FD','6 4',0],[21035,'BE','#F2D27A','2 3',-1],[21041.5,'TRAIL','#D4AF37','',0],[21062.75,'TARGET','#F2D27A','',0]];
+ L.forEach(([v,t,c,d,o])=>{const y=Y(v);s+=`<line x1="${ex}" x2="${W-padR}" y1="${y}" y2="${y}" stroke="${c}" stroke-width="1.6" ${d?`stroke-dasharray="${d}"`:''}/><rect x="${W-padR+1}" y="${y-8+(t==='BE'?-8:0)+(t==='ENTRY'?6:0)}" width="${padR-2}" height="16" rx="3" fill="#0E1630" stroke="${c}"/><text x="${W-padR+5}" y="${y+3+(t==='BE'?-8:0)+(t==='ENTRY'?6:0)}" fill="${c}" font-size="9.5" font-family="JetBrains Mono" font-weight="600">${t} ${m?'':v.toFixed(0)}</text>`});
+ const ly=Y(21047.75);s+=`<line x1="${padL}" x2="${W-padR}" y1="${ly}" y2="${ly}" stroke="#D4AF37" stroke-width=".8" stroke-opacity=".6"/><rect x="${W-padR+1}" y="${ly-9}" width="${padR-2}" height="18" rx="3" fill="#D4AF37"/><text x="${W-padR+5}" y="${ly+4}" fill="#0a1020" font-size="10.5" font-weight="700" font-family="JetBrains Mono">${m?'47.75':'21047.75'}</text>`;
+ s+=`<text x="${ex+4}" y="${H-6}" fill="#8FA3C8" font-size="10" font-family="JetBrains Mono">▲ entry 10:31</text>`;
+ svg.innerHTML=s}
+const ev=[['10:42:07','NOISE hourly check · inside band · <b>hold</b>'],['10:38:51','Pro #1 stop → <b>BE 21,035.00</b> (+0.75R)'],['10:31:04','ENTERED <b>MNQ LONG 1</b> @ 21,034.25 · score 78'],['10:30:58','AI Duo · <b>AGREE LONG</b> (71% / 64%)'],['10:12:40','Skip · G6 opposing divergence'],['09:48:02','TP MNQ LONG <b>▲ +$285.50</b> · +1.75R'],['06:40:00','Pre-flight passed · 8/8']];
+document.getElementById('tape').innerHTML=ev.map(e=>`<div><time>${e[0]}</time><span>${e[1]}</span></div>`).join('');
+route();
+</script></body></html>

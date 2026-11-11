@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paytience · Mission Control concept</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#D4AF37;--gl:#F2D27A;--blue:#3B82F6;--bl:#93C5FD;--mut:#8FA3C8;--bg:#080D1C;--t:#0F1832;--t2:#131F40;--bd:#22305a;--ok:#22C55E;--bad:#EF4444}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--bl);font-family:Inter,sans-serif;font-size:14px;overflow-x:hidden}
+body{background:radial-gradient(700px 400px at 10% 0,#1a2f6a44,transparent),radial-gradient(600px 400px at 100% 30%,#4a3a0d33,transparent),var(--bg);min-height:100vh;padding-bottom:84px}
+.sg{font-family:'Space Grotesk',sans-serif}.mono{font-family:'JetBrains Mono',monospace}
+header{display:flex;align-items:center;gap:10px;padding:14px 24px;flex-wrap:wrap}
+.logo{font:700 22px 'Space Grotesk';color:var(--gold);display:flex;align-items:center;gap:8px}
+.logo i{width:28px;height:28px;border-radius:9px;background:conic-gradient(from 200deg,var(--gl),var(--gold),#8a6d1a,var(--gl));display:grid;place-items:center;color:#0a1020;font-style:normal;font-size:15px}
+.pill{border:1px solid var(--bd);border-radius:999px;padding:4px 11px;font:600 11px 'JetBrains Mono';color:var(--bl);white-space:nowrap}
+.pill.g{color:var(--gl);border-color:#6b5a1f}
+.concept{background:var(--gold);color:#0a1020;border-radius:999px;padding:4px 11px;font:700 11px 'JetBrains Mono'}
+.sp{flex:1}
+nav.top{display:flex;gap:6px;padding:0 24px 14px;overflow-x:auto}
+nav.top a{padding:7px 15px;border-radius:999px;color:var(--mut);text-decoration:none;font-weight:500;white-space:nowrap;border:1px solid transparent}
+nav.top a.on{background:#1b2a55;color:var(--gl);border-color:#2f4585}
+a:focus-visible,button:focus-visible,.tg:focus-visible{outline:2px solid var(--gl);outline-offset:2px}
+main{padding:0 24px;max-width:1500px;margin:auto}
+.screen{display:none}.screen.on{display:block}
+h1{font:700 13px 'JetBrains Mono';letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:4px 0 14px}
+.banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #2f4585;background:linear-gradient(90deg,#14275a,#0e1a3c);border-radius:14px;padding:11px 16px;margin-bottom:14px;color:var(--bl)}
+.banner b{color:var(--gl)}.banner .sp{flex:1;min-width:10px}
+.bento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:minmax(110px,auto);gap:14px}
+.tile{background:linear-gradient(160deg,var(--t2),var(--t));border:1px solid var(--bd);border-radius:20px;padding:18px;position:relative;overflow:hidden;min-width:0;animation:up .6s both}
+.tile:nth-child(2){animation-delay:.06s}.tile:nth-child(3){animation-delay:.12s}.tile:nth-child(4){animation-delay:.18s}.tile:nth-child(5){animation-delay:.24s}.tile:nth-child(6){animation-delay:.3s}
+@keyframes up{from{opacity:0;transform:translateY(14px)}}
+.tile .lbl{font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
+.lbl span{color:var(--mut);text-transform:none;letter-spacing:0;font-weight:500}
+.num{font:700 38px/1.05 'Space Grotesk';color:var(--gl)}.num small{font-size:16px;color:var(--bl);font-weight:500}
+.t-a{grid-column:span 2;grid-row:span 2}.t-b{grid-column:span 2}.t-c{grid-column:span 2;grid-row:span 2}.t-d{grid-column:span 2}.bento .fast{grid-row:span 2}.t-e{grid-column:span 3}.t-f{grid-column:span 3}.t-g{grid-column:span 2}.t-h{grid-column:span 4}
+.sub{color:var(--mut);font-size:12.5px;margin-top:6px;line-height:1.5}
+.gauge{display:block;margin:0 auto;width:100%;max-width:250px}
+.pulse{animation:pu 2.4s ease-in-out infinite}@keyframes pu{50%{opacity:.55}}
+.glow{position:absolute;right:-40px;top:-40px;width:140px;height:140px;border-radius:50%;background:radial-gradient(#D4AF3733,transparent 70%);animation:pu 4s infinite}
+.bar{height:12px;border-radius:7px;background:#16214a;position:relative;margin:14px 0 6px;overflow:visible}
+.bar i{position:absolute;inset:0 auto 0 0;border-radius:7px;background:linear-gradient(90deg,var(--blue),var(--gold))}
+.bar u{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--gl)}
+.scale{display:flex;justify-content:space-between;font:11px 'JetBrains Mono';color:var(--mut)}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}
+.pre{border:1px solid var(--bd);background:#0b1330;color:var(--bl);border-radius:14px;padding:10px 6px;cursor:pointer;text-align:center;font:600 12px 'Space Grotesk';transition:.2s}
+.pre b{display:block;font-size:20px;color:var(--gl)}.pre span{display:block;font:10px 'JetBrains Mono';color:var(--mut);margin-top:2px}
+.pre.on{border-color:var(--gold);background:#2a220b;transform:translateY(-2px)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--bd)}
+.row b{color:var(--gl);font-weight:600}.row small{display:block;color:var(--mut);font-size:12px}
+.tg{width:48px;height:27px;border-radius:14px;background:#16214a;border:1px solid var(--bd);position:relative;flex:none;cursor:pointer}
+.tg::after{content:"";position:absolute;top:3px;left:3px;width:19px;height:19px;border-radius:50%;background:var(--mut);transition:.2s}
+.tg.on{background:#4a3a0d;border-color:var(--gold)}.tg.on::after{left:23px;background:var(--gl)}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--bd);border-radius:999px;padding:2px 9px 2px 7px;font:600 10.5px 'JetBrains Mono';color:var(--bl)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 7px var(--ok);display:inline-block}.dot.bad{background:var(--bad);box-shadow:0 0 7px var(--bad)}
+.btn{border:0;border-radius:12px;padding:10px 16px;font:700 12px 'JetBrains Mono';letter-spacing:.06em;cursor:pointer;background:linear-gradient(135deg,var(--gl),var(--gold));color:#0a1020}
+.btn.ghost{background:none;border:1px solid #2f4585;color:var(--bl)}
+.kill{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-color:#6b5a1f;background:radial-gradient(circle at 50% 0,#2a220b,#0f1832 70%)}
+.kill button{margin-top:10px;width:100%;border:1px solid var(--gold);background:#17130a;color:var(--gl);border-radius:14px;padding:13px;font:700 13px 'JetBrains Mono';letter-spacing:.12em;cursor:pointer;display:flex;justify-content:center;gap:9px;align-items:center}
+.kill button:hover{background:#2a220b}
+.ai li{list-style:none;padding:8px 0;border-top:1px solid var(--bd);font-size:13px;display:flex;gap:10px}
+.ai li::before{content:"◆";color:var(--gold);font-size:10px;margin-top:3px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.dock{position:fixed;bottom:0;left:0;right:0;display:none;justify-content:space-around;padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:#0a1226ee;backdrop-filter:blur(10px);border-top:1px solid var(--bd);z-index:5}
+.dock a{color:var(--mut);text-decoration:none;font:600 11px 'JetBrains Mono';padding:8px 14px;border-radius:12px}.dock a.on{background:#1b2a55;color:var(--gl)}
+.sbento{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+.s2{grid-column:span 2}.s3{grid-column:span 3}.s4{grid-column:span 4}.s6{grid-column:span 6}
+.fast{background:linear-gradient(160deg,#2a220b,var(--t))!important;border-color:#6b5a1f!important}
+.steps{display:flex;gap:6px;margin:10px 0}.steps i{flex:1;height:6px;border-radius:3px;background:#16214a}.steps i.d{background:var(--gold)}.steps i.n{background:var(--blue);animation:pu 1.6s infinite}
+@media(max-width:1100px){.bento,.sbento{grid-template-columns:repeat(2,minmax(0,1fr))}.bento>*,.sbento>*{grid-column:span 1!important;grid-row:auto!important}.t-h,.t-c,.s6,.s4{grid-column:span 2!important}}
+@media(max-width:700px){
+ header{padding:12px 16px}nav.top{display:none}main{padding:0 16px}.dock{display:flex}
+ .bento,.sbento{grid-template-columns:1fr;gap:12px}.bento>*,.sbento>*{grid-column:span 1!important}.hide-m{display:none}
+ .num{font-size:34px}.tile{border-radius:18px}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<header><div class="logo"><i>P</i>Paytience</div><span class="pill g">PAPER</span><span class="pill hide-m">SEMI-AUTO</span><span class="concept">CONCEPT — sample data</span><div class="sp"></div><span class="pill mono"><span class="dot pulse"></span>&nbsp;feed 4s</span></header>
+<nav class="top"><a href="#dashboard" data-s="dashboard">Dashboard</a><a href="#strategy" data-s="strategy">Strategy</a><a>Accounts</a><a>Payouts</a><a>Risk</a><a>Signals</a></nav>
+<main>
+<section class="screen" id="dashboard">
+ <h1>Paytience · Mission Control</h1>
+ <div class="banner"><span class="badge"><span class="dot"></span>UPDATE</span><span>Version <b>0.9.4</b> is available · fixes the gold research summary</span><div class="sp"></div><button class="btn">Update now</button><button class="btn ghost">Later</button></div>
+ <div class="bento">
+  <div class="tile t-a"><div class="glow"></div><div class="lbl">Cushion to drawdown <span>Pro #1 · EVAL</span></div>
+   <svg class="gauge" viewBox="0 0 220 150" role="img" aria-label="Cushion 1612 of 2100 dollars"><defs><linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#3B82F6"/><stop offset="1" stop-color="#D4AF37"/></linearGradient></defs>
+    <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke="#16214a" stroke-width="16" stroke-linecap="round"/>
+    <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke="url(#g1)" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="77 100" id="gp"/>
+    <text x="110" y="100" text-anchor="middle" fill="#F2D27A" font-family="Space Grotesk" font-size="34" font-weight="700">$1,612</text>
+    <text x="110" y="120" text-anchor="middle" fill="#8FA3C8" font-family="JetBrains Mono" font-size="10">OF $2,100</text></svg>
+   <div class="sub">Kill switch fires within $100 of the drawdown limit.</div></div>
+  <div class="tile t-b"><div class="lbl">Day P&amp;L vs daily loss limit</div><div class="num">▲ +$312.50</div>
+   <div class="bar"><i style="width:52%"></i><u style="left:52%"></u></div><div class="scale"><span>-$600 limit</span><span>0</span><span>cap +$500</span></div></div>
+  <div class="tile t-b kill"><div class="lbl" style="justify-content:center">Safety</div><div class="sub" style="margin:0">Flatten everything and pause all accounts.</div><button><span class="dot bad pulse"></span>KILL SWITCH</button></div>
+  <div class="tile t-c"><div class="lbl">Strategy mode <span>quick switch</span></div>
+   <div class="presets"><div class="pre on" tabindex="0" role="button"><b>A</b>NOISE<span>1 micro</span></div><div class="pre" tabindex="0" role="button"><b>B</b>Duo<span>AI bias</span></div><div class="pre" tabindex="0" role="button"><b>C</b>Fractal<span>LunqFX</span></div></div>
+   <div class="row"><div><b>NOISE + AI Duo 50/50 split</b><small>half the risk each, one position max</small></div><span class="tg" role="switch" aria-checked="false" tabindex="0"></span></div>
+   <div class="row"><div><b>Hedge lock</b><small>LONG household-wide</small></div><span class="badge"><span class="dot"></span>OK</span></div></div>
+  <div class="tile t-d fast"><div class="lbl">Fast Evaluation <span>Eval Mode</span></div><div class="num">$612 <small>/ $1,250</small></div>
+   <div class="steps"><i class="d"></i><i class="d"></i><i class="n"></i><i></i><i></i></div><div class="sub">2 of 3 profitable days done. Needs 1 more day and $638. Larger tiers apply to the next new trade only; gates, stops and loss limits stay unchanged.</div></div>
+  <div class="tile t-d"><div class="lbl">Consistency <span>limit 40%</span></div><div class="num">31% <small>largest ÷ cycle</small></div><div class="sub">Largest day $312.50. Room to grow before the cap.</div></div>
+  <div class="tile t-h ai"><div class="lbl">AI research · Gold (MGC) <span>advisory · sample</span></div>
+   <div class="chips"><span class="badge"><span class="dot"></span>Duo AGREE</span><span class="pill">TradingAgents LONG 71%</span><span class="pill">Vibe-Trading LONG 64%</span></div>
+   <ul style="margin-top:8px"><li>Real yields softer this week, supportive for gold.</li><li>Price holds above the 5m trend line; momentum intact.</li><li>CPI release 08:30 tomorrow: news blackout applies.</li></ul></div>
+  <div class="tile t-g"><div class="lbl">Today</div><div class="num">2 <small>/ 4 trades</small></div><div class="sub">Open <b style="color:var(--gl)">▲ +$27.00</b> · next window waiting</div></div>
+ </div>
+</section>
+
+<section class="screen" id="strategy">
+ <h1>Paytience · Strategy</h1>
+ <div class="sbento">
+  <div class="tile s4"><div class="lbl">Mode presets</div>
+   <div class="presets"><div class="pre on" tabindex="0" role="button"><b>A</b>NOISE only<span>MNQ · 1 micro · hourly exits</span></div><div class="pre" tabindex="0" role="button"><b>B</b>AI Duo<span>TradingAgents + Vibe-Trading</span></div><div class="pre" tabindex="0" role="button"><b>C</b>Fractal ICT<span>LunqFX sweep model</span></div></div>
+   <div class="row"><div><b>NOISE + AI Duo 50/50 split</b><small>Risk is shared; Duo disagreement shrinks the Duo half to zero</small></div><span class="tg on" role="switch" aria-checked="true" tabindex="0"></span></div></div>
+  <div class="tile s2 kill"><div class="lbl" style="justify-content:center">Safety</div><button><span class="dot bad pulse"></span>KILL SWITCH</button></div>
+  <div class="tile s3"><div class="lbl">NOISE parameters <span>locked: unverified if changed</span></div>
+   <div class="row"><span>Instrument</span><b class="mono">MNQ</b></div><div class="row"><span>Emergency stop</span><b class="mono">1%</b></div><div class="row"><span>Exit check</span><b class="mono">hourly</b></div><div class="row"><span>Flatten</span><b class="mono">16:00 ET</b></div></div>
+  <div class="tile s3 fast"><div class="lbl">Fast Evaluation <span>EVAL accounts only</span></div>
+   <div class="row" style="border:0"><div><b>Enable Fast Evaluation</b><small>Larger risk tiers. Never changes gates, stops or loss limits.</small></div><span class="tg" role="switch" aria-checked="false" tabindex="0"></span></div>
+   <div class="sub">Turning on shows an impact preview and asks you to type a confirmation.</div></div>
+  <div class="tile s3"><div class="lbl">LunqFX fractal · ICT</div><div class="row" style="border:0"><div><b>Live signals</b><small>Off means SHADOW (recorded only)</small></div><span class="tg" role="switch" aria-checked="false" tabindex="0"></span></div><div class="sub">Shadow sessions 7 / 10 · min score 60</div></div>
+  <div class="tile s3"><div class="lbl">Opening drive</div><div class="row" style="border:0"><div><b>Paper accounts only</b><small>Locked on funded or live accounts</small></div><span class="tg" role="switch" aria-checked="false" tabindex="0"></span></div><div style="display:flex;gap:8px;margin-top:10px"><button class="btn">Save</button><button class="btn ghost">Reset</button></div></div>
+ </div>
+</section>
+</main>
+<div class="dock"><a href="#dashboard" data-s="dashboard">Dashboard</a><a href="#strategy" data-s="strategy">Strategy</a><a>Kill</a></div>
+<script>
+const S=['dashboard','strategy'];
+function route(){const h=(location.hash||'#dashboard').slice(1),s=S.includes(h)?h:'dashboard';S.forEach(x=>document.getElementById(x).classList.toggle('on',x===s));
+ document.querySelectorAll('[data-s]').forEach(a=>a.classList.toggle('on',a.dataset.s===s));document.title='Paytience · '+(s==='dashboard'?'Dashboard':'Strategy')}
+addEventListener('hashchange',route);
+document.querySelectorAll('.tg').forEach(t=>{t.onclick=()=>{t.classList.toggle('on');t.setAttribute('aria-checked',t.classList.contains('on'))};t.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();t.click()}}});
+document.querySelectorAll('.presets').forEach(g=>g.querySelectorAll('.pre').forEach(b=>{b.onclick=()=>{g.querySelectorAll('.pre').forEach(x=>x.classList.remove('on'));b.classList.add('on')};b.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();b.click()}}}));
+route();
+</script></body></html>
