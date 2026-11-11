@@ -123,5 +123,21 @@ for l in ("nolock", "lock"):
 out.append("\n### T10 machine check: which variants beat their own base on ALL held-out tests?\n(HO $/trade up, roll PASS >= base, roll BUST <= base, boot PASS >= base, boot BUST <= base, and IS PF >= base IS PF.)\n\n")
 okn = [n for n in ALL if "BASE" not in n and not n.startswith("session-9") and verdict(n)]
 out.append(f"{len(okn)} of {len([n for n in ALL if 'BASE' not in n and not n.startswith('session-9')])} variants pass: \n\n" + table(okn, sel) + "\n")
+
+MASTER = ["session-9 original (1% stop) [nolock]", "BASE [nolock]", "BASE [lock]", "N11 skip Monday [lock]", "N10 skip low-vol tercile [lock]", "N12 skip Friday [lock]",
+          "VWAP side filter [lock]", "min sigma >= IS p20 (0.29%) [lock]", "lock 75->+10", "lock 200->+10", "trail-lock +100 give back 100",
+          "no entry 11:00 [lock]", "extra check 15:30 (band entry) [lock]"] + list(S2["combos"])
+m = ["### T0 master table, held-out 2024-01..2026-11 (1 micro; every row also in the detail tables). Base of a [lock] row = BASE [lock] (= preset C); base of a [nolock] row = BASE [nolock] (= app default)\n", table(MASTER, sel)]
+rb = {l: list(RB[l].values()) for l in RB}
+for l in ("nolock", "lock"):
+    xs = rb[l]; f = lambda k: np.mean([x["HO"][k] for x in xs])
+    m.append(f"| random direction, same exits [{l}] (mean of 200 seeds) | {f('n'):.0f} | {f('win'):.1f} | {f('avg'):.1f} | {f('net'):,.0f} | {f('dd'):,.0f} | {f('pf'):.2f} | {np.mean([x['HO']['roll']['pass_'] for x in xs]):.1f} / {np.mean([x['HO']['roll']['bust'] for x in xs]):.1f} / {np.mean([x['HO']['roll']['open_'] for x in xs]):.1f} | {np.nanmedian([x['HO']['roll']['med'] for x in xs]):.0f} | - | - | - | - | - |\n")
+out.insert(0, "".join(m) + "\n")
+
+# ---- paired bootstrap
+PD = json.load(open(HERE + "/paired.json"))
+out.append("\n### T13 paired block-bootstrap of the Pro 25K eval outcome difference (variant minus its base, held-out days resampled in 10-session blocks, 400 resamples)\n| variant (vs its base) | dPASS % [95% CI] | P(PASS better) | dBUST % [95% CI] | P(BUST lower) |\n|---|---|---|---|---|\n")
+for n, r in PD.items():
+    out.append(f"| {n} | {r['dpass']:+.1f} [{r['dpass_lo']:+.1f}, {r['dpass_hi']:+.1f}] | {r['p_pass_better']:.2f} | {r['dbust']:+.1f} [{r['dbust_lo']:+.1f}, {r['dbust_hi']:+.1f}] | {r['p_bust_lower']:.2f} |\n")
 open(HERE + "/RESULTS_tables.md", "w").write("".join(out))
 print(len(okn), okn)
