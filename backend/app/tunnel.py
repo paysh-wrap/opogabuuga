@@ -167,11 +167,24 @@ def ngrok_cmd(exe: Path, cfg: Path, domain: str, port: int) -> list[str]:
     return [str(exe), "http", f"--url={domain}", str(port), "--config", str(cfg), "--log=stdout", "--log-format=logfmt"]
 
 
+def _cwd(exe: str) -> str | None:
+    """D118: run tunnel tools from their own folder. Inheriting the app's cwd (inside _internal) kept _internal "in use"
+    on Windows, so the updater could not move it and every in-app update rolled back."""
+    d = Path(exe).parent
+    return str(d) if d.is_dir() else None
+
+
 def spawn(cmd: list[str]) -> subprocess.Popen[str]:
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0  # type: ignore[attr-defined,unused-ignore]
     try:
         return subprocess.Popen(  # noqa: S603
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=flags, bufsize=1
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            creationflags=flags,
+            bufsize=1,
+            cwd=_cwd(cmd[0]),
         )
     except OSError as e:  # D114: the downloaded ngrok is blocked (antivirus/SmartScreen) → try the user's own ngrok
         alt = shutil.which("ngrok")
@@ -188,7 +201,13 @@ def spawn(cmd: list[str]) -> subprocess.Popen[str]:
                 ) from e
             raise
         return subprocess.Popen(  # noqa: S603
-            [alt, *cmd[1:]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, creationflags=flags, bufsize=1
+            [alt, *cmd[1:]],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            creationflags=flags,
+            bufsize=1,
+            cwd=_cwd(alt),
         )
 
 
