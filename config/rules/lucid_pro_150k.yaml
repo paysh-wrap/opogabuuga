@@ -77,10 +77,23 @@ super_groups:
 trade_plan: {rr_min: 1.5, rr_max: 2.5, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
 strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026-11-09): 150K = 6 micros (5y: eval 54% pass / 46% bust; 5 funded ≈ $827 per 2 wk, median yr $13,500, bust 54%; 3 micros was $918 / $23,611 / 29%). D58: D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on (D105/D107: LunqFX + Opening-drive removed)
+  # D115 (user 2026-11-11) per-strategy, per-plan size. Every trade still goes through ALL pre-trade checks:
+  # firm max micros (Flex: scaling plan), internal_max_micros, the $ caps below, worst case + DLL margin <= DLL left
+  # and <= distance to the MLL - kill distance, consistency cap/day stop, split 50/50 halving, household hedge lock.
+  # Scale = drawdown ratio vs 25K (MLL 4500 / 1000 = 4.5x), rounded down; 25K stays at 1 micro (NOISE was
+  # verified at 1 micro on 25K; the unverified strategies keep 1 micro on 25K).
+  max_trade_risk_usd: 2250      # plan per-trade cap for every fixed-size strategy: 50% of the MLL (4500) — one trade never risks half the drawdown
+  noise_cfg: {contracts: 3}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
+  pm_fade_cfg: {contracts: 3}       # fallback only — PM_FADE uses size_table below (same as NOISE)
+  ai_bias_cfg: {contracts: 4, max_risk_usd: 1350}   # floor(MLL ratio); budget 30% of MLL at the 0.5% stop (25K: none = unchanged); UNVERIFIED
+  ai_duo_cfg: {contracts: 4}         # floor(MLL ratio); D85 max_risk_usd $250 per trade (user, all sizes) and 150K max_qty 4 unchanged; UNVERIFIED
   noise: true
   pm_fade: true
   order_flow: false   # D95: Order Flow button (UNVERIFIED, paper accounts only, default OFF)
   order_flow_cfg:   # D96 (user 2026-11-11): MGC on for ORDER FLOW only; instruments.MGC.enabled stays false (every other strategy keeps MGC off). Data: Databento MGC.v.0 (volume roll), never MGC.c.0
+    contracts: 4                # D115 risk-based cap: min(contracts, floor(max_risk_usd / per-contract risk at the ATR/absorption stop)); UNVERIFIED → 25K 1 micro
+    max_risk_usd: 1350          # D115 30% of the MLL (25K: none = unchanged; the plan cap above still applies)
+    brake_below: 0.5          # D115 1 micro while (equity - MLL) < 50% of the MLL (the size-table brake)
     instruments: [MNQ, MGC]
     ar:   # D101 AR Model gates (UNVERIFIED; only remove trades). Env + confirmation always on; location/path = switches
       required: true            # alert without AR fields → OF_NO_CONFIRM

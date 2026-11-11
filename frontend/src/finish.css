@@ -80,7 +80,7 @@ main p { text-wrap: pretty; }
 .mission [data-testid="brand"] > span[aria-hidden] { width: 1.85rem; height: 1.85rem; border-radius: 10px; font-family: var(--f-display); font-weight: 800;
   box-shadow: 0 0 0 1px rgba(242, 210, 122, .55), 0 6px 18px -6px rgba(var(--gold-a), .8); -webkit-text-fill-color: #0A1020; }
 /* every status item in the header is a chip of one size */
-.mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"],
+.mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"]:not([aria-hidden]):not(form *),
 .mission header.bg-card :is([data-testid="conn-summary"], [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"]) {
   display: inline-flex; align-items: center; gap: .35rem; height: 1.7rem; padding: 0 .7rem; border-radius: var(--r-chip);
   font: 600 .7rem/1 var(--f-mono); letter-spacing: .03em; white-space: nowrap;
@@ -91,7 +91,7 @@ main p { text-wrap: pretty; }
 .mission header.bg-card [data-testid="trading-count"]:hover { border-color: rgba(var(--blue-a), .45); background: rgba(var(--blue-a), .12); }
 .mission header.bg-card [title="Live updates"] > span[aria-hidden] { margin-right: 0 !important; box-shadow: 0 0 0 3px rgba(147, 197, 253, .08); }
 .mission header.bg-card [data-testid="mode"] { border-color: rgba(var(--gold-a), .55); background: rgba(var(--gold-a), .10); letter-spacing: .1em; }
-.mission header.bg-card :is(a, span)[class*="rounded"][class*="border"]:not([data-testid="mode"]) { background-color: rgba(var(--gold-a), .06); }
+.mission header.bg-card :is(a, span)[class*="rounded"][class*="border"]:not([data-testid="mode"]):not([aria-hidden]) { background-color: rgba(var(--gold-a), .06); }
 .mission header.bg-card a[class*="rounded"]:hover { background-color: rgba(var(--gold-a), .16); border-color: rgba(var(--gold-a), .7); }
 .mission header.bg-card span[aria-label="Eastern time"] { font: 600 .82rem/1 var(--f-mono); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
 .mission header.bg-card button.border-2 { border-width: 1px; letter-spacing: .12em; font-weight: 750;
@@ -114,7 +114,6 @@ main p { text-wrap: pretty; }
 }
 
 /* ---------- buttons: primary gold · secondary outline · ghost ---------- */
-.mission main button { border-radius: var(--r-ctl); font-weight: 600; }
 .mission main button.rounded-md, .mission main button.rounded, .mission main button.rounded-lg { border-radius: var(--r-ctl); letter-spacing: .03em; }
 /* primary = filled gold (dark text is the theme bg colour, AA on gold) */
 .mission main button:is(.bg-gold, .btn-primary) { background: linear-gradient(180deg, var(--gold-2), var(--gold) 60%, #B8952C) !important;
@@ -123,8 +122,8 @@ main p { text-wrap: pretty; }
 .mission main button.border-gold:not([class*="bg-"]) { background-image: linear-gradient(180deg, rgba(var(--gold-a), .14), rgba(var(--gold-a), .04)); border-color: rgba(var(--gold-a), .7); }
 .mission main button.border-blue:not([class*="bg-"]) { background-image: linear-gradient(180deg, rgba(var(--blue-a), .14), rgba(var(--blue-a), .04)); border-color: rgba(var(--blue-a), .75); }
 /* ghost = no border class */
-.mission main button:not([class*="border"]):not([class*="bg-"]) { background: transparent; }
-.mission main button:not([class*="border"]):not([class*="bg-"]):not(:disabled):hover { background: rgba(var(--blue-a), .10); box-shadow: none; transform: none; }
+.mission main button:not([class*="border"]):not([class*="bg-"]):not([class*="card"]):not([class*="tile"]) { background: transparent; }
+.mission main button:not([class*="border"]):not([class*="bg-"]):not([class*="card"]):not([class*="tile"]):not(:disabled):hover { background: rgba(var(--blue-a), .10); box-shadow: none; transform: none; }
 .mission button:not(:disabled):hover { transform: translateY(-1px); }
 .mission button:focus-visible { outline: 2px solid #F2D27A; outline-offset: 2px; box-shadow: var(--ring-gold); }
 .mission button:disabled { opacity: .45; filter: saturate(.6); }
@@ -208,7 +207,7 @@ hr { border-color: rgba(var(--blue-a), .14); }
 @media (max-width: 767px) {
   body { font-size: 14.5px; }
   .mission header.bg-card > div { gap: .4rem .45rem; padding-top: .55rem; padding-bottom: .55rem; }
-  .mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"],
+  .mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"]:not([aria-hidden]):not(form *),
   .mission header.bg-card :is([data-testid="conn-summary"], [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"]) {
     height: 1.6rem; padding: 0 .55rem; font-size: .66rem;
   }
