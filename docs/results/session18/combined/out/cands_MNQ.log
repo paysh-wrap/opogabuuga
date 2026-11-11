@@ -1,0 +1,64 @@
+ICT AM setups 70
+ICT PM setups 81
+ICT cands 336
+SMC 1m+ST15 R1.5 845
+SMC 1m+ST15 R2.0 845
+SMC 1m+ST15+EMA200 R1.5 665
+SMC 1m+ST15+EMA200 R2.0 665
+SMC 5m+ST15 R1.5 185
+SMC 5m+ST15 R2.0 185
+SMC 5m+ST15+EMA200 R1.5 159
+SMC 5m+ST15+EMA200 R2.0 159
+RSI 5 (2, 7, 14) mr 1219
+RSI 5 (2, 7, 14) 1.5 1219
+RSI 5 (3, 7, 14) mr 755
+RSI 5 (3, 7, 14) 1.5 755
+DMI 5 20 flip 1028
+DMI 5 20 1.5 1028
+DMI 5 20 2.0 1028
+DMI 5 25 flip 733
+DMI 5 25 1.5 733
+DMI 5 25 2.0 733
+RSI 15 (2, 7, 14) mr 450
+RSI 15 (2, 7, 14) 1.5 450
+RSI 15 (3, 7, 14) mr 283
+RSI 15 (3, 7, 14) 1.5 283
+DMI 15 20 flip 409
+DMI 15 20 1.5 409
+DMI 15 20 2.0 409
+DMI 15 25 flip 310
+DMI 15 25 1.5 310
+DMI 15 25 2.0 310
+strat  var                
+DMI    DMI adx>20 15m 1.5      409
+       DMI adx>20 15m 2.0      409
+       DMI adx>20 15m flip     409
+       DMI adx>20 5m 1.5      1028
+       DMI adx>20 5m 2.0      1028
+       DMI adx>20 5m flip     1028
+       DMI adx>25 15m 1.5      310
+       DMI adx>25 15m 2.0      310
+       DMI adx>25 15m flip     310
+       DMI adx>25 5m 1.5       733
+       DMI adx>25 5m 2.0       733
+       DMI adx>25 5m flip      733
+ICT    AM+PM 1.5R              108
+       AM+PM 2.0R              108
+       PM 1.5R                  60
+       PM 2.0R                  60
+RSI    TriRSI2 15m 1.5         450
+       TriRSI2 15m mr          450
+       TriRSI2 5m 1.5         1219
+       TriRSI2 5m mr          1219
+       TriRSI3 15m 1.5         283
+       TriRSI3 15m mr          283
+       TriRSI3 5m 1.5          755
+       TriRSI3 5m mr           755
+SMC    1m+ST15 R1.5            845
+       1m+ST15 R2.0            845
+       1m+ST15+EMA200 R1.5     665
+       1m+ST15+EMA200 R2.0     665
+       5m+ST15 R1.5            185
+       5m+ST15 R2.0            185
+       5m+ST15+EMA200 R1.5     159
+       5m+ST15+EMA200 R2.0     159
