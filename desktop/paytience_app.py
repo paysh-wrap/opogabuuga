@@ -34,9 +34,10 @@ def ui_url() -> str:
     try:
         from app.updater import load_version
 
-        commit = load_version().commit
-        if commit and commit != "dev":
-            return f"http://paytience-{commit[:7]}.localhost:8000"
+        v = load_version()
+        if v.commit and v.commit != "dev":
+            stamp = "".join(ch for ch in v.built_at if ch.isdigit())[:12]  # rebuilds of one commit get a new name too
+            return f"http://paytience-{v.commit[:7]}{'-' + stamp if stamp else ''}.localhost:8000"
     except Exception:  # noqa: BLE001 - never block startup on a name
         return URL
     return URL

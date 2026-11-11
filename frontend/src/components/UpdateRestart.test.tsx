@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
-import { UpdateBanner } from "./UpdatePanel";
+import { UpdateBanner, uiOrigin } from "./UpdatePanel";
 
 const status = {
   version: { commit: "abcdef1234", built_at: "" },
@@ -38,5 +38,16 @@ describe("UpdateBanner install", () => {
     btn.click();
     expect(await screen.findByTestId("update-restart-notice")).toBeTruthy();
     expect(screen.getByText(/NEW Paytience server is starting/i)).toBeTruthy();
+  });
+});
+
+describe("uiOrigin (D103 per-build server name)", () => {
+  const loc = { port: "8000", protocol: "http:" };
+  it("builds a unique name per commit and per rebuild, matching the desktop app", () => {
+    expect(uiOrigin("abcdef1234567", "2026-11-11T08:56:48Z", loc)).toBe("http://paytience-abcdef1-202611110856.localhost:8000/");
+    expect(uiOrigin("abcdef1234567", "2026-11-11T09:30:00Z", loc)).not.toBe(uiOrigin("abcdef1234567", "2026-11-11T08:56:48Z", loc));
+    expect(uiOrigin("abcdef1234567", "", loc)).toBe("http://paytience-abcdef1.localhost:8000/");
+    expect(uiOrigin("dev", "", loc)).toBeNull();
+    expect(uiOrigin(undefined, undefined, loc)).toBeNull();
   });
 });

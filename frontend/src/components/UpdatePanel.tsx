@@ -39,6 +39,13 @@ function useUpdates() {
 }
 
 /** After "Install now": explains what happens and reloads the page by itself once the NEW server answers. */
+/** D103: same name the desktop app opens (desktop/paytience_app.py ui_url): paytience-<commit7>-<built_at digits>.localhost. */
+export function uiOrigin(commit?: string, builtAt?: string, loc: { port: string; protocol: string } = window.location): string | null {
+  if (!commit || commit === "dev") return null;
+  const stamp = (builtAt ?? "").replace(/\D/g, "").slice(0, 12);
+  return `${loc.protocol}//paytience-${commit.slice(0, 7)}${stamp ? "-" + stamp : ""}.localhost:${loc.port || "8000"}/`;
+}
+
 function RestartNotice() {
   const [waited, setWaited] = useState(0);
   useEffect(() => {
@@ -51,7 +58,10 @@ function RestartNotice() {
         const r = await fetch("/api/health", { cache: "no-store" });
         if (r.ok && sawDown) {
           stopped = true;
-          window.location.reload();
+          const b = ((await r.json().catch(() => ({}))) as { build?: { commit?: string; built_at?: string } }).build;
+          const target = uiOrigin(b?.commit, b?.built_at, window.location);
+          if (target) window.location.href = target; // D103: the NEW build lives under its own browser name
+          else window.location.reload();
         }
       } catch {
         sawDown = true; // old server is gone; the new one is starting
