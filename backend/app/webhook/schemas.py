@@ -65,7 +65,7 @@ class OrderFlowFields(_M):
     """D95: one order-flow signal from pine/Paytience_OrderFlow.pine. stop/target are informational — the engine
     rebuilds them (engine/order_flow.py)."""
 
-    kind: Literal["ABSORPTION", "DELTA_DIVERGENCE", "STACKED_IMBALANCE", "SWEEP", "POC_MAGNET"]
+    kind: Literal["ABSORPTION", "DELTA_DIVERGENCE", "STACKED_IMBALANCE", "SWEEP", "POC_MAGNET", "ZONE"]
     entry: Decimal = Field(gt=0)
     defended: Decimal = Field(gt=0)
     stop: Decimal | None = None
@@ -102,6 +102,20 @@ class OrderFlowFields(_M):
         | None
     ) = None
     target_level: Decimal | None = Field(default=None, gt=0)
+    # D111 ATR-zone type (kind ZONE): the event zone is an iceberg PROXY (footprint absorption / large volume)
+    zone_signal: Literal["EVENT", "POSITION", "REVERSION"] | None = None
+    event_zone_hi: Decimal | None = Field(default=None, gt=0)
+    event_zone_lo: Decimal | None = Field(default=None, gt=0)
+    event_kind: Literal["ABSORPTION", "LARGE_VOLUME"] | None = None
+    event_time: int | None = Field(default=None, gt=1_500_000_000_000, lt=4_000_000_000_000)
+    event_size: Decimal | None = Field(default=None, ge=0)
+    atr5: Decimal | None = Field(default=None, gt=0)
+    rev_level: int | None = Field(default=None, ge=1, le=3)
+    prior_event_hi: Decimal | None = Field(default=None, gt=0)
+    prior_event_lo: Decimal | None = Field(default=None, gt=0)
+    rvol: Decimal | None = Field(default=None, ge=0)
+    range5_atr: Decimal | None = Field(default=None, ge=0)
+    tick: int | None = Field(default=None, ge=-5000, le=5000)
 
 
 class WebhookPayload(_M):

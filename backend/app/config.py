@@ -393,6 +393,54 @@ class AmtCfg(_M):
         return self
 
 
+class ZoneAtrCfg(_M):
+    """D111 (user 2026-11-11 "use all info in the transcript to finalize order flow trading"): the Scott / Chart
+    Fanatics ATR-zone framework (docs/results/session18/order_flow/ICEBERG_ATR_RULES.md) as a SEPARATE Order Flow type
+    (Order Flow page + Strategy page toggle, default OFF). The iceberg / stop event is an iceberg PROXY (no MBO data):
+    a footprint absorption / large-volume cluster from pine/Paytience_OrderFlow.pine (kind ZONE). UNVERIFIED.
+    POSITION: entry entry_atr_pct × ATR(5m) outside the event zone, stop back through the zone + stop_atr_pct × ATR,
+    trail ONLY to a new same-direction event (never breakeven). REVERSION: entry at 1/2/3 ATR away, target the zone,
+    stop at the next ATR line (R:R floor rr_min still applies → in practice the 2/3-ATR levels); exit on an opposing
+    event. Engine: engine/zone_atr.py (codes OF_ZONE_*)."""
+
+    enabled: bool = False
+    modes: list[Literal["POSITION", "REVERSION"]] = ["POSITION"]
+    exclusive: bool = False  # True = only ZONE alerts trade while on (AR-type alerts skip OF_ZONE_EXCLUSIVE)
+    entry_atr_pct: D = D("1.15")
+    stop_atr_pct: D = D("1.15")
+    reversion_levels: list[int] = [1, 2, 3]
+    a_plus_only: bool = False  # REVERSION A+: entry in front of a PRIOR event only
+    min_event_size: dict[Literal["MNQ", "MGC"], int] = {"MNQ": 150, "MGC": 150}  # proxy contracts
+    max_risk_ticks: int = Field(default=400, ge=8, le=1000)  # the ATR stop is wide by design; Lucid risk still sizes
+    dead_zone_filter: bool = True
+    dead_zone: tuple[str, str] = ("11:15", "13:30")  # ET (10:15–12:30 CT)
+    dead_zone_min_rvol: D = D("1.5")
+    last_minutes_filter: bool = True
+    rth_close: str = "16:00"
+    last_minutes: int = Field(default=10, ge=1, le=60)
+    price_change_confirm: bool = True  # REVERSION: 5-min range ≥ price_change_pct × ATR(5m)
+    price_change_pct: D = D("0.70")
+    tick_filter: bool = True  # program day: |TICK| ≥ tick_extreme against the fade → no reversion (off without TICK)
+    tick_extreme: int = Field(default=1000, ge=500, le=2000)
+
+    @model_validator(mode="after")
+    def _check(self) -> ZoneAtrCfg:
+        if not self.modes or len(set(self.modes)) != len(self.modes):
+            raise ValueError("order_flow.zone_atr: modes needs POSITION and/or REVERSION, no duplicates")
+        if not (D("1") <= self.entry_atr_pct <= D("2")) or not (D("1") <= self.stop_atr_pct <= D("2")):
+            raise ValueError("order_flow.zone_atr: entry/stop ATR % within 100–200%")
+        if not self.reversion_levels or any(k not in (1, 2, 3) for k in self.reversion_levels):
+            raise ValueError("order_flow.zone_atr: reversion_levels ⊆ {1, 2, 3}")
+        if any(v < 1 for v in self.min_event_size.values()):
+            raise ValueError("order_flow.zone_atr: min_event_size ≥ 1")
+        times = [*self.dead_zone, self.rth_close]
+        if not all(re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", t) for t in times) or self.dead_zone[0] >= self.dead_zone[1]:
+            raise ValueError("order_flow.zone_atr: times are HH:MM, dead_zone start < end")
+        if not (D("1") <= self.dead_zone_min_rvol <= D("3")) or not (D("0.3") <= self.price_change_pct <= D("1.5")):
+            raise ValueError("order_flow.zone_atr: dead_zone_min_rvol 1–3, price_change_pct 0.3–1.5")
+        return self
+
+
 class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
     alerts) — UNVERIFIED (no order-flow backtest: no tick data); D102: not forced paper-only (contracts stay 1).
@@ -416,6 +464,7 @@ class OrderFlowCfg(_M):
     # existing bias job runs ta_advisor_lead_min before the earliest Order Flow entry window start (ET). Advisory only:
     # an opposite ORDER_FLOW signal is annotated + warned; it is skipped (OF_TA_DISAGREES) only when
     # ta_advisor_blocks is true AND the AI-accuracy ledger has proven the call (ai_gate_min_accuracy).
+    zone_atr: ZoneAtrCfg = ZoneAtrCfg()  # D111: ATR-zone type (iceberg PROXY), separate toggle
     amt: AmtCfg = AmtCfg()  # D110: AMT+ context / location gates + level target (Strategy-page button)
     ta_advisor: bool = False
     ta_advisor_blocks: bool = False
