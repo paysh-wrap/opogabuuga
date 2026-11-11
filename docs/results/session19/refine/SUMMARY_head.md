@@ -1,0 +1,24 @@
+# Session 19 - refine all kept strategies (research only; no app code, config, git or tests touched)
+
+Pick on IS 2019-05-06..2025-11-05 (6.5 yr), judge on the last 12 months 2025-11-06..2026-11-06 (J). Cached data only (Databento locked); MNQ + MGC; **no MES cache exists**. 1 micro, realistic costs, Lucid Pro 25K and 50K eval sims. Full tables and protocol below.
+
+## Verdicts (plain)
+
+| Strategy | Result | Verdict |
+|---|---|---|
+| **NOISE preset C** (baseline: IS 1000 tr / 47.5 % / PF 1.37 / +$17.9 per trade; J 149 tr / 55.0 % / PF 1.53 / +$39.3; Pro 25K boot pass/bust IS 70/30, J 62/38; Pro 50K IS 69/31, J 58/42) | 16 refinements + 1 combination tested (dead zone, relative volume, prior-value-area lock / acceptance / skip-inside, compression skip, min band, VWAP side, trade caps, Monday skip). Only **skip Mondays** beats the baseline in IS *and* J: IS PF 1.44, $21.1/tr, 25K pass/bust 76/24; J PF 1.72, win 59.5 %, $50.3/tr, net +$6,087, 25K 69/31, 50K 68/32. Paired J net CI [-2.6k, +2.2k] includes 0 and the effect is concentrated in 2024 (Monday PF 0.46) while Mondays were good in 2021, 2022, 2025, with no market mechanism. | **ADOPT skip-Monday (weak evidence; paper/shadow first).** Everything else **reject**. |
+| Near misses | AMT+ open-context lock (R3c): J PF 1.68, 25K 69/31 but IS $/tr 16.6 < 17.9 and IS 25K 66/34 < 70/30 -> reject. Relative volume >= IS p20 (R2): IS better (PF 1.39, 74/26), J flat (PF 1.56, 61/39, net -6 %) -> reject (neutral). Monday + rel-vol combo: best risk numbers (IS 80/20, J 67/33) but J net -5 % and 30 % fewer trades -> reject by the profit rule. Dead-zone skip, compression skip, VWAP side, min-sigma, max 1-2 trades: all worse in J or IS. | reject |
+| **PM_FADE** (baseline: stand-alone IS 652 tr / 57.5 % / PF 1.12 / +$5.4; J 91 tr / 59.3 % / PF 1.52 / +$29.4; random side IS PF 1.00, J 0.94) | 11 refinements (band 2.5/3.0, rel-vol <= or >= median, trend-day skips, start 13:31, VA context, stop $150, no entries after 15:00). None passes. Best risk-adjusted: rel-vol <= 0.93 (IS PF 1.14, J PF 1.98 on 41 trades, combined 25K 69/31 IS, 70/30 J) but net profit drops ~48 %/45 % in IS/J. **Warning:** adding the baseline fade to NOISE *lowers* IS pass (70.5 -> 65 %) and only helps in J (62 -> 68 %): its 6.5-year edge is thin (PF 1.12 vs random 1.00). | Keep as is (paper); **reject all refinements** |
+| **AI Duo** | Not backtestable (live LLM). Simulated direction-call bands on NOISE: hard filter breaks even on profit only at ~70-75 % accuracy (IS and J); at 50-55 % it halves the trades and profit. | Skip; no change (advisory until ledger >= 70 %, D55) |
+| **NOISE + AI 50/50 split** | Not re-run; session-17 study stands (beats NOISE alone only at AI >= 60 % on 50K/100K, ~70 % on 25K/150K). | no change |
+| **Order Flow: AMT+ (context lock), ATR-zone reversion (1/2 ATR, 2R-floor stop), AR Model (7.5-yr rerun)** on estimated bars, MNQ + MGC | IS PF 0.86-1.12 for every MNQ variant and 0.5-1.5 (mostly < 1) for MGC variants; random sides at the same moments score the same (IS PF 0.8-1.0). Context lock lifts IS PF a little (MGC 0.92 -> 1.16-1.48 on 60-226 trades, MNQ 0.90 -> 0.95) but J fails on MGC (0.52-0.78) and the MNQ J gains (1.5) are matched by random J PF 1.0-1.4. AR full model (ELPC): IS PF 0.89-1.40, J 0.18-1.39 on 10-30 trades. | **Reject all; Order Flow stays OFF / SHADOW** (needs real tick data) |
+| Scaling sanity (NOISE preset C, bootstrap, all 7.5 yr) | See section 4: bust at plan sizes 25K x1 33 %, 50K x2 36 %, 100K x3 37 % (x4 46 %), 150K x5 42 %. Lower bust: 50K x1 10 %, 100K x2 18 %, 150K x3 18 %. Default size table (25K:1, 50K:2, 100K:2, 150K:3) is the safe diagonal; the 100K 3-4 and 150K 5 plan raises bust about 2x. | Do not exceed 2 micros on 100K, 3 on 150K |
+
+## Exact parameters of the one adopted change
+**NOISE skip-Monday:** do not generate NOISE entries on days whose New York trade date is a Monday (`dow == 0`; day-level skip before the first 10:00 check; nothing else changes: preset C, $250 stop, +100 pt lock -> entry +10, hourly checks 10:00-15:00, max 3/day, roll guard 1.5 %). If a position is somehow open from the prior session nothing special applies (NOISE is flat by 16:00). Not applied anywhere in the repo; needs the user's decision and a paper run (the user's CLAUDE.md rule: change only if it improves held-out data - it does, but the evidence is small and year-concentrated).
+
+## Caveats
+J has only 149 NOISE trades (121 after the Monday skip); a random-direction version of NOISE passes 19-64 % of J bootstraps depending on seed, so J eval differences of +/-5 points are noise. Sessions 9-18 already looked at the same 2024-2026 data, so J is not virgin. News blackouts and intraday MLL touches are not modelled (session-9 caveat). Order-flow numbers are for ESTIMATED delta only.
+
+---
+
