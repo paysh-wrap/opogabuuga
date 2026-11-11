@@ -26,6 +26,7 @@ from app.config import RulesConfig
 from app.engine import ai_duo as DU
 from app.engine import noise as N
 from app.engine import open_drive as OD
+from app.engine import order_flow as OF
 from app.engine import pm_fade as PF
 from app.engine import structure_filter as SF
 from app.engine import ta_mgc as TM
@@ -371,6 +372,72 @@ def run_open_drive(
         },
         plan=("OPEN_DRIVE", st.entry, st.stop, st.take_profit, st.risk_pts, st.rr),
     )
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
+def run_order_flow(
+    s: Session, *, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, symbol: str, payload: Any
+) -> StrategyOutput:
+    """D95: one ORDER_FLOW webhook alert (pine/Paytience_OrderFlow.pine) → at most one paper-only signal. Commits.
+    The plan is rebuilt by engine/order_flow.py; G1 (window/news/calendar), a signal-level hedge lock and the daily
+    cap are checked here; sizing, DLL, consistency, household hedge lock and paper-only are the controller's."""
+    out = StrategyOutput()
+    st = rules.strategy
+    cfg = st.order_flow_cfg
+    of = payload.order_flow
+    if not st.order_flow or symbol not in cfg.symbols or of is None or payload.direction not in ("LONG", "SHORT"):
+        return out
+    at = datetime.fromtimestamp(payload.bar_time_ms / 1000, tz=ET)
+    day = at.date().isoformat()
+    direction = Direction(payload.direction)
+    inst = rules.instrument(symbol)
+    res = OF.build_plan(
+        kind=of.kind,
+        direction=direction,
+        entry=of.entry,
+        defended=of.defended,
+        tick=inst.tick,
+        buffer_ticks=cfg.buffer_ticks,
+        rr=cfg.rr,
+        rr_min=cfg.rr_min,
+        min_risk_ticks=cfg.min_risk_ticks,
+        max_risk_ticks=cfg.max_risk_ticks,
+        alert_stop=of.stop,
+    )
+    if isinstance(res, OF.OrderFlowSkip):  # no valid plan → no signal row; the reason code is audited
+        audit.record(
+            s, clock, "engine", "order_flow.skip", f"{symbol}-OF-{day}", {"code": res.code, "detail": res.detail}
+        )
+        s.commit()
+        return out
+    today = _today_signals(s, symbol, "OF", day)
+    gate = _gate(rules, symbol, at, calendar)
+    if gate[0] and any(_holds_position(s, x) for x in today):
+        gate = (False, "OF_POSITION_OPEN", "one order-flow position at a time")
+    if gate[0] and sum(1 for x in today if x.status == "PASS") >= cfg.max_per_day:
+        gate = (False, "OF_DAILY_CAP", f"max {cfg.max_per_day} per day")
+    if gate[0]:
+        for tag in ("NOISE", "DUO", "OD", "FADE", "AI"):
+            lock = hedge_lock_vs(s, symbol, tag, day, direction)
+            if lock is not None:
+                gate = (False, "HEDGE_LOCK", lock.model_key)
+                break
+    key = f"{symbol}-OF-{day}-{payload.bar_time_ms}-{direction.value}"
+    if s.execute(select(Signal.id).where(Signal.model_key == key)).first() is not None:
+        return out  # same alert twice (one entry per model)
+    new = _new_signal(
+        s,
+        clock,
+        symbol=symbol,
+        key=key,
+        direction=direction,
+        at=at,
+        gate=gate,
+        features={"kind": res.kind, "defended": str(res.defended), "paper_only": cfg.paper_only, "unverified": True},
+        plan=("ORDER_FLOW", res.entry, res.stop, res.take_profit, res.risk_pts, res.rr),
+    )
+    s.commit()
     out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
 

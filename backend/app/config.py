@@ -313,6 +313,31 @@ class OpenDriveCfg(_M):
     paper_only: bool = True
 
 
+class OrderFlowCfg(_M):
+    """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
+    alerts) — UNVERIFIED (no order-flow backtest: no tick data) → PAPER accounts only, always (validator)."""
+
+    symbols: list[str] = ["MNQ"]
+    buffer_ticks: int = Field(default=1, ge=1, le=20)  # stop this many ticks beyond the defended level
+    rr: D = D("2.0")  # target = 2R
+    rr_min: D = D("1.5")  # firm floor (D49): config refuses lower
+    min_risk_ticks: int = Field(default=8, ge=1)
+    max_risk_ticks: int = Field(default=120, ge=1)
+    max_per_day: int = Field(default=3, ge=1, le=10)
+    contracts: int = 1
+    paper_only: bool = True
+
+    @model_validator(mode="after")
+    def _check(self) -> OrderFlowCfg:
+        if self.rr_min < D("1.5") or self.rr < self.rr_min:
+            raise ValueError("order_flow: rr_min ≥ 1.5 and rr ≥ rr_min")
+        if self.min_risk_ticks > self.max_risk_ticks:
+            raise ValueError("order_flow: min_risk_ticks ≤ max_risk_ticks")
+        if not self.paper_only or self.contracts != 1:
+            raise ValueError("order_flow: UNVERIFIED — paper_only must stay true and contracts 1 (D95)")
+        return self
+
+
 class AiBiasCfg(_M):
     """D56 (user button, 2026-11-09): trade ONLY the daily TradingAgents + Vibe-Trading call on MNQ — NOT verified.
     The LLM tools cannot be back-tested (spec §15); the hindsight ceiling is in docs/results/session10. Enters at the
@@ -546,6 +571,7 @@ class StrategyCfg(_M):
     ai_bias: bool = False
     pm_fade: bool = False
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
+    order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, paper only, default OFF)
     # D92: "NOISE + AI Duo - split risk 50/50" button (default OFF): with NOISE and AI Duo both on, each side
     # trades half size (rounded down, min 1) and may use half of the daily loss limit. AI Duo stays paper-only.
     # Tighten-only.
@@ -560,6 +586,7 @@ class StrategyCfg(_M):
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
+    order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     structure_filters: StructureFilterCfg = StructureFilterCfg()
     lunqfx_structure: LunqStructureCfg = LunqStructureCfg()

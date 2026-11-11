@@ -139,4 +139,25 @@ CATALOG: list[dict[str, object]] = [
         "there NOISE still trades at half size.",
         "also": ["strategy.noise", "strategy.ai_duo"],
     },
+    {
+        "key": "order_flow",
+        "name": "Order Flow — TradingView order-flow alerts (MNQ) — UNVERIFIED · paper only",
+        "source": "D95: Pine indicator 'Paytience Order Flow' (lower-timeframe up/down volume delta, cumulative delta, "
+        "session POC / value area): absorption, delta divergence, stacked-imbalance proxy, liquidity sweep, POC magnet "
+        "→ webhook alert; stop 1 tick beyond the defended level, 2R target, 1 micro",
+        "verified": False,
+        "status": "UNVERIFIED · PAPER ONLY",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "NOT tested: no order-flow backtest exists (tick data unavailable, session 18). TradingView volume "
+        "delta is an approximation of real bid/ask order flow.",
+        "note": "Default OFF. Needs the 'Paytience Order Flow' alert on a 1-minute MNQ1! chart. The app rebuilds stop "
+        "and target itself (never trusts the alert's prices); window, news, hedge lock, DLL, consistency and flat "
+        "times all still apply. Never sends an order to a non-paper account.",
+    },
 ]

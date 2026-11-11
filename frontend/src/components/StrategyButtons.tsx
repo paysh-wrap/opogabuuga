@@ -99,6 +99,18 @@ export default function StrategyButtons() {
               <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
             </dl>
             <p className="mt-2 text-xs text-blue">{s.note}</p>
+            {s.key === "order_flow" && (
+              <div className="mt-2 text-xs" data-testid="order-flow-setup">
+                <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED · paper only</span>
+                <p className="mt-1 text-blue">Reads TradingView volume delta, cumulative delta and the session POC / value area; trades absorption, delta divergence, stacked imbalances, liquidity sweeps and POC re-entries with a stop 1 tick beyond the defended level and a 2R target. No backtest exists.</p>
+                <ol className="mt-1 list-decimal pl-4 text-blue">
+                  <li>TradingView: open a <b className="text-gold">1-minute MNQ1!</b> chart, add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
+                  <li>Paste the webhook secret (Connections page) into the indicator settings.</li>
+                  <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
+                  <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
+                </ol>
+              </div>
+            )}
             {s.key === "noise" && !w.ready && (
               <p className="mt-1 text-xs text-gold" data-testid="noise-warmup">Warm-up: {w.sessions}/{w.needed} sessions of TradingView 1-minute MNQ bars stored — NOISE starts trading after that.</p>
             )}

@@ -1,0 +1,198 @@
+//@version=6
+// Paytience Order Flow — ORIGINAL code for the Paytience app (D95). Not derived from any third-party script.
+// Shared for PERSONAL USE ONLY. UNVERIFIED: no order-flow backtest exists (no tick data); the app trades it on PAPER
+// accounts only. TradingView "volume delta" here is an approximation built from lower-timeframe bars (up-volume vs
+// down-volume of each intrabar), not true bid/ask aggressor data.
+//
+// Setup: MNQ1! chart, 1-minute. Add this indicator, paste the webhook secret, create an alert:
+// Condition "Paytience Order Flow" → "Any alert() function call", "Once per bar close", Webhook URL = your Paytience
+// URL (.../api/webhook/tradingview). The Paytience_Bridge heartbeat alert must stay on as well (feed + flat checks).
+//
+// Signals (one per closed bar at most; first match wins):
+//  ABSORPTION        bar tests recent liquidity with heavy opposite delta but closes back inside → fade
+//  DELTA_DIVERGENCE  new N-bar extreme while cumulative session delta does NOT make a new extreme → fade
+//  STACKED_IMBALANCE ≥ N consecutive intrabars with up/down volume ≥ ratio (proxy for stacked imbalances) → follow
+//  SWEEP             bar runs through recent liquidity with heavy volume and same-side delta, closes beyond → follow
+//  POC_MAGNET        price re-enters the session value area with delta toward the POC → follow toward POC
+// Alert JSON: entry (bar close), defended level, stop (beyond the defended level, tick-rounded), 2:1 target.
+// The app rebuilds stop/target itself (backend/app/engine/order_flow.py) and never trusts these prices.
+indicator("Paytience Order Flow", overlay = true, max_labels_count = 200)
+
+secret    = input.string("", "Webhook secret")
+ltf       = input.timeframe("5S", "Lower timeframe for volume delta")
+liqLen    = input.int(20, "Liquidity lookback (bars)", minval = 2)
+avgLen    = input.int(20, "Average length (volume / delta)", minval = 2)
+absK      = input.float(1.5, "Absorption: |delta| ≥ k × average |delta|", minval = 0.1)
+sweepK    = input.float(2.0, "Sweep: volume ≥ k × average volume", minval = 0.1)
+imbRatio  = input.float(3.0, "Imbalance ratio (up:down)", minval = 1.0)
+stackN    = input.int(3, "Stacked imbalances needed", minval = 2)
+rowTicks  = input.int(4, "Profile row size (ticks)", minval = 1)
+vaPct     = input.float(70.0, "Value area %", minval = 10, maxval = 100)
+bufTicks  = input.int(1, "Stop buffer beyond defended level (ticks)", minval = 1)
+showMarks = input.bool(true, "Show markers")
+
+if timeframe.period != "1"
+    runtime.error("Paytience Order Flow needs a 1-minute chart")
+
+// ---------- volume delta from lower-timeframe bars ----------
+array<float> lo_o = request.security_lower_tf(syminfo.tickerid, ltf, open)
+array<float> lo_c = request.security_lower_tf(syminfo.tickerid, ltf, close)
+array<float> lo_v = request.security_lower_tf(syminfo.tickerid, ltf, volume)
+
+float upV = 0.0
+float dnV = 0.0
+int run = 0
+int runDir = 0
+int bestRun = 0
+int bestDir = 0
+int n = array.size(lo_v)
+if n > 0
+    for i = 0 to n - 1
+        float o = array.get(lo_o, i)
+        float c = array.get(lo_c, i)
+        float v = array.get(lo_v, i)
+        float u = c > o ? v : c < o ? 0.0 : v / 2
+        float d = v - u
+        upV += u
+        dnV += d
+        int dir = u >= imbRatio * math.max(d, 1e-10) and u > 0 ? 1 : d >= imbRatio * math.max(u, 1e-10) and d > 0 ? -1 : 0
+        if dir != 0 and dir == runDir
+            run += 1
+        else
+            run := dir != 0 ? 1 : 0
+            runDir := dir
+        if run > bestRun
+            bestRun := run
+            bestDir := runDir
+float delta = upV - dnV
+
+// ---------- session cumulative delta + volume profile (POC / value area) ----------
+bool newSess = timeframe.change("D")
+var float cumD = 0.0
+var map<float, float> prof = map.new<float, float>()
+if newSess
+    cumD := 0.0
+    map.clear(prof)
+cumD += delta
+float row = rowTicks * syminfo.mintick
+float bucket = math.floor(hlc3 / row) * row
+map.put(prof, bucket, (map.contains(prof, bucket) ? map.get(prof, bucket) : 0.0) + volume)
+
+float poc = na
+float vah = na
+float val = na
+array<float> keys = map.keys(prof)
+int nk = array.size(keys)
+if nk > 0
+    array.sort(keys, order.ascending)
+    float total = 0.0
+    int pi = 0
+    float pv = -1.0
+    for i = 0 to nk - 1
+        float kv = map.get(prof, array.get(keys, i))
+        total += kv
+        if kv > pv
+            pv := kv
+            pi := i
+    float acc = pv
+    int lo = pi
+    int hi = pi
+    while acc < total * vaPct / 100 and (lo > 0 or hi < nk - 1)
+        float below = lo > 0 ? map.get(prof, array.get(keys, lo - 1)) : -1.0
+        float above = hi < nk - 1 ? map.get(prof, array.get(keys, hi + 1)) : -1.0
+        if above >= below
+            hi += 1
+            acc += above
+        else
+            lo -= 1
+            acc += below
+    poc := array.get(keys, pi) + row / 2
+    vah := array.get(keys, hi) + row
+    val := array.get(keys, lo)
+
+// ---------- signal rules (closed bars only, no lookahead) ----------
+float liqHi = ta.highest(high, liqLen)[1]
+float liqLo = ta.lowest(low, liqLen)[1]
+float cdLo = ta.lowest(cumD, liqLen)[1]
+float cdHi = ta.highest(cumD, liqLen)[1]
+float avgAbsD = ta.sma(math.abs(delta), avgLen)
+float avgVol = ta.sma(volume, avgLen)
+bool heavyD = not na(avgAbsD) and math.abs(delta) >= absK * avgAbsD
+bool heavyV = not na(avgVol) and volume >= sweepK * avgVol
+
+string kind = ""
+int sig = 0
+float defended = na
+if barstate.isconfirmed and not na(liqHi) and not na(liqLo)
+    if low <= liqLo and close > liqLo and delta < 0 and heavyD and close >= hl2
+        kind := "ABSORPTION"
+        sig := 1
+        defended := low
+    else if high >= liqHi and close < liqHi and delta > 0 and heavyD and close <= hl2
+        kind := "ABSORPTION"
+        sig := -1
+        defended := high
+    else if low < liqLo and not na(cdLo) and cumD > cdLo and close > open
+        kind := "DELTA_DIVERGENCE"
+        sig := 1
+        defended := low
+    else if high > liqHi and not na(cdHi) and cumD < cdHi and close < open
+        kind := "DELTA_DIVERGENCE"
+        sig := -1
+        defended := high
+    else if bestRun >= stackN and bestDir == 1 and close > open
+        kind := "STACKED_IMBALANCE"
+        sig := 1
+        defended := low
+    else if bestRun >= stackN and bestDir == -1 and close < open
+        kind := "STACKED_IMBALANCE"
+        sig := -1
+        defended := high
+    else if high > liqHi and close > liqHi and heavyV and delta > 0
+        kind := "SWEEP"
+        sig := 1
+        defended := liqHi
+    else if low < liqLo and close < liqLo and heavyV and delta < 0
+        kind := "SWEEP"
+        sig := -1
+        defended := liqLo
+    else if not na(val) and close[1] < val[1] and close > val and delta > 0 and poc > close
+        kind := "POC_MAGNET"
+        sig := 1
+        defended := math.min(low, low[1])
+    else if not na(vah) and close[1] > vah[1] and close < vah and delta < 0 and poc < close
+        kind := "POC_MAGNET"
+        sig := -1
+        defended := math.max(high, high[1])
+
+// ---------- plan + webhook alert ----------
+f_px(float x) => str.tostring(x, format.mintick)
+
+float entry = close
+float stop = na
+float target = na
+if sig != 0
+    float raw = defended - sig * bufTicks * syminfo.mintick
+    stop := sig == 1 ? math.floor(raw / syminfo.mintick) * syminfo.mintick : math.ceil(raw / syminfo.mintick) * syminfo.mintick
+    float risk = math.abs(entry - stop)
+    if risk <= 0
+        sig := 0
+    else
+        float rawT = entry + sig * 2 * risk
+        target := sig == 1 ? math.floor(rawT / syminfo.mintick) * syminfo.mintick : math.ceil(rawT / syminfo.mintick) * syminfo.mintick
+
+if sig != 0
+    string dir = sig == 1 ? "LONG" : "SHORT"
+    alert('{"v":1,"secret":"' + secret + '","id":"' + syminfo.ticker + "-TIGHT-" + str.tostring(time_close) +
+          "-ORDER_FLOW-" + dir + '","symbol":"' + syminfo.ticker + '","profile":"TIGHT","tf":"' + timeframe.period +
+          '","bar_time_ms":' + str.tostring(time_close) + ',"event":"ORDER_FLOW","direction":"' + dir +
+          '","order_flow":{"kind":"' + kind + '","entry":' + f_px(entry) + ',"defended":' + f_px(defended) +
+          ',"stop":' + f_px(stop) + ',"target":' + f_px(target) + ',"delta":' + str.tostring(delta, "#.##") +
+          ',"cum_delta":' + str.tostring(cumD, "#.##") + ',"poc":' + (na(poc) ? "null" : f_px(poc)) + "}}",
+          alert.freq_once_per_bar_close)
+
+plotshape(showMarks and sig == 1, "Order flow LONG", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)
+plotshape(showMarks and sig == -1, "Order flow SHORT", shape.triangledown, location.abovebar, color.new(#D4AF37, 0), size = size.tiny)
+plot(poc, "Session POC", color.new(#D4AF37, 0), style = plot.style_linebr)
+plot(vah, "Value area high", color.new(#93C5FD, 40), style = plot.style_linebr)
+plot(val, "Value area low", color.new(#93C5FD, 40), style = plot.style_linebr)

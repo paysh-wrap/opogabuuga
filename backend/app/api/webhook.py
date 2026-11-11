@@ -102,9 +102,20 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                     exits_only=replay,
                 )
 
+        def order_flow() -> Any:  # D95: ORDER_FLOW alert → paper-only strategy signal (never the LunqFX engine)
+            from app.signals import strategy_service
+
+            with st.sessionmaker() as s:
+                return strategy_service.run_order_flow(
+                    s, rules=st.rules.rules, clock=st.clock, calendar=st.calendar, symbol=acc.symbol, payload=p
+                )
+
         exits: list[tuple[int, str]] = []
         try:
-            updates = [] if replay else await _run_sync(st, work)
+            if p.event == "ORDER_FLOW":
+                updates = [] if replay else (await _run_sync(st, order_flow)).updates
+            else:
+                updates = [] if replay else await _run_sync(st, work)
             if p.event == "HEARTBEAT" and p.price is not None:
                 strat = await _run_sync(st, strategies)
                 updates = [*updates, *strat.updates]

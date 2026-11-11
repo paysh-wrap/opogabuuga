@@ -50,4 +50,6 @@ def parse(body: bytes, rules: RulesConfig) -> tuple[WebhookPayload | None, Rejec
         return None, Rejection(422, "BAD_PAYLOAD", f"{p.event} needs fractal fields and a direction")
     if p.event in MSO_EVENTS and (p.mso is None or p.direction == "NONE"):
         return None, Rejection(422, "BAD_PAYLOAD", f"{p.event} needs mso fields and a direction")
+    if p.event == "ORDER_FLOW" and (p.order_flow is None or p.direction == "NONE"):
+        return None, Rejection(422, "BAD_PAYLOAD", "ORDER_FLOW needs order_flow fields and a direction")
     return p, None

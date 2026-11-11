@@ -552,6 +552,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "open_drive": r.strategy.open_drive,
         "ai_bias": r.strategy.ai_bias,
         "ai_duo": r.strategy.ai_duo,
+        "order_flow": r.strategy.order_flow,
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }

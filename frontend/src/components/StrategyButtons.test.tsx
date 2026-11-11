@@ -10,6 +10,7 @@ const resp: StrategiesResp = {
     { key: "lunqfx", name: "LunqFX fractal (original strategy)", source: "s", verified: false, status: "ORIGINAL", win_pct: 35, profit_factor: 1.07, usd_per_trade: 1.98, trades_per_week: 4.7, held_out_trades: 248, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "p", note: "n", enabled: false, setting: "strategy.lunqfx" },
     { key: "open_drive", name: "Opening-drive pullback (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: 58.3, profit_factor: 1.29, usd_per_trade: 9.95, trades_per_week: 0.75, held_out_trades: 108, pro25k_pass_pct: 4.8, pro25k_bust_pct: 8.8, period: "p", note: "n", enabled: false, setting: "strategy.open_drive" },
     { key: "noise_ai_split", name: "NOISE + AI Duo — split risk 50/50 — AI Duo paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
+    { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ) — UNVERIFIED · paper only", source: "s", verified: false, status: "UNVERIFIED · PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow" },
     { key: "ai_bias", name: "AI only — TradingAgents + Vibe-Trading (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: 1.35, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT back-testable", note: "n", enabled: false, setting: "strategy.ai_bias" },
   ],
   noise_warmup: { sessions: 3, needed: 10, ready: false },
@@ -40,7 +41,10 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("win-open_drive")).toHaveTextContent("58.3%");
   expect(screen.getByTestId("pass-lunqfx")).toHaveTextContent("—");
   expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
-  expect(screen.getAllByText("— (not testable)").length).toBe(2); // AI only + the D92 split card
+  expect(screen.getAllByText("— (not testable)").length).toBe(3); // AI only + the D92 split card + D95 order flow
+  expect(screen.getByTestId("order-flow-badge")).toHaveTextContent("UNVERIFIED · paper only"); // D95
+  expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("Paytience_OrderFlow.pine");
+  expect(screen.getByRole("button", { name: /OFF · Order Flow/ })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByTestId("noise-warmup")).toHaveTextContent("3/10");
   expect(screen.getByTestId("ai-ledger")).toHaveTextContent("ADVISORY");
   expect(screen.getByText(/MGC \(gold\) is off/)).toBeInTheDocument();

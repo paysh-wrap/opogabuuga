@@ -851,3 +851,22 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - Known gaps: ServeRunner itself is untested here (needs the real venv + a key); unit/integration tests use a fake
   runner. Answers are LLM output from a web-browsing agent (prompt-injection risk) and are not backtestable — advisory
   text only. The desktop app does not auto-install .venv-tr1.
+
+## D95 (user-approved 2026-11-11, session 18): Strategy button "Order Flow" — UNVERIFIED, PAPER accounts only (default OFF)
+- User: "build no matter what" although the order-flow study is blocked (docs/results/session18/order_flow/RESULTS.md:
+  Databento locked, no tick data). **No order-flow backtest exists**; the card shows no numbers and the badge
+  "UNVERIFIED · paper only".
+- Signal source: TradingView webhook only (non-negotiable #1). `pine/Paytience_OrderFlow.pine` (original code, PERSONAL
+  USE ONLY) computes per-bar volume delta from lower-timeframe up/down volume, session cumulative delta and a session
+  volume profile (POC / value area) and sends `event: "ORDER_FLOW"` alerts (id `<ticker>-TIGHT-<time_close>-ORDER_FLOW-
+  <DIRECTION>`, webhook secret) for ABSORPTION, DELTA_DIVERGENCE, STACKED_IMBALANCE (intrabar proxy), SWEEP, POC_MAGNET
+  with entry, defended level, stop and 2:1 target. TradingView delta is an approximation, not true aggressor data.
+- Backend: `engine/order_flow.py` (pure, Decimal) rebuilds the plan and never trusts alert prices: stop = defended −
+  sign × buffer_ticks (1) tick, rounded away from entry; risk 8–120 ticks; TP = 2R rounded toward entry; rr ≥ rr_min
+  (≥ 1.5, config refuses lower). Skip codes OF_UNKNOWN_SIGNAL / OF_BAD_PRICE / OF_LEVEL_WRONG_SIDE / STOP_INVALID /
+  STOP_TOO_TIGHT / STOP_TOO_WIDE / RR_BELOW_MIN (audited `order_flow.skip`), gate SKIPs OUTSIDE_WINDOW / NEWS_BLACKOUT /
+  CALENDAR_MISSING / HEDGE_LOCK / OF_POSITION_OPEN / OF_DAILY_CAP (3/day). `strategy_service.run_order_flow`, TradePlan
+  mode ORDER_FLOW, 1 micro fixed. `OrderFlowCfg` refuses paper_only=false or contracts≠1; the controller refuses any
+  non-paper account (PAPER_ONLY_STRATEGY, tested). DLL, consistency, household hedge lock, news/flat times unchanged.
+- Settings key `strategy.order_flow` (My Settings, versioned). Known gaps: the Pine script has static tests only (no
+  Pine compiler here) — compile it once in TradingView; no performance evidence of any kind.

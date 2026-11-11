@@ -56,6 +56,7 @@ STRATEGY_MODES = (
     "AI_BIAS",
     "PM_FADE",
     "AI_DUO",
+    "ORDER_FLOW",
 )  # D55: TradePlan modes of the fixed-size strategies
 RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
@@ -386,6 +387,7 @@ class Controller:
             "AI_BIAS": r.strategy.ai_bias_cfg.paper_only,
             "PM_FADE": r.strategy.pm_fade_cfg.paper_only,
             "AI_DUO": r.strategy.ai_duo_cfg.paper_only,  # D83: not back-testable → paper accounts only
+            "ORDER_FLOW": r.strategy.order_flow_cfg.paper_only,  # D95: UNVERIFIED → paper accounts only (forced)
         }
         if paper_only.get(strategy) and not a.is_sim:
             return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # D55/D56: not verified → paper accounts only

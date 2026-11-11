@@ -19,6 +19,7 @@ EventName = Literal[
     "MSO_CHOCH",
     "MSO_BOS",
     "MSO_DIV",
+    "ORDER_FLOW",
 ]
 FRACTAL_EVENTS = {"C1_SWEPT", "CISD", "MODEL_CONFIRMED", "T1_HIT", "T2_HIT", "MODEL_FAILED", "C3_CLOSED"}
 MSO_EVENTS = {"MSO_CHOCH", "MSO_BOS", "MSO_DIV"}
@@ -60,6 +61,20 @@ class MsoFields(_M):
     confirm_time_ms: int
 
 
+class OrderFlowFields(_M):
+    """D95: one order-flow signal from pine/Paytience_OrderFlow.pine. stop/target are informational — the engine
+    rebuilds them (engine/order_flow.py)."""
+
+    kind: Literal["ABSORPTION", "DELTA_DIVERGENCE", "STACKED_IMBALANCE", "SWEEP", "POC_MAGNET"]
+    entry: Decimal = Field(gt=0)
+    defended: Decimal = Field(gt=0)
+    stop: Decimal | None = None
+    target: Decimal | None = None
+    delta: Decimal | None = None
+    cum_delta: Decimal | None = None
+    poc: Decimal | None = None
+
+
 class WebhookPayload(_M):
     v: Literal[1]
     secret: SecretStr
@@ -73,3 +88,4 @@ class WebhookPayload(_M):
     price: Ohlcv | None = None
     fractal: FractalFields | None = None
     mso: MsoFields | None = None
+    order_flow: OrderFlowFields | None = None
