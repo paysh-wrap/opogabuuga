@@ -105,7 +105,12 @@ export default function StrategyButtons() {
               <div className="mt-2 text-xs" data-testid="order-flow-setup">
                 <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED · paper only</span>
                 <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only !== false && " · PAPER accounts only"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
-                <p className="mt-1 text-blue">Reads TradingView volume delta, cumulative delta and the session POC / value area; trades absorption, delta divergence, stacked imbalances, liquidity sweeps and POC re-entries with a stop 1 tick beyond the defended level and a 2R target. No backtest exists.</p>
+                <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
+                {s.ar_layers && (
+                  <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="order-flow-layers">
+                    {s.ar_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+                  </ol>
+                )}
                 <ol className="mt-1 list-decimal pl-4 text-blue">
                   <li>TradingView: open a <b className="text-gold">1-minute {(s.instruments ?? ["MNQ"]).map((x) => `${x}1!`).join(" / ")}</b> chart (one alert per chart), add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
                   <li>Paste the webhook secret (Connections page) into the indicator settings.</li>

@@ -10,7 +10,7 @@ const resp: StrategiesResp = {
     { key: "lunqfx", name: "LunqFX fractal (original strategy)", source: "s", verified: false, status: "ORIGINAL", win_pct: 35, profit_factor: 1.07, usd_per_trade: 1.98, trades_per_week: 4.7, held_out_trades: 248, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "p", note: "n", enabled: false, setting: "strategy.lunqfx" },
     { key: "open_drive", name: "Opening-drive pullback (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: 58.3, profit_factor: 1.29, usd_per_trade: 9.95, trades_per_week: 0.75, held_out_trades: 108, pro25k_pass_pct: 4.8, pro25k_bust_pct: 8.8, period: "p", note: "n", enabled: false, setting: "strategy.open_drive" },
     { key: "noise_ai_split", name: "NOISE + AI Duo — split risk 50/50 — AI Duo paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
-    { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED · paper only", source: "s", verified: false, status: "UNVERIFIED · PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: true, flat_at: "16:00" },
+    { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED · paper only", source: "s", verified: false, status: "UNVERIFIED · PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: true, flat_at: "16:00", ar_layers: [{ key: "ENVIRONMENT", on: true, rule: "no compression" }, { key: "PATH", on: false, rule: "Asia zones" }] },
     { key: "ai_bias", name: "AI only — TradingAgents + Vibe-Trading (MNQ) — paper only", source: "s", verified: false, status: "PAPER ONLY", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: 1.35, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT back-testable", note: "n", enabled: false, setting: "strategy.ai_bias" },
   ],
   noise_warmup: { sessions: 3, needed: 10, ready: false },
@@ -47,6 +47,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("1-minute MNQ1! / MGC1!"); // D96
   expect(screen.getByTestId("order-flow-markets")).toHaveTextContent("Trades: MNQ + MGC · PAPER accounts only · flat 16:00 ET · 1 micro");
   expect(screen.getByTestId("order-flow-markets")).toHaveTextContent("MGC (gold) is on for Order Flow only");
+  expect(screen.getByTestId("order-flow-layers")).toHaveTextContent("ENVIRONMENT — no compression");  // D101
+  expect(screen.getByTestId("order-flow-layers")).toHaveTextContent("PATH (OFF) — Asia zones");
   expect(screen.getByRole("button", { name: /OFF · Order Flow/ })).toHaveAttribute("aria-pressed", "false");
   expect(screen.getByTestId("noise-warmup")).toHaveTextContent("3/10");
   expect(screen.getByTestId("ai-ledger")).toHaveTextContent("ADVISORY");
