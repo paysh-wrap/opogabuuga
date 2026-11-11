@@ -29,8 +29,10 @@ def _p(ms=MS, direction="LONG", entry="20010", defended="20000", stop="19999.75"
     return {
         "v": 1, "secret": WEBHOOK_SECRET, "id": f"MNQ1!-TIGHT-{ms}-ORDER_FLOW-{direction}", "symbol": "MNQ1!",
         "profile": "TIGHT", "tf": "1", "bar_time_ms": ms, "event": "ORDER_FLOW", "direction": direction,
-        "order_flow": {"kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR, "confirm_time": ms - 60000,
-                       "value_side": "BELOW_VAL" if direction == "LONG" else "ABOVE_VAH"},
+        "order_flow": {
+            "kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR,
+            "confirm_time": ms - 60000, "value_side": "BELOW_VAL" if direction == "LONG" else "ABOVE_VAH",
+        },
     }  # fmt: skip
 
 

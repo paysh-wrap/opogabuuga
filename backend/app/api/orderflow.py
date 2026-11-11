@@ -84,7 +84,11 @@ def ar_rules(rules: Any) -> dict[str, Any]:
         "paper_only": r.order_flow_cfg.paper_only,
         "verified": False,
         "layers": [
-            {"key": "ENVIRONMENT", "on": True, "rule": f"trade only in {' / '.join(a.allowed_envs)}; COMPRESSION = no trade"},
+            {
+                "key": "ENVIRONMENT",
+                "on": True,
+                "rule": f"trade only in {' / '.join(a.allowed_envs)}; COMPRESSION = no trade",
+            },
             {
                 "key": "LOCATION",
                 "on": a.location_filter,
@@ -99,7 +103,8 @@ def ar_rules(rules: Any) -> dict[str, Any]:
             {
                 "key": "CONFIRMATION",
                 "on": True,
-                "rule": f"absorption / delta flip / stacked imbalance candle, entry pullback ≤ {a.confirm_max_age_min} min"
+                "rule": "absorption / delta flip / stacked imbalance candle, "
+                f"entry pullback ≤ {a.confirm_max_age_min} min"
                 f"{' (real delta only)' if a.require_real_delta else ''}; stop beyond the absorption zone",
             },
         ],

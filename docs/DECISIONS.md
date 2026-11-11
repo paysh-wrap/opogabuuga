@@ -934,3 +934,30 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   Math Money, ICT, SMC, volume profile etc. are STUDY references only (may refine, never override AR Model rules).
   Safety unchanged: still UNVERIFIED → paper-only, default OFF until proven on real tick data (non-negotiable 5 /
   win-rate rule); NOISE stays the live main strategy until Order Flow beats it on held-out data.
+
+## D101 (session 18, per D100): Order Flow strategy rebuilt around the AR Model — still UNVERIFIED · paper only · default OFF
+- Layers (engine/order_flow.check_ar, pure, 100% covered; skip codes audited as `order_flow.skip` with `layer` + the alert's
+  layer values; shown on /orderflow): 1 ENVIRONMENT (always on) COMPRESSION → OF_COMPRESSION, env not in `allowed_envs` →
+  OF_ENVIRONMENT · 2 LOCATION (switch `location_filter`) fib depth outside fib_min–fib_max (0.705–0.886) or wrong value-area
+  side (`value_side` OUTSIDE_VALUE: LONG below VAL / SHORT above VAH) → OF_LOCATION · 3 PATH (switch `path_filter`) unknown →
+  OF_PATH_UNKNOWN, a trade WITH the move at/beyond `path_block_zone` (MAX) of the Asia + ATR(20) zones → OF_PATH_EXHAUSTED ·
+  4 CONFIRMATION (always on) no/late confirmation candle (`confirm_max_age_min` 3) → OF_NO_CONFIRM; `require_real_delta` →
+  OF_DELTA_ESTIMATED. An alert without AR fields (old indicator) → OF_NO_CONFIRM (`required`). Stop now anchored beyond the
+  absorption zone (absorption_low/high) — risk bounds / STOP_TOO_WIDE / rr ≥ 1.5 unchanged.
+- Config: `strategy.order_flow_cfg.ar` (ArModelCfg) with validators (fib zone inside 0.5–0.886, COMPRESSION not allowed by
+  type, path block ≤ MAX, confirm age 1–15, be_after_r 0.25–3); defaults written in all 9 plan files (Daily gets a `strategy:`
+  block with only order_flow_cfg.ar). Gates only ever remove trades.
+- Study verdict (docs/results/session18/ar_model/RESULTS.md, ESTIMATED 1m delta): the full 4-layer model did NOT beat NOISE;
+  location and path did not help on bar data, environment helped a little; only MGC AM environment + confirmation (k = 1.5,
+  limit at est. POC, fixed 2R) was a shadow candidate. Hence location/path are separate switches (ON by default = teacher's
+  model; real delta may change the verdict). No live parameter set; the button stays default OFF.
+- Pine (pine/Paytience_OrderFlow.pine): REAL delta + stacked diagonal imbalances via `request.footprint` when available, else
+  estimated lower-timeframe delta, labelled `delta_source` real|est; 5m environment classifier, 15m swing fib + fixed-range
+  VAH/VAL with close-beyond-0.886 invalidation, Asia range + ATR(20) zones (study calibration), confirmation candle then
+  pullback entry candle; new alert fields env, location_zone, fib, value_side, path_zone, path_side, delta_source,
+  confirm_time, absorption_low/high, stacked (old fields unchanged, id still ends -DIRECTION).
+- Trail rule (behind the last closed 5m/15m candle, BE after be_after_r R, ratchet only, never through the market):
+  `order_flow.trail_stop`, pure + tested, NOT wired — the order manager has no 5m/15m candle feed for order-flow positions
+  (clean hook missing); positions keep the broker bracket + 16:00 flat.
+- Known gaps: Pine NOT compiled here (static tests only) — the `request.footprint` / `volume_row` method names are from the
+  Pine v6 docs as we know them; if TradingView refuses them, set `footprint fp = na` (estimated only). No real-delta test.

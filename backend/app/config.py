@@ -317,7 +317,7 @@ PATH_ZONES = ("INSIDE", "L1", "AVR-", "AVR", "AVR+", "MAX")  # D101: Asia range 
 
 
 class ArModelCfg(_M):
-    """D101 (user D100: the AR Model is the MAIN Order Flow source, docs/results/session18/order_flow/AR_MODEL_RULES.md):
+    """D101 (D100: the AR Model is the MAIN Order Flow source, docs/results/session18/order_flow/AR_MODEL_RULES.md):
     ENVIRONMENT → LOCATION → PATH → CONFIRMATION gates on every ORDER_FLOW alert (engine/order_flow.check_ar).
     UNVERIFIED (no tick-data test) — these only ever REMOVE trades; the validators refuse anything looser than the
     teacher's rules (fib zone inside 0.5–0.886, compression never allowed, path block at MAX or tighter)."""

@@ -56,7 +56,8 @@ def test_orderflow_session_profile_prior_and_markers(authed):
         )
         audit.record(
             s, FixedClock(T0), "engine", "order_flow.skip", "MNQ-OF-2026-11-05",
-            {"code": "OF_COMPRESSION", "detail": "x", "layer": "ENVIRONMENT", "direction": "LONG", "env": "COMPRESSION"},
+            {"code": "OF_COMPRESSION", "detail": "x", "layer": "ENVIRONMENT", "direction": "LONG",
+             "env": "COMPRESSION"},
         )  # fmt: skip
         s.commit()
     r = authed.get("/api/orderflow?symbol=MNQ").json()
@@ -81,7 +82,12 @@ def test_orderflow_session_profile_prior_and_markers(authed):
     assert [x["key"] for x in r["ar"]["layers"]] == ["ENVIRONMENT", "LOCATION", "PATH", "CONFIRMATION"]
     assert r["ar"]["paper_only"] is True and r["ar"]["verified"] is False
     sk = r["skips"][0]
-    assert (sk["code"], sk["layer"], sk["direction"], sk["ar"]["env"]) == ("OF_COMPRESSION", "ENVIRONMENT", "LONG", "COMPRESSION")
+    assert (sk["code"], sk["layer"], sk["direction"], sk["ar"]["env"]) == (
+        "OF_COMPRESSION",
+        "ENVIRONMENT",
+        "LONG",
+        "COMPRESSION",
+    )
     assert "compression" in sk["label"]
     old = authed.get("/api/orderflow?symbol=MNQ&session=2026-11-04").json()
     assert len(old["bars"]) == 5 and old["prior"] is None and old["bars"][0]["zone"] == "unknown"

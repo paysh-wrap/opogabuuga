@@ -450,3 +450,10 @@ page (footprint/delta/CVD/profile, ESTIMATED from bars); D99 only mandatory conn
 Results: docs/results/session18/FINAL_RESULTS.md — no new strategy beats NOISE; Order Flow stays paper-only/default OFF until tested on real tick data.
 Untested: Windows behaviour of port guard/.bat (try: start Paytience twice, then update), canvas chart rendering, Pine compile in TradingView.
 OPEN: Databento account locked; AR-Model + 83-min order-flow transcripts not provided.
+
+## Session 18 cont. — D101 Order Flow = AR Model (environment → location → path → confirmation)
+Engine gates + skip codes (OF_COMPRESSION / OF_LOCATION / OF_PATH_EXHAUSTED / OF_NO_CONFIRM …), stop beyond absorption zone, config
+`order_flow_cfg.ar` in all 9 plans (location/path = switches; study: they did not help on estimated bars), Pine with real footprint delta
+(fallback est, `delta_source`), /orderflow + Strategy card show the 4 layers + refused alerts. Still UNVERIFIED · paper only · default OFF.
+Tests: 1101 backend passed (100% cov risk/management/phases) + 100 frontend; lint/typecheck green. Open: compile Pine in TradingView
+(request.footprint names unverified); trail helper not wired (no 5m candle feed in the order manager).

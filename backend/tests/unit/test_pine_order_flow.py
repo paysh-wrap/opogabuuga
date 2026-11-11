@@ -12,7 +12,8 @@ SRC = (Path(__file__).resolve().parents[3] / "pine" / "Paytience_OrderFlow.pine"
 def test_header_attribution_and_contract():
     assert SRC.startswith("//@version=6\n") and "PERSONAL USE ONLY" in SRC and "UNVERIFIED" in SRC
     assert '"-ORDER_FLOW-" + dir' in SRC and '"secret":"\' + secret' in SRC  # id ends -DIRECTION (D12)
-    assert set(re.findall(r'kind := "([A-Z_]+)"', SRC)) == KINDS
+    assert set(re.findall(r'cKindNow := "([A-Z_]+)"', SRC)) == {"ABSORPTION", "DELTA_DIVERGENCE", "STACKED_IMBALANCE"}
+    assert set(re.findall(r'cKindNow := "([A-Z_]+)"', SRC)) <= KINDS
     assert "\t" not in SRC and "request.security_lower_tf" in SRC and "barstate.isconfirmed" in SRC
 
 
@@ -33,3 +34,27 @@ def test_brackets_and_quotes_balanced():
 
 def test_d96_markets_guard():
     assert 'syminfo.root != "MNQ" and syminfo.root != "MGC"' in SRC and "MGC1!" in SRC
+
+
+def test_d101_ar_model_layers_in_alert():
+    """D101: the alert carries the four AR layers with the field names the webhook schema expects."""
+    from app.webhook.schemas import OrderFlowFields
+
+    for f in ("env", "location_zone", "fib", "value_side", "path_zone", "path_side", "delta_source", "confirm_time",
+              "absorption_low", "absorption_high", "stacked"):  # fmt: skip
+        assert f'"{f}":' in SRC, f
+        assert f in OrderFlowFields.model_fields, f
+    assert "request.footprint(" in SRC and '"real" : "est"' in SRC  # real delta, estimated fallback, labelled
+    for z in (
+        '"COMPRESSION"',
+        '"EXPANSION"',
+        '"ROTATION"',
+        '"L1", "AVR-", "AVR", "AVR+", "MAX"',
+        "0.705",
+        "0.886",
+        "1.1",
+    ):
+        assert z in SRC, z
+    assert (
+        '"1800-0300", "America/New_York"' in SRC and "ta.atr(20)" in SRC and "lookahead = barmerge.lookahead_on" in SRC
+    )

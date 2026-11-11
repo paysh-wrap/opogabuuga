@@ -121,7 +121,9 @@ def test_ar_switches_and_options():
     assert _ar(rules=_rules(location_filter=False), fib=None, value_side=None) is None  # switch off
     assert _ar(rules=_rules(path_filter=False), path_zone=None) is None
     nop = _rules(value_side="NOT_OPPOSITE")
-    assert _ar(rules=nop, value_side="IN_VALUE") is None and _ar(rules=nop, value_side="ABOVE_VAH").code == "OF_LOCATION"
+    assert (
+        _ar(rules=nop, value_side="IN_VALUE") is None and _ar(rules=nop, value_side="ABOVE_VAH").code == "OF_LOCATION"
+    )
     assert _ar(rules=nop, value_side=None).code == "OF_LOCATION"
     tight = _rules(path_block_zone="AVR")
     assert _ar(rules=tight, path_zone="AVR", path_side="ABOVE").code == "OF_PATH_EXHAUSTED"
