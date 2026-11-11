@@ -76,9 +76,8 @@ super_groups:
 
 trade_plan: {rr_min: 1.5, rr_max: 2.5, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
-strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026-11-09): 100K = 4 micros (5y: eval 54% pass / 46% bust; 5 funded ≈ $692 per 2 wk, median yr $9,228, bust 55%; 2 micros was $686 / $19,048 / 30%). D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on; LunqFX + Opening-drive are buttons (Strategy page)
+strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026-11-09): 100K = 4 micros (5y: eval 54% pass / 46% bust; 5 funded ≈ $692 per 2 wk, median yr $9,228, bust 55%; 2 micros was $686 / $19,048 / 30%). D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on (D105/D107: LunqFX + Opening-drive removed)
   noise: true
-  open_drive: false
   pm_fade: true
   order_flow: false   # D95: Order Flow button (UNVERIFIED, paper accounts only, default OFF)
   order_flow_cfg:   # D96 (user 2026-11-11): MGC on for ORDER FLOW only; instruments.MGC.enabled stays false (every other strategy keeps MGC off). Data: Databento MGC.v.0 (volume roll), never MGC.c.0

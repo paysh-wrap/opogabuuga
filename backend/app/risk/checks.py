@@ -99,7 +99,7 @@ class TradeLimits:
     # D36 Lower-risk mode: when the (halved) risk can't buy min_qty micros, allow exactly min_qty if that costs no
     # more than risk × this multiple (2 = the normal-mode risk). Never above normal risk; None = off.
     min_qty_cap_mult: Decimal | None = None
-    # D55: fixed-size strategies (NOISE / OPEN_DRIVE, user: 1 micro on Pro 25K). No score tiers and no per-trade $ cap
+    # D55: fixed-size strategies (NOISE etc., user: 1 micro on Pro 25K). No score tiers and no per-trade $ cap
     # (their broker stop is an emergency stop far beyond the typical loss); the worst case at that stop must still fit
     # the DLL left and the distance to the MLL minus the kill-switch distance (checks below), like every trade.
     fixed_contracts: int | None = None

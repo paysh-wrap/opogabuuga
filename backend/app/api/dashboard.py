@@ -377,7 +377,6 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     sess = session_date(now)
     on = {
         "noise": r.strategy.noise,
-        "open_drive": r.strategy.open_drive,
         "ai_bias": r.strategy.ai_bias,
         "ai_duo": r.strategy.ai_duo,
         "order_flow": r.strategy.order_flow,

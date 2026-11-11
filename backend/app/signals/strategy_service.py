@@ -1,7 +1,7 @@
-"""D55 strategy runtime: NOISE (verified) and OPEN_DRIVE (unverified) signals from TradingView 1-minute heartbeat bars.
+"""D55 strategy runtime: NOISE (verified) and the other strategy signals from TradingView 1-minute heartbeat bars.
 
 Called after every accepted 1-minute HEARTBEAT (non-negotiable #1: TradingView webhooks are the only signal source —
-the bars stored by webhook/service.py). Decisions use app/engine/noise.py and app/engine/open_drive.py (pure, the same
+the bars stored by webhook/service.py). Decisions use app/engine/noise.py etc. (pure, the same
 code the parity test checks against the research script). Each entry decision becomes a Signal (PASS, or SKIP when a
 G1-style gate blocks it) with exactly one TradePlanRow in its strategy's mode; exits are returned for the controller.
 Strategy position state lives on the signal: features.state = OPEN | CLOSED | SKIPPED."""
@@ -25,7 +25,6 @@ from app.clock import ET, Clock
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
 from app.engine import noise as N
-from app.engine import open_drive as OD
 from app.engine import order_flow as OF
 from app.engine import pm_fade as PF
 from app.engine import structure_filter as SF
@@ -312,70 +311,6 @@ def run_noise(
     return out
 
 
-def run_open_drive(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
-) -> StrategyOutput:
-    cfg = rules.strategy.open_drive_cfg
-    out = StrategyOutput()
-    k = N.minute_index(at)
-    day = at.astimezone(ET).date().isoformat()
-    if k == N.hhmm_to_k(cfg.time_stop):
-        for x in _today_signals(s, cfg.symbol, "OD", day):
-            if x.features.get("state") == "OPEN":
-                _close(s, x, "OD_TIME_STOP", at, clock)
-                out.exits.append((x.id, "OD_TIME_STOP"))
-        return out
-    if exits_only or k != N.hhmm_to_k(cfg.signal_time) or _today_signals(s, cfg.symbol, "OD", day):
-        return out
-    days = load_days(s, cfg.symbol, at)
-    if not days or days[-1].day != day:
-        return out
-    today, history = days[-1], days[:-1]
-    drive = [today.bars[i] for i in range(k + 1) if i in today.bars]
-    if 0 not in today.bars or k not in today.bars or not history:
-        return out
-    prior = history[-1].session().last_close
-    if prior is None or not N.roll_guard(today.bars[0].o, prior, rules.strategy.noise_cfg.roll_gap_pct):
-        return out
-    full = [d for d in history if len(d.bars) >= rules.strategy.noise_cfg.min_bars_per_day]
-    rng = OD.avg_range([d.rth_range() for d in full], cfg.range_days, cfg.min_range_days)
-    inst = rules.instrument(cfg.symbol)
-    st = OD.setup(
-        rth_open=today.bars[0].o,
-        drive_high=max(b.h for b in drive),
-        drive_low=min(b.l for b in drive),
-        close_0959=today.bars[k].c,
-        avg_rng=rng,
-        frac=cfg.drive_min_range_frac,
-        entry_retrace=cfg.entry_retrace,
-        stop_retrace=cfg.stop_retrace,
-        target_frac=cfg.target_frac,
-        tick=inst.tick,
-    )
-    if st is None:
-        return out
-    h, m = (int(x) for x in cfg.entry_expires.split(":"))
-    expires = at.astimezone(ET).replace(hour=h, minute=m, second=0, microsecond=0) + timedelta(minutes=1)
-    new = _new_signal(
-        s,
-        clock,
-        symbol=cfg.symbol,
-        key=f"{cfg.symbol}-OD-{day}",
-        direction=st.direction,
-        at=at,
-        gate=_gate(rules, cfg.symbol, at, calendar),
-        features={
-            "move": str(st.move),
-            "avg_range": str(st.avg_range),
-            "entry_expires_at": expires.isoformat(),
-            "paper_only": cfg.paper_only,
-        },
-        plan=("OPEN_DRIVE", st.entry, st.stop, st.take_profit, st.risk_pts, st.rr),
-    )
-    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
-    return out
-
-
 def run_order_flow(
     s: Session, *, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, symbol: str, payload: Any
 ) -> StrategyOutput:
@@ -475,7 +410,7 @@ def run_order_flow(
     if gate[0] and sum(1 for x in today if x.status == "PASS") >= cfg.max_per_day:
         gate = (False, "OF_DAILY_CAP", f"max {cfg.max_per_day} per day")
     if gate[0]:
-        for tag in ("NOISE", "DUO", "OD", "FADE", "AI"):
+        for tag in ("NOISE", "DUO", "OD", "FADE", "AI"):  # "OD": legacy Opening-drive positions still lock (D107)
             lock = hedge_lock_vs(s, symbol, tag, day, direction)
             if lock is not None:
                 gate = (False, "HEDGE_LOCK", lock.model_key)
@@ -962,10 +897,6 @@ def run(
     st = rules.strategy
     if st.noise and symbol == st.noise_cfg.symbol:
         r = run_noise(s, rules, clock, calendar, at, exits_only)
-        out.updates += r.updates
-        out.exits += r.exits
-    if st.open_drive and symbol == st.open_drive_cfg.symbol:
-        r = run_open_drive(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.pm_fade and symbol == st.pm_fade_cfg.symbol:

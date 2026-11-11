@@ -52,12 +52,11 @@ MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
 STRATEGY_MODES = (
     "NOISE",
-    "OPEN_DRIVE",
     "AI_BIAS",
     "PM_FADE",
     "AI_DUO",
     "ORDER_FLOW",
-)  # D55: TradePlan modes of the fixed-size strategies
+)  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
@@ -278,7 +277,7 @@ class Controller:
         want = "ONE_TO_ONE" if any_1to1 else "STANDARD"
         rows = list(s.execute(select(TradePlanRow).where(TradePlanRow.signal_id == sig.id)).scalars())
         strategy = (sig.features or {}).get("strategy")
-        if strategy in STRATEGY_MODES:  # D55: NOISE / OPEN_DRIVE carry exactly one plan in their own mode
+        if strategy in STRATEGY_MODES:  # D55: each strategy carries exactly one plan in its own mode
             want = strategy
             rows = [r for r in rows if r.mode == strategy]
         row = next((r for r in rows if r.mode == want), None) or next((r for r in rows if r.mode == "STANDARD"), None)
@@ -385,7 +384,6 @@ class Controller:
         # D102 (user 2026-11-11): no strategy is FORCED paper-only (defaults false). A plan file may still opt a
         # strategy into paper-only (tighten-only). Live trading itself stays behind every live gate (§1.5).
         paper_only = {
-            "OPEN_DRIVE": r.strategy.open_drive_cfg.paper_only,
             "AI_BIAS": r.strategy.ai_bias_cfg.paper_only,
             "PM_FADE": r.strategy.pm_fade_cfg.paper_only,
             "AI_DUO": r.strategy.ai_duo_cfg.paper_only,
@@ -465,7 +463,6 @@ class Controller:
         fixed = (
             {
                 "NOISE": r.strategy.noise_cfg.contracts,
-                "OPEN_DRIVE": r.strategy.open_drive_cfg.contracts,
                 "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
                 "PM_FADE": r.strategy.pm_fade_cfg.contracts,
                 "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
@@ -688,7 +685,7 @@ class Controller:
                 inst.tick_value,
                 now,
                 rr_window,
-                ("limit_cisd" if strategy == "OPEN_DRIVE" else "market") if strategy else r.entry.mode,
+                "market" if strategy else r.entry.mode,  # D107: the only limit strategy (OPEN_DRIVE) is gone
                 self._strategy_deadline(sig) if strategy else self._limit_deadline(sig, now),
                 trade_id=f"P-{sig.id}-{a.id}",  # deterministic: unique across restarts, broker clOrdId derives from it
             )
@@ -731,12 +728,12 @@ class Controller:
 
     @staticmethod
     def _strategy_deadline(sig: Signal) -> datetime | None:
-        """D55 OPEN_DRIVE: the resting limit works until entry_expires (on the signal); NOISE enters at market."""
+        """D55: an entry may work until features.entry_expires_at when a strategy sets it (none does after D107)."""
         until = (sig.features or {}).get("entry_expires_at")
         return datetime.fromisoformat(until) if until else None
 
     async def strategy_exit(self, signal_id: int, reason: str) -> int:
-        """D55: close every open trade of this NOISE / OPEN_DRIVE signal (trailing exit, 16:00 flat, time stop).
+        """D55: close every open trade of this strategy signal (trailing exit, 16:00 flat, time stop).
         Returns how many trades were flattened/cancelled now; ones inside the minimum hold retry on the next bar."""
         done = 0
         async with self.lock:

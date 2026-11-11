@@ -70,7 +70,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
         if not replay:
             st.market.apply(acc.symbol, p)
 
-        def strategies() -> Any:  # D55: NOISE / OPEN_DRIVE from the stored 1-minute TradingView bars
+        def strategies() -> Any:  # D55: NOISE / fade / AI strategies from the stored 1-minute TradingView bars
             from datetime import UTC, datetime
 
             from app.signals import strategy_service

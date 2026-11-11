@@ -45,23 +45,6 @@ CATALOG: list[dict[str, object]] = [
         "of TradingView 1-minute bars.",
     },
     {
-        "key": "open_drive",
-        "name": "Opening-drive pullback (MNQ)",
-        "source": "Session 9 research (mean-reversion agent): 09:30–10:00 drive → 38.2% pullback limit",
-        "verified": False,
-        "status": "UNVERIFIED",
-        "win_pct": 58.3,
-        "profit_factor": 1.29,
-        "usd_per_trade": 9.95,
-        "trades_per_week": 0.75,
-        "held_out_trades": 108,
-        "pro25k_pass_pct": 4.8,
-        "pro25k_bust_pct": 8.8,
-        "period": "held-out 2024-01 → 2026-11 (2019–2023: PF 1.00, not verified)",
-        "note": "R:R ≈ 0.95 (below 1.5). At 1 micro most evals neither pass nor bust within 120 days. "
-        "Unverified: every live gate still applies (D102).",
-    },
-    {
         "key": "ai_bias",
         "name": "AI only — TradingAgents + Vibe-Trading (MNQ)",
         "source": "D56: both tools must agree strongly on the day's side; enter 09:31, 0.5% stop, flat 16:00",
@@ -103,7 +86,7 @@ CATALOG: list[dict[str, object]] = [
     },
     {
         "key": "noise_ai_split",
-        "name": "NOISE + AI Duo — split risk 50/50",
+        "name": "NOISE + AI Duo — 50/50 risk split",
         "source": "D92: with NOISE and AI Duo both on, each side trades half size (rounded down, minimum 1 micro) "
         "and may use half of the daily loss limit",
         "verified": False,

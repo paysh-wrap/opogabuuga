@@ -60,7 +60,7 @@ def run(x: PreflightInput) -> PreflightResult:
             "bias",
             x.bias_loaded,
             "optional: no TradingAgents bias today — bias-dependent strategies (AI) skip with BIAS_NO_TRADE, "
-            "the others (NOISE, Opening-drive, Order Flow) proceed",
+            "the others (NOISE, Order Flow) proceed",
         ),
         ("verify_confirmed", not x.live or x.unconfirmed_verify == 0, f"{x.unconfirmed_verify} VERIFY values open"),
         ("reconciled", x.reconciled, "broker positions match ours"),

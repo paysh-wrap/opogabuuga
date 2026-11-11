@@ -2,7 +2,7 @@
 per-strategy gates view for the Strategy page.
 
 Each kept strategy lists ONLY the checks its own code in signals/strategy_service.py (+ engine/noise.py,
-engine/order_flow.py, engine/pm_fade.py, engine/open_drive.py, engine/ai_duo.py, engine/ta_mgc.py) performs, in the
+engine/order_flow.py, engine/pm_fade.py, engine/ai_duo.py, engine/ta_mgc.py) performs, in the
 order the code performs them, with every number read from the live config (nothing hardcoded). The firm/safety
 checks that apply to every strategy (news, DLL/MLL, consistency, hedge lock, kill switch, 1 position, flat times,
 pre-flight) are listed once as the shared "Lucid rules (always on)" block — they are not removable and this module
@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import Principal, current_user, get_db
 from app.models import AuditLog, Signal
+from app.risk.split_risk import split_active
 
 router = APIRouter(prefix="/api")
 
@@ -37,7 +38,8 @@ PLAN_CODES = (
     "RR_BELOW_MIN",
 )
 # model_key tag of each strategy's signals: "{symbol}-{TAG}-{day}…" (strategy_service._today_signals)
-TAGS = {"noise": "NOISE", "pm_fade": "FADE", "open_drive": "OD", "ai_bias": "AI", "ai_duo": "DUO", "order_flow": "OF"}
+TAGS = {"noise": "NOISE", "pm_fade": "FADE", "ai_bias": "AI", "ai_duo": "DUO", "order_flow": "OF"}
+SPLIT_SIDES = {"NOISE": "SIDE_NOISE", "DUO": "SIDE_DUO"}  # D92 split card: one row per side
 
 
 def _g(id_: str, name: str, text: str, codes: tuple[str, ...] = (), kind: str = "entry") -> dict[str, Any]:
@@ -66,9 +68,8 @@ def _struct(r: Any) -> list[dict[str, Any]]:
 def describe(r: Any) -> list[dict[str, Any]]:
     """PURE: every kept strategy with its own gates (evaluation order) + exit rules, from the live config `r`."""
     st = r.strategy
-    nc, od, pf, ab, du, of = (
+    nc, pf, ab, du, of = (
         st.noise_cfg,
-        st.open_drive_cfg,
         st.pm_fade_cfg,
         st.ai_bias_cfg,
         st.ai_duo_cfg,
@@ -118,26 +119,6 @@ def describe(r: Any) -> list[dict[str, Any]]:
         *_struct(r),
         _g("STOP", "Stop", f"Fixed ${pf.stop_usd} stop; target VWAP.", (), "exit"),
         _g("FLAT", "Flat", f"Closed on the {pf.flat_at} ET bar.", (), "exit"),
-    ]
-    drive = [
-        _g("SIGNAL_TIME", "Decision bar", f"Bar closing {od.signal_time} ET, one per day."),
-        _g("ROLL", "Roll guard", "Prior close known and the open is not a roll / shock gap."),
-        _g(
-            "DRIVE",
-            "Opening drive",
-            f"|move from the RTH open| ≥ {od.drive_min_range_frac} × {od.range_days}-day average range "
-            f"(≥ {od.min_range_days} days).",
-        ),
-        _win(r, od.symbol),
-        _lucid_step(),
-        _g(
-            "ENTRY",
-            "Pullback limit",
-            f"Limit at {od.entry_retrace} retrace until {od.entry_expires}; stop {od.stop_retrace}.",
-            (),
-            "exit",
-        ),
-        _g("TIME_STOP", "Time stop", f"Closed on the {od.time_stop} ET bar.", (), "exit"),
     ]
     ai = [
         _g("ENTRY_TIME", "Decision bar", f"Bar closing {ab.entry_time} ET, one per day."),
@@ -248,7 +229,6 @@ def describe(r: Any) -> list[dict[str, Any]]:
     return [
         {"key": "noise", "name": "NOISE", "on": st.noise, "symbols": [nc.symbol], "gates": noise},
         {"key": "pm_fade", "name": "Afternoon fade", "on": st.pm_fade, "symbols": [pf.symbol], "gates": fade},
-        {"key": "open_drive", "name": "Opening drive", "on": st.open_drive, "symbols": [od.symbol], "gates": drive},
         {"key": "ai_bias", "name": "AI only", "on": st.ai_bias, "symbols": [ab.symbol], "gates": ai},
         {"key": "ai_duo", "name": "AI Duo", "on": st.ai_duo, "symbols": list(du.markets), "gates": duo},
         {
@@ -258,6 +238,33 @@ def describe(r: Any) -> list[dict[str, Any]]:
             "symbols": list(of.instruments),
             "gates": flow,
         },
+        {
+            "key": "noise_ai_split",
+            "name": "NOISE + AI Duo — 50/50 risk split",
+            "on": split_active(st.noise_ai_split, st.noise, st.ai_duo),
+            "symbols": sorted({nc.symbol, *du.markets}),
+            "gates": split_gates(noise, duo, st.noise_ai_split_share),
+        },
+    ]
+
+
+def _codes(gates: list[dict[str, Any]]) -> tuple[str, ...]:
+    return tuple(c for g in gates if g["id"] != LUCID for c in g["codes"])
+
+
+def split_gates(noise: list[dict[str, Any]], duo: list[dict[str, Any]], share: Any) -> list[dict[str, Any]]:
+    """D92: the split button runs BOTH sides unchanged; it only adds the half-size / half-DLL budget (tighten-only)."""
+    pct = f"{float(share):.0%}"
+    return [
+        _g("SIDE_NOISE", "NOISE side", "Every NOISE gate (see the NOISE card), at half size.", _codes(noise)),
+        _g("SIDE_DUO", "AI Duo side", "Every AI Duo gate (see the AI Duo card), at half size.", _codes(duo)),
+        _g(
+            "SPLIT",
+            "50/50 risk budget",
+            f"Each side trades {pct} of its size (round down, min 1 micro) and may use {pct} of the DLL.",
+            ("SPLIT_BUDGET_EXCEEDED",),
+        ),
+        _lucid_step(),
     ]
 
 
@@ -362,6 +369,15 @@ def strategy_gates(request: Request, _: Principal = Depends(current_user), db: S
     r = request.app.state.rules.rules
     rows = []
     for s in describe(r):
+        if s["key"] == "noise_ai_split":  # D92: the later of the two sides' decisions; the other side shows no data
+            sides = [(t, x) for t in SPLIT_SIDES if (x := _latest_signal(db, t)) is not None]
+            tag, last = max(sides, key=lambda p: p[1]["at"] or "") if sides else (None, None)
+            ev = evaluate(s["gates"], last)
+            for g in ev["gates"]:
+                if g["id"] in SPLIT_SIDES.values() and tag is not None and g["id"] != SPLIT_SIDES[tag]:
+                    g["status"] = None
+            rows.append({**{k: v for k, v in s.items() if k != "gates"}, **ev})
+            continue
         last = _latest_signal(db, TAGS[s["key"]])
         if s["key"] == "order_flow":  # an AR/plan skip makes no signal row — it is audited instead
             skip = _latest_of_skip(db)

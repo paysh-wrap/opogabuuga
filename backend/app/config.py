@@ -295,24 +295,6 @@ class NoiseCfg(_M):
         return self
 
 
-class OpenDriveCfg(_M):
-    """D55 (user button, 2026-11-09): opening-drive pullback on MNQ — NOT verified (flat in-sample, PF 1.29 held-out)
-    → unverified (D102: not forced paper-only). R:R ≈ 0.95 (below the 1.5 pillar) by the user's explicit choice."""
-
-    symbol: str = "MNQ"
-    drive_min_range_frac: D = D("0.35")  # |close(09:59 bar) − RTH open| ≥ this × 14-day average RTH range
-    range_days: int = 14
-    min_range_days: int = 10
-    entry_retrace: D = D("0.382")  # limit at the 38.2% retrace of open → drive extreme
-    stop_retrace: D = D("0.786")
-    target_frac: D = D("1.0")  # 1.0 = back to the drive extreme
-    signal_time: str = "10:00"
-    entry_expires: str = "12:30"
-    time_stop: str = "13:00"
-    contracts: int = 1
-    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
-
-
 PATH_ZONES = ("INSIDE", "L1", "AVR-", "AVR", "AVR+", "MAX")  # D101: Asia range + daily ATR(20) zones, in order
 
 
@@ -590,7 +572,8 @@ class StructureFilterCfg(_M):
     anchor_buffer_pts: D = D("2")  # shadow only: where an OB-anchored stop would sit (never applied live)
 
 
-LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure")  # D105: dropped from old plan files / stored settings
+# D105 (LunqFX) + D107 (Opening drive): removed strategies - their keys in old plan files / stored settings are ignored
+LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg")
 
 
 class StrategyCfg(_M):
@@ -601,13 +584,12 @@ class StrategyCfg(_M):
     # size tables before validation. None = "custom" (the plan file's own values).
     preset: str | None = None
     noise: bool = False
-    open_drive: bool = False
     ai_bias: bool = False
     pm_fade: bool = False
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
-    order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, paper only, default OFF)
-    # D92: "NOISE + AI Duo - split risk 50/50" button (default OFF): with NOISE and AI Duo both on, each side
-    # trades half size (rounded down, min 1) and may use half of the daily loss limit. AI Duo stays paper-only.
+    order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
+    # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
+    # trades half size (rounded down, min 1) and may use half of the daily loss limit (D102: no forced paper-only).
     # Tighten-only.
     noise_ai_split: bool = False
     noise_ai_split_share: D = Field(default=D("0.5"), gt=D(0), le=D("0.5"))
@@ -616,7 +598,6 @@ class StrategyCfg(_M):
     drawdown_shrink: D | None = D("0.6")
     drawdown_min_stop_pct: D = D("0.002")  # a stop tighter than 0.2% of price is noise → skip DRAWDOWN_TOO_DEEP
     noise_cfg: NoiseCfg = NoiseCfg()
-    open_drive_cfg: OpenDriveCfg = OpenDriveCfg()
     ai_bias_cfg: AiBiasCfg = AiBiasCfg()
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
@@ -650,7 +631,7 @@ class StrategyCfg(_M):
     @classmethod
     def _apply_preset(cls, data: Any) -> Any:
         if isinstance(data, dict) and any(k in data for k in LEGACY_LUNQFX_KEYS):
-            data = {k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS}  # D105: removed strategy, ignored
+            data = {k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS}  # D105/D107: removed strategies, ignored
         if not isinstance(data, dict) or not data.get("preset"):
             return data
         presets = load_presets()

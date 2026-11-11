@@ -66,7 +66,6 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "filters.trend.utbot_5m",
         "filters.trend.squeeze_5m_15m",
         "strategy.noise",
-        "strategy.open_drive",
         "strategy.ai_bias",
         "strategy.ta_mgc_cfg.min_confidence",  # D84 (MGC research part of AI Duo)
         "strategy.ai_duo",  # D83

@@ -67,7 +67,7 @@ class OpenTrade:
     cancel_alerted: bool = False  # a failed entry cancel already raised the pause/banner (retries stay quiet)
     profile: str = ""  # signal profile (TIGHT/STD): the half-off defence reads this timeframe's MSO (D37)
     signal_id: int | None = None  # D55: strategy exits find their trades by signal
-    strategy: str = ""  # D55: NOISE / OPEN_DRIVE / ... trades are exited by their own rules
+    strategy: str = ""  # D55: NOISE / AI_DUO / ... trades are exited by their own rules
     profit_lock: tuple[Decimal, Decimal] | None = None  # D82: (trigger_pts, lock_pts) — NOISE profit lock (D75-P1)
     profit_locked: bool = False  # the stop has been moved to entry + lock_pts
     manage: ManageCfg | None = None  # D85: AI Duo break-even / profit lock / trail (management/trade_manage.py)
@@ -443,7 +443,7 @@ class OrderManager:
 
     # ---------- exits ----------
     async def strategy_exit(self, trade_id: str, reason: str, now: datetime) -> list[Event] | None:
-        """D55: NOISE trailing exit / 16:00 flat, OPEN_DRIVE time stop. An entry that never filled is cancelled.
+        """D55: NOISE trailing exit / 16:00 flat, strategy time stops. An entry that never filled is cancelled.
         App-initiated → the minimum hold (D8) applies: None = not allowed YET (the controller retries next bar)."""
         t = self.trades.get(trade_id)
         if t is None or t.closing:
