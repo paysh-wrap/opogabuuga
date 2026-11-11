@@ -79,3 +79,29 @@ open vs prior-RTH value area (VAH/VAL/POC from 1m volume), premium/discount, zon
 LVN, trigger = estimated absorption/exhaustion/aggression-with-acceptance, stop beyond zone (+2-3 ticks), trail behind balances, no
 trade when levels bunched / at the day band extreme. Result so far: no edge on the estimated-bar proxy (see RESULTS.md); real footprint
 data needed.
+
+---
+## Deep-read addendum #2 (details not captured above; from the full transcript)
+Entry timing / confirmation
+- Don't enter on the first spike: let "the smoke clear" — want follow-through and some volume/time (acceptance) first, then enter; pre-stage the order at the stop level.
+- Pre-market reaction at a zone must be confirmed by follow-through in RTH (real volume) fast: within ~4 minutes of 09:30; if the move doesn't come quickly, grade the day as likely chop.
+- Entries after absorption can be taken late: use the absorption/aggressor zone as the new support/resistance and wait for a retrace into it.
+- Price confirms order flow: the candle must close away from the trapped side; effort with no close-through = no return.
+Reversal vs continuation
+- Reversal playbook needs a zone + opposing aggression that FAILS (absorbed) + the other side getting a return; continuation needs aggression that gets a return AND acceptance (time/volume) outside balance.
+- A reversal at a level that is "accepted" (price hangs there, volume builds) = likely a fake-out against the reversal — do not fade it.
+- P/B profiles flip at key zones: a P-day (bullish) into a big resistance level can still reverse; trust the live order flow over the prior-day lean.
+- Low-volume nodes: price moves through them fast; when accepted inside one with aggression, expect a fast one-sided move (his favourite days). Teacher equates LVNs with "real fair value gaps".
+- Failed auction / rejection of VAL = bullish (buyers defended discount); rejection of VAH = bearish.
+- Prior-day close/open: open above prior close/value = accepted higher.
+Risk and stops
+- Stop just beyond the absorbed aggressors / last pivot / balance base; never exactly on a round number (+1-3 ticks); wider in positive gamma/chop.
+- Example sizing: NQ 3 contracts, ~15-50 pt stops, $2-5k risk; on low-probability days risk about half (feeler trade), max one extra attempt after a loss; never exceed the daily risk limit.
+- De-risk: move stop to entry once price has paid and stalls; trail under each new pivot/balance; trail faster near big round numbers/prior highs; re-enter if stopped at entry and the setup re-forms.
+- No take-profit orders: exit when control shifts (aggressors defended less, CVD flat while volume dies, price re-accepted back through the balance). "See green, take green" only with logic.
+Reading the book / tape
+- Passive orders pulled as price approaches (bids disappearing) = buyers not confident; walls being eaten = aggressors in control; asks moving lower = very bearish; thin book on one side = path of least resistance.
+- Spoofing/pulled liquidity is read from the heat map; stops are invisible until triggered (turn into market orders).
+Day filters
+- Skip/low risk: levels bunched close together, flat/boring days, day before major news (CPI/FOMC) unless clear; at the "band extreme" of the day's modelled range only trade reversals.
+Not testable with our data: heat-map/DOM behaviour, true aggressor delta, gamma levels/environment, weekly profile LVNs without enough history.
