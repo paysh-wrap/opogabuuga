@@ -8,6 +8,8 @@ import IncomeProjection from "../components/IncomeProjection";
 import HindsightNote from "../components/HindsightNote";
 import RuleMeters from "../components/RuleMeters";
 import { PayoutConsistencyNote, type PayoutConsistencyView } from "../components/PayoutConsistency";
+import MissionBento from "../components/MissionBento";
+import MandatoryChecklist from "../components/MandatoryChecklist";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
 const chip = "rounded border px-1.5 text-[11px] font-semibold";
@@ -36,15 +38,6 @@ function Stat({ k, v, warn }: { k: string; v: React.ReactNode; warn?: boolean })
   );
 }
 
-function Kpi({ k, v }: { k: string; v: React.ReactNode }) {
-  return (
-    <div className="kpi">
-      <div className="text-[11px] uppercase tracking-[.18em] opacity-70">{k}</div>
-      <div className="mt-1 font-serif text-2xl text-gold tabular-nums">{v}</div>
-    </div>
-  );
-}
-
 export default function Dashboard() {
   usePageTitle("Dashboard");
   const q = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dash>("/api/dashboard"), refetchInterval: 5000 });
@@ -54,13 +47,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
-      <div className="hero-strip" data-testid="dash-hero">
-        <Kpi k="Total balance" v={money(String(d.accounts.reduce((x, a) => x + Number(a.balance ?? 0), 0)))} />
-        <Kpi k="Today" v={<Pnl v={String(d.accounts.reduce((x, a) => x + Number(a.today_pnl ?? 0), 0))} />} />
-        <Kpi k="Trades today" v={d.accounts.reduce((x, a) => x + (a.trades_today ?? 0), 0)} />
-        <Kpi k="Armed" v={`${d.accounts.filter((a) => a.armed).length} / ${d.accounts.length}`} />
-        <Kpi k="Automation" v={<span className="inline-flex items-center gap-2"><span className={`live-dot ${d.mode === "OFF" ? "live-off" : ""}`} />{d.mode}</span>} />
-      </div>
+      <MissionBento accounts={d.accounts} mode={d.mode} />
+      <MandatoryChecklist />
       <Markets />
       <MarketPanel />
       <p className="text-sm">Session {d.session} · Automation <b className="text-gold">{d.mode}</b> · Bias:{" "}
