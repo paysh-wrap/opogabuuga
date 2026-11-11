@@ -1,4 +1,5 @@
-"""Whole pipeline: Python indicators → bridge-format payloads → real webhook → DB → parity check."""
+"""Whole pipeline: Python indicators → bridge-format payloads → real webhook → DB → parity check (D105: LunqFX
+alerts are acknowledged and dropped, everything else is stored and replays cleanly)."""
 
 import json
 from datetime import UTC, datetime
@@ -6,6 +7,7 @@ from decimal import Decimal as D
 
 from app.backtest.parity import compare, replay_payloads
 from app.models import Event
+from app.webhook.schemas import FRACTAL_EVENTS
 from tests.conftest import WEBHOOK_SECRET
 from tests.unit.test_indicators import T0, c1_bars, long_model_c2, mk
 
@@ -28,7 +30,8 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
         pivot_left=5,
         pivot_right=3,
     )
-    sent = 0
+    kept = [p for p in payloads if p["event"] not in FRACTAL_EVENTS]
+    assert len(kept) < len(payloads)  # the replay does produce LunqFX alerts ...
     for p in payloads:
         clock.set(datetime.fromtimestamp(p["bar_time_ms"] / 1000 + 1, tz=UTC))  # arrives 1 s after bar close
         r = client.post(
@@ -36,18 +39,16 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
             content=json.dumps({**p, "secret": WEBHOOK_SECRET}),
             headers={"content-type": "text/plain"},
         )
-        assert r.status_code == 200 and r.json()["duplicate"] is False, (p["event"], r.text)
-        sent += 1
+        assert r.status_code == 200, (p["event"], r.text)
+        if p["event"] in FRACTAL_EVENTS:  # ... which D105 acknowledges and drops
+            assert r.json()["code"] == "LUNQFX_REMOVED", r.text
+        else:
+            assert r.json()["duplicate"] is False, (p["event"], r.text)
     with client.app.state.sessionmaker() as s:
         rows = s.query(Event).all()
-        assert len(rows) == sent
+        assert len(rows) == len(kept) and not any(e.event in FRACTAL_EVENTS for e in rows)
         recorded = [{**e.payload, "symbol": "MNQ1!"} for e in rows]
-    rep = compare(payloads, recorded)
-    assert rep.clean and rep.matched == sum(1 for p in payloads if p["event"] != "HEARTBEAT")
-    events = [(e.event, e.direction) for e in rows if e.event != "HEARTBEAT"]
-    assert ("MODEL_CONFIRMED", "LONG") in events and ("T2_HIT", "LONG") in events
+    rep = compare(kept, recorded)
+    assert rep.clean and rep.matched == sum(1 for p in kept if p["event"] != "HEARTBEAT")
     st = client.app.state.market.get("MNQ", "TIGHT")
-    model = st.models[f"MNQ-TIGHT-{T0}"]
-    names = [e for e, _ in model.events]
-    assert names[-1] == "T2_HIT" and "MODEL_CONFIRMED" in names  # T2 completes the model (original)
     assert st.last_heartbeat_ms == bars[-1].close_ms

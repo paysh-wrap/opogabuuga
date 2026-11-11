@@ -24,7 +24,7 @@ def test_replay_runs_the_live_pipeline():
         + [mk(i, 110, 110.5, 109.5, 110) for i in range(32, 60)]
     )
     r = run_backtest(bars, BacktestConfig(bias="LONG_ONLY", profiles=("TIGHT",)))
-    assert r.sessions == 1 and sum(r.signals.values()) >= 1, r
+    assert r.sessions == 1 and r.rejects == {}, r  # D105: no LunqFX signals; the replay itself must run cleanly
     assert any("bias fixed" in a for a in r.assumptions) and r.final_balance
 
 

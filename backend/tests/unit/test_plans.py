@@ -95,10 +95,10 @@ def test_no_plan_can_aim_below_15r():
 
 @pytest.mark.parametrize("plan", [f"lucid_{p}_{k}k" for p in ("pro", "flex") for k in (25, 50, 100, 150)])
 def test_strategy_buttons_d55(plan):
-    """D55 (user 2026-11-09): NOISE (verified noise-area momentum, MNQ) on; LunqFX and Opening-drive are buttons, off;
-    Opening-drive is paper-only; the verified NOISE parameters ship unchanged."""
+    """D55 (user 2026-11-09): NOISE (verified noise-area momentum, MNQ) on; Opening-drive is a button, off; the
+    verified NOISE parameters ship unchanged. D105: no LunqFX key."""
     s = r(plan).strategy
-    assert s.noise and not s.lunqfx and not s.open_drive
+    assert s.noise and not s.open_drive and not hasattr(s, "lunqfx")
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
@@ -106,9 +106,14 @@ def test_strategy_buttons_d55(plan):
     assert s.open_drive_cfg.paper_only
 
 
-def test_legacy_daily_plan_keeps_lunqfx_only():
+def test_legacy_daily_plan_loads_without_lunqfx():
+    """D105: the legacy Daily plan still loads (an old strategy.lunqfx / lunqfx_structure key is ignored)."""
+    from app.config import StrategyCfg
+
     s = load_rules(RULES / "lucid_daily_25k.yaml").rules.strategy
-    assert s.lunqfx and not s.noise and not s.open_drive
+    assert not s.noise and not s.open_drive and not hasattr(s, "lunqfx")
+    old = StrategyCfg.model_validate({"lunqfx": True, "lunqfx_structure": {"enabled": True}, "noise": True})
+    assert old.noise and "lunqfx" not in old.model_dump()
 
 
 def test_size_table_validation_and_plans():  # D63

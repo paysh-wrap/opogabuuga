@@ -41,10 +41,7 @@ def test_lists_every_service_with_links(authed, mock_http):
     lucid = _get(authed, "lucid")
     assert lucid["status"] == "link" and lucid["detail"] == "" and "never logs into Lucid" in lucid["note"]
     names = [i["name"] for i in body["indicators"]]
-    assert names == [
-        "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]",
-        "Market Structure Oscillator [BigBeluga]",
-    ]
+    assert names == ["Market Structure Oscillator [BigBeluga]"]  # D105: LunqFX indicator card removed
 
 
 def test_save_test_connected_then_failed_is_write_only(authed, mock_http):
@@ -146,7 +143,8 @@ def test_indicator_source_license(authed, mock_http):
     r = authed.put("/api/indicators/bigbeluga_mso", json={"source": src})
     ind = next(i for i in r.json()["indicators"] if i["id"] == "bigbeluga_mso")
     assert ind["source_on_file"] and ind["license"] == "CC BY-NC-SA 4.0" and ind["personal_use_only"]
-    assert authed.put("/api/indicators/lunqfx", json={"source": "not pine at all"}).status_code == 422
+    assert authed.put("/api/indicators/bigbeluga_mso", json={"source": "not pine at all"}).status_code == 422
+    assert authed.put("/api/indicators/lunqfx", json={"source": src}).status_code == 404  # D105: removed
 
 
 def test_websocket_pushes_connection_updates(authed, mock_http):

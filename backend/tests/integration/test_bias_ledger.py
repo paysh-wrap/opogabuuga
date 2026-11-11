@@ -75,7 +75,7 @@ def test_strategies_endpoint(authed):
     assert r.status_code == 200, r.text
     body = r.json()
     keys = [x["key"] for x in body["strategies"]]
-    assert keys == ["pm_fade", "noise", "lunqfx", "open_drive", "ai_bias", "ai_duo", "noise_ai_split", "order_flow"]
+    assert keys == ["pm_fade", "noise", "open_drive", "ai_bias", "ai_duo", "noise_ai_split", "order_flow"]
     noise = body["strategies"][1]
     assert noise["win_pct"] == 45.0 and noise["pro25k_pass_pct"] == 56.9 and noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10
@@ -85,7 +85,7 @@ def test_strategies_endpoint(authed):
     assert authed.get("/api/strategies").json()["strategies"][1]["enabled"] is True
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.ai_bias": True}, "note": "test"})
     assert r.status_code == 200, r.text
-    ai = authed.get("/api/strategies").json()["strategies"][4]
+    ai = authed.get("/api/strategies").json()["strategies"][3]
     assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "PAPER ONLY"
 
 
@@ -95,7 +95,6 @@ def test_gate_chain_and_ai_threshold_from_config(authed):
     ids = {g["id"]: g for g in d["gate_chain"]}
     assert ids["G1"]["on"] and ids["G1"]["locked"] and ids["RISK"]["kind"] == "pillar"
     assert not ids["G6"]["on"] and ids["G6"]["unproven"] and not ids["OB"]["on"]
-    assert ids["FRACTAL"]["state"] == ids["G4"]["state"] == "LUNQFX_ONLY" and ids["G4"]["scope"] == "lunqfx"
+    assert not {"FRACTAL", "G4", "G5"} & set(ids) and "lunqfx_flags" not in d  # D105: LunqFX rows removed
     assert ids["AI"]["state"] == "ADVISORY" and "70%" in ids["AI"]["text"]
-    assert {f["setting"] for f in d["lunqfx_flags"]} >= {"strategy.lunqfx_structure.enabled"}
     assert d["ai_ledger"][0]["required_accuracy"] == 0.7
