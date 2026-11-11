@@ -1,10 +1,9 @@
 """D106: per-strategy gates view (read-only) — pure helpers + the endpoint."""
 
 from datetime import UTC, datetime, timedelta
-
-from app import audit
 from decimal import Decimal as D
 
+from app import audit
 from app.api.strategy_gates import LUCID, describe, evaluate, lucid_rules
 from app.clock import FixedClock
 from app.models import Signal

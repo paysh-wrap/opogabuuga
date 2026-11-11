@@ -487,7 +487,8 @@ class Controller:
             "ORDER_FLOW": r.strategy.order_flow_cfg.brake_below,
         }.get(strategy)
         if brake is not None and fixed is not None and fixed > 1:  # D85/D115 cushion brake (size-table brake reused)
-            fixed = auto_contracts(acct_size, base, [SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)]).contracts
+            tier = SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)
+            fixed = auto_contracts(acct_size, base, [tier]).contracts
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
         eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on

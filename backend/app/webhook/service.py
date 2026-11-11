@@ -92,7 +92,10 @@ def ingest(
         return Ignored("LUNQFX_REMOVED", detail)
     if p.event in MSO_EVENTS:
         stats.accepted["MSO_REMOVED"] += 1
-        return Ignored("MSO_REMOVED", "BigBeluga MSO was removed from Paytience (D120): this alert is ignored - delete it in TradingView")
+        return Ignored(
+            "MSO_REMOVED",
+            "BigBeluga MSO was removed from Paytience (D120): this alert is ignored - delete it in TradingView",
+        )
     expected_tf = rules.profiles.TIGHT.ltf if p.profile == "TIGHT" else rules.profiles.STD.ltf
     try:
         tf_ok = tf_minutes(p.tf) == tf_minutes(expected_tf)

@@ -30,7 +30,7 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
         pivot_left=5,
         pivot_right=3,
     )
-    kept = [p for p in payloads if p["event"] not in FRACTAL_EVENTS]
+    kept = [p for p in payloads if p["event"] not in FRACTAL_EVENTS and not p["event"].startswith("MSO_")]
     assert len(kept) < len(payloads)  # the replay does produce LunqFX alerts ...
     for p in payloads:
         clock.set(datetime.fromtimestamp(p["bar_time_ms"] / 1000 + 1, tz=UTC))  # arrives 1 s after bar close
@@ -42,6 +42,8 @@ def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, cloc
         assert r.status_code == 200, (p["event"], r.text)
         if p["event"] in FRACTAL_EVENTS:  # ... which D105 acknowledges and drops
             assert r.json()["code"] == "LUNQFX_REMOVED", r.text
+        elif p["event"].startswith("MSO_"):  # D120: MSO alerts are acknowledged and dropped too
+            assert r.json()["code"] == "MSO_REMOVED", r.text
         else:
             assert r.json()["duplicate"] is False, (p["event"], r.text)
     with client.app.state.sessionmaker() as s:

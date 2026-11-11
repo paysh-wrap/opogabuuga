@@ -93,6 +93,7 @@ bool mkSweepS = false
 bool mkConfL = false
 bool mkConfS = false
 
+if barstate.isconfirmed
     // ---------- HTF candle (closed on the first bar of the next period, like the original) ----------
     bool htfClosed = false
     if newH and not na(hO)

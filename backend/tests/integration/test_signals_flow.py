@@ -176,7 +176,7 @@ def test_market_state_rebuilt_after_restart(settings, clock, mock_http):
     with TestClient(app2):
         st = app2.state.market.get("MNQ", "TIGHT")
         assert st is not None and st.last_heartbeat_ms == MS - 2 * MIN
-        assert st.mso_events and st.mso_events[0][0] == "MSO_CHOCH"
+        assert not st.mso_events  # D120: MSO alerts are ignored, never stored
 
 
 def test_processing_error_is_loud_not_silent(ready, clock, monkeypatch):

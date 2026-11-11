@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
 import httpx
 
-from app.connections.registry import LLM_PROVIDERS
+from app.connections.registry import LLM_PROVIDERS, qwen_base_url
 
 
 @dataclass(frozen=True)

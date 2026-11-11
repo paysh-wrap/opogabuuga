@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # ---------- YAML → Decimal loader ----------
 
@@ -1027,18 +1027,13 @@ class MsoCfg(_M):
     """D91: BigBeluga MSO. OFF by default: gates G4-G6 and the MSO score components are not evaluated, and LunqFX
     (which needs them) can only run in SHADOW. The parameters stay for the opt-in path and the old regression tests."""
 
-    enabled: bool = False  # D120: forced off by the validator below (old `true` values are tolerated, ignored)
+    enabled: bool = False  # D120: dormant (MSO removed from UI, pine, webhook)
     pivot_left: int = Field(ge=1, le=50)
     pivot_right: int = Field(ge=1, le=50)
     mom_length: int = Field(ge=1, le=200)
     smooth_length: int = Field(ge=1, le=200)
     div_pivot_left: int = Field(ge=1, le=50)
     div_pivot_right: int = Field(ge=1, le=50)
-
-    @field_validator("enabled", mode="after")
-    @classmethod
-    def _forced_off(cls, _v: bool) -> bool:
-        return False
 
 
 class IndicatorsCfg(_M):

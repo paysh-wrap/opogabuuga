@@ -288,7 +288,7 @@ def test_bat_d119_cwd_start_and_cleanup(tmp_path):
     assert 'start "" ' not in s
     stop = s[s.index(":stopnew") : s.index(":restore")]
     assert "taskkill /IM ngrok.exe /F" in stop and "taskkill /IM cloudflared.exe /F" in stop
-    assert "rmdir" not in s.split(":restore")[0] and "paytience-data\"" not in s  # data folder never moved/deleted
+    assert "rmdir" not in s.split(":restore")[0] and 'paytience-data"' not in s  # data folder never moved/deleted
 
 
 def test_script_encoding_is_oem_on_windows(monkeypatch):

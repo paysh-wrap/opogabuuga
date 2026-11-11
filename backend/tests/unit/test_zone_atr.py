@@ -103,4 +103,4 @@ def test_pine_zone_alert():
               "rev_level", "prior_event_hi", "prior_event_lo", "rvol", "range5_atr", "tick"):  # fmt: skip
         assert f'"{f}":' in SRC, f
         assert f in OrderFlowFields.model_fields, f
-    assert "iceberg PROXY" in SRC and '"kind":"ZONE"' in SRC and "1.15 * atr5" in SRC
+    assert "iceberg PROXY" in SRC and '"kind":"ZONE"' in SRC and "1.15 * zAtr5" in SRC

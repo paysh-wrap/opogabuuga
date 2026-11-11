@@ -138,7 +138,7 @@ def test_empty_server_secret_rejects_everything(wc):
         (hb, 29, True),
         (hb, 31, False),  # HEARTBEAT > 30 s → reject
         (mso_evt, 89, True),
-        (mso_evt, 91, False),  # events > 90 s → reject
+        (mso_evt, 91, True),  # D120: MSO alerts are ignored (200) before any freshness check
     ],
 )
 def test_freshness_limits(wc, payload_fn, age, ok):
@@ -278,5 +278,5 @@ def test_same_bar_opposite_direction_events_are_not_deduplicated(wc):
     base = mso_evt("MSO_BOS")
     a = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-MSO_BOS-LONG", "direction": "LONG"}
     b = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-MSO_BOS-SHORT", "direction": "SHORT"}
-    assert post(wc, a).json() == {"ok": True, "duplicate": False}
-    assert post(wc, b).json() == {"ok": True, "duplicate": False}
+    ra, rb = post(wc, a).json(), post(wc, b).json()
+    assert ra["code"] == rb["code"] == "MSO_REMOVED" and ra["ignored"] and rb["ignored"]  # D120: MSO alerts ignored

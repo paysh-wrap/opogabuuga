@@ -102,7 +102,8 @@ def test_strategy_buttons_d55(plan):
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
-    assert n.contracts == 1  # fallback; D63 size_table sizes each account
+    # D115: per-plan fallback size (25K 1 · 50K 2 · 100K 3 · 150K 5); the D63 size_table sizes each account
+    assert n.contracts == {25: 1, 50: 2, 100: 3, 150: 5}[int(plan.split("_")[-1][:-1])]
     assert not s.order_flow_cfg.paper_only and not s.ai_duo_cfg.paper_only  # D102: none forced paper-only
 
 
@@ -151,14 +152,14 @@ def test_size_table_validation_and_plans():  # D63
             assert [(t.account_size, t.contracts) for t in st.size_table] == [
                 (D(25000), 1),
                 (D(50000), 2),
-                (D(100000), 2),
-                (D(150000), 3),
+                (D(100000), 3),  # D115
+                (D(150000), 5),
             ]
             assert [(t.account_size, t.contracts) for t in st.size_table_high] == [
                 (D(25000), 1),
                 (D(50000), 2),
-                (D(100000), 3),
-                (D(150000), 4),
+                (D(100000), 4),  # D115
+                (D(150000), 5),
             ]
             assert all(t.brake_below is not None for t in st.size_table_high if t.contracts > 1)  # brake on every row
             assert not st.high_risk and st.active_size_table() is st.size_table
@@ -207,3 +208,31 @@ def test_pro_plans_freeze_with_50_left_to_the_loss_limit():  # D71
     assert load_rules(root / "lucid_daily_25k.yaml").rules.internal.kill_switch_mll_distance == D(
         100
     )  # others keep $100
+
+
+def test_d115_size_validators():
+    """D115: every strategy size must be >= 1 and <= the plan's firm max micros; per-trade cap below the MLL."""
+    from pathlib import Path
+
+    from pydantic import ValidationError
+
+    from app.config import AiBiasCfg, NoiseCfg, OrderFlowCfg, PmFadeCfg, load_rules
+
+    for cfg in (NoiseCfg, PmFadeCfg, AiBiasCfg, OrderFlowCfg):
+        with pytest.raises(ValidationError):
+            cfg(contracts=0)
+    f = Path(__file__).resolve().parents[3] / "config" / "rules" / "lucid_pro_25k.yaml"
+    rules = load_rules(f).rules
+    firm = rules.max_contracts.micros
+    st = rules.strategy
+    with pytest.raises(ValidationError, match="above the firm max"):
+        type(rules).model_validate(
+            {
+                **rules.model_dump(),
+                "strategy": {**st.model_dump(), "noise_cfg": {**st.noise_cfg.model_dump(), "contracts": firm + 1}},
+            }
+        )
+    with pytest.raises(ValidationError, match="max_trade_risk_usd"):
+        type(rules).model_validate(
+            {**rules.model_dump(), "strategy": {**st.model_dump(), "max_trade_risk_usd": D(10**6)}}
+        )
