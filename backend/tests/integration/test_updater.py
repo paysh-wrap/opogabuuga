@@ -123,6 +123,8 @@ def test_bat_script_text(tmp_path):
     s = updater.updater_script(app, up / "staging" / "Paytience", up / "old-1", up, 4242)
     assert s.startswith("@echo off") and "\r\n" in s
     assert "PID eq 4242" in s
+    assert "taskkill /PID 4242 /T /F" in s and s.index("taskkill /PID 4242") < s.index(":exited")
+    assert "if %w% geq 45" in s and ":exited" in s
     assert f'move "{app}\\_internal" "{up / "old-1"}\\"' in s
     assert f'start "" "{app}\\Paytience.exe"' in s
     assert "healthy.flag" in s and ":restore" in s and "update-failed.txt" in s

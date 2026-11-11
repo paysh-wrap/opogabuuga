@@ -97,9 +97,20 @@ def dismiss(_: Principal = Depends(current_user)) -> dict[str, bool]:
 
 
 def _launch(script: Path) -> None:  # pragma: no cover - Windows only
-    flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    # CREATE_NO_WINDOW (not DETACHED_PROCESS): the script's tasklist/findstr/timeout share one hidden console
+    # instead of each flashing a black window.
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
     subprocess.Popen(["cmd", "/c", str(script)], creationflags=flags, close_fds=True)  # noqa: S603,S607 - our script
-    asyncio.get_running_loop().call_later(2.0, os._exit, 0)
+    asyncio.get_running_loop().call_later(2.0, _hard_exit)
+
+
+def _hard_exit() -> None:  # pragma: no cover - Windows only
+    """os._exit can hang on Windows (DLL detach under the loader lock); TerminateProcess cannot."""
+    import ctypes
+
+    k32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+    k32.TerminateProcess(k32.GetCurrentProcess(), 0)
+    os._exit(0)
 
 
 @router.post("/install")
