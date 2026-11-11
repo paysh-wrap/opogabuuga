@@ -1,0 +1,1064 @@
+{
+ "scale": [
+  {
+   "strategy": "NOISE preset C",
+   "size": 25,
+   "n": 1,
+   "IS": {
+    "pass_": 73.0,
+    "bust": 27.0,
+    "med": 72.0
+   },
+   "J": {
+    "pass_": 57.5,
+    "bust": 42.5,
+    "med": 28.0
+   },
+   "ALL": {
+    "pass_": 66.75,
+    "bust": 33.25,
+    "med": 57.0
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 25,
+   "n": 2,
+   "IS": {
+    "pass_": 57.0,
+    "bust": 43.0,
+    "med": 24.5
+   },
+   "J": {
+    "pass_": 49.0,
+    "bust": 51.0,
+    "med": 9.5
+   },
+   "ALL": {
+    "pass_": 53.0,
+    "bust": 47.0,
+    "med": 22.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 25,
+   "n": 3,
+   "IS": {
+    "pass_": 53.5,
+    "bust": 46.5,
+    "med": 14.0
+   },
+   "J": {
+    "pass_": 46.0,
+    "bust": 54.0,
+    "med": 6.0
+   },
+   "ALL": {
+    "pass_": 49.5,
+    "bust": 50.5,
+    "med": 13.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 25,
+   "n": 4,
+   "IS": {
+    "pass_": 46.75,
+    "bust": 53.25,
+    "med": 9.0
+   },
+   "J": {
+    "pass_": 47.5,
+    "bust": 52.5,
+    "med": 4.0
+   },
+   "ALL": {
+    "pass_": 49.75,
+    "bust": 50.25,
+    "med": 8.0
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 25,
+   "n": 5,
+   "IS": {
+    "pass_": 45.75,
+    "bust": 54.25,
+    "med": 6.0
+   },
+   "J": {
+    "pass_": 41.0,
+    "bust": 59.0,
+    "med": 4.0
+   },
+   "ALL": {
+    "pass_": 45.0,
+    "bust": 55.0,
+    "med": 5.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 50,
+   "n": 1,
+   "IS": {
+    "pass_": 85.25,
+    "bust": 8.0,
+    "med": 203.0
+   },
+   "J": {
+    "pass_": 80.0,
+    "bust": 20.0,
+    "med": 110.5
+   },
+   "ALL": {
+    "pass_": 85.5,
+    "bust": 10.0,
+    "med": 190.5
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 50,
+   "n": 2,
+   "IS": {
+    "pass_": 71.0,
+    "bust": 28.75,
+    "med": 87.0
+   },
+   "J": {
+    "pass_": 54.75,
+    "bust": 45.25,
+    "med": 35.0
+   },
+   "ALL": {
+    "pass_": 64.25,
+    "bust": 35.75,
+    "med": 74.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 50,
+   "n": 3,
+   "IS": {
+    "pass_": 58.75,
+    "bust": 41.25,
+    "med": 45.0
+   },
+   "J": {
+    "pass_": 44.25,
+    "bust": 55.75,
+    "med": 18.0
+   },
+   "ALL": {
+    "pass_": 56.5,
+    "bust": 43.5,
+    "med": 40.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 5
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 50,
+   "n": 4,
+   "IS": {
+    "pass_": 51.75,
+    "bust": 48.25,
+    "med": 30.0
+   },
+   "J": {
+    "pass_": 47.0,
+    "bust": 53.0,
+    "med": 11.5
+   },
+   "ALL": {
+    "pass_": 49.5,
+    "bust": 50.5,
+    "med": 27.0
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 12
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 50,
+   "n": 5,
+   "IS": {
+    "pass_": 50.0,
+    "bust": 50.0,
+    "med": 22.0
+   },
+   "J": {
+    "pass_": 42.5,
+    "bust": 57.5,
+    "med": 9.0
+   },
+   "ALL": {
+    "pass_": 45.75,
+    "bust": 54.25,
+    "med": 21.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 72
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 100,
+   "n": 1,
+   "IS": {
+    "pass_": 42.25,
+    "bust": 1.75,
+    "med": 389.0
+   },
+   "J": {
+    "pass_": 85.75,
+    "bust": 6.75,
+    "med": 233.0
+   },
+   "ALL": {
+    "pass_": 60.0,
+    "bust": 1.75,
+    "med": 372.0
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 100,
+   "n": 2,
+   "IS": {
+    "pass_": 80.5,
+    "bust": 14.25,
+    "med": 197.0
+   },
+   "J": {
+    "pass_": 65.75,
+    "bust": 34.25,
+    "med": 99.0
+   },
+   "ALL": {
+    "pass_": 79.5,
+    "bust": 18.25,
+    "med": 184.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 100,
+   "n": 3,
+   "IS": {
+    "pass_": 69.25,
+    "bust": 30.25,
+    "med": 114.0
+   },
+   "J": {
+    "pass_": 51.0,
+    "bust": 49.0,
+    "med": 50.0
+   },
+   "ALL": {
+    "pass_": 62.75,
+    "bust": 37.25,
+    "med": 99.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 100,
+   "n": 4,
+   "IS": {
+    "pass_": 60.0,
+    "bust": 40.0,
+    "med": 81.0
+   },
+   "J": {
+    "pass_": 46.0,
+    "bust": 54.0,
+    "med": 31.0
+   },
+   "ALL": {
+    "pass_": 53.5,
+    "bust": 46.5,
+    "med": 63.5
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 4
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 100,
+   "n": 5,
+   "IS": {
+    "pass_": 52.25,
+    "bust": 47.75,
+    "med": 56.0
+   },
+   "J": {
+    "pass_": 40.75,
+    "bust": 59.25,
+    "med": 22.0
+   },
+   "ALL": {
+    "pass_": 50.25,
+    "bust": 49.75,
+    "med": 49.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 7
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 150,
+   "n": 1,
+   "IS": {
+    "pass_": 8.5,
+    "bust": 0.0,
+    "med": 451.5
+   },
+   "J": {
+    "pass_": 72.25,
+    "bust": 0.5,
+    "med": 338.0
+   },
+   "ALL": {
+    "pass_": 21.0,
+    "bust": 0.0,
+    "med": 398.0
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 150,
+   "n": 2,
+   "IS": {
+    "pass_": 69.25,
+    "bust": 5.75,
+    "med": 322.0
+   },
+   "J": {
+    "pass_": 82.75,
+    "bust": 16.5,
+    "med": 168.0
+   },
+   "ALL": {
+    "pass_": 74.25,
+    "bust": 7.25,
+    "med": 282.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 150,
+   "n": 3,
+   "IS": {
+    "pass_": 80.5,
+    "bust": 14.25,
+    "med": 197.0
+   },
+   "J": {
+    "pass_": 66.25,
+    "bust": 33.75,
+    "med": 99.0
+   },
+   "ALL": {
+    "pass_": 79.75,
+    "bust": 18.0,
+    "med": 184.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 150,
+   "n": 4,
+   "IS": {
+    "pass_": 73.0,
+    "bust": 26.0,
+    "med": 137.5
+   },
+   "J": {
+    "pass_": 56.0,
+    "bust": 44.0,
+    "med": 65.5
+   },
+   "ALL": {
+    "pass_": 68.0,
+    "bust": 31.75,
+    "med": 119.0
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C",
+   "size": 150,
+   "n": 5,
+   "IS": {
+    "pass_": 65.75,
+    "bust": 34.25,
+    "med": 98.0
+   },
+   "J": {
+    "pass_": 49.5,
+    "bust": 50.5,
+    "med": 43.0
+   },
+   "ALL": {
+    "pass_": 58.0,
+    "bust": 42.0,
+    "med": 85.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 25,
+   "n": 1,
+   "IS": {
+    "pass_": 75.25,
+    "bust": 24.75,
+    "med": 82.0
+   },
+   "J": {
+    "pass_": 67.25,
+    "bust": 32.75,
+    "med": 37.0
+   },
+   "ALL": {
+    "pass_": 72.5,
+    "bust": 27.5,
+    "med": 65.5
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 25,
+   "n": 2,
+   "IS": {
+    "pass_": 60.0,
+    "bust": 40.0,
+    "med": 29.0
+   },
+   "J": {
+    "pass_": 47.25,
+    "bust": 52.75,
+    "med": 12.0
+   },
+   "ALL": {
+    "pass_": 56.5,
+    "bust": 43.5,
+    "med": 24.5
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 25,
+   "n": 3,
+   "IS": {
+    "pass_": 56.25,
+    "bust": 43.75,
+    "med": 16.0
+   },
+   "J": {
+    "pass_": 48.75,
+    "bust": 51.25,
+    "med": 8.0
+   },
+   "ALL": {
+    "pass_": 54.5,
+    "bust": 45.5,
+    "med": 14.5
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 25,
+   "n": 4,
+   "IS": {
+    "pass_": 51.25,
+    "bust": 48.75,
+    "med": 10.0
+   },
+   "J": {
+    "pass_": 51.5,
+    "bust": 48.5,
+    "med": 5.0
+   },
+   "ALL": {
+    "pass_": 50.5,
+    "bust": 49.5,
+    "med": 9.0
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 25,
+   "n": 5,
+   "IS": {
+    "pass_": 49.5,
+    "bust": 50.5,
+    "med": 7.0
+   },
+   "J": {
+    "pass_": 41.0,
+    "bust": 59.0,
+    "med": 4.0
+   },
+   "ALL": {
+    "pass_": 45.75,
+    "bust": 54.25,
+    "med": 7.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 50,
+   "n": 1,
+   "IS": {
+    "pass_": 82.75,
+    "bust": 6.0,
+    "med": 215.0
+   },
+   "J": {
+    "pass_": 87.25,
+    "bust": 12.5,
+    "med": 124.0
+   },
+   "ALL": {
+    "pass_": 89.5,
+    "bust": 6.5,
+    "med": 206.0
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 50,
+   "n": 2,
+   "IS": {
+    "pass_": 74.0,
+    "bust": 26.0,
+    "med": 96.0
+   },
+   "J": {
+    "pass_": 65.0,
+    "bust": 35.0,
+    "med": 44.0
+   },
+   "ALL": {
+    "pass_": 69.75,
+    "bust": 30.25,
+    "med": 80.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 50,
+   "n": 3,
+   "IS": {
+    "pass_": 60.0,
+    "bust": 40.0,
+    "med": 55.0
+   },
+   "J": {
+    "pass_": 51.5,
+    "bust": 48.5,
+    "med": 23.5
+   },
+   "ALL": {
+    "pass_": 58.5,
+    "bust": 41.5,
+    "med": 44.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 5
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 50,
+   "n": 4,
+   "IS": {
+    "pass_": 55.0,
+    "bust": 45.0,
+    "med": 34.0
+   },
+   "J": {
+    "pass_": 46.25,
+    "bust": 53.75,
+    "med": 16.0
+   },
+   "ALL": {
+    "pass_": 53.25,
+    "bust": 46.75,
+    "med": 30.0
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 11
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 50,
+   "n": 5,
+   "IS": {
+    "pass_": 52.5,
+    "bust": 47.5,
+    "med": 25.5
+   },
+   "J": {
+    "pass_": 42.0,
+    "bust": 58.0,
+    "med": 12.0
+   },
+   "ALL": {
+    "pass_": 48.75,
+    "bust": 51.25,
+    "med": 23.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 58
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 100,
+   "n": 1,
+   "IS": {
+    "pass_": 37.75,
+    "bust": 2.0,
+    "med": 396.0
+   },
+   "J": {
+    "pass_": 90.75,
+    "bust": 2.5,
+    "med": 254.0
+   },
+   "ALL": {
+    "pass_": 55.0,
+    "bust": 0.75,
+    "med": 362.5
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 100,
+   "n": 2,
+   "IS": {
+    "pass_": 79.25,
+    "bust": 13.5,
+    "med": 212.0
+   },
+   "J": {
+    "pass_": 77.75,
+    "bust": 22.25,
+    "med": 115.0
+   },
+   "ALL": {
+    "pass_": 83.0,
+    "bust": 14.75,
+    "med": 195.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 100,
+   "n": 3,
+   "IS": {
+    "pass_": 72.75,
+    "bust": 27.0,
+    "med": 133.0
+   },
+   "J": {
+    "pass_": 63.0,
+    "bust": 37.0,
+    "med": 60.0
+   },
+   "ALL": {
+    "pass_": 69.0,
+    "bust": 30.75,
+    "med": 110.5
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 100,
+   "n": 4,
+   "IS": {
+    "pass_": 63.0,
+    "bust": 37.0,
+    "med": 88.0
+   },
+   "J": {
+    "pass_": 55.5,
+    "bust": 44.5,
+    "med": 39.5
+   },
+   "ALL": {
+    "pass_": 58.0,
+    "bust": 42.0,
+    "med": 72.5
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 4
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 100,
+   "n": 5,
+   "IS": {
+    "pass_": 55.25,
+    "bust": 44.75,
+    "med": 71.0
+   },
+   "J": {
+    "pass_": 45.0,
+    "bust": 55.0,
+    "med": 27.0
+   },
+   "ALL": {
+    "pass_": 53.5,
+    "bust": 46.5,
+    "med": 53.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 7
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 150,
+   "n": 1,
+   "IS": {
+    "pass_": 7.25,
+    "bust": 0.0,
+    "med": 463.0
+   },
+   "J": {
+    "pass_": 71.0,
+    "bust": 0.0,
+    "med": 335.5
+   },
+   "ALL": {
+    "pass_": 17.5,
+    "bust": 0.25,
+    "med": 402.5
+   },
+   "worst_day": -748.5,
+   "worst_trade": -249.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 150,
+   "n": 2,
+   "IS": {
+    "pass_": 65.75,
+    "bust": 4.75,
+    "med": 328.0
+   },
+   "J": {
+    "pass_": 90.25,
+    "bust": 8.25,
+    "med": 184.0
+   },
+   "ALL": {
+    "pass_": 76.75,
+    "bust": 4.25,
+    "med": 292.0
+   },
+   "worst_day": -1497.0,
+   "worst_trade": -499.0,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 150,
+   "n": 3,
+   "IS": {
+    "pass_": 79.25,
+    "bust": 13.5,
+    "med": 212.0
+   },
+   "J": {
+    "pass_": 78.25,
+    "bust": 21.75,
+    "med": 115.0
+   },
+   "ALL": {
+    "pass_": 83.0,
+    "bust": 14.75,
+    "med": 195.0
+   },
+   "worst_day": -2245.5,
+   "worst_trade": -748.5,
+   "days_dll_hit": 0
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 150,
+   "n": 4,
+   "IS": {
+    "pass_": 76.5,
+    "bust": 23.0,
+    "med": 148.0
+   },
+   "J": {
+    "pass_": 68.0,
+    "bust": 32.0,
+    "med": 73.5
+   },
+   "ALL": {
+    "pass_": 75.0,
+    "bust": 24.5,
+    "med": 131.5
+   },
+   "worst_day": -2994.0,
+   "worst_trade": -998.0,
+   "days_dll_hit": 1
+  },
+  {
+   "strategy": "NOISE preset C + skip Monday",
+   "size": 150,
+   "n": 5,
+   "IS": {
+    "pass_": 69.5,
+    "bust": 30.25,
+    "med": 117.5
+   },
+   "J": {
+    "pass_": 59.0,
+    "bust": 41.0,
+    "med": 50.0
+   },
+   "ALL": {
+    "pass_": 66.75,
+    "bust": 33.25,
+    "med": 100.0
+   },
+   "worst_day": -3742.5,
+   "worst_trade": -1247.5,
+   "days_dll_hit": 1
+  }
+ ],
+ "ai": [
+  {
+   "acc": 0.5,
+   "IS": {
+    "n": 497.4,
+    "win": 47.47730268209985,
+    "avg": 17.699142255756968,
+    "net": 8808.85,
+    "dd": 1635.475,
+    "pf": 1.3690416631594946,
+    "pass": 66.25,
+    "bust": 30.666666666666664
+   },
+   "J": {
+    "n": 76.25,
+    "win": 54.95658170715391,
+    "avg": 36.591503252163456,
+    "net": 2695.5,
+    "dd": 1292.425,
+    "pf": 1.4639315988910069,
+    "pass": 57.583333333333336,
+    "bust": 42.416666666666664
+   }
+  },
+  {
+   "acc": 0.55,
+   "IS": {
+    "n": 534.45,
+    "win": 48.39168364315288,
+    "avg": 21.12981683530521,
+    "net": 11297.875,
+    "dd": 1627.175,
+    "pf": 1.4519621136772405,
+    "pass": 73.25,
+    "bust": 25.0
+   },
+   "J": {
+    "n": 81.95,
+    "win": 55.56096699720422,
+    "avg": 40.37223576719053,
+    "net": 3238.9,
+    "dd": 1197.95,
+    "pf": 1.5785603280316787,
+    "pass": 62.333333333333336,
+    "bust": 37.666666666666664
+   }
+  },
+  {
+   "acc": 0.6,
+   "IS": {
+    "n": 570.8,
+    "win": 49.18141229235066,
+    "avg": 23.905286901852474,
+    "net": 13638.675,
+    "dd": 1579.025,
+    "pf": 1.4895030973482881,
+    "pass": 80.41666666666666,
+    "bust": 18.5
+   },
+   "J": {
+    "n": 88.3,
+    "win": 56.08923679814778,
+    "avg": 45.32293602286202,
+    "net": 3960.625,
+    "dd": 1205.425,
+    "pf": 1.6667290202312557,
+    "pass": 64.66666666666667,
+    "bust": 35.333333333333336
+   }
+  },
+  {
+   "acc": 0.65,
+   "IS": {
+    "n": 605.85,
+    "win": 49.864747279078,
+    "avg": 26.067407734687766,
+    "net": 15778.425,
+    "dd": 1593.325,
+    "pf": 1.5639587760878157,
+    "pass": 82.33333333333334,
+    "bust": 17.333333333333332
+   },
+   "J": {
+    "n": 93.3,
+    "win": 56.25162431419102,
+    "avg": 46.85650415758878,
+    "net": 4344.025,
+    "dd": 1214.75,
+    "pf": 1.6914412571356137,
+    "pass": 66.83333333333333,
+    "bust": 33.16666666666667
+   }
+  },
+  {
+   "acc": 0.7,
+   "IS": {
+    "n": 645.25,
+    "win": 50.49584166930343,
+    "avg": 28.48699913594705,
+    "net": 18354.975,
+    "dd": 1618.125,
+    "pf": 1.6217811059648293,
+    "pass": 84.91666666666666,
+    "bust": 14.666666666666668
+   },
+   "J": {
+    "n": 99.1,
+    "win": 56.77380811926353,
+    "avg": 52.5830210599956,
+    "net": 5202.375,
+    "dd": 1118.325,
+    "pf": 1.79884744110412,
+    "pass": 69.0,
+    "bust": 31.0
+   }
+  },
+  {
+   "acc": 0.75,
+   "IS": {
+    "n": 680.4,
+    "win": 51.0315511184506,
+    "avg": 29.984561276841312,
+    "net": 20400.575,
+    "dd": 1690.575,
+    "pf": 1.6705004864501447,
+    "pass": 88.83333333333334,
+    "bust": 10.666666666666666
+   },
+   "J": {
+    "n": 104.25,
+    "win": 57.06006233309627,
+    "avg": 54.49738838029076,
+    "net": 5682.1,
+    "dd": 1057.225,
+    "pf": 1.772595245588497,
+    "pass": 73.75,
+    "bust": 26.25
+   }
+  }
+ ]
+}

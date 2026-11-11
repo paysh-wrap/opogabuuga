@@ -1,0 +1,17 @@
+MGC AMT+ {'k': 1.0, 'lock': False} IS 588 0.92 J 131 0.89
+MGC AMT+ {'k': 1.0, 'lock': True} IS 226 1.16 J 37 0.78
+MGC AMT+ {'k': 1.5, 'lock': False} IS 443 0.94 J 84 1.0
+MGC AMT+ {'k': 1.5, 'lock': True} IS 167 1.31 J 24 0.57
+MGC AMT+ {'k': 1.5, 'lock': True, 'dead': True, 'rvmin': 1.0} IS 127 1.43 J 18 0.52
+MGC AMT+ {'k': 1.5, 'lock': True, 'rvmin': 1.0} IS 60 1.48 J 5 0.0
+MGC AMT+ {'k': 1.5, 'lock': False, 'rvmin': 1.0} IS 180 0.96 J 25 1.02
+MGC ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'a'} IS 1786 0.92 J 228 1.01
+MGC ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'b'} IS 326 0.56 J 234 0.91
+MGC ATRZ {'m': 2.0, 'kk': 2, 'stopmode': 'a'} IS 1203 0.79 J 107 0.96
+MGC ATRZ {'m': 2.0, 'kk': 2, 'stopmode': 'b'} IS 763 0.91 J 153 1.24
+MGC ATRZ {'m': 3.0, 'kk': 1, 'stopmode': 'a'} IS 779 0.88 J 66 0.85
+MGC ATRZ {'m': 3.0, 'kk': 1, 'stopmode': 'b'} IS 160 0.71 J 74 0.77
+MGC ATRZ {'m': 3.0, 'kk': 2, 'stopmode': 'a'} IS 505 0.75 J 28 0.71
+MGC ATRZ {'m': 3.0, 'kk': 2, 'stopmode': 'b'} IS 321 1.0 J 50 0.8
+MGC ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'b', 'dead': True} IS 306 0.51 J 215 0.87
+MGC ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'a', 'dead': True} IS 1653 0.86 J 212 0.95

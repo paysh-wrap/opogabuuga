@@ -1,0 +1,17 @@
+MNQ AMT+ {'k': 1.0, 'lock': False} IS 1122 0.9 J 157 0.84
+MNQ AMT+ {'k': 1.0, 'lock': True} IS 476 0.95 J 62 1.52
+MNQ AMT+ {'k': 1.5, 'lock': False} IS 849 0.87 J 104 0.89
+MNQ AMT+ {'k': 1.5, 'lock': True} IS 316 0.89 J 41 1.53
+MNQ AMT+ {'k': 1.5, 'lock': True, 'dead': True, 'rvmin': 1.0} IS 268 0.87 J 35 1.69
+MNQ AMT+ {'k': 1.5, 'lock': True, 'rvmin': 1.0} IS 162 0.98 J 21 1.52
+MNQ AMT+ {'k': 1.5, 'lock': False, 'rvmin': 1.0} IS 426 0.91 J 48 0.91
+MNQ ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'a'} IS 871 0.9 J 79 1.01
+MNQ ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'b'} IS 806 0.86 J 88 0.82
+MNQ ATRZ {'m': 2.0, 'kk': 2, 'stopmode': 'a'} IS 477 0.89 J 28 1.32
+MNQ ATRZ {'m': 2.0, 'kk': 2, 'stopmode': 'b'} IS 574 1.02 J 53 1.9
+MNQ ATRZ {'m': 3.0, 'kk': 1, 'stopmode': 'a'} IS 249 1.12 J 23 0.65
+MNQ ATRZ {'m': 3.0, 'kk': 1, 'stopmode': 'b'} IS 238 1.08 J 27 0.61
+MNQ ATRZ {'m': 3.0, 'kk': 2, 'stopmode': 'a'} IS 129 0.97 J 10 2.56
+MNQ ATRZ {'m': 3.0, 'kk': 2, 'stopmode': 'b'} IS 162 1.06 J 17 2.43
+MNQ ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'b', 'dead': True} IS 790 0.87 J 85 0.73
+MNQ ATRZ {'m': 2.0, 'kk': 1, 'stopmode': 'a', 'dead': True} IS 856 0.91 J 76 1.18
