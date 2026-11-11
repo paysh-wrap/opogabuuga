@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -126,5 +126,6 @@ test("D93: only mandatory EVAL/LIVE connections get the standout tag; optional o
 
 test("shows the CME real-time data chip (D112)", async () => {
   setup([payload("not_set")]);
-  expect(await screen.findByTestId("cme-realtime")).toHaveTextContent("CME real-time data: DELAYED");
+  await screen.findByTestId("cme-realtime");
+  await waitFor(() => expect(screen.getByTestId("cme-realtime")).toHaveTextContent("CME real-time data: DELAYED"));
 });

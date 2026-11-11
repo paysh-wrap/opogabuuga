@@ -240,7 +240,13 @@ def test_status_endpoint_and_connections_card_react(authed, clock, mock_http):
     assert post(authed, hb()).status_code == 200
     st = authed.get("/api/webhook/status").json()
     assert st["feeds"] == [
-        {"symbol": "MNQ", "profile": "TIGHT", "last_heartbeat": st["feeds"][0]["last_heartbeat"], "status": "FRESH"}
+        {
+            "symbol": "MNQ",
+            "profile": "TIGHT",
+            "last_heartbeat": st["feeds"][0]["last_heartbeat"],
+            "data_feed": "unknown",
+            "status": "FRESH",
+        }
     ]
     assert st["accepted"]["HEARTBEAT"] == 1 and st["secret_set"] is True
     card = next(c for c in authed.get("/api/connections").json()["connections"] if c["id"] == "tradingview")
