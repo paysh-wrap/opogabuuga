@@ -961,3 +961,6 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   (clean hook missing); positions keep the broker bracket + 16:00 flat.
 - Known gaps: Pine NOT compiled here (static tests only) — the `request.footprint` / `volume_row` method names are from the
   Pine v6 docs as we know them; if TradingView refuses them, set `footprint fp = na` (estimated only). No real-delta test.
+- D103 (user 2026-11-11): each desktop build opens under its own browser origin http://paytience-<commit7>.localhost:8000
+  (desktop/paytience_app.py ui_url()); *.localhost resolves to this PC, so an old build's cached page/service worker can never
+  show a blank or stale UI for a new one. Health checks stay on 127.0.0.1. Browser login/cookies are per name → sign in again after an update.

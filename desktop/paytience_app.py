@@ -24,7 +24,22 @@ FROZEN = getattr(sys, "frozen", False)
 BUNDLE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[1]))  # repo root when not frozen
 EXE_DIR = Path(sys.executable).resolve().parent if FROZEN else Path(__file__).resolve().parents[1]
 DATA = EXE_DIR / "paytience-data"
-URL = "http://127.0.0.1:8000"
+URL = "http://127.0.0.1:8000"  # health checks (always loopback)
+
+
+def ui_url() -> str:
+    """D103: every build opens under its OWN browser origin (paytience-<commit7>.localhost). *.localhost always resolves to this
+    PC, but the browser treats each name as a different site, so an old build's cached page / service worker can never
+    serve a blank or stale interface for a new build. Dev builds keep 127.0.0.1."""
+    try:
+        from app.updater import load_version
+
+        commit = load_version().commit
+        if commit and commit != "dev":
+            return f"http://paytience-{commit[:7]}.localhost:8000"
+    except Exception:  # noqa: BLE001 - never block startup on a name
+        return URL
+    return URL
 USERNAME = "PayDay"
 TA_TAG, TA_COMMIT = "v0.7.1", "3e44faafa042daf953f6ec2422ae36bb1fd4f50f"
 VT_PIN = "vibe-trading-ai[anthropic]==0.1.19"
@@ -235,7 +250,7 @@ def serve(host: str) -> None:
 
     from app.main import create_app
 
-    say(f"Paytience is running at {URL}  (PAPER mode — close this window to stop)")
+    say(f"Paytience is running — open {ui_url()}  (PAPER mode — close this window to stop)")
     app = create_app()
     server = uvicorn.Server(uvicorn.Config(app, host=host, port=PORT, log_level="warning"))
     app.state.request_shutdown = lambda: setattr(server, "should_exit", True)  # graceful exit for /api/system/shutdown
@@ -294,7 +309,7 @@ def main() -> None:
                             print(f"  ⚠ {failed}")
                     except OSError as e:
                         print(f"  ⚠ Update bookkeeping failed: {e}")
-                webbrowser.open(URL)
+                webbrowser.open(ui_url())
                 return
             except Exception:  # noqa: BLE001 - still starting
                 time.sleep(1)
