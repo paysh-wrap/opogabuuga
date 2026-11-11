@@ -9,9 +9,8 @@ import TradingR1Card from "../components/TradingR1Card";
 import StrategyGates from "../components/StrategyGates";
 import AiLedger from "../components/AiLedger";
 
-interface Feed { profile: string; feed: string; mso_trend: string | null; mso_osc: string | null; last_mso_event: [string, string] | null }
+interface Feed { profile: string; feed: string }
 interface S {
-  mso_enabled?: boolean;
   tradingagents: { installed_version: string | null; pinned_version: string; configured: boolean; schedule: string };
   instruments: { symbol: string; enabled: boolean; proxy: string; bias: string; feeds: Feed[] }[];
 }
@@ -59,8 +58,6 @@ export default function Strategy() {
               {i.feeds.map((f) => (
                 <div key={f.profile} className="ml-3">
                   {dot(f.feed === "FRESH")} {f.profile} feed {f.feed}
-                  {s.mso_enabled && ` · MSO ${f.mso_trend ?? "—"} ${f.mso_osc ? `(${Number(f.mso_osc).toFixed(1)})` : ""}`}
-                  {s.mso_enabled && f.last_mso_event && ` · last ${f.last_mso_event[0]} ${f.last_mso_event[1]}`}
                 </div>
               ))}
             </div>

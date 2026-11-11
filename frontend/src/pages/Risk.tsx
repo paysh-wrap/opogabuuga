@@ -79,7 +79,7 @@ export default function Risk() {
 
       <section className="rounded-xl border border-gold bg-card p-4" data-testid="trading-mode">
         <h2 className="font-semibold text-gold">Trading mode · Intraday ✓</h2>
-        <p className="text-xs">Main strategy (D55–D58): NOISE (noise-area momentum on Micro Nasdaq, fixed 1 micro) plus the afternoon fade, set with the buttons on the Strategy page. Entries only inside the morning window and never inside news blackouts; always flat before 4:40 PM ET. Gate toggles (order-block / SMT, MSO divergence, AI threshold) are on the Strategy page and are OFF or advisory because testing on 2024–26 showed no gain. PAPER by default.</p>
+        <p className="text-xs">Main strategy (D55–D58): NOISE (noise-area momentum on Micro Nasdaq, fixed 1 micro) plus the afternoon fade, set with the buttons on the Strategy page. Entries only inside the morning window and never inside news blackouts; always flat before 4:40 PM ET. Gate toggles (order-block / SMT, AI threshold) are on the Strategy page and are OFF or advisory because testing on 2024–26 showed no gain. PAPER by default.</p>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-4">
