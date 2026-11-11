@@ -964,3 +964,6 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - D103 (user 2026-11-11): each desktop build opens under its own browser origin http://paytience-<commit7>.localhost:8000
   (desktop/paytience_app.py ui_url(): paytience-<commit7>-<build time>; after "Install now" the page itself jumps to the new name, frontend uiOrigin()); *.localhost resolves to this PC, so an old build's cached page/service worker can never
   show a blank or stale UI for a new one. Health checks stay on 127.0.0.1. Browser login/cookies are per name → sign in again after an update.
+- D104 (user 2026-11-11): TradingAgents + Vibe-Trading auto-install fixed. A venv counts as installed only with its `.paytience-ok`
+  marker (written after a successful install) or a working import — a half-built venv (install killed, window closed) is rebuilt,
+  not skipped forever. Installs run in a background thread so the dashboard opens at once; retried on EVERY start (needs internet).

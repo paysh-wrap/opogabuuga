@@ -163,7 +163,26 @@ def ensure_ai_tools() -> None:
 
     ta_py = Path(os.environ["PAYTIENCE_TA_PYTHON"])
     vt_exe = DATA / ".venv-vt" / ("Scripts/vibe-trading.exe" if WIN else "bin/vibe-trading")
-    if ta_py.exists() and vt_exe.exists():
+    vt_py = DATA / ".venv-vt" / ("Scripts/python.exe" if WIN else "bin/python")
+
+    def ready(venv_dir: Path, py: Path, probe: str) -> bool:
+        """D104: a tool counts as installed only if its marker exists (written after a SUCCESSFUL install) or, for a venv
+        made by an older build, a real import works. A venv that merely has python.exe (install killed half-way) is NOT ready."""
+        marker = venv_dir / ".paytience-ok"
+        if marker.exists():
+            return True
+        if not py.exists():
+            return False
+        try:
+            _run([str(py), "-c", probe])
+        except Exception:  # noqa: BLE001 - broken/half-built → reinstall
+            return False
+        marker.write_text("ok", encoding="utf-8")
+        return True
+
+    ta_ok = ready(DATA / ".venv-ta", ta_py, "import tradingagents")
+    vt_ok = ready(DATA / ".venv-vt", vt_py, "import importlib.metadata as m; m.version('vibe-trading-ai')")
+    if ta_ok and vt_ok:
         return
     try:
         py = _python_for_venv()
@@ -182,7 +201,7 @@ def ensure_ai_tools() -> None:
             else:
                 _run([str(vpy), "-m", "pip", "install", "-q", *args])
 
-        if not ta_py.exists():
+        if not ta_ok:
             say("Installing TradingAgents (the AI daily bias) — a few minutes, one time…")
             src = DATA / "TradingAgents-src"
             if not src.exists():
@@ -194,21 +213,24 @@ def ensure_ai_tools() -> None:
             try:
                 venv(DATA / ".venv-ta")
                 pip(DATA / ".venv-ta", str(src))
+                (DATA / ".venv-ta" / ".paytience-ok").write_text("ok", encoding="utf-8")
             except Exception:
                 shutil.rmtree(DATA / ".venv-ta", ignore_errors=True)
                 raise
-        if not vt_exe.exists():
+        if not vt_ok:
             say("Installing Vibe-Trading (second AI opinion)…")
             shutil.rmtree(DATA / ".venv-vt", ignore_errors=True)
             try:
                 venv(DATA / ".venv-vt")
                 pip(DATA / ".venv-vt", VT_PIN)
+                (DATA / ".venv-vt" / ".paytience-ok").write_text("ok", encoding="utf-8")
+                say("Vibe-Trading installed.")
             except Exception:
                 shutil.rmtree(DATA / ".venv-vt", ignore_errors=True)
                 raise
     except Exception as e:  # noqa: BLE001 - optional tools; the app still runs
         print(f"  ⚠ AI tools not installed yet ({type(e).__name__}: {e}). The app runs; no trades until they install. "
-              "Close and reopen Paytience later to retry.")
+              "It retries every time Paytience starts (needs internet).")
 
 
 PORT = 8000
@@ -272,7 +294,8 @@ def main() -> None:
     publish_shutdown_token()
     migrate()
     ensure_login()
-    ensure_ai_tools()
+    # D104: install the AI tools in the background so the dashboard opens at once (retried on every start).
+    threading.Thread(target=ensure_ai_tools, name="ai-tools", daemon=True).start()
     # Always reachable from your own devices (phone app on the same Wi-Fi or via Tailscale); login still required.
     host = "0.0.0.0"
     addrs = set()
