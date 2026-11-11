@@ -28,6 +28,7 @@ from app.api.live import router as live_router
 from app.api.logs import router as logs_router
 from app.api.market import router as market_router
 from app.api.notifications import router as notifications_router
+from app.api.orderflow import router as orderflow_router
 from app.api.orders import router as orders_router
 from app.api.payouts import router as payouts_router
 from app.api.plan import router as plan_router
@@ -558,6 +559,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(lab_router)
     app.include_router(market_router)
     app.include_router(replay_router)
+    app.include_router(orderflow_router)  # D98: order-flow chart (display only, estimated)
     app.include_router(updates_router)
     app.include_router(system_router)  # D97: local-only shutdown for a newer start
 

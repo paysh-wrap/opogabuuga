@@ -898,3 +898,23 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - 4. `index.html` + SPA fallback `Cache-Control: no-store`; `sw.js`/manifest/icons `no-cache`; `/assets/*` (content-hashed) `public, max-age=31536000, immutable`.
 - 5. Updater: install writes `updates/expected-commit.txt`; `on_healthy_start(updates_dir, running_commit)` confirms (healthy.flag) only when the running commit matches, else writes `unhealthy.flag` -> the .bat rolls back at once, restores the backup and sets update-failed.txt. The .bat additionally `curl`s `/api/health` after the healthy flag and requires the new commit (skipped, never a false rollback, if curl is missing). Flags are cleared at the start of each update.
 - Tests: backend/tests/unit/test_portguard.py, backend/tests/integration/test_build_guard.py, frontend/src/components/BuildGuard.test.tsx. NOT testable here: real Windows behaviour (netstat/tasklist/taskkill output, MessageBox, the .bat with curl/findstr, PyInstaller exe) — reasoned and unit-tested with injected fakes only; try it once on the Windows machine (start Paytience twice; run an update).
+
+## D98 (user-approved 2026-11-11, session 18): "Order Flow" chart page — ORIGINAL footprint-style view, ESTIMATED from bars
+- User asked for a DeepCharts-style order-flow chart. Built as an ORIGINAL implementation (no vendor code, branding or look).
+- Page `/orderflow` (nav "Order Flow", tab "Paytience · Order Flow"), MNQ and MGC, per CME session (18:00 → 17:00 ET):
+  candlesticks + bar-delta histogram, cumulative delta (CVD), footprint grid (canvas; sell × buy per price row per bar, last
+  bars that fit the width — phone width shows fewer bars), session volume profile (POC / VAH / VAL 70% / HVN / LVN), prior
+  session POC/VAH/VAL, round numbers (MNQ 50, MGC 10 — display settings, not rules), premium/discount shading vs the
+  prior value area, and markers for stored ORDER_FLOW webhook alerts (D95 kinds: absorption, exhaustion = delta
+  divergence, aggression = stacked imbalance, sweep, POC magnet). Display only — nothing on the page sizes or trades.
+- Data: ONLY the 1-minute bars the app already holds (`bars` table, heartbeat/replay bars). No external data, no scraping.
+- HONESTY: without tick data the per-price buy/sell split is ESTIMATED (volume spread evenly over the bar's rows; buy share =
+  close location in the range; tick rule vs previous close when high = low). Every panel shows the badge
+  "ESTIMATED from bars — not true order flow"; responses carry `source: "estimated" | "tick"`. `engine/footprint.py`
+  (pure, Decimal) accepts real aggressor-side levels per bar (`BarIn.ticks`) and then marks the bar `source = "tick"`, so a
+  real tick feed can be plugged in later without changing the API or UI.
+- Code: backend/app/engine/footprint.py, backend/app/api/orderflow.py (`GET /api/orderflow?symbol=&session=`),
+  frontend/src/lib/orderflow.ts, components/OrderFlowChart.tsx, pages/OrderFlow.tsx. Tests: tests/unit/test_footprint.py,
+  tests/integration/test_orderflow_api.py, frontend/src/pages/OrderFlow.test.tsx.
+- Known gaps: canvas drawing and the lightweight-charts rendering are not exercised in jsdom (mocked) — check the page once in a
+  browser; no tick feed exists yet; the estimated split cannot show true absorption/imbalance inside a bar.

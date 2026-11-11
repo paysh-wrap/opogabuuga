@@ -15,6 +15,7 @@ const NAV = [
   { to: "/backtest", label: "Backtest" },
   { to: "/lab", label: "Lab" },
   { to: "/replay", label: "Replay" },
+  { to: "/orderflow", label: "Order Flow" },
   { to: "/automation", label: "Automation" },
   { to: "/risk", label: "Risk" },
   { to: "/payouts", label: "Payouts" },

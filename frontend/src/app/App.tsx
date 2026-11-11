@@ -13,6 +13,7 @@ import Payouts from "../pages/Payouts";
 import Strategy from "../pages/Strategy";
 import Backtest from "../pages/Backtest";
 import Replay from "../pages/Replay";
+import OrderFlow from "../pages/OrderFlow";
 import LabPage from "../pages/Lab";
 import Signals from "../pages/Signals";
 import Journal from "../pages/Journal";
@@ -52,6 +53,7 @@ export default function App() {
         <Route path="/strategy" element={<Strategy />} />
         <Route path="/backtest" element={<Backtest />} />
         <Route path="/replay" element={<Replay />} />
+        <Route path="/orderflow" element={<OrderFlow />} />
         <Route path="/lab" element={<LabPage />} />
         <Route path="/connections" element={<Connections />} />
         <Route path="/automation" element={<Automation />} />
