@@ -1,38 +1,59 @@
-/* ---------- Style variants (user 2026-11-11): pick one of four finishes. Loaded after finish.css. ----------
-   Selected by <html data-style="glass|terminal|neon|minimal"> (src/style-switch.ts: ?style= or localStorage
-   "paytience.style"). No attribute = the current D117 look. Same navy/blue/gold tokens and the same structure; font colours
-   stay blue/gold only (§18). Fonts are the bundled Inter / JetBrains Mono. Motion is off under prefers-reduced-motion. */
+/* ---------- Style variants (user 2026-11-11, v2 "fancier"): glass | terminal | neon | minimal | royal. Loaded after finish.css. ----------
+   Selected by <html data-style="..."> (src/style-switch.ts: ?style= or localStorage "paytience.style"). No attribute = current D117 look.
+   Same navy/blue/gold tokens, same structure; font colours stay blue/gold only (§18). Fonts bundled (Inter / JetBrains Mono / Playfair Display).
+   Motion is off under prefers-reduced-motion. */
+@import "@fontsource-variable/playfair-display";
+
+/* shared selector shorthands are written out (no preprocessor). CARD = .mission main .bg-card:not(input):not(select):not(textarea) */
 
 /* ===== 1 · Luxe Glass ===== */
-html[data-style="glass"] {
-  background: linear-gradient(125deg, #070C19 0%, #0E1A3D 30%, #1A1F4F 55%, #0B1530 80%, #070C19 100%) 0 0 / 220% 220% !important;
-  animation: v-drift 40s ease-in-out infinite alternate;
-}
+html[data-style="glass"] { background: #060A18 !important; }
 html[data-style="glass"] body {
   background:
-    radial-gradient(900px 520px at 80% -5%, rgba(var(--gold-a), .16), transparent 62%),
-    radial-gradient(700px 420px at 15% 105%, rgba(var(--gold-a), .08), transparent 60%),
-    radial-gradient(900px 600px at -10% 10%, rgba(var(--blue-a), .14), transparent 60%) !important;
-  background-color: transparent !important; animation: v-fade .6s var(--ease) both;
+    radial-gradient(520px 520px at 88% 6%, rgba(var(--gold-a), .34), transparent 70%),
+    radial-gradient(640px 640px at 6% 30%, rgba(99, 102, 241, .34), transparent 70%),
+    radial-gradient(560px 560px at 70% 62%, rgba(var(--blue-a), .22), transparent 70%),
+    radial-gradient(520px 520px at 20% 92%, rgba(var(--gold-a), .22), transparent 70%),
+    radial-gradient(480px 480px at 95% 95%, rgba(99, 102, 241, .28), transparent 70%),
+    linear-gradient(160deg, #070C1C, #0C1536 50%, #070C1C) !important;
+  background-attachment: fixed; background-color: #060A18 !important; animation: v-fade .6s var(--ease) both;
 }
-@keyframes v-drift { to { background-position: 100% 100%; } }
 @keyframes v-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 html[data-style="glass"] .mission main .bg-card:not(input):not(select):not(textarea),
 html[data-style="glass"] .mission main .mode-card, html[data-style="glass"] .mission main .stat-tile {
-  background: linear-gradient(160deg, rgba(40, 56, 105, .38), rgba(14, 22, 48, .46)) !important;
-  -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
-  border: 1px solid rgba(var(--gold-a), .26); border-radius: 20px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 24px 50px -28px rgba(0, 0, 0, .9);
+  position: relative;
+  background: linear-gradient(160deg, rgba(60, 80, 150, .30), rgba(10, 18, 46, .45)) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.6); backdrop-filter: blur(22px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, .10); border-top: 2px solid transparent; border-radius: 22px;
+  background-clip: padding-box;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 0 0 1px rgba(var(--gold-a), .10) inset, 0 40px 80px -30px rgba(0, 0, 0, .85), 0 12px 30px -12px rgba(var(--blue-a), .25);
+}
+html[data-style="glass"] .mission main .bg-card:not(input):not(select):not(textarea)::before {
+  content: ""; position: absolute; left: 14px; right: 14px; top: -2px; height: 2px; border-radius: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold-2) 50%, var(--gold) 80%, transparent);
+  box-shadow: 0 0 14px rgba(var(--gold-a), .6);
 }
 html[data-style="glass"] .mission main .bg-card:not(input):hover, html[data-style="glass"] .mission main .mode-card:hover {
-  border-color: rgba(var(--gold-a), .7);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .1) inset, 0 0 26px -6px rgba(var(--gold-a), .55), 0 24px 50px -26px rgba(0, 0, 0, .9);
+  border-color: rgba(var(--gold-a), .55);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .22) inset, 0 0 36px -8px rgba(var(--gold-a), .5), 0 40px 80px -30px rgba(0, 0, 0, .85);
 }
-html[data-style="glass"] .mission header.bg-card, html[data-style="glass"] .mission nav[aria-label="Main"] { background: rgba(10, 16, 38, .5) !important; }
+html[data-style="glass"] .mission header.bg-card, html[data-style="glass"] .mission nav[aria-label="Main"] {
+  background: rgba(10, 16, 40, .45) !important; -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5);
+}
+html[data-style="glass"] .mission header.bg-card::before { display: none; }
+html[data-style="glass"] [data-testid="brand"] > :not(span) , html[data-style="glass"] [data-testid="brand"] {
+  background: linear-gradient(100deg, #9C7C1F, #F2D27A 40%, #FFF1B8 55%, #D4AF37); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: .06em; filter: drop-shadow(0 0 10px rgba(var(--gold-a), .35));
+}
+html[data-style="glass"] [data-testid="brand"] > span[aria-hidden] { -webkit-text-fill-color: var(--gold-2); background: rgba(var(--gold-a), .14); border-radius: 10px; backdrop-filter: blur(8px); }
+html[data-style="glass"] .mission main :is(span.rounded.border, span.rounded-full.border, .check-word, .mandatory-tag), html[data-style="glass"] .mission header.bg-card [class*="rounded"][class*="border"] {
+  border-radius: 999px !important; padding-left: .7rem !important; padding-right: .7rem !important; background: rgba(120, 150, 255, .12) !important;
+  border: 1px solid rgba(255, 255, 255, .16) !important; -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: 0 1px 0 rgba(255, 255, 255, .14) inset;
+}
+html[data-style="glass"] .mission nav[aria-label="Main"] a { border-radius: 999px; }
+html[data-style="glass"] .mission nav[aria-label="Main"] a[aria-current="page"] { background: rgba(var(--gold-a), .16); border-color: rgba(var(--gold-a), .5); box-shadow: 0 0 18px -4px rgba(var(--gold-a), .6); }
 html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary), html[data-style="glass"] .mission main button.border-gold,
-html[data-style="glass"] .mission header.bg-card button.border-2 {
-  border-radius: 999px; position: relative; overflow: hidden;
-}
+html[data-style="glass"] .mission header.bg-card button.border-2 { border-radius: 999px; position: relative; overflow: hidden; }
 html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary)::after, html[data-style="glass"] .mission main button.border-gold::after {
   content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%) skewX(-20deg);
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
@@ -42,95 +63,161 @@ html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary):hover::
 }
 
 /* ===== 2 · Trading Terminal Pro ===== */
-html[data-style="terminal"] { --r-chip: 2px; --r-ctl: 2px; --r-card: 2px; font-size: 14px; }
-html[data-style="terminal"] body { font-size: 13px; line-height: 1.4; letter-spacing: 0; background: var(--navy-0) !important; font-family: var(--f-mono); }
-html[data-style="terminal"] .mission main { --gap-t: .5rem; }
+html[data-style="terminal"] { --r-chip: 0px; --r-ctl: 0px; --r-card: 0px; font-size: 14px; }
+html[data-style="terminal"] body {
+  font-size: 12.5px; line-height: 1.35; letter-spacing: 0; font-family: var(--f-mono); background-color: #02040A !important;
+  background-image: repeating-linear-gradient(0deg, rgba(var(--gold-a), .045) 0 1px, transparent 1px 3px),
+    radial-gradient(rgba(var(--blue-a), .10) 1px, transparent 1.2px) !important; background-size: auto, 7px 7px !important;
+}
+html[data-style="terminal"] .mission main { --gap-t: 1px; }
+html[data-style="terminal"] .mission .mission-bento { gap: 1px; background: rgba(var(--gold-a), .35); border: 1px solid rgba(var(--gold-a), .35); }
 html[data-style="terminal"] .mission main .bg-card:not(input):not(select):not(textarea), html[data-style="terminal"] .mission main .stat-tile,
 html[data-style="terminal"] .mission main .mode-card, html[data-style="terminal"] .mission main :is(input, select, textarea, button),
-html[data-style="terminal"] .mission nav[aria-label="Main"] a {
-  border-radius: 2px !important; -webkit-backdrop-filter: none; backdrop-filter: none;
-}
+html[data-style="terminal"] .mission nav[aria-label="Main"] a { border-radius: 0 !important; -webkit-backdrop-filter: none; backdrop-filter: none; }
 html[data-style="terminal"] .mission main .bg-card:not(input):not(select):not(textarea) {
-  background: #0A1124 !important; border: 1px solid rgba(var(--gold-a), .22); box-shadow: none; padding: .6rem .75rem !important;
+  background: #03060F !important; border: 1px solid rgba(var(--gold-a), .30); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), inset 0 0 40px -24px rgba(var(--blue-a), .35);
+  padding: .55rem .7rem !important; margin: 0;
 }
-html[data-style="terminal"] .mission main .bg-card:hover { border-color: rgba(var(--gold-a), .5); box-shadow: none; transform: none; }
+html[data-style="terminal"] .mission main .bg-card:hover { border-color: var(--gold); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .6), 0 0 0 1px rgba(var(--gold-a), .4); transform: none; }
 html[data-style="terminal"] .mission main :is(section, article).bg-card > h2:first-child {
-  border-bottom: 1px solid rgba(var(--gold-a), .22); padding-bottom: .3rem; margin-bottom: .45rem; text-transform: uppercase;
+  border-bottom: 1px solid rgba(var(--gold-a), .35); padding: .15rem 0 .3rem .6rem; margin-bottom: .5rem; text-transform: uppercase;
+  letter-spacing: .14em; font-size: .72rem; font-family: var(--f-mono); position: relative;
 }
-html[data-style="terminal"] .mission main :is(section, article).bg-card > h2:first-child::before { border-radius: 50%; transform: none; width: 6px; height: 6px; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
-html[data-style="terminal"] .mission .mission-bento { gap: 6px; }
-html[data-style="terminal"] .mission main :is(.mission-num, .font-serif, td, .tabular-nums), html[data-style="terminal"] .mission-num-svg { font-family: var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-html[data-style="terminal"] .mission main h1 { font-family: var(--f-mono); text-transform: uppercase; }
-html[data-style="terminal"] .mission main table tbody td, html[data-style="terminal"] .mission main table thead th { padding-top: .2rem; padding-bottom: .2rem; border: 1px solid rgba(var(--gold-a), .1); }
-html[data-style="terminal"] .mission main table thead th { background: #0E1730; box-shadow: none; }
-html[data-style="terminal"] .mission main tbody tr:nth-child(even) { background: rgba(var(--gold-a), .03); }
-html[data-style="terminal"] .mission nav[aria-label="Main"] a { font-family: var(--f-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: .3rem .6rem; }
-html[data-style="terminal"] .mission nav[aria-label="Main"] a[aria-current="page"] { box-shadow: none; background: rgba(var(--gold-a), .14); }
-html[data-style="terminal"] .mission main button { letter-spacing: .06em; text-transform: uppercase; font-family: var(--f-mono); font-size: .72rem; }
+html[data-style="terminal"] .mission main :is(section, article).bg-card > h2:first-child::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: .3rem; width: 3px; height: auto; border-radius: 0; transform: none; background: var(--gold); box-shadow: 0 0 8px rgba(var(--gold-a), .7);
+}
+html[data-style="terminal"] .mission main :is(.mission-num, .font-serif, td, .tabular-nums), html[data-style="terminal"] .mission-num-svg { font-family: var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+html[data-style="terminal"] .mission main :is(h1, h2, h3, p, li, label, span, a, input, select) { font-family: var(--f-mono); }
+html[data-style="terminal"] .mission main h1 { text-transform: uppercase; letter-spacing: .2em; }
+html[data-style="terminal"] .mission main table tbody td, html[data-style="terminal"] .mission main table thead th { padding: .15rem .4rem; border: 1px solid rgba(var(--gold-a), .14); }
+html[data-style="terminal"] .mission main table thead th { background: #0A1126; box-shadow: none; text-transform: uppercase; letter-spacing: .08em; font-size: .66rem; }
+html[data-style="terminal"] .mission main tbody tr:nth-child(even) { background: rgba(var(--gold-a), .05); }
+html[data-style="terminal"] .mission header.bg-card, html[data-style="terminal"] .mission nav[aria-label="Main"] { background: #02050D !important; border-bottom: 1px solid rgba(var(--gold-a), .45); }
+html[data-style="terminal"] .mission nav[aria-label="Main"] a { font-family: var(--f-mono); font-size: .68rem; text-transform: uppercase; letter-spacing: .1em; padding: .25rem .55rem; border: 1px solid rgba(var(--gold-a), .14); }
+html[data-style="terminal"] .mission nav[aria-label="Main"] a[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--gold); background: rgba(var(--gold-a), .14); }
+html[data-style="terminal"] [data-testid="brand"] { font-family: var(--f-mono); text-transform: uppercase; letter-spacing: .24em; font-size: 1rem; }
+html[data-style="terminal"] .mission main button { letter-spacing: .08em; text-transform: uppercase; font-family: var(--f-mono); font-size: .68rem; }
 html[data-style="terminal"] .mission main :is(span.rounded.border, span.rounded-full.border), html[data-style="terminal"] .mission header.bg-card [class*="rounded"][class*="border"] {
-  border-radius: 2px !important; padding-left: .4rem !important;
+  border-radius: 0 !important; padding-left: .4rem !important; text-transform: uppercase; letter-spacing: .06em; font-size: .66rem;
 }
-/* LED-dot status chips: a lit dot before every chip */
 html[data-style="terminal"] .mission main :is(span.rounded.border, span.rounded-full.border, .check-word, .mandatory-tag)::before,
 html[data-style="terminal"] .mission header.bg-card :is([data-testid="mode"], [data-testid="conn-summary"], [data-testid="trading-count"])::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; box-shadow: 0 0 6px currentColor;
+  content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; box-shadow: 0 0 7px 1px currentColor; display: inline-block; margin-right: .3rem;
 }
 
 /* ===== 3 · Neon Gold Futuristic ===== */
 @property --v-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
-html[data-style="neon"] body { background: radial-gradient(1000px 520px at 85% -10%, rgba(var(--gold-a), .16), transparent 60%),
-  radial-gradient(900px 560px at -10% 10%, rgba(var(--blue-a), .20), transparent 60%) !important; background-color: #050914 !important; }
+html[data-style="neon"] body {
+  background: radial-gradient(1000px 520px at 85% -10%, rgba(var(--gold-a), .22), transparent 60%),
+    radial-gradient(900px 560px at -10% 10%, rgba(var(--blue-a), .28), transparent 60%),
+    radial-gradient(700px 500px at 50% 110%, rgba(var(--blue-a), .16), transparent 60%) !important; background-color: #03060F !important;
+}
 html[data-style="neon"] .mission main .bg-card:not(input):not(select):not(textarea) {
-  border: 1.5px solid transparent !important; border-radius: 18px;
-  background: linear-gradient(#0B1330, #080F26) padding-box, conic-gradient(from var(--v-ang), #D4AF37, #3B82F6, #F2D27A, #3B82F6, #D4AF37) border-box !important;
-  animation: v-spin 9s linear infinite; box-shadow: 0 0 24px -12px rgba(var(--blue-a), .8), 0 0 18px -12px rgba(var(--gold-a), .8);
+  border: 2px solid transparent !important; border-radius: 18px;
+  background: linear-gradient(#0A1230, #060C22) padding-box, conic-gradient(from var(--v-ang), #D4AF37, #3B82F6, #F2D27A, #3B82F6, #D4AF37) border-box !important;
+  animation: v-spin 9s linear infinite;
+  box-shadow: 0 0 26px -4px rgba(var(--blue-a), .55), 0 0 22px -6px rgba(var(--gold-a), .7), inset 0 0 30px -18px rgba(var(--blue-a), .6);
 }
 @keyframes v-spin { to { --v-ang: 360deg; } }
-html[data-style="neon"] .mission main h1, html[data-style="neon"] .mission main h3 { text-transform: uppercase; letter-spacing: .14em; font-weight: 800; }
-html[data-style="neon"] .mission main h1 { font-size: .95rem; text-shadow: 0 0 14px rgba(var(--gold-a), .6); }
-html[data-style="neon"] .mission-num, html[data-style="neon"] .mission main .font-serif {
-  background: linear-gradient(100deg, currentColor 35%, #F2D27A 50%, currentColor 65%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; animation: v-shimmer 5s linear infinite;
+html[data-style="neon"] .mission main :is(h1, h2, h3) { text-shadow: 0 0 10px rgba(var(--gold-a), .75), 0 0 26px rgba(var(--gold-a), .4); }
+html[data-style="neon"] .mission main :is(h1, h3) { text-transform: uppercase; letter-spacing: .14em; font-weight: 800; }
+html[data-style="neon"] .mission main h1 { font-size: .95rem; }
+html[data-style="neon"] .mission-num, html[data-style="neon"] .mission main .font-serif, html[data-style="neon"] .mission main .stat-tile :is(b, strong, .tabular-nums) {
+  text-shadow: 0 0 12px currentColor, 0 0 30px rgba(var(--blue-a), .6); font-weight: 800;
 }
-@keyframes v-shimmer { to { background-position: -250% 0; } }
+html[data-style="neon"] [data-testid="brand"] { text-shadow: 0 0 12px rgba(var(--gold-a), .9), 0 0 30px rgba(var(--gold-a), .5); }
 html[data-style="neon"] .mission main :is(span.rounded.border, span.rounded-full.border), html[data-style="neon"] .mission header.bg-card [class*="rounded"][class*="border"] {
-  box-shadow: 0 0 0 2px rgba(var(--gold-a), .12), 0 0 12px -2px currentColor; animation: v-ring 2.6s ease-in-out infinite;
+  box-shadow: 0 0 0 2px rgba(var(--gold-a), .22), 0 0 14px -1px currentColor, inset 0 0 8px -3px currentColor; animation: v-ring 2.6s ease-in-out infinite;
 }
-@keyframes v-ring { 50% { box-shadow: 0 0 0 3px rgba(var(--blue-a), .18), 0 0 18px 0 currentColor; } }
-html[data-style="neon"] .mission nav[aria-label="Main"] a[aria-current="page"]::after {
-  height: 3px; left: 10%; right: 10%; background: linear-gradient(90deg, var(--blue-2), var(--gold-2), var(--blue-2)); animation: v-pulse 1.8s ease-in-out infinite;
+@keyframes v-ring { 50% { box-shadow: 0 0 0 3px rgba(var(--blue-a), .3), 0 0 22px 1px currentColor, inset 0 0 10px -2px currentColor; } }
+html[data-style="neon"] .mission nav[aria-label="Main"] a[aria-current="page"] {
+  border-radius: 999px; border: 1px solid var(--gold); background: rgba(var(--gold-a), .14);
+  box-shadow: 0 0 18px 1px rgba(var(--gold-a), .65), inset 0 0 12px -4px rgba(var(--gold-a), .8); text-shadow: 0 0 10px rgba(var(--gold-a), .9);
 }
-@keyframes v-pulse { 50% { opacity: .45; box-shadow: 0 0 4px rgba(var(--gold-a), .4); } }
-html[data-style="neon"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: 0 0 22px -4px rgba(var(--gold-a), .8); }
-html[data-style="neon"] .mission main :is(input, select, textarea):focus { box-shadow: 0 0 0 2px rgba(var(--blue-a), .5), 0 0 18px rgba(var(--gold-a), .4); }
+html[data-style="neon"] .mission nav[aria-label="Main"] a[aria-current="page"]::after { height: 3px; left: 14%; right: 14%; background: linear-gradient(90deg, var(--blue-2), var(--gold-2), var(--blue-2)); box-shadow: 0 0 8px var(--gold); animation: v-pulse 1.8s ease-in-out infinite; }
+@keyframes v-pulse { 50% { opacity: .5; } }
+html[data-style="neon"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: 0 0 26px -2px rgba(var(--gold-a), .9), 0 0 0 2px rgba(var(--gold-a), .25); }
+html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"] .mission main button.border-blue { box-shadow: 0 0 14px -4px currentColor; }
+html[data-style="neon"] .mission main :is(input, select, textarea):focus { box-shadow: 0 0 0 2px rgba(var(--blue-a), .6), 0 0 22px rgba(var(--gold-a), .5); }
 
 /* ===== 4 · Minimal Luxury ===== */
-html[data-style="minimal"] body { background: #090E1D !important; line-height: 1.65; animation: v-fade .8s var(--ease) both; }
-html[data-style="minimal"] .mission main { padding-top: 2rem; }
-html[data-style="minimal"] .mission .mission-bento { gap: 28px; }
+html[data-style="minimal"] body { background: #080D1C !important; line-height: 1.75; font-weight: 400; animation: v-fade .8s var(--ease) both; }
+html[data-style="minimal"] .mission main { padding-top: 3.5rem; padding-bottom: 4rem; }
+html[data-style="minimal"] .mission .mission-bento { gap: 44px; }
 html[data-style="minimal"] .mission main .bg-card:not(input):not(select):not(textarea) {
-  background: #0E1630 !important; -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid rgba(var(--blue-a), .10);
-  border-radius: 18px; padding: 1.5rem !important; box-shadow: 0 20px 50px -34px rgba(0, 0, 0, .6);
+  background: #0D1530 !important; -webkit-backdrop-filter: none; backdrop-filter: none; border: 0 !important; outline: 0;
+  border-radius: 14px; padding: 2.1rem 2.2rem !important; box-shadow: 0 30px 60px -36px rgba(0, 0, 0, .75), 0 2px 6px rgba(0, 0, 0, .25);
 }
-html[data-style="minimal"] .mission main .bg-card:hover { box-shadow: 0 24px 56px -34px rgba(0, 0, 0, .7); border-color: rgba(var(--blue-a), .2); transform: none; }
-html[data-style="minimal"] .mission main .bg-card.border-gold { border-color: rgba(var(--gold-a), .35) !important; background: #0E1630 !important; }
-html[data-style="minimal"] .mission main h1 { font-size: 1.5rem; font-weight: 300; letter-spacing: .04em; margin-bottom: 1.5rem; }
-html[data-style="minimal"] .mission main h1::after { max-width: 80px; background: rgba(var(--gold-a), .6); }
-html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child { font-family: var(--f-display); font-size: 1.05rem; font-weight: 400; letter-spacing: .01em; margin-bottom: 1rem; }
+html[data-style="minimal"] .mission main .bg-card:hover { box-shadow: 0 34px 66px -34px rgba(0, 0, 0, .8), 0 2px 6px rgba(0, 0, 0, .25); transform: none; }
+html[data-style="minimal"] .mission main .bg-card.border-gold { background: #0D1530 !important; box-shadow: 0 30px 60px -36px rgba(0, 0, 0, .75), inset 0 -1px 0 rgba(var(--gold-a), .6); }
+html[data-style="minimal"] .mission main :is(h1, h2, h3), html[data-style="minimal"] [data-testid="brand"] {
+  font-family: "Playfair Display Variable", "Playfair Display", var(--serif); font-weight: 400; letter-spacing: .005em; text-transform: none;
+}
+html[data-style="minimal"] .mission main h1 { font-size: 2.6rem; line-height: 1.1; font-weight: 400; margin-bottom: 2.6rem; display: block; }
+html[data-style="minimal"] .mission main h1::after { display: block; width: 72px; max-width: 72px; height: 1px; margin-top: 1rem; background: var(--gold); flex: none; }
+html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child { font-family: "Playfair Display Variable", "Playfair Display", var(--serif) !important; text-transform: none !important; letter-spacing: .005em !important; font-size: 1.3rem !important; font-weight: 400; margin-bottom: 1.6rem; padding-bottom: .8rem; position: relative; }
 html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child::before { display: none; }
-html[data-style="minimal"] .mission-num { font-weight: 300; }
-html[data-style="minimal"] .mission main :is(span.rounded.border, span.rounded-full.border) { background: transparent !important; border-color: rgba(var(--gold-a), .45); }
-html[data-style="minimal"] .mission main button.border-gold:not([class*="bg-"]), html[data-style="minimal"] .mission main button.border-blue:not([class*="bg-"]) { background-image: none; border-color: rgba(var(--blue-a), .35); }
-html[data-style="minimal"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: none; background: var(--gold) !important; }
+html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child::after { content: ""; position: absolute; left: 0; bottom: 0; width: 40px; height: 1px; background: var(--gold); }
+html[data-style="minimal"] [data-testid="brand"] { font-size: 1.6rem; letter-spacing: .04em; }
+html[data-style="minimal"] .mission-num { font-weight: 300; font-family: "Playfair Display Variable", var(--serif); font-size: 1.15em; }
+html[data-style="minimal"] .mission main :is(span.rounded.border, span.rounded-full.border) { background: transparent !important; border-color: transparent !important; border-bottom: 1px solid rgba(var(--gold-a), .6) !important; border-radius: 0 !important; }
+html[data-style="minimal"] .mission main button.border-gold:not([class*="bg-"]), html[data-style="minimal"] .mission main button.border-blue:not([class*="bg-"]) { background-image: none; border-color: transparent; border-bottom: 1px solid rgba(var(--gold-a), .5); border-radius: 0; }
+html[data-style="minimal"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: none; background: var(--gold) !important; border-radius: 4px; }
+html[data-style="minimal"] .mission header.bg-card { background: transparent !important; border: 0; box-shadow: none; }
+html[data-style="minimal"] .mission nav[aria-label="Main"] a { letter-spacing: .04em; border-color: transparent; }
 html[data-style="minimal"] .mission nav[aria-label="Main"] a[aria-current="page"] { background: transparent; box-shadow: none; border-color: transparent; }
-html[data-style="minimal"] .mission nav[aria-label="Main"] a[aria-current="page"]::after { height: 1px; box-shadow: none; }
+html[data-style="minimal"] .mission nav[aria-label="Main"] a[aria-current="page"]::after { height: 1px; background: var(--gold); box-shadow: none; }
+
+/* ===== 5 · Royal ===== */
+html[data-style="royal"] body {
+  background-color: #060C20 !important;
+  background-image: radial-gradient(900px 500px at 50% -10%, rgba(var(--gold-a), .14), transparent 65%),
+    repeating-linear-gradient(45deg, rgba(var(--gold-a), .05) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-45deg, rgba(var(--gold-a), .05) 0 1px, transparent 1px 22px),
+    linear-gradient(#0A1330, #050A1A) !important;
+}
+html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea), html[data-style="royal"] .mission main .mode-card {
+  position: relative; border-radius: 4px; background: linear-gradient(170deg, #0F1A3F, #0A1230) !important;
+  border: 1px solid rgba(var(--gold-a), .85) !important;
+  box-shadow: inset 0 0 0 5px #0B1432, inset 0 0 0 6px rgba(var(--gold-a), .55), inset 0 0 60px -30px rgba(var(--gold-a), .35), 0 20px 40px -22px rgba(0, 0, 0, .9);
+  padding: 1.35rem 1.5rem !important;
+}
+html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea)::before, html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea)::after {
+  content: ""; position: absolute; width: 18px; height: 18px; pointer-events: none; border: 0 solid var(--gold-2); filter: drop-shadow(0 0 3px rgba(var(--gold-a), .7));
+}
+html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea)::before { left: 2px; top: 2px; border-width: 2px 0 0 2px; }
+html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea)::after { right: 2px; bottom: 2px; border-width: 0 2px 2px 0; }
+html[data-style="royal"] .mission main .bg-card:not(input):hover { border-color: var(--gold-2) !important; transform: none; }
+html[data-style="royal"] .mission main :is(h1, h2, h3), html[data-style="royal"] [data-testid="brand"] {
+  font-family: "Playfair Display Variable", "Playfair Display", var(--serif); font-weight: 700; letter-spacing: .04em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .9), 0 -1px 0 rgba(255, 236, 170, .35), 0 0 12px rgba(var(--gold-a), .25);
+}
+html[data-style="royal"] .mission main h1 { font-size: 1.5rem; text-transform: uppercase; letter-spacing: .22em; justify-content: center; text-align: center; margin-bottom: 1.6rem; }
+html[data-style="royal"] .mission main h1::before, html[data-style="royal"] .mission main h1::after { content: ""; flex: 1; max-width: none; height: 3px; border-top: 1px solid var(--gold); border-bottom: 1px solid rgba(var(--gold-a), .5); background: none; }
+html[data-style="royal"] .mission main :is(section, article).bg-card > h2:first-child { font-size: 1.1rem; letter-spacing: .08em; }
+html[data-style="royal"] .mission main :is(section, article).bg-card > h2:first-child::before { border-radius: 0; transform: rotate(45deg); background: var(--gold); width: 8px; height: 8px; }
+html[data-style="royal"] [data-testid="brand"] { font-size: 1.5rem; background: linear-gradient(180deg, #FFF1B8, #D4AF37 55%, #9C7C1F); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 1px 0 #000); text-shadow: none; }
+html[data-style="royal"] [data-testid="brand"] > span[aria-hidden] { -webkit-text-fill-color: var(--gold-2); border: 1px double var(--gold); border-radius: 2px; box-shadow: 0 0 0 2px #0B1432, 0 0 0 3px rgba(var(--gold-a), .6); }
+html[data-style="royal"] .mission header.bg-card, html[data-style="royal"] .mission nav[aria-label="Main"] { background: #070E26 !important; border-bottom: 3px double var(--gold) !important; }
+html[data-style="royal"] .mission nav[aria-label="Main"] a { border-radius: 2px; font-family: "Playfair Display Variable", var(--serif); letter-spacing: .06em; }
+html[data-style="royal"] .mission nav[aria-label="Main"] a[aria-current="page"] { border: 1px double var(--gold); background: rgba(var(--gold-a), .12); box-shadow: none; }
+html[data-style="royal"] .mission main :is(span.rounded.border, span.rounded-full.border), html[data-style="royal"] .mission header.bg-card [class*="rounded"][class*="border"] {
+  border-radius: 2px !important; border-color: rgba(var(--gold-a), .8) !important; box-shadow: 0 0 0 2px #0B1432, 0 0 0 3px rgba(var(--gold-a), .4); margin: 0 3px;
+}
+html[data-style="royal"] .mission main button:is(.bg-gold, .btn-primary) { border-radius: 2px; background: linear-gradient(180deg, #F2D27A, #D4AF37 60%, #9C7C1F) !important; box-shadow: 0 0 0 2px #0B1432, 0 0 0 3px var(--gold); }
+html[data-style="royal"] .mission main table thead th { border-bottom: 3px double rgba(var(--gold-a), .7); }
 
 /* ===== accessibility + phone ===== */
 @media (max-width: 767px) {
   html[data-style] .mission main { overflow-x: clip; }
-  html[data-style="minimal"] .mission main .bg-card:not(input) { padding: 1.1rem !important; }
-  html[data-style="minimal"] .mission .mission-bento { gap: 16px; }
+  html[data-style="minimal"] .mission main .bg-card:not(input) { padding: 1.3rem !important; }
+  html[data-style="minimal"] .mission .mission-bento { gap: 20px; }
+  html[data-style="minimal"] .mission main h1 { font-size: 1.9rem; }
+  html[data-style="minimal"] .mission main { padding-top: 1.5rem; }
   html[data-style="neon"] .mission main .bg-card:not(input) { border-radius: 14px; }
+  html[data-style="royal"] .mission main h1 { font-size: 1.1rem; letter-spacing: .12em; }
+  html[data-style="royal"] .mission main .bg-card:not(input):not(select):not(textarea) { padding: 1rem !important; }
+  html[data-style="glass"] .mission main .bg-card:not(input):not(select):not(textarea) { border-radius: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
   html[data-style], html[data-style] body, html[data-style] * , html[data-style] *::after { animation: none !important; transition: none !important; }

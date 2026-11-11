@@ -1,5 +1,5 @@
-// Style variant switch: ?style=glass|terminal|neon|minimal (or localStorage "paytience.style"). Unknown/empty = current look.
-const STYLES = ["glass", "terminal", "neon", "minimal"] as const;
+// Style variant switch: ?style=glass|terminal|neon|minimal|royal (or localStorage "paytience.style"). Unknown/empty = current look.
+const STYLES = ["glass", "terminal", "neon", "minimal", "royal"] as const;
 type StyleName = (typeof STYLES)[number];
 const KEY = "paytience.style";
 const ok = (v: string | null): v is StyleName => !!v && (STYLES as readonly string[]).includes(v);

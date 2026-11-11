@@ -54,7 +54,7 @@ await page.getByRole("button", { name: "Sign in" }).click();
 await page.waitForURL("**/today");
 await page.request.post(BASE + "/api/accounts", { data: { label: "E1", stage: "EVAL" } });
 const PAGES = [["dashboard", "/dashboard"], ["strategy", "/strategy"]];
-const VARIANTS = ["current", "glass", "terminal", "neon", "minimal"];
+const VARIANTS = ["current", "glass", "terminal", "neon", "minimal", "royal"];
 async function shoot(p, tag) {
   for (const v of VARIANTS) for (const [name, path] of PAGES) {
     await p.goto(BASE + path + `?style=${v === "current" ? "default" : v}`);
