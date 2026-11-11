@@ -39,7 +39,7 @@ def test_strategy_api_reports_mso_state_and_lists_no_lunqfx(authed):
     assert s["mso_enabled"] is False and "gates" not in s and "indicators" not in s
     body = authed.get("/api/strategies").json()
     assert "lunqfx" not in {x["key"] for x in body["strategies"]}
-    assert "G6" not in {g["id"] for g in body["gate_chain"]}
+    assert "gate_chain" not in body  # D106: per-strategy gates endpoint instead
     _set_mso(authed.app, True)
     assert authed.get("/api/strategy").json()["mso_enabled"] is True
 

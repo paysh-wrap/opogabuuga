@@ -266,89 +266,6 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
     }
 
 
-def _gate_chain(r: Any) -> list[dict[str, object]]:
-    """D77/D80: the gates a NOISE / PM_FADE entry passes (all must pass; a gate can only block). Read from the live
-    config —
-    nothing is hardcoded here, so the UI shows exactly what the engine does. state: ON | OFF | ADVISORY.
-    setting = My Settings key a toggle may edit (None = not editable); unproven = gold badge + confirm in the UI."""
-    sf, st = r.strategy.structure_filters, r.strategy
-    inst = r.instrument(st.noise_cfg.symbol)
-    win = ", ".join(f"{a}-{b}" for a, b in (inst.windows or r.internal.windows))
-    ob_on = sf.enabled and (sf.ob_filter or sf.smt_filter)
-
-    def row(
-        id_: str,
-        name: str,
-        kind: str,
-        state: str,
-        text: str,
-        setting: str | None = None,
-        unproven: bool = False,
-        locked: bool = False,
-        scope: str = "noise_fade",
-    ) -> dict[str, object]:
-        return {
-            "id": id_,
-            "name": name,
-            "kind": kind,
-            "state": state,
-            "on": state in ("ON", "ADVISORY"),
-            "locked": locked,
-            "text": text,
-            "setting": setting,
-            "unproven": unproven,
-            "scope": scope,
-        }
-
-    rows = [
-        row(
-            "G1",
-            "Window / news / calendar / instrument",
-            "firm-safe",
-            "ON",
-            f"Entries only inside {win} ET, no high-impact news within {r.internal.no_entry_before_news_min} min, calendar must be loaded, instrument enabled.",  # noqa: E501
-            locked=True,
-        ),
-        row(
-            "RISK",
-            "Risk, sizing, DLL/MLL, kill switch, hedge lock",
-            "pillar",
-            "ON",
-            "Pillar checks (G8): never tuned by strategy studies; they can only block or shrink.",
-            locked=True,
-        ),
-        row(
-            "OB",
-            "Order-block / SMT structure filter (D76)",
-            "study",
-            "ON" if ob_on else "OFF",
-            "Tested 2024-26 on NOISE + fade: no win-rate and profit gain (SMT cut 17-84% of trades) - off. Verdicts are shadow-logged, nothing is blocked.",  # noqa: E501
-            setting="strategy.structure_filters.enabled",
-            unproven=True,
-        ),
-        row(
-            "G6",
-            "MSO divergence filter (D77)",
-            "study",
-            "ON" if sf.enabled and sf.mso_div_filter else "OFF",
-            f"Blocks an entry if an opposing MSO divergence printed in the last {sf.mso_div_minutes} min ({sf.mso_tf_min}-min bars). Tested 2024-26: noise-level (about 1% of trades), no gain - off.",  # noqa: E501
-            setting="strategy.structure_filters.mso_div_filter",
-            unproven=True,
-        ),
-        row(
-            "AI",
-            "AI bias: TradingAgents + Vibe-Trading",
-            "ai",
-            "ADVISORY",
-            f"Records one call per day and scores it. It may block an entry only when BOTH tools agree strongly and the live record proves >= {float(st.ai_gate_min_accuracy):.0%} (strategy.ai_gate_min_accuracy). Until then it only advises. Simulated 55-70% accuracy moved held-out win rate by at most +0.5 pt.",  # noqa: E501
-            setting="strategy.ai_gate_min_accuracy",
-        ),
-    ]
-    if not r.indicators.mso.enabled:  # D91: BigBeluga MSO is off, so its gates and the MSO divergence filter are hidden
-        rows = [x for x in rows if x["id"] != "G6"]
-    return rows
-
-
 def _ta_mgc(db: Session, r: Any, sess: Any) -> dict[str, Any]:
     """D84: latest TradingAgents MGC research (part of AI Duo) + today's MGC Duo decision, for the Strategy page."""
     from app.bias import ta_mgc_research as tr
@@ -494,7 +411,6 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "presets": _presets(r),
         "ta_mgc": _ta_mgc(db, r, sess),
         "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
-        "gate_chain": _gate_chain(r),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
         "size_profiles": {  # D64: Regular / High risk buttons (each account sized by its own size + drawdown brake)
             "active": "high" if r.strategy.high_risk else "regular",

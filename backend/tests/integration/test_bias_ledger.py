@@ -89,12 +89,8 @@ def test_strategies_endpoint(authed):
     assert ai["enabled"] is True and ai["win_pct"] is None and ai["status"] == "UNVERIFIED"
 
 
-def test_gate_chain_and_ai_threshold_from_config(authed):
-    """D77: /api/strategies lists the NOISE/PM_FADE gate chain from config; the AI threshold defaults to 70%."""
+def test_ai_threshold_from_config_and_no_generic_gate_chain(authed):
+    """The AI threshold defaults to 70%. D106: the generic gate chain moved to the per-strategy gates endpoint."""
     d = authed.get("/api/strategies").json()
-    ids = {g["id"]: g for g in d["gate_chain"]}
-    assert ids["G1"]["on"] and ids["G1"]["locked"] and ids["RISK"]["kind"] == "pillar"
-    assert not ids["G6"]["on"] and ids["G6"]["unproven"] and not ids["OB"]["on"]
-    assert not {"FRACTAL", "G4", "G5"} & set(ids) and "lunqfx_flags" not in d  # D105: LunqFX rows removed
-    assert ids["AI"]["state"] == "ADVISORY" and "70%" in ids["AI"]["text"]
+    assert "gate_chain" not in d and "lunqfx_flags" not in d
     assert d["ai_ledger"][0]["required_accuracy"] == 0.7
