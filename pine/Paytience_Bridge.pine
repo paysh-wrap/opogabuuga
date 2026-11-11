@@ -3,7 +3,8 @@
 // Mirrors backend/app/indicators/ exactly (Python reference) — both are ports of the ORIGINAL sources:
 //  • "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (open-source, © LunqFX) — fractal state machine
 //    (D105: LunqFX was removed from Paytience; its alerts are ignored by the app. Only HEARTBEAT bars matter now.)
-// This bridge is shared under CC BY-NC-SA 4.0. PERSONAL USE ONLY. Verified against both sources 2026-11-05.
+// D120: the BigBeluga Market Structure Oscillator was removed (no MSO events, no mso field in the heartbeat).
+// This bridge is shared under CC BY-NC-SA 4.0. PERSONAL USE ONLY.
 //
 // Setup: MNQ1! chart, 1-minute for profile TIGHT or 5-minute for STD. Add this indicator, paste the webhook secret,
 // create an alert: Condition "Paytience_Bridge" → "Any alert() function call", Webhook URL = your Paytience URL.
@@ -229,6 +230,8 @@ bool mkConfS = false
                 mkSweepS := true
             f_send("C1_SWEPT", dnSw ? "LONG" : "SHORT", f_fr(c1H, c1L, c1S, atrV, (c1H + c1L) / 2, dnSw ? c1H : c1L, swX, swX, swT, cisdLvl, false, false, na))
 
+    // ---------- heartbeat (D120: no mso field) ----------
+    // D112: real-time check - on a live bar, timenow - time_close is the delay of the data feed (CME real-time = ~0).
     string dataFeed = barstate.isrealtime ? ((timenow - time_close) <= 90000 ? "realtime" : "delayed") : "unknown"
     f_send("HEARTBEAT", "NONE", '"data_feed":"' + dataFeed + '","price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
                                 ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '}')

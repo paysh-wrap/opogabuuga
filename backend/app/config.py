@@ -1216,7 +1216,8 @@ class RulesConfig(_M):
         over = [k for k, n in sizes.items() if n > firm]
         if over:
             raise ValueError(f"strategy: contracts above the firm max of {firm} micros: {over}")
-        if st.max_trade_risk_usd is not None and st.max_trade_risk_usd >= min(self.eval.max_loss_limit, self.funded.max_loss_limit):
+        mll_min = min(self.eval.max_loss_limit, self.funded.max_loss_limit)
+        if st.max_trade_risk_usd is not None and st.max_trade_risk_usd >= mll_min:
             raise ValueError("strategy.max_trade_risk_usd must be below the plan's max loss limit")
         missing = [x for x in self.strategy.order_flow_cfg.instruments if x not in self.instruments]
         if missing:  # D96: tick size / value / fees always come from the instrument config, never from code

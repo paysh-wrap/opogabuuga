@@ -105,9 +105,9 @@ def _launch(script: Path) -> None:  # pragma: no cover - Windows only
     breakaway = getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
     args = ["cmd", "/c", str(script)]
     try:
-        subprocess.Popen(args, creationflags=flags | breakaway, close_fds=True, cwd=str(script.parent))  # noqa: S603,S607
+        subprocess.Popen(args, creationflags=flags | breakaway, close_fds=True, cwd=str(script.parent))  # noqa: S603
     except OSError:  # the job forbids breakaway: still start it (no job is the normal case)
-        subprocess.Popen(args, creationflags=flags, close_fds=True, cwd=str(script.parent))  # noqa: S603,S607
+        subprocess.Popen(args, creationflags=flags, close_fds=True, cwd=str(script.parent))  # noqa: S603
     asyncio.get_running_loop().call_later(2.0, _hard_exit)
 
 

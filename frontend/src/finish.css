@@ -1,0 +1,227 @@
+/* ---------- D117 "refined finish" (user 2026-11-11: fancier, modern, same core look + structure) ----------
+   Loaded LAST (after index.css + mission.css). Pure visual layer: same navy/blue/gold identity, same layout, same
+   sections/order. Font colours stay blue/gold only (§18) — every colour here is a theme.ts token or an alpha of one;
+   red/green stay small dots/badges set inline by components. Fonts are BUNDLED (@fontsource-variable, no CDN at
+   runtime: offline desktop + Android WebView). Motion is subtle and fully off under prefers-reduced-motion. */
+:root {
+  --f-body: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-display: "Inter Variable", Inter, "Segoe UI Variable Display", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  /* spacing scale (4px base) */
+  --s-1: .25rem; --s-2: .5rem; --s-3: .75rem; --s-4: 1rem; --s-5: 1.25rem; --s-6: 1.5rem; --s-8: 2rem;
+  --r-chip: 999px; --r-ctl: 10px; --r-card: 16px;
+  --hair-gold: rgba(var(--gold-a), .28); --hair-blue: rgba(var(--blue-a), .22);
+  --glass: linear-gradient(165deg, rgba(23, 34, 66, .78) 0%, rgba(15, 24, 50, .82) 55%, rgba(10, 16, 34, .88) 100%);
+  --sh-card: 0 1px 0 rgba(242, 210, 122, .06) inset, 0 0 0 1px rgba(147, 197, 253, .02) inset, 0 1px 2px rgba(0, 0, 0, .35), 0 18px 40px -24px rgba(0, 0, 0, .85);
+  --sh-card-hover: 0 1px 0 rgba(242, 210, 122, .10) inset, 0 2px 4px rgba(0, 0, 0, .35), 0 24px 48px -24px rgba(0, 0, 0, .9), 0 0 0 1px rgba(var(--gold-a), .12);
+  --ring-gold: 0 0 0 3px rgba(var(--gold-a), .28);
+  --ring-blue: 0 0 0 3px rgba(var(--blue-a), .30);
+  --t: .18s; --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+/* ---------- typography ---------- */
+body { font-family: var(--f-body); font-size: 15px; line-height: 1.55; letter-spacing: -.003em; font-feature-settings: "tnum" 1, "cv11" 1, "ss01" 1; }
+.font-mono, code, kbd, samp { font-family: var(--f-mono); font-feature-settings: "zero" 0; }
+.mission main h3 { font-family: var(--f-display); font-weight: 650; letter-spacing: -.01em; }
+.mission main .font-serif, .mission-num, .mission-num-svg { font-family: var(--f-display); letter-spacing: -.02em; }
+.mission-num { font-weight: 750; }
+.mission main h1 { font-size: .78rem; letter-spacing: .18em; display: flex; align-items: center; gap: .6rem; }
+.mission main h1::after { content: ""; display: block; flex: 1; height: 1px; width: auto; margin: 0; max-width: 220px;
+  background: linear-gradient(90deg, rgba(var(--gold-a), .55), rgba(var(--blue-a), .25) 60%, transparent); }
+.mission main h1 { margin-bottom: var(--s-4); }
+main p { text-wrap: pretty; }
+
+/* ---------- card system: glass surface, hairline, soft depth, rounded-2xl ---------- */
+.mission main .bg-card:not(input):not(select):not(textarea) {
+  background:
+    linear-gradient(90deg, transparent 4%, rgba(var(--blue-a), .35) 30%, rgba(var(--gold-a), .45) 70%, transparent 96%) top / 100% 1px no-repeat,
+    var(--glass) !important;
+  border-color: var(--hair-blue);
+  box-shadow: var(--sh-card);
+  -webkit-backdrop-filter: blur(8px) saturate(1.1); backdrop-filter: blur(8px) saturate(1.1);
+  transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease);
+}
+.mission main :is(section, article).bg-card, .mission main div.bg-card.rounded-xl, .mission main div.bg-card.rounded-lg { border-radius: var(--r-card); }
+.mission main section.bg-card:hover, .mission main article.bg-card:hover { border-color: rgba(var(--blue-a), .38); box-shadow: var(--sh-card-hover); }
+.mission main .bg-card.border-gold {
+  border-color: var(--hair-gold) !important;
+  background:
+    linear-gradient(90deg, transparent 4%, rgba(var(--gold-a), .65) 50%, transparent 96%) top / 100% 1px no-repeat,
+    linear-gradient(165deg, rgba(var(--gold-a), .09), rgba(15, 24, 50, .86) 45%, rgba(10, 16, 34, .9)) !important;
+}
+.mission main .bg-card.border-gold:hover { border-color: rgba(var(--gold-a), .5) !important; }
+/* tile headings: mono eyebrow with a small gold tick */
+.mission main :is(section, article).bg-card > h2:first-child, .mission main :is(section, article).bg-card > div:first-child > h2:first-child {
+  font-family: var(--f-mono); font-size: .7rem; font-weight: 650; letter-spacing: .15em; margin-bottom: var(--s-3);
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+.mission main :is(section, article).bg-card > h2:first-child::before {
+  content: ""; flex: none; width: 6px; height: 6px; border-radius: 2px; transform: rotate(45deg);
+  background: linear-gradient(135deg, var(--gold-2), var(--gold)); box-shadow: 0 0 8px rgba(var(--gold-a), .6);
+}
+.mission main :is(section, article).bg-card > h2:first-child > .tile-aside { margin-left: auto; float: none; }
+/* inner tiles */
+.mission main .stat-tile { border-radius: 12px; border-color: var(--hair-blue);
+  background: linear-gradient(180deg, rgba(30, 42, 74, .42), rgba(8, 13, 28, .6)); }
+.mission main .mode-card { border-radius: var(--r-card); border-color: var(--hair-blue);
+  background: var(--glass); box-shadow: var(--sh-card); transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease), transform var(--t) var(--ease); }
+.mission main .mode-card:hover { border-color: rgba(var(--blue-a), .45); transform: translateY(-1px); }
+.mission main .mode-card-on { border-color: rgba(var(--gold-a), .8);
+  background: linear-gradient(160deg, rgba(var(--gold-a), .18), rgba(15, 24, 50, .9) 60%) !important;
+  box-shadow: 0 0 0 1px rgba(var(--gold-a), .35) inset, 0 16px 36px -18px rgba(var(--gold-a), .55); }
+.mission main .mandatory-card { box-shadow: inset 3px 0 0 var(--mandatory), var(--sh-card), 0 0 26px -14px rgba(var(--mandatory-a), .9) !important; }
+
+/* ---------- header: sticky glass bar, compact uniform chips ---------- */
+.mission .app-chrome { box-shadow: 0 12px 32px -22px rgba(0, 0, 0, .95); }
+.mission header.bg-card { background: rgba(8, 13, 28, .72) !important; -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
+.mission header.bg-card::after { opacity: .6; }
+.mission header.bg-card > div { gap: .5rem .6rem; padding-top: .65rem; padding-bottom: .65rem; }
+.mission [data-testid="brand"] { font-family: var(--f-display); font-weight: 750; letter-spacing: -.02em; font-size: 1.3rem; margin-right: .35rem; }
+.mission [data-testid="brand"] > span[aria-hidden] { width: 1.85rem; height: 1.85rem; border-radius: 10px; font-family: var(--f-display); font-weight: 800;
+  box-shadow: 0 0 0 1px rgba(242, 210, 122, .55), 0 6px 18px -6px rgba(var(--gold-a), .8); -webkit-text-fill-color: #0A1020; }
+/* every status item in the header is a chip of one size */
+.mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"],
+.mission header.bg-card :is([data-testid="conn-summary"], [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"]) {
+  display: inline-flex; align-items: center; gap: .35rem; height: 1.7rem; padding: 0 .7rem; border-radius: var(--r-chip);
+  font: 600 .7rem/1 var(--f-mono); letter-spacing: .03em; white-space: nowrap;
+}
+.mission header.bg-card :is([data-testid="conn-summary"], [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"]) {
+  border: 1px solid rgba(var(--blue-a), .18); background: rgba(var(--blue-a), .06); font-weight: 500; text-decoration: none;
+}
+.mission header.bg-card [data-testid="trading-count"]:hover { border-color: rgba(var(--blue-a), .45); background: rgba(var(--blue-a), .12); }
+.mission header.bg-card [title="Live updates"] > span[aria-hidden] { margin-right: 0 !important; box-shadow: 0 0 0 3px rgba(147, 197, 253, .08); }
+.mission header.bg-card [data-testid="mode"] { border-color: rgba(var(--gold-a), .55); background: rgba(var(--gold-a), .10); letter-spacing: .1em; }
+.mission header.bg-card :is(a, span)[class*="rounded"][class*="border"]:not([data-testid="mode"]) { background-color: rgba(var(--gold-a), .06); }
+.mission header.bg-card a[class*="rounded"]:hover { background-color: rgba(var(--gold-a), .16); border-color: rgba(var(--gold-a), .7); }
+.mission header.bg-card span[aria-label="Eastern time"] { font: 600 .82rem/1 var(--f-mono); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.mission header.bg-card button.border-2 { border-width: 1px; letter-spacing: .12em; font-weight: 750;
+  background: linear-gradient(180deg, rgba(var(--gold-a), .22), rgba(var(--gold-a), .08)) !important; box-shadow: 0 0 0 1px rgba(var(--gold-a), .25), 0 0 18px -8px rgba(var(--gold-a), .8); }
+.mission header.bg-card form[role="dialog"] { border-radius: 12px; background: rgba(var(--gold-a), .07); }
+
+/* ---------- nav: pill tabs, active underline glow ---------- */
+.mission nav[aria-label="Main"] { background: rgba(8, 13, 28, .66) !important; -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+  border-bottom: 1px solid rgba(var(--blue-a), .14); }
+.mission .nav-strip { gap: .2rem .15rem; padding-top: .45rem; padding-bottom: .45rem; }
+.mission nav[aria-label="Main"] a { font-size: .84rem; font-weight: 550; padding: .4rem .85rem; border-radius: var(--r-chip); opacity: .9; letter-spacing: -.005em; }
+.mission nav[aria-label="Main"] a:hover { opacity: 1; background: rgba(var(--blue-a), .10); border-color: rgba(var(--blue-a), .2); }
+.mission nav[aria-label="Main"] a[aria-current="page"] {
+  background: linear-gradient(180deg, rgba(var(--gold-a), .16), rgba(27, 42, 85, .9)); border-color: rgba(var(--gold-a), .4); color: #F2D27A;
+  box-shadow: 0 6px 18px -10px rgba(var(--gold-a), .75);
+}
+.mission nav[aria-label="Main"] a[aria-current="page"]::after {
+  content: ""; position: absolute; left: 22%; right: 22%; bottom: -1px; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold-2), transparent); box-shadow: 0 0 10px 1px rgba(var(--gold-a), .7);
+}
+
+/* ---------- buttons: primary gold · secondary outline · ghost ---------- */
+.mission main button { border-radius: var(--r-ctl); font-weight: 600; }
+.mission main button.rounded-md, .mission main button.rounded, .mission main button.rounded-lg { border-radius: var(--r-ctl); letter-spacing: .03em; }
+/* primary = filled gold (dark text is the theme bg colour, AA on gold) */
+.mission main button:is(.bg-gold, .btn-primary) { background: linear-gradient(180deg, var(--gold-2), var(--gold) 60%, #B8952C) !important;
+  color: #0A1020; border-color: rgba(242, 210, 122, .8); box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset, 0 8px 20px -10px rgba(var(--gold-a), .8); }
+/* secondary = outline with a faint tint */
+.mission main button.border-gold:not([class*="bg-"]) { background-image: linear-gradient(180deg, rgba(var(--gold-a), .14), rgba(var(--gold-a), .04)); border-color: rgba(var(--gold-a), .7); }
+.mission main button.border-blue:not([class*="bg-"]) { background-image: linear-gradient(180deg, rgba(var(--blue-a), .14), rgba(var(--blue-a), .04)); border-color: rgba(var(--blue-a), .75); }
+/* ghost = no border class */
+.mission main button:not([class*="border"]):not([class*="bg-"]) { background: transparent; }
+.mission main button:not([class*="border"]):not([class*="bg-"]):not(:disabled):hover { background: rgba(var(--blue-a), .10); box-shadow: none; transform: none; }
+.mission button:not(:disabled):hover { transform: translateY(-1px); }
+.mission button:focus-visible { outline: 2px solid #F2D27A; outline-offset: 2px; box-shadow: var(--ring-gold); }
+.mission button:disabled { opacity: .45; filter: saturate(.6); }
+
+/* ---------- form inputs ---------- */
+.mission main input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), .mission main select, .mission main textarea {
+  border-radius: var(--r-ctl); border-color: rgba(var(--blue-a), .22); background-color: rgba(7, 12, 25, .78);
+  min-height: 2.15rem; box-shadow: 0 1px 2px rgba(0, 0, 0, .35) inset;
+}
+.mission main textarea { min-height: 4rem; }
+.mission main :is(input, select, textarea):hover { border-color: rgba(var(--blue-a), .45); }
+.mission main :is(input, select, textarea):focus, .mission main :is(input, select, textarea):focus-visible {
+  border-color: var(--gold); box-shadow: var(--ring-gold), 0 1px 2px rgba(0, 0, 0, .35) inset; outline: none;
+}
+label { font-weight: 500; }
+
+/* ---------- badges / chips (MANDATORY · LOCKED · UNVERIFIED/VERIFY · PAPER · MISSING/OK) ---------- */
+.mission main span.rounded.border:is(.border-gold, .border-blue, .border-border, [class*="border-gold/"]),
+.mission main span.rounded-full.border, .mandatory-tag, .check-word {
+  display: inline-flex; align-items: center; gap: .25rem; vertical-align: middle; border-radius: var(--r-chip);
+  padding: .05rem .5rem; font: 650 .64rem/1.55 var(--f-mono); letter-spacing: .07em; white-space: nowrap;
+}
+.mission main span.rounded.border.border-gold, .mission main span.rounded-full.border.border-gold { background: rgba(var(--gold-a), .10); border-color: rgba(var(--gold-a), .65); }
+.mission main span.rounded.border.border-blue { background: rgba(var(--blue-a), .10); border-color: rgba(var(--blue-a), .6); }
+.mission main span.rounded.border.border-border { background: rgba(30, 42, 74, .45); }
+.mandatory-tag { background: rgba(var(--mandatory-a), .12); box-shadow: 0 0 12px -6px rgba(var(--mandatory-a), .9); }
+.check-word { background: rgba(var(--blue-a), .07); border-color: rgba(var(--blue-a), .25); }
+.check-row { border-top-color: rgba(var(--blue-a), .12); }
+.check-dot { box-shadow: 0 0 0 3px rgba(147, 197, 253, .06); }
+/* generic utility chips for future use */
+.chip { display: inline-flex; align-items: center; gap: .3rem; height: 1.45rem; padding: 0 .55rem; border-radius: var(--r-chip);
+  border: 1px solid rgba(var(--blue-a), .35); background: rgba(var(--blue-a), .08); color: #93C5FD; font: 650 .64rem/1 var(--f-mono); letter-spacing: .07em; }
+.chip-gold { border-color: rgba(var(--gold-a), .65); background: rgba(var(--gold-a), .10); color: #D4AF37; }
+
+/* ---------- tables: zebra, hover, sticky mono header ---------- */
+.mission main table { font-variant-numeric: tabular-nums; }
+.mission main table thead th { background: rgba(17, 26, 51, .96); font: 650 .66rem/1.4 var(--f-mono); letter-spacing: .11em; padding-top: .5rem; padding-bottom: .5rem;
+  box-shadow: 0 1px 0 rgba(var(--gold-a), .35); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.mission main tbody td { border-bottom: 1px solid rgba(var(--blue-a), .07); padding-top: .4rem; padding-bottom: .4rem; }
+.mission main tbody tr:nth-child(even) { background: rgba(var(--blue-a), .04); }
+.mission main tbody tr:hover { background: rgba(var(--blue-a), .10); }
+.mission main tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- meters ---------- */
+.mission main .bg-border.rounded, .mission-bar { background: rgba(27, 42, 85, .75); box-shadow: 0 1px 2px rgba(0, 0, 0, .55) inset; }
+.mission-bar i { box-shadow: 0 0 12px -2px rgba(var(--gold-a), .55); }
+
+/* ---------- loading (skeleton shimmer) + empty states ---------- */
+.skeleton, .mission main > p[role="status"], .mission main > div > p[role="status"]:only-child {
+  position: relative; overflow: hidden;
+}
+.mission main > p[role="status"], .mission main > div > p[role="status"]:only-child {
+  border: 1px solid rgba(var(--blue-a), .18); border-radius: var(--r-card); background: var(--glass); min-height: 8rem;
+  font: 500 .78rem var(--f-mono); letter-spacing: .08em;
+}
+.mission main > p[role="status"]::before, .mission main > div > p[role="status"]:only-child::before {
+  width: .9rem; height: .9rem; border-width: 2px;
+}
+.skeleton { display: block; min-height: .9rem; border-radius: 8px; background: rgba(30, 42, 74, .55); color: transparent !important; }
+.skeleton::after, .mission main > p[role="status"]::after, .mission main > div > p[role="status"]:only-child::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(147, 197, 253, .07) 40%, rgba(242, 210, 122, .08) 60%, transparent);
+  animation: d117-shimmer 1.6s var(--ease) infinite;
+}
+@keyframes d117-shimmer { to { transform: translateX(100%); } }
+.mission main [aria-busy="true"] { position: relative; overflow: hidden; }
+.mission main p[role="alert"] { border-radius: 12px; border-color: rgba(var(--gold-a), .4); background: linear-gradient(90deg, rgba(var(--gold-a), .10), rgba(var(--gold-a), .03)); }
+
+/* ---------- misc polish ---------- */
+.mission main details > summary { padding: .15rem .25rem; }
+.mission main details > summary:hover { background: rgba(var(--blue-a), .06); }
+.mission main a:not([class*="rounded"]):not(.mission-safety-link) { text-decoration-color: rgba(var(--blue-a), .5); }
+.mission main a:not([class*="rounded"]):not(.mission-safety-link):hover { text-decoration-color: currentColor; }
+.mission-safety-link { transition: background-color var(--t) var(--ease), box-shadow var(--t) var(--ease); }
+.mission-safety-link:hover { box-shadow: 0 0 0 1px rgba(var(--gold-a), .4), 0 10px 26px -12px rgba(var(--gold-a), .8); }
+.mission-bento { gap: 16px; }
+hr { border-color: rgba(var(--blue-a), .14); }
+:focus-visible { outline-color: #F2D27A; }
+
+/* ---------- phone ---------- */
+@media (max-width: 767px) {
+  body { font-size: 14.5px; }
+  .mission header.bg-card > div { gap: .4rem .45rem; padding-top: .55rem; padding-bottom: .55rem; }
+  .mission header.bg-card :is(span, a, button)[class*="rounded"][class*="border"],
+  .mission header.bg-card :is([data-testid="conn-summary"], [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"]) {
+    height: 1.6rem; padding: 0 .55rem; font-size: .66rem;
+  }
+  .mission [data-testid="brand"] { font-size: 1.2rem; }
+  .mission nav[aria-label="Main"] a[aria-current="page"]::after { bottom: 0; }
+  .mission main :is(section, article).bg-card { border-radius: 14px; }
+  .mission main :is(section, article).bg-card:hover { box-shadow: var(--sh-card); }
+  .mission-dock { background: rgba(8, 13, 28, .82); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2);
+    border-top-color: rgba(var(--blue-a), .18); }
+  .mission-dock a.on { background: linear-gradient(180deg, rgba(var(--gold-a), .16), rgba(27, 42, 85, .9)); box-shadow: 0 0 0 1px rgba(var(--gold-a), .35) inset; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after, .mission main > p[role="status"]::after, .mission main > div > p[role="status"]:only-child::after { animation: none; display: none; }
+  .mission button:not(:disabled):hover, .mission main .mode-card:hover { transform: none; }
+}

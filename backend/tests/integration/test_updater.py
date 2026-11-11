@@ -126,7 +126,7 @@ def test_bat_script_text(tmp_path):
     assert "taskkill /PID 4242 /T /F" in s and s.index("taskkill /PID 4242") < s.index(":exited")
     assert "if %w% geq 45" in s and ":exited" in s
     assert f'move "{app}\\_internal" "{up / "old-1"}\\"' in s
-    assert f'start "" "{app}\\Paytience.exe"' in s
+    assert f'start "Paytience" /D "{app}" "{app}\\Paytience.exe"' in s
     assert "healthy.flag" in s and ":restore" in s and "update-failed.txt" in s
     # the swap only ever moves Paytience.exe and _internal — paytience-data is never moved or deleted
     for line in s.splitlines():
@@ -288,7 +288,7 @@ def test_bat_d119_cwd_start_and_cleanup(tmp_path):
     assert 'start "" ' not in s
     stop = s[s.index(":stopnew") : s.index(":restore")]
     assert "taskkill /IM ngrok.exe /F" in stop and "taskkill /IM cloudflared.exe /F" in stop
-    assert "paytience-data\\updates\"" in lines[2] and "rmdir" not in s.split(":restore")[0]  # data never deleted
+    assert "rmdir" not in s.split(":restore")[0] and "paytience-data\"" not in s  # data folder never moved/deleted
 
 
 def test_script_encoding_is_oem_on_windows(monkeypatch):

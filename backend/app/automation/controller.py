@@ -45,7 +45,7 @@ from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
 from app.risk.split_risk import SPLIT_STRATEGIES, side_budget_left, split_active, split_budget, split_contracts
-from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size
+from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size, plan_contracts, risk_cap
 from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
@@ -463,21 +463,31 @@ class Controller:
             open_positions=n_open,
             open_risk_usd=sum((self._open_risk(t) for t in mine), Decimal(0)) if duo is not None else Decimal(0),
         )
+        # D115 (user 2026-11-11): each strategy's OWN per-plan size (config/rules/*.yaml), scaled down for an account
+        # smaller than the plan; NOISE / PM_FADE use the size table below. Caps applied later: firm + internal max,
+        # $ budgets (risk_cap), DLL/MLL worst case, consistency, split 50/50, hedge lock.
         fixed = (
-            {
-                "NOISE": r.strategy.noise_cfg.contracts,
-                "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
-                "PM_FADE": r.strategy.pm_fade_cfg.contracts,
-                "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
-                "ORDER_FLOW": r.strategy.order_flow_cfg.contracts,  # D99: fixed 1 micro (matrix test found the gap)
-            }[strategy]
+            plan_contracts(
+                {
+                    "NOISE": r.strategy.noise_cfg.contracts,
+                    "AI_BIAS": r.strategy.ai_bias_cfg.contracts,
+                    "PM_FADE": r.strategy.pm_fade_cfg.contracts,
+                    "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
+                    "ORDER_FLOW": r.strategy.order_flow_cfg.contracts,
+                }[strategy],
+                r.account_size,
+                acct_size,
+            )
             if strategy
             else None
         )
-        if duo is not None and fixed is not None and fixed > 1:  # D85 cushion brake (the size-table brake, reused)
-            fixed = auto_contracts(
-                acct_size, base, [SizeTier(acct_size, r.eval.max_loss_limit, fixed, duo.brake_below, 1)]
-            ).contracts
+        brake = {
+            "AI_DUO": r.strategy.ai_duo_cfg.brake_below,
+            "AI_BIAS": r.strategy.ai_bias_cfg.brake_below,
+            "ORDER_FLOW": r.strategy.order_flow_cfg.brake_below,
+        }.get(strategy)
+        if brake is not None and fixed is not None and fixed > 1:  # D85/D115 cushion brake (size-table brake reused)
+            fixed = auto_contracts(acct_size, base, [SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)]).contracts
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
         eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on
@@ -619,7 +629,14 @@ class Controller:
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
             fixed_contracts=fixed,
             shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
-            max_risk_usd=duo.max_risk_usd if duo is not None else None,  # D85: $250 per trade (config)
+            max_risk_usd=risk_cap(  # D85 AI Duo $250 · D115 strategy budget · D115 plan per-trade cap
+                duo.max_risk_usd if duo is not None else None,
+                {
+                    "AI_BIAS": r.strategy.ai_bias_cfg.max_risk_usd,
+                    "ORDER_FLOW": r.strategy.order_flow_cfg.max_risk_usd,
+                }.get(strategy),
+                r.strategy.max_trade_risk_usd if strategy else None,
+            ),
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
             side_budget_left=side_left,
         )
