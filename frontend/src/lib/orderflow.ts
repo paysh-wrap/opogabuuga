@@ -8,10 +8,14 @@ export interface FlowBar {
 }
 export interface FlowProfile { rows: { p: string; v: string }[]; poc: string | null; vah: string | null; val: string | null; hvn: string[]; lvn: string[] }
 // D101 AR Model layers as the indicator sent them (null = not sent)
-export interface ArValues { env: string | null; location_zone: string | null; fib: string | null; value_side: string | null; path_zone: string | null; path_side: string | null; delta_source: string | null; confirm_time: number | null }
+export interface ArValues { env: string | null; location_zone: string | null; fib: string | null; value_side: string | null; path_zone: string | null; path_side: string | null; delta_source: string | null; confirm_time: number | null;
+  // D108 Casper refinement fields (optional: older alerts omit them)
+  close_pos?: string | null; cvd_slope?: string | null; open_vs_value?: string | null; prior_va_width_atr?: string | null }
 export interface FlowSignal { time_ms: number; kind: string; label: string; direction: string; ar?: ArValues }
 export interface ArLayer { key: "ENVIRONMENT" | "LOCATION" | "PATH" | "CONFIRMATION"; on: boolean; rule: string }
-export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[] }
+// D108 Casper 4h course refinements of the AR Model (each a plan-file switch)
+export interface CasperRule { key: "PRICE_CONFIRMS" | "STACKED" | "CVD" | "CONDITION" | "BUNCHED" | "ROUND_STOP"; on: boolean; rule: string }
+export interface ArRules { enabled: boolean; paper_only: boolean; verified: boolean; layers: ArLayer[]; casper?: CasperRule[] }
 export interface FlowSkip { time_ms: number | null; direction: string | null; code: string; layer: string; label: string; detail: string | null; ar: ArValues }
 export interface OrderFlowData {
   symbol: string; symbols: string[]; source: FlowSource; estimated: boolean; note: string; method: string;
@@ -26,6 +30,12 @@ export function arSummary(a: ArValues | undefined): string {
   const loc = a.location_zone ?? (a.fib != null ? `fib ${a.fib}` : "—");
   const path = a.path_zone ? `${a.path_zone}${a.path_side && a.path_side !== "INSIDE" ? ` ${a.path_side.toLowerCase()} Asia` : ""}` : "—";
   return `${a.env ?? "—"} · ${loc}${a.value_side ? ` ${a.value_side}` : ""} · ${path} · delta ${a.delta_source ?? "—"}`;
+}
+
+/** D108: "n of m Casper refinements ON" (empty list → "none configured"). */
+export function casperSummary(c: CasperRule[] | undefined): string {
+  if (!c || c.length === 0) return "none configured";
+  return `${c.filter((x) => x.on).length} of ${c.length} ON`;
 }
 
 /** Snap each signal to the last bar that opened at/before it (markers must sit on a bar). */

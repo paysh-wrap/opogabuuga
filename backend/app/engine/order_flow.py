@@ -230,14 +230,15 @@ def _cs(rule: str, detail: str) -> OrderFlowSkip:
 def check_casper(direction: Direction, kind: str, f: CasperFields, r: CasperRules) -> OrderFlowSkip | None:
     """None = every active Casper rule agrees; else the first failing rule's skip."""
     long = direction is Direction.LONG
-    if r.bunched:  # no-trade day filter first (condition before trigger)
-        if f.prior_va_width_atr is None or f.prior_va_width_atr < r.min_va_width_atr:
-            return _cs("BUNCHED", f"prior value width {f.prior_va_width_atr} ATR < {r.min_va_width_atr}")
+    if r.bunched and (f.prior_va_width_atr is None or f.prior_va_width_atr < r.min_va_width_atr):  # day filter first
+        return _cs("BUNCHED", f"prior value width {f.prior_va_width_atr} ATR < {r.min_va_width_atr}")
     if r.condition:
         ov = f.open_vs_value
         against = "BELOW_VAL" if long else "ABOVE_VAH"
-        if ov not in ("ABOVE_VAH", "IN_VALUE", "BELOW_VAL") or ov == against or (
-            ov == "IN_VALUE" and not r.inside_value_ok
+        if (
+            ov not in ("ABOVE_VAH", "IN_VALUE", "BELOW_VAL")
+            or ov == against
+            or (ov == "IN_VALUE" and not r.inside_value_ok)
         ):
             return _cs("CONDITION", f"open vs prior value {ov} against {direction.value}")
     if r.stacked_definition and kind == "STACKED_IMBALANCE" and (f.stacked is None or f.stacked < r.min_stacked):

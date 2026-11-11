@@ -171,3 +171,96 @@ def test_ar_config_validation():
             ArModelCfg(**bad)
     with pytest.raises(ValueError):
         OrderFlowCfg(ar={"fib_max": "0.95"})
+
+
+# ---------- D108 Casper refinements ----------
+
+from app.config import CasperCfg  # noqa: E402
+
+CF = OF.CasperFields(close_pos=D("0.8"), stacked=3, cvd_slope=D("50"), open_vs_value="ABOVE_VAH",
+                     prior_va_width_atr=D("0.4"))  # fmt: skip
+ALL_ON = OF.CasperRules(cvd_confirm=True, condition=True, bunched=True)
+
+
+def _cp(direction=Direction.LONG, kind="ABSORPTION", rules=ALL_ON, **kw):
+    f = OF.CasperFields(**{**CF.__dict__, **kw})
+    r = OF.check_casper(direction, kind, f, rules)
+    return None if r is None else (r.code, r.layer)
+
+
+def test_casper_all_pass_and_defaults():
+    assert _cp() is None
+    d = OF.CasperRules()
+    assert d.price_confirms and d.stacked_definition and not (d.cvd_confirm or d.condition or d.bunched)
+    c = CasperCfg()
+    assert c.price_confirms and c.stacked_definition and not (c.cvd_confirm or c.condition or c.bunched or c.round_stop)
+
+
+@pytest.mark.parametrize(
+    ("direction", "kind", "kw", "code"),
+    [
+        (Direction.LONG, "ABSORPTION", {"close_pos": D("0.3")}, "OF_CASPER_PRICE_CONFIRMS"),
+        (Direction.SHORT, "ABSORPTION", {"close_pos": D("0.8"), "cvd_slope": D("-5"), "open_vs_value": "IN_VALUE"},
+         "OF_CASPER_PRICE_CONFIRMS"),
+        (Direction.LONG, "ABSORPTION", {"close_pos": None}, "OF_CASPER_PRICE_CONFIRMS"),
+        (Direction.LONG, "STACKED_IMBALANCE", {"stacked": 2}, "OF_CASPER_STACKED"),
+        (Direction.LONG, "STACKED_IMBALANCE", {"stacked": None}, "OF_CASPER_STACKED"),
+        (Direction.LONG, "ABSORPTION", {"cvd_slope": D("0")}, "OF_CASPER_CVD"),
+        (Direction.SHORT, "ABSORPTION", {"cvd_slope": D("5"), "close_pos": D("0.1"), "open_vs_value": "IN_VALUE"},
+         "OF_CASPER_CVD"),
+        (Direction.LONG, "ABSORPTION", {"open_vs_value": "BELOW_VAL"}, "OF_CASPER_CONDITION"),
+        (Direction.LONG, "ABSORPTION", {"open_vs_value": None}, "OF_CASPER_CONDITION"),
+        (Direction.SHORT, "ABSORPTION", {"open_vs_value": "ABOVE_VAH"}, "OF_CASPER_CONDITION"),
+        (Direction.LONG, "ABSORPTION", {"prior_va_width_atr": D("0.1")}, "OF_CASPER_BUNCHED"),
+        (Direction.LONG, "ABSORPTION", {"prior_va_width_atr": None}, "OF_CASPER_BUNCHED"),
+    ],
+)  # fmt: skip
+def test_casper_each_rule_skips(direction, kind, kw, code):
+    assert _cp(direction, kind, **kw) == (code, "CASPER")
+
+
+def test_casper_switches_off_and_inside_value():
+    off = OF.CasperRules(price_confirms=False, stacked_definition=False)
+    assert _cp(rules=off, close_pos=None, stacked=0, cvd_slope=None, open_vs_value=None) is None
+    assert _cp(kind="ABSORPTION", stacked=0) is None  # stack rule only for STACKED_IMBALANCE alerts
+    strict = OF.CasperRules(condition=True, inside_value_ok=False)
+    assert _cp(rules=strict, open_vs_value="IN_VALUE") == ("OF_CASPER_CONDITION", "CASPER")
+    assert _cp(Direction.SHORT, rules=OF.CasperRules(), close_pos=D("0.2")) is None
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [{"close_pos_min": D("0.4")}, {"close_pos_min": D("0.95")}, {"min_stacked": 2}, {"min_va_width_atr": D("0")},
+     {"round_buffer_ticks": 4}, {"round_step": {"MNQ": D("0")}}],
+)  # fmt: skip
+def test_casper_cfg_refuses_looser(bad):
+    with pytest.raises(ValueError):
+        CasperCfg(**bad)
+
+
+def _rs(plan, **kw):
+    a = dict(tick=T, step=D("50"), buffer_ticks=2, rr=D("2"), rr_min=D("1.5"), max_risk_ticks=120)
+    a.update(kw)
+    return OF.casper_round_stop(plan, **a)
+
+
+def test_casper_round_stop_moves_off_round_numbers():
+    p = _b()  # stop 19999.75, 1 tick under 20000
+    q = _rs(p)
+    assert isinstance(q, OF.OrderFlowPlan) and q.stop == D("19999.50") and q.rr == 2
+    assert q.take_profit == D("20031.00") and q.risk_pts == D("10.50")
+    assert _rs(p, buffer_ticks=1) is p  # already 1 tick beyond
+    far = _b(defended=D("19990"))  # stop 19989.75: no round level near
+    assert _rs(far) is far
+    inside = _b(defended=D("20000.50"))  # stop 20000.25: just INSIDE 20000 → pushed under it
+    r = _rs(inside)
+    assert isinstance(r, OF.OrderFlowPlan) and r.stop == D("19999.50")
+    s = _b(direction=Direction.SHORT, entry=D("19990"), defended=D("20000"))  # stop 20000.25
+    r = _rs(s)
+    assert isinstance(r, OF.OrderFlowPlan) and r.stop == D("20000.50")
+    sk = _rs(p, max_risk_ticks=41)
+    assert isinstance(sk, OF.OrderFlowSkip) and (sk.code, sk.layer) == ("OF_CASPER_ROUND_STOP", "CASPER")
+    sk = _rs(p, rr=D("1.51"), rr_min=D("1.51"))  # target rounded toward entry → 1.5R < 1.51
+    assert isinstance(sk, OF.OrderFlowSkip) and sk.code == "OF_CASPER_ROUND_STOP"
+    odd = OF.OrderFlowPlan(Direction.LONG, "ABSORPTION", D("20000"), D("20000"), D("19999.75"), D("20001"), T, D("4"))
+    assert _rs(odd) is odd  # round level not on the stop side of the entry → untouched

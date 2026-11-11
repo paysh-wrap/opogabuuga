@@ -23,6 +23,9 @@
 //                 favourable half), DELTA_DIVERGENCE (delta flip after failed initiative, or exhaustion = low effort at a
 //                 new extreme), STACKED_IMBALANCE (>= N stacked diagonal imbalances, 400% default) -> confirmation candle;
 //                 then the ENTRY candle that pulls back into the confirmation candle (within N bars) sends the alert.
+//  + D108 Casper 4h-course refinement fields (each gated by its own app switch): close_pos (entry close in its range),
+//    cvd_slope (sum of delta over the last N bars), open_vs_value (RTH open vs PRIOR RTH value area 09:30-16:00 ET),
+//    prior_va_width_atr (prior value-area width in daily ATR(20)) — docs/results/session18/order_flow/TEACHER_RULES_4H.md.
 // The indicator SENDS every confirmed setup with its layer values; the app decides (skip codes are shown in the app).
 // Stop = beyond the absorption zone (+ buffer). The app rebuilds stop/target itself and never trusts these prices.
 indicator("Paytience Order Flow", overlay = true, max_labels_count = 200, max_bars_back = 1000)
@@ -42,6 +45,7 @@ waitBars  = input.int(3, "Entry candle within N bars of the confirmation", minva
 vaPct     = input.float(70.0, "Value area %", minval = 10, maxval = 100)
 maxBack   = input.int(600, "Swing profile: max 1m bars back", minval = 50, maxval = 990)
 bufTicks  = input.int(1, "Stop buffer beyond the absorption zone (ticks)", minval = 1)
+cvdBars   = input.int(3, "Casper: CVD slope over N bars", minval = 1, maxval = 30)
 showMarks = input.bool(true, "Show markers")
 
 if timeframe.period != "1"
@@ -164,15 +168,9 @@ f_zone(float d, float ed) =>
         z := not na(ed) and ed > 0.886 and d < 1.1 ? "INVALID" : d >= 1.1 ? "F11" : d > 0.886 ? "BEYOND_0886" : d >= 0.788 ? "F0788" : d >= 0.705 ? "F0705" : d >= 0.62 ? "F062" : d >= 0.5 ? "F05" : "F0_05"
     z
 
-// fixed-range volume profile from the swing start to now (computed only when an alert is sent)
-f_va(float t0) =>
+// value area (VAH/VAL) of a price-row -> volume profile map
+f_vaMap(map<float, float> prof) =>
     float row = rowTicks * syminfo.mintick
-    map<float, float> prof = map.new<float, float>()
-    for i = 0 to maxBack
-        if time[i] < t0
-            break
-        float b = math.floor(hlc3[i] / row) * row
-        map.put(prof, b, (map.contains(prof, b) ? map.get(prof, b) : 0.0) + volume[i])
     float vah = na
     float val = na
     array<float> keys = map.keys(prof)
@@ -203,6 +201,40 @@ f_va(float t0) =>
         vah := array.get(keys, hi) + row
         val := array.get(keys, lo)
     [vah, val]
+
+// fixed-range volume profile from the swing start to now (computed only when an alert is sent)
+f_va(float t0) =>
+    float row = rowTicks * syminfo.mintick
+    map<float, float> prof = map.new<float, float>()
+    for i = 0 to maxBack
+        if time[i] < t0
+            break
+        float b = math.floor(hlc3[i] / row) * row
+        map.put(prof, b, (map.contains(prof, b) ? map.get(prof, b) : 0.0) + volume[i])
+    f_vaMap(prof)
+
+// ---------- D108 Casper CONDITION: prior RTH (09:30-16:00 ET) value area vs today's RTH open ----------
+bool inRth = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+var map<float, float> rthProf = map.new<float, float>()
+var float pVah = na
+var float pVal = na
+var float rthOpen = na
+if inRth and not inRth[1]
+    rthOpen := open
+if inRth
+    float rb = math.floor(hlc3 / (rowTicks * syminfo.mintick)) * (rowTicks * syminfo.mintick)
+    map.put(rthProf, rb, (map.contains(rthProf, rb) ? map.get(rthProf, rb) : 0.0) + volume)
+if not inRth and inRth[1] and map.size(rthProf) > 0
+    [h1, l1] = f_vaMap(rthProf)
+    pVah := h1
+    pVal := l1
+    map.clear(rthProf)
+if not inRth and inRth[1]
+    rthOpen := na   // outside RTH there is no 'today's open' until 09:30
+string openVsValue = na(pVah) or na(rthOpen) ? "" : rthOpen > pVah ? "ABOVE_VAH" : rthOpen < pVal ? "BELOW_VAL" : "IN_VALUE"
+float vaWidthAtr = na(pVah) or na(atrD) or atrD <= 0 ? na : (pVah - pVal) / atrD
+float cvdSlope = math.sum(delta, cvdBars)
+float closePos = high > low ? (close - low) / (high - low) : 0.5
 
 // ---------- 3 PATH (Asia range + daily ATR(20) zones) ----------
 bool inAsia = not na(time(timeframe.period, "1800-0300", "America/New_York"))
@@ -345,7 +377,10 @@ if sig != 0
           ',"value_side":' + f_q(vSide) + ',"path_zone":' + f_q(pathZone) + ',"path_side":' + f_q(pathSide) +
           ',"delta_source":"' + dSrc + '","confirm_time":' + str.tostring(confirmT) +
           ',"absorption_low":' + f_px(absLow) + ',"absorption_high":' + f_px(absHigh) +
-          ',"stacked":' + str.tostring(sig == 1 ? stackBuy : stackSell) + "}}",
+          ',"stacked":' + str.tostring(sig == 1 ? stackBuy : stackSell) +
+          ',"close_pos":' + str.tostring(closePos, "#.###") + ',"cvd_slope":' + str.tostring(cvdSlope, "#.##") +
+          ',"open_vs_value":' + f_q(openVsValue) +
+          ',"prior_va_width_atr":' + (na(vaWidthAtr) ? "null" : str.tostring(vaWidthAtr, "#.###")) + "}}",
           alert.freq_once_per_bar_close)
 
 plotshape(showMarks and sig == 1, "Order flow LONG", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)

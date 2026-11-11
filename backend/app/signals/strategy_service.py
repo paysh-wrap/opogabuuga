@@ -360,6 +360,29 @@ def run_order_flow(
             require_real_delta=a.require_real_delta,
         ),
     )
+    c = cfg.casper  # D108 Casper refinements after the AR layers (each a switch)
+    res = res or OF.check_casper(
+        direction,
+        of.kind,
+        OF.CasperFields(
+            close_pos=of.close_pos,
+            stacked=of.stacked,
+            cvd_slope=of.cvd_slope,
+            open_vs_value=of.open_vs_value,
+            prior_va_width_atr=of.prior_va_width_atr,
+        ),
+        OF.CasperRules(
+            price_confirms=c.price_confirms,
+            close_pos_min=c.close_pos_min,
+            stacked_definition=c.stacked_definition,
+            min_stacked=c.min_stacked,
+            cvd_confirm=c.cvd_confirm,
+            condition=c.condition,
+            inside_value_ok=c.inside_value_ok,
+            bunched=c.bunched,
+            min_va_width_atr=c.min_va_width_atr,
+        ),
+    )
     res = res or OF.build_plan(
         kind=of.kind,
         direction=direction,
@@ -374,6 +397,16 @@ def run_order_flow(
         alert_stop=of.stop,
         absorption=absorption,
     )
+    if c.round_stop and isinstance(res, OF.OrderFlowPlan) and symbol in c.round_step:
+        res = OF.casper_round_stop(
+            res,
+            tick=inst.tick,
+            step=c.round_step[symbol],
+            buffer_ticks=c.round_buffer_ticks,
+            rr=cfg.rr,
+            rr_min=cfg.rr_min,
+            max_risk_ticks=cfg.max_risk_ticks,
+        )
     layers = {
         "env": of.env,
         "location_zone": of.location_zone,
@@ -383,6 +416,10 @@ def run_order_flow(
         "path_side": of.path_side,
         "delta_source": of.delta_source,
         "confirm_time": of.confirm_time,
+        "close_pos": None if of.close_pos is None else str(of.close_pos),
+        "cvd_slope": None if of.cvd_slope is None else str(of.cvd_slope),
+        "open_vs_value": of.open_vs_value,
+        "prior_va_width_atr": None if of.prior_va_width_atr is None else str(of.prior_va_width_atr),
     }
     if isinstance(res, OF.OrderFlowSkip):  # no valid plan → no signal row; the reason code is audited
         audit.record(

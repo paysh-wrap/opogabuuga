@@ -32,6 +32,7 @@ def _p(ms=MS, direction="LONG", entry="20010", defended="20000", stop="19999.75"
         "order_flow": {
             "kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR,
             "confirm_time": ms - 60000, "value_side": "BELOW_VAL" if direction == "LONG" else "ABOVE_VAH",
+            "close_pos": "0.8" if direction == "LONG" else "0.2",  # D108: close away from the trapped side
         },
     }  # fmt: skip
 
@@ -39,7 +40,7 @@ def _p(ms=MS, direction="LONG", entry="20010", defended="20000", stop="19999.75"
 # D101: an alert whose four AR-Model layers agree (LONG: discount below value, inside Asia, confirmed 1 bar earlier)
 AR = {
     "env": "ROTATION", "location_zone": "F0788", "fib": "0.79", "value_side": "BELOW_VAL", "path_zone": "INSIDE",
-    "path_side": "INSIDE", "delta_source": "real",
+    "path_side": "INSIDE", "delta_source": "real", "stacked": 3,
 }  # fmt: skip
 
 
@@ -282,3 +283,43 @@ def test_d101_ar_layers_gate_and_are_audited(client, loaded_rules):
         sig = s.get(Signal, u.signal_id)
         assert sig.features["ar"]["env"] == "ROTATION" and sig.features["ar"]["delta_source"] == "real"
         assert s.query(TradePlanRow).filter_by(signal_id=sig.id).one().stop == D("19997.75")
+
+
+def test_d108_casper_refinements_gate_audit_and_switch(client, loaded_rules):
+    """D108: Casper rules run after the AR layers; default-ON ones skip, OFF ones only when switched on."""
+    rules = _rules(loaded_rules)
+    with client.app.state.sessionmaker() as s:
+        p = _p(ms=MS + 2 * 3_600_000)
+        p["order_flow"].update({"close_pos": "0.2", "confirm_time": p["bar_time_ms"] - 60000})
+        assert _run(s, rules, p).updates == []
+        row = s.query(AuditLog).filter_by(action="order_flow.skip").order_by(AuditLog.id.desc()).first()
+        assert (row.payload["code"], row.payload["layer"]) == ("OF_CASPER_PRICE_CONFIRMS", "CASPER")
+        assert row.payload["close_pos"] == "0.2"
+        cfg = rules.strategy.order_flow_cfg
+        cas = cfg.casper.model_copy(update={"condition": True, "price_confirms": False})
+        on = rules.model_copy(update={"strategy": rules.strategy.model_copy(
+            update={"order_flow_cfg": cfg.model_copy(update={"casper": cas})})})  # fmt: skip
+        p = _p(ms=MS + 2 * 3_600_000 + 60000)
+        p["order_flow"].update(
+            {"close_pos": "0.2", "open_vs_value": "BELOW_VAL", "confirm_time": p["bar_time_ms"] - 60000}
+        )
+        assert _run(s, on, p).updates == []
+        row = s.query(AuditLog).filter_by(action="order_flow.skip").order_by(AuditLog.id.desc()).first()
+        assert row.payload["code"] == "OF_CASPER_CONDITION"
+        # round-stop switch: stop 19999.75 sits 1 tick under the round 20000 → moved to 19999.50
+        cas = cfg.casper.model_copy(update={"round_stop": True})
+        rs = rules.model_copy(update={"strategy": rules.strategy.model_copy(
+            update={"order_flow_cfg": cfg.model_copy(update={"casper": cas})})})  # fmt: skip
+        p = _p(ms=MS + 2 * 3_600_000 + 120000)
+        p["order_flow"]["confirm_time"] = p["bar_time_ms"] - 60000
+        u = _run(s, rs, p).updates[0]
+        assert u.status == "PASS"
+        assert s.query(TradePlanRow).filter_by(signal_id=u.signal_id).one().stop == D("19999.50")
+
+
+def test_d108_casper_layer_list_in_api(authed):
+    d = authed.get("/api/orderflow").json()
+    keys = [x["key"] for x in d["ar"]["casper"]]
+    assert keys == ["PRICE_CONFIRMS", "STACKED", "CVD", "CONDITION", "BUNCHED", "ROUND_STOP"]
+    on = {x["key"]: x["on"] for x in d["ar"]["casper"]}
+    assert on["PRICE_CONFIRMS"] and on["STACKED"] and not on["CVD"] and not on["ROUND_STOP"]

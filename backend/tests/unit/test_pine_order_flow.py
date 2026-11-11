@@ -58,3 +58,13 @@ def test_d101_ar_model_layers_in_alert():
     assert (
         '"1800-0300", "America/New_York"' in SRC and "ta.atr(20)" in SRC and "lookahead = barmerge.lookahead_on" in SRC
     )
+
+
+def test_d108_casper_fields_in_alert():
+    """D108: the Casper refinement fields are sent with the names the webhook schema expects."""
+    from app.webhook.schemas import OrderFlowFields
+
+    for f in ("close_pos", "cvd_slope", "open_vs_value", "prior_va_width_atr"):
+        assert f'"{f}":' in SRC, f
+        assert f in OrderFlowFields.model_fields, f
+    assert '"0930-1600", "America/New_York"' in SRC and "f_vaMap(rthProf)" in SRC and "math.sum(delta, cvdBars)" in SRC

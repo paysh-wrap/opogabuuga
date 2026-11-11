@@ -63,7 +63,10 @@ def _profile(p: FP.Profile) -> dict[str, Any]:
     }
 
 
-AR_KEYS = ("env", "location_zone", "fib", "value_side", "path_zone", "path_side", "delta_source", "confirm_time")
+AR_KEYS = (
+    "env", "location_zone", "fib", "value_side", "path_zone", "path_side", "delta_source", "confirm_time",
+    "close_pos", "cvd_slope", "open_vs_value", "prior_va_width_atr",  # D108 Casper fields
+)  # fmt: skip
 SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/order_flow.py), by AR layer
     "OF_COMPRESSION": "Environment: compression / low participation — no trade",
     "OF_ENVIRONMENT": "Environment not allowed by the plan",
@@ -72,7 +75,33 @@ SKIP_LABELS = {  # D101 skip reason codes of the Order Flow strategy (engine/ord
     "OF_PATH_EXHAUSTED": "Path: move already beyond the Asia + ATR zone limit",
     "OF_NO_CONFIRM": "Confirmation: no (recent) confirmation candle",
     "OF_DELTA_ESTIMATED": "Confirmation: estimated delta only (real delta required)",
+    # D108 Casper 4h course refinements (TEACHER_RULES_4H.md), layer CASPER
+    "OF_CASPER_PRICE_CONFIRMS": "Casper: entry candle did not close away from the trapped side",
+    "OF_CASPER_STACKED": "Casper: stacked imbalance too short to count as aggression",
+    "OF_CASPER_CVD": "Casper: CVD does not confirm (the other side gets no return)",
+    "OF_CASPER_CONDITION": "Casper: against the open vs prior value-area lean",
+    "OF_CASPER_BUNCHED": "Casper: levels bunched (narrow prior value area) — no trade",
+    "OF_CASPER_ROUND_STOP": "Casper: stop moved off the round number no longer fits risk / R:R",
 }
+
+
+def casper_rules(c: Any) -> list[dict[str, Any]]:
+    """D108: the Casper 4h-course refinements as configured (strategy.order_flow_cfg.casper)."""
+    steps = ", ".join(f"{k} {v}" for k, v in c.round_step.items())
+    return [
+        {"key": "PRICE_CONFIRMS", "on": c.price_confirms,
+         "rule": f"entry candle closes away from the trapped side (≥ {c.close_pos_min} of its range)"},
+        {"key": "STACKED", "on": c.stacked_definition,
+         "rule": f"stacked imbalance needs ≥ {c.min_stacked} diagonal imbalances in a row"},
+        {"key": "CVD", "on": c.cvd_confirm, "rule": "CVD over the last bars moves in the trade direction"},
+        {"key": "CONDITION", "on": c.condition,
+         "rule": "no trade against the RTH open vs prior value lean"
+         f"{'' if c.inside_value_ok else '; open inside value = no trade'}"},
+        {"key": "BUNCHED", "on": c.bunched,
+         "rule": f"no trade when the prior value area < {c.min_va_width_atr} × daily ATR(20)"},
+        {"key": "ROUND_STOP", "on": c.round_stop,
+         "rule": f"stop {c.round_buffer_ticks} ticks beyond a nearby round number ({steps})"},
+    ]  # fmt: skip
 
 
 def ar_rules(rules: Any) -> dict[str, Any]:
@@ -108,6 +137,7 @@ def ar_rules(rules: Any) -> dict[str, Any]:
                 f"{' (real delta only)' if a.require_real_delta else ''}; stop beyond the absorption zone",
             },
         ],
+        "casper": casper_rules(r.order_flow_cfg.casper),  # D108: refinement layer list (each a switch)
     }
 
 

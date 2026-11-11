@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import OrderFlow from "./OrderFlow";
-import { fmtVol, footprintWindow, profileWidths, signed, snapSignals, type FlowBar, type OrderFlowData } from "../lib/orderflow";
+import { casperSummary, fmtVol, footprintWindow, profileWidths, signed, snapSignals, type FlowBar, type OrderFlowData } from "../lib/orderflow";
 
 vi.mock("lightweight-charts", () => {
   const series = { setData: vi.fn(), createPriceLine: vi.fn(), setMarkers: vi.fn(), priceScale: () => ({ applyOptions: vi.fn() }) };
@@ -28,7 +28,8 @@ const DATA: OrderFlowData = {
     ar: { env: "EXPANSION", location_zone: "F0788", fib: "0.79", value_side: "BELOW_VAL", path_zone: "AVR", path_side: "BELOW", delta_source: "real", confirm_time: 70_000 } }],
   ar: { enabled: false, paper_only: false, verified: false, layers: [
     { key: "ENVIRONMENT", on: true, rule: "trade only in EXPANSION / ROTATION" }, { key: "LOCATION", on: true, rule: "fib" },
-    { key: "PATH", on: false, rule: "Asia" }, { key: "CONFIRMATION", on: true, rule: "absorption" }] },
+    { key: "PATH", on: false, rule: "Asia" }, { key: "CONFIRMATION", on: true, rule: "absorption" }],
+    casper: [{ key: "PRICE_CONFIRMS", on: true, rule: "close away from the trapped side" }, { key: "CVD", on: false, rule: "CVD moves with the trade" }] },
   skips: [{ time_ms: 125_000, direction: "SHORT", code: "OF_COMPRESSION", layer: "ENVIRONMENT", label: "Environment: compression", detail: null,
     ar: { env: "COMPRESSION", location_zone: null, fib: null, value_side: null, path_zone: null, path_side: null, delta_source: "est", confirm_time: null } }],
 };
@@ -54,6 +55,11 @@ test("Order Flow page labels every panel ESTIMATED, shows summary, profile and a
   expect(screen.getByTestId("of-ar")).toHaveTextContent("OFF (plan file switch)");
   expect(screen.getByTestId("of-skips")).toHaveTextContent("▼ SHORT · ENVIRONMENT · OF_COMPRESSION");
   expect(screen.getByTestId("of-skips")).toHaveTextContent("COMPRESSION · — · — · delta est");
+  // D108: Casper refinements as an extra layer list
+  expect(screen.getByTestId("of-casper")).toHaveTextContent("Casper refinements (1 of 2 ON)");
+  expect(screen.getByTestId("of-casper")).toHaveTextContent("PRICE_CONFIRMS");
+  expect(screen.getByTestId("of-casper")).toHaveTextContent("OFF (plan file switch)");
+  expect(casperSummary(undefined)).toBe("none configured");
   expect(screen.getByTestId("of-footprint")).toBeInTheDocument();
   expect(document.title).toBe("Paytience · Order Flow");
 });

@@ -1015,3 +1015,16 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   times / watchdog / kill switch / risk untouched. Same change: the D92 split card is labelled "NOISE + AI Duo — 50/50
   risk split" and the per-strategy gates view shows it with both sides (NOISE side, AI Duo side, 50/50 budget
   SPLIT_BUDGET_EXCEEDED, Lucid rules); behaviour unchanged.
+- D108 (user 2026-11-11, "implement 1st transcript knowledge too"): the Casper / Jesse Rogers 4h order-flow course
+  (docs/results/session18/order_flow/TEACHER_RULES_4H.md) is added as REFINEMENTS of the AR Model Order Flow strategy
+  (D100: refine, never override). Plan file `strategy.order_flow_cfg.casper`, each rule its own switch, checked after the
+  AR layers (engine/order_flow.check_casper / casper_round_stop, layer CASPER): PRICE_CONFIRMS (entry candle closes away
+  from the trapped side, ≥ close_pos_min 0.5–0.9 of its range; ON — tightens) · STACKED (STACKED_IMBALANCE needs
+  ≥ min_stacked 3–6 imbalances in a row; ON — tightens) · CVD (sum of delta over the last N bars moves with the trade;
+  OFF) · CONDITION (no trade against RTH open vs PRIOR RTH value area 09:30–16:00 ET; OFF) · BUNCHED (no trade when the
+  prior value area < min_va_width_atr × daily ATR(20); OFF) · ROUND_STOP (stop 1–3 ticks beyond a nearby round number,
+  MNQ 50 / MGC 5, re-checked against max risk and R:R; OFF — it widens the stop). Codes OF_CASPER_<RULE>; an active rule
+  whose field the alert lacks skips (no silent pass). Pine sends close_pos, cvd_slope, open_vs_value,
+  prior_va_width_atr. Not implemented (not mechanical / no data): gamma, heat map / DOM, trailing behind balances
+  (AR trail stays), half-risk feeler trades, "one more attempt" day rule. Still UNVERIFIED, 1 micro, every safety gate
+  unchanged; the Order Flow page lists them as an extra layer.

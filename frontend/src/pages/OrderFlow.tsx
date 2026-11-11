@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { CandleDeltaChart, EstimatedBadge, FootprintGrid, VolumeProfile } from "../components/OrderFlowChart";
-import { arSummary, signed, snapSignals, type OrderFlowData } from "../lib/orderflow";
+import { arSummary, casperSummary, signed, snapSignals, type OrderFlowData } from "../lib/orderflow";
 
 const ZONE: Record<string, string> = { premium: "PREMIUM (above prior VAH)", discount: "DISCOUNT (below prior VAL)", value: "inside prior value", unknown: "no prior session" };
 
@@ -57,6 +57,21 @@ export default function OrderFlow() {
               </li>
             ))}
           </ol>
+          {(d.ar.casper ?? []).length > 0 && (
+            <div className="mt-3" data-testid="of-casper">
+              <h3 className="font-semibold text-gold">Extra layer · Casper refinements ({casperSummary(d.ar.casper)})</h3>
+              <p className="text-xs text-blue">From the Casper 4h course (D108). They refine the AR Model, never override it; skip codes OF_CASPER_&lt;RULE&gt;.</p>
+              <ul className="mt-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {(d.ar.casper ?? []).map((c) => (
+                  <li key={c.key} className="rounded border border-border p-2">
+                    <div className="text-xs text-blue">{c.key}</div>
+                    <div className="font-semibold text-gold">{c.on ? "ON" : "OFF (plan file switch)"}</div>
+                    <div className="text-xs text-blue">{c.rule}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <h3 className="mt-3 font-semibold text-gold">Refused alerts (skip reasons)</h3>
           {(d.skips ?? []).length === 0 ? <p className="text-xs text-blue">No Order Flow alert was refused this session.</p> : (
             <ul className="mt-1 text-xs" data-testid="of-skips">

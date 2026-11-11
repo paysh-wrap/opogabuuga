@@ -85,6 +85,11 @@ class OrderFlowFields(_M):
     absorption_low: Decimal | None = Field(default=None, gt=0)
     absorption_high: Decimal | None = Field(default=None, gt=0)
     stacked: int | None = Field(default=None, ge=0, le=100)
+    # D108 Casper refinements (optional; an active rule without its field skips OF_CASPER_<RULE>)
+    close_pos: Decimal | None = Field(default=None, ge=0, le=1)
+    cvd_slope: Decimal | None = None
+    open_vs_value: Literal["BELOW_VAL", "IN_VALUE", "ABOVE_VAH"] | None = None
+    prior_va_width_atr: Decimal | None = Field(default=None, ge=0, le=100)
 
 
 class WebhookPayload(_M):

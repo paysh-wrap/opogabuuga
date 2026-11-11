@@ -95,6 +95,19 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
       require_real_delta: false # true → delta_source "est" alerts skipped (OF_DELTA_ESTIMATED)
       trail_candle_min: 5       # trail behind the last closed 5m candle (pure helper; not wired yet, D101)
       be_after_r: 1.0           # break-even after 1R follow-through
+    casper:   # D108 Casper 4h course = REFINEMENTS of the AR Model (UNVERIFIED; each a switch; codes OF_CASPER_<RULE>)
+      price_confirms: true      # entry candle closes away from the trapped side (tightens the AR confirmation)
+      close_pos_min: 0.5        # validator 0.5–0.9 of the entry candle range on the trade side
+      stacked_definition: true  # STACKED_IMBALANCE needs ≥ min_stacked imbalances in a row (tightens)
+      min_stacked: 3            # validator 3–6
+      cvd_confirm: false        # new filter → OFF: CVD over the last bars must move with the trade
+      condition: false          # new filter → OFF: no trade against RTH open vs PRIOR RTH value lean
+      inside_value_ok: true
+      bunched: false            # new filter → OFF: skip when prior value area < min_va_width_atr × daily ATR(20)
+      min_va_width_atr: 0.25
+      round_stop: false         # widens the stop → OFF: stop round_buffer_ticks beyond a nearby round number
+      round_buffer_ticks: 2     # validator 1–3
+      round_step: {MNQ: 50, MGC: 5}
   size_table:   # D63/D64 REGULAR: automatic micros per account size + drawdown brake (research §21–23)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
