@@ -1,26 +1,30 @@
 """(lib copied from smc.py) Session 18 S.M.C study (MNQ, 1 micro, flat daily). Self-contained, no app imports; reuses the session-17 cached MNQ.v.0 1m csv
 and the session-17 Lucid Pro 25K eval simulator (noise_sharpen/sim.py). Closed bars only; entries at the next 1m open after a signal bar closes.
 Costs: $1 fee RT + 1 tick slippage on every fill (entry, stop, target, exit), stop-first inside a bar, gaps fill at the open."""
-import sys, json, random
+import sys, json, random, os
 import numpy as np, pandas as pd
 sys.path.insert(0, "/home/user/opogabuuga/docs/results/session17/noise_sharpen")
 import sim as S
-CSV = "/tmp/claude-0/-home-user-opogabuuga/91ade7f5-a723-5dc9-ba25-2d30265bd584/scratchpad/mnq_2019_2026.csv"
+SP = "/tmp/claude-0/-home-user-opogabuuga/91ade7f5-a723-5dc9-ba25-2d30265bd584/scratchpad/"
+MKT = os.environ.get("MKT", "MNQ")
 OUT = "/home/user/opogabuuga/docs/results/session18/rsi_dmi/out"
-PV, TICK, FEE, MAXPT, MINPT = 2.0, 0.25, 1.0, 124.0, 4.0
-SPLIT = "2023-12-31"
-
-df = pd.read_csv(CSV, parse_dates=["timestamp"]).set_index("timestamp")
+START, SPLIT, END = "2025-11-06", "2026-06-30", "2026-11-06"   # last ~12 months: pick 8 mo, judge 4 mo
+S.RANGES = dict(IS=(START, SPLIT), HO=("2026-07-01", END))
+if MKT == "MNQ":
+    PV, TICK, FEE, MAXPT, MINPT, SESS_LO = 2.0, 0.25, 1.0, 124.0, 4.0, 570
+    df = pd.read_csv(SP + "mnq_2019_2026.csv", parse_dates=["timestamp"]); df = df[df.timestamp >= "2025-09-01"].set_index("timestamp")
+else:   # MGC: 1 micro gold, tick 0.10 = $1.00 (10 oz), fee 1.60 RT (plan yaml), $250 cap = 25 pt, min stop 16 ticks; session 03:00-16:00 ET
+    PV, TICK, FEE, MAXPT, MINPT, SESS_LO = 10.0, 0.10, 1.60, 25.0, 1.6, 180
+    df = pd.concat([pd.read_csv(SP + f"split_raw/MGC_{y}.csv", usecols=["ts_event", "open", "high", "low", "close"]) for y in (2025, 2026)])
+    df["timestamp"] = pd.to_datetime(df.ts_event, utc=True); df = df[df.timestamp >= "2025-09-01"].drop(columns="ts_event").set_index("timestamp").sort_index()
 df.index = df.index.tz_convert("America/New_York").tz_localize(None)
-df = df[df.index >= "2019-05-01"]
 O, H, L, C = (df[c].values.astype(float) for c in ("open", "high", "low", "close"))
 TS = df.index.values
 MOD = (df.index.hour * 60 + df.index.minute).values
 DATE = df.index.strftime("%Y-%m-%d").values
 N = len(df)
-# last RTH bar (15:59) index of each bar's date
 rth_end = np.full(N, -1)
-isrth = (MOD >= 570) & (MOD < 960)
+isrth = (MOD >= SESS_LO) & (MOD < 960)
 last = {}
 for i in np.nonzero(isrth)[0]: last[DATE[i]] = i
 rth_end = np.array([last.get(d, -1) for d in DATE])

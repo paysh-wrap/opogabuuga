@@ -2,7 +2,7 @@
 import sys, json
 sys.path.insert(0, "/home/user/opogabuuga/docs/results/session18/rsi_dmi")
 from lib import *
-ENTRY_LO, ENTRY_HI = 575, 930
+ENTRY_LO, ENTRY_HI = SESS_LO + 5, 930
 BARS = {tf: bars(tf) for tf in (1, 5, 15)}
 ST15 = supertrend(BARS[15])[0]
 
@@ -56,7 +56,7 @@ def to_sigs(T, state, exitm, mrp=2):
     for j in range(1, n):
         s = int(state[j])
         if s == 0 or s == state[j - 1]: continue
-        if not (ENTRY_LO <= T.mc[j] <= ENTRY_HI): continue
+        if not (ENTRY_LO <= T.mc[j] <= ENTRY_HI) or T.bd[j] < START: continue
         i0 = T.nxt[j]
         if i0 >= N or DATE[i0] != T.bd[j]: continue
         dist = min(2 * T.atr[j], MAXPT)
@@ -85,7 +85,7 @@ def sigs_ST15(exitm):
     b = BARS[15]; d = ST15; nxt = b.nxt.values; mc = b.mod_close.values; bd = b.index.strftime("%Y-%m-%d").values
     line = supertrend(b)[1]; flips = np.nonzero(d[1:] != d[:-1])[0] + 1; out = []
     for j, f in enumerate(flips):
-        if not (ENTRY_LO <= mc[f] <= ENTRY_HI): continue
+        if not (ENTRY_LO <= mc[f] <= ENTRY_HI) or bd[f] < START: continue
         i0 = nxt[f]
         if i0 >= N or DATE[i0] != bd[f]: continue
         side = int(d[f]); dist = abs(O[i0] - line[f])
@@ -100,10 +100,10 @@ def row(fam, name, sigs):
     t = collect(sigs); streams[name] = t; FAM[name] = fam
     r = dict(fam=fam, IS=stats(t, "IS"), HO=stats(t, "HO"), rand_HO=randbench(sigs, seeds=10) if len(t) > 30 else None)
     res[name] = r; print(name, json.dumps(r), flush=True)
-    json.dump(res, open(OUT + "/results.json", "w"), indent=1)
+    json.dump(res, open(OUT + f"/results_{MKT}.json", "w"), indent=1)
 
 base = pd.read_csv("/home/user/opogabuuga/docs/results/session17/noise_sharpen/streams/BASE__lock_.csv")
-res["NOISE preset C"] = dict(fam="base", IS=stats(base, "IS"), HO=stats(base, "HO"))
+if MKT == "MNQ": res["NOISE preset C"] = dict(fam="base", IS=stats(base, "IS"), HO=stats(base, "HO"))
 THR = (10, 30, 40)
 # A Triple RSI alone
 for tf in (1, 5, 15):
@@ -140,5 +140,5 @@ for tf in (5, 15):
         row("Diii", f"D(iii) RSI+ST15 {tf}m exit={ex}", to_sigs(T, f_st, ex))
         row("Diii", f"D(iii) RSI+DMI15 {tf}m exit={ex}", to_sigs(T, f_dm, ex))
         row("Diii", f"D(iii) RSI+ST15+DMI15 {tf}m exit={ex}", to_sigs(T, f_both, ex))
-for k, t in streams.items(): t.to_csv(OUT + "/stream_" + k.replace(" ", "_").replace("=", "").replace("+", "p").replace(">", "g").replace("(", "").replace(")", "").replace(",", "") + ".csv.gz", index=False)
+for k, t in streams.items(): t.to_csv(OUT + f"/stream_{MKT}_" + k.replace(" ", "_").replace("=", "").replace("+", "p").replace(">", "g").replace("(", "").replace(")", "").replace(",", "") + ".csv.gz", index=False)
 print("done")
