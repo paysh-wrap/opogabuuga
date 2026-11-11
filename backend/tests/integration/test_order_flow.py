@@ -117,3 +117,116 @@ def test_order_flow_never_executes_on_a_non_paper_account(authed, clock):
         sid = sig.id
     res = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
     assert res[0].ok is False and res[0].reason == "PAPER_ONLY_STRATEGY", res
+
+
+# ---------- D96: MGC on for Order Flow ONLY (plan file strategy.order_flow_cfg.instruments) ----------
+
+
+def _mgc_rules(loaded_rules, instruments=("MNQ", "MGC"), **strategy):
+    r = _rules(loaded_rules, **strategy)
+    cfg = r.strategy.order_flow_cfg.model_copy(update={"instruments": list(instruments)})
+    return r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow_cfg": cfg})})
+
+
+def _pm(ms=MS, direction="LONG", entry="2650.0", defended="2648.0", stop="2647.9"):
+    p = _p(ms=ms, direction=direction, entry=entry, defended=defended, stop=stop)
+    p["order_flow"]["target"] = "2654.2"
+    return {**p, "id": f"MGC1!-TIGHT-{ms}-ORDER_FLOW-{direction}", "symbol": "MGC1!"}
+
+
+def _run_mgc(s, rules, p, at=AT):
+    return SS.run_order_flow(
+        s, rules=rules, clock=FixedClock(at), calendar=lambda _d: [], symbol="MGC",
+        payload=WebhookPayload.model_validate(p),
+    )  # fmt: skip
+
+
+def test_mgc_trades_for_order_flow_only_with_config_ticks(client, loaded_rules):
+    rules = _mgc_rules(loaded_rules)
+    assert rules.instruments["MGC"].enabled is False  # the global gold switch stays OFF
+    with client.app.state.sessionmaker() as s:
+        assert _run_mgc(s, _mgc_rules(loaded_rules, instruments=("MNQ",)), _pm()).updates == []  # not in the list
+        assert _run_mgc(s, _mgc_rules(loaded_rules, order_flow=False), _pm()).updates == []  # button off
+        u = _run_mgc(s, rules, _pm()).updates[0]
+        assert u.status == "PASS", u
+        sig = s.get(Signal, u.signal_id)
+        assert sig.symbol == "MGC" and sig.model_key.startswith("MGC-OF-2026-10-12-")
+        plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
+        # MGC tick 0.10 from the instrument config: stop 1 tick beyond 2648.0, 2R target
+        assert (plan.stop, plan.take_profit, plan.rr) == (D("2647.9"), D("2654.2"), 2)
+        # the market's own min_stop_ticks (MGC 16) tightens the order-flow floor (8): 11 ticks → skipped
+        assert _run_mgc(s, rules, _pm(ms=MS + 60000, defended="2649.0", stop=None)).updates == []
+        row = s.query(AuditLog).filter_by(action="order_flow.skip").order_by(AuditLog.id.desc()).first()
+        assert row.payload["code"] == "STOP_TOO_TIGHT"
+    # every other strategy keeps MGC off: the shared G1 gate without the Order Flow override refuses it
+    assert SS._gate(rules, "MGC", AT, lambda _d: [])[1] == "INSTRUMENT_DISABLED"
+    assert SS._gate(rules, "MGC", AT, lambda _d: [], enabled=True)[0] is True
+    assert rules.super_group_of("MGC") == "METALS"
+
+
+def test_mgc_hedge_lock_and_news(client, loaded_rules):
+    rules = _mgc_rules(loaded_rules)
+    with client.app.state.sessionmaker() as s:
+        plan = ("AI_DUO", D(2650), D(2655), D(2640), D(5), D(2))
+        SS._new_signal(
+            s, FixedClock(AT), symbol="MGC", key="MGC-DUO-2026-10-12", direction=Direction.SHORT, at=AT,
+            gate=(True, "OK", ""), features={}, plan=plan,
+        )  # fmt: skip
+        s.commit()
+        u = _run_mgc(s, rules, _pm()).updates[0]
+        assert (u.status, u.reason) == ("SKIP", "HEDGE_LOCK")
+        assert _run_mgc(s, rules, _pm(ms=MS + 60000)).updates[0].reason == "HEDGE_LOCK"
+        none = SS.run_order_flow(
+            s, rules=rules, clock=FixedClock(AT), calendar=lambda _d: None, symbol="MGC",
+            payload=WebhookPayload.model_validate(_pm(ms=MS + 120000, direction="SHORT", entry="2650.0",
+                                                      defended="2652.0", stop="2652.1")),
+        )  # fmt: skip
+        assert none.updates[0].reason == "CALENDAR_MISSING"
+
+
+def test_order_flow_flat_at_1600(client, loaded_rules):
+    rules = _mgc_rules(loaded_rules)
+    with client.app.state.sessionmaker() as s:
+        plan = ("ORDER_FLOW", D(2650), D("2647.9"), D("2654.2"), D("2.1"), D(2))
+        sig = SS._new_signal(
+            s, FixedClock(AT), symbol="MGC", key="MGC-OF-2026-10-12-1-LONG", direction=Direction.LONG, at=AT,
+            gate=(True, "OK", ""), features={}, plan=plan,
+        )  # fmt: skip
+        s.commit()
+        before = datetime(2026, 10, 12, 19, 59, tzinfo=UTC)  # 15:59 ET
+        flat = datetime(2026, 10, 12, 20, 0, tzinfo=UTC)  # 16:00 ET
+        assert SS.order_flow_exits(s, rules, FixedClock(before), "MGC", before).exits == []
+        assert (
+            SS.order_flow_exits(s, _mgc_rules(loaded_rules, instruments=("MNQ",)), FixedClock(flat), "MGC", flat).exits
+            == []
+        )
+        off = _mgc_rules(loaded_rules, order_flow=False)  # protective: still flattens with the button off
+        out = SS.run(s, rules=off, clock=FixedClock(flat), calendar=lambda _d: [], symbol="MGC", tf="1", at=flat)
+        assert out.exits == [(sig.id, "OF_FLAT_1600")]
+        s.refresh(sig)
+        assert sig.features["state"] == "CLOSED" and sig.features["exit_reason"] == "OF_FLAT_1600"
+        assert SS.order_flow_exits(s, rules, FixedClock(flat), "MGC", flat).exits == []  # once per signal
+
+
+def test_webhook_maps_mgc1_and_plan_files(client, clock):
+    clock.set(AT)
+    r = client.post("/api/webhook/tradingview", content=json.dumps(_pm()))
+    assert r.status_code == 200, r.text
+    from pathlib import Path
+
+    from app.config import load_rules
+
+    for p in sorted((Path(__file__).resolve().parents[3] / "config" / "rules").glob("lucid_*.yaml")):
+        lr = load_rules(p).rules
+        assert lr.instruments["MGC"].enabled is False, p.name  # MGC stays off for every other strategy (D55)
+        assert lr.strategy.order_flow is False and lr.strategy.order_flow_cfg.paper_only, p.name  # default OFF
+        want = ["MNQ"] if "daily" in p.name else ["MNQ", "MGC"]
+        assert lr.strategy.order_flow_cfg.instruments == want, p.name
+
+
+def test_strategies_card_lists_order_flow_markets(authed):
+    d = authed.get("/api/strategies").json()
+    of = next(x for x in d["strategies"] if x["key"] == "order_flow")
+    assert of["instruments"] == ["MNQ"] and of["paper_only"] is True and of["flat_at"] == "16:00"
+    assert "MNQ + MGC" in of["name"]
+    assert "instruments" not in next(x for x in d["strategies"] if x["key"] == "noise")

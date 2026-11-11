@@ -29,3 +29,7 @@ def test_brackets_and_quotes_balanced():
         ):
             stmt = ""
     assert stmt == ""
+
+
+def test_d96_markets_guard():
+    assert 'syminfo.root != "MNQ" and syminfo.root != "MGC"' in SRC and "MGC1!" in SRC

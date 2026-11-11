@@ -386,7 +386,7 @@ def run_order_flow(
     st = rules.strategy
     cfg = st.order_flow_cfg
     of = payload.order_flow
-    if not st.order_flow or symbol not in cfg.symbols or of is None or payload.direction not in ("LONG", "SHORT"):
+    if not st.order_flow or symbol not in cfg.instruments or of is None or payload.direction not in ("LONG", "SHORT"):
         return out
     at = datetime.fromtimestamp(payload.bar_time_ms / 1000, tz=ET)
     day = at.date().isoformat()
@@ -401,7 +401,7 @@ def run_order_flow(
         buffer_ticks=cfg.buffer_ticks,
         rr=cfg.rr,
         rr_min=cfg.rr_min,
-        min_risk_ticks=cfg.min_risk_ticks,
+        min_risk_ticks=max(cfg.min_risk_ticks, inst.min_stop_ticks or 0),  # D96: the market's own floor (MGC 16)
         max_risk_ticks=cfg.max_risk_ticks,
         alert_stop=of.stop,
     )
@@ -412,7 +412,8 @@ def run_order_flow(
         s.commit()
         return out
     today = _today_signals(s, symbol, "OF", day)
-    gate = _gate(rules, symbol, at, calendar)
+    # D96: the per-strategy instrument list decides (MGC may be on for Order Flow only; the global switch stays off)
+    gate = _gate(rules, symbol, at, calendar, enabled=symbol in cfg.instruments)
     if gate[0] and any(_holds_position(s, x) for x in today):
         gate = (False, "OF_POSITION_OPEN", "one order-flow position at a time")
     if gate[0] and sum(1 for x in today if x.status == "PASS") >= cfg.max_per_day:
@@ -439,6 +440,21 @@ def run_order_flow(
     )
     s.commit()
     out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
+def order_flow_exits(s: Session, rules: RulesConfig, clock: Clock, symbol: str, at: datetime) -> StrategyOutput:
+    """D96: from cfg.flat_at (16:00 ET) every OPEN order-flow position of `symbol` is flattened (protective; runs even
+    with the button off so a position opened before a switch-off still closes). Once per signal."""
+    out = StrategyOutput()
+    cfg = rules.strategy.order_flow_cfg
+    et = at.astimezone(ET)
+    if symbol not in cfg.instruments or et.hour * 60 + et.minute < _mod(cfg.flat_at):
+        return out
+    for x in _today_signals(s, symbol, "OF", et.date().isoformat()):
+        if x.features.get("state") == "OPEN" and "exit_requested" not in x.features:
+            _close(s, x, "OF_FLAT_1600", at, clock)
+            out.exits.append((x.id, "OF_FLAT_1600"))
     return out
 
 
@@ -902,5 +918,6 @@ def run(
         r = run_ai_duo(s, rules, clock, calendar, at, symbol, exits_only)
         out.updates += r.updates
         out.exits += r.exits
+    out.exits += order_flow_exits(s, rules, clock, symbol, at).exits
     s.commit()
     return out

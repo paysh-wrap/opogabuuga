@@ -535,6 +535,14 @@ def _presets(r: Any) -> dict[str, Any]:
     }
 
 
+def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
+    """D96: the Order Flow card lists the markets it trades (plan file strategy.order_flow_cfg.instruments)."""
+    if c["key"] != "order_flow":
+        return {}
+    cfg = r.strategy.order_flow_cfg
+    return {"instruments": list(cfg.instruments), "paper_only": cfg.paper_only, "flat_at": cfg.flat_at}
+
+
 @router.get("/strategies")
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
@@ -569,7 +577,13 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         on["lunqfx"] = False
     return {
         "strategies": [
-            {**c, "enabled": on[str(c["key"])], "setting": f"strategy.{c['key']}", **_lunq_shadow(c, mso_on)}
+            {
+                **c,
+                "enabled": on[str(c["key"])],
+                "setting": f"strategy.{c['key']}",
+                **_lunq_shadow(c, mso_on),
+                **_order_flow_markets(c, r),
+            }
             for c in CATALOG
         ],
         "noise_warmup": {

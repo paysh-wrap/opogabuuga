@@ -54,6 +54,7 @@ def test_skips(kw, code):
 def test_config_forces_paper_only_and_floor():
     assert OrderFlowCfg().paper_only and OrderFlowCfg().contracts == 1
     for bad in ({"paper_only": False}, {"contracts": 2}, {"rr_min": D("1.4")}, {"rr": D("1.5"), "rr_min": D("1.6")},
-                {"min_risk_ticks": 50, "max_risk_ticks": 10}):  # fmt: skip
+                {"min_risk_ticks": 50, "max_risk_ticks": 10}, {"instruments": []}, {"instruments": ["MNQ", "MNQ"]},
+                {"instruments": ["MES"]}, {"flat_at": "4pm"}):  # fmt: skip
         with pytest.raises(ValueError):
             OrderFlowCfg(**bad)

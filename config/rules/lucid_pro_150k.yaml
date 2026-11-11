@@ -81,6 +81,8 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
   noise: true
   open_drive: false
   pm_fade: true
+  order_flow: false   # D95: Order Flow button (UNVERIFIED, paper accounts only, default OFF)
+  order_flow_cfg: {instruments: [MNQ, MGC]}   # D96 (user 2026-11-11): MGC on for ORDER FLOW only; instruments.MGC.enabled stays false (every other strategy keeps MGC off). Data: Databento MGC.v.0 (volume roll), never MGC.c.0
   size_table:   # D63/D64 REGULAR: automatic micros per account size + drawdown brake (research §21–23)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}

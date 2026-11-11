@@ -4,7 +4,7 @@
 // accounts only. TradingView "volume delta" here is an approximation built from lower-timeframe bars (up-volume vs
 // down-volume of each intrabar), not true bid/ask aggressor data.
 //
-// Setup: MNQ1! chart, 1-minute. Add this indicator, paste the webhook secret, create an alert:
+// Setup: MNQ1! or MGC1! chart (D96: MGC for Order Flow only), 1-minute; one alert per chart. Add this indicator, paste the webhook secret, create an alert:
 // Condition "Paytience Order Flow" → "Any alert() function call", "Once per bar close", Webhook URL = your Paytience
 // URL (.../api/webhook/tradingview). The Paytience_Bridge heartbeat alert must stay on as well (feed + flat checks).
 //
@@ -33,6 +33,8 @@ showMarks = input.bool(true, "Show markers")
 
 if timeframe.period != "1"
     runtime.error("Paytience Order Flow needs a 1-minute chart")
+if syminfo.root != "MNQ" and syminfo.root != "MGC"
+    runtime.error("Paytience Order Flow trades MNQ1! or MGC1! only (D96)")
 
 // ---------- volume delta from lower-timeframe bars ----------
 array<float> lo_o = request.security_lower_tf(syminfo.tickerid, ltf, open)

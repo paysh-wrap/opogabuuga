@@ -10,6 +10,7 @@ export interface Strat {
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
   enabled: boolean; setting: string;
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
+  instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
 }
 export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;
@@ -102,9 +103,10 @@ export default function StrategyButtons() {
             {s.key === "order_flow" && (
               <div className="mt-2 text-xs" data-testid="order-flow-setup">
                 <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED · paper only</span>
+                <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only !== false && " · PAPER accounts only"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
                 <p className="mt-1 text-blue">Reads TradingView volume delta, cumulative delta and the session POC / value area; trades absorption, delta divergence, stacked imbalances, liquidity sweeps and POC re-entries with a stop 1 tick beyond the defended level and a 2R target. No backtest exists.</p>
                 <ol className="mt-1 list-decimal pl-4 text-blue">
-                  <li>TradingView: open a <b className="text-gold">1-minute MNQ1!</b> chart, add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
+                  <li>TradingView: open a <b className="text-gold">1-minute {(s.instruments ?? ["MNQ"]).map((x) => `${x}1!`).join(" / ")}</b> chart (one alert per chart), add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
                   <li>Paste the webhook secret (Connections page) into the indicator settings.</li>
                   <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
                   <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
@@ -170,7 +172,7 @@ export default function StrategyButtons() {
           </p>
         ))}
       </div>
-      {d.markets.MGC === false && <p className="mt-2 text-xs text-blue">MGC (gold) is off — every gold strategy failed the 2019–2026 test.</p>}
+      {d.markets.MGC === false && <p className="mt-2 text-xs text-blue">MGC (gold) is off — every gold strategy failed the 2019–2026 test{d.strategies.some((x) => x.key === "order_flow" && x.instruments?.includes("MGC")) && " (exception: Order Flow, paper only, D96)"}.</p>}
     </section>
   );
 }

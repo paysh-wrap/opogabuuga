@@ -317,7 +317,9 @@ class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
     alerts) — UNVERIFIED (no order-flow backtest: no tick data) → PAPER accounts only, always (validator)."""
 
-    symbols: list[str] = ["MNQ"]
+    # D96 (user 2026-11-11, override of D55 for Order Flow ONLY): the markets Order Flow may trade. MGC here is a
+    # per-strategy switch — the global instruments.MGC.enabled stays false, so every other strategy keeps MGC off.
+    instruments: list[Literal["MNQ", "MGC"]] = ["MNQ"]
     buffer_ticks: int = Field(default=1, ge=1, le=20)  # stop this many ticks beyond the defended level
     rr: D = D("2.0")  # target = 2R
     rr_min: D = D("1.5")  # firm floor (D49): config refuses lower
@@ -326,9 +328,14 @@ class OrderFlowCfg(_M):
     max_per_day: int = Field(default=3, ge=1, le=10)
     contracts: int = 1
     paper_only: bool = True
+    flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
 
     @model_validator(mode="after")
     def _check(self) -> OrderFlowCfg:
+        if not self.instruments or len(set(self.instruments)) != len(self.instruments):
+            raise ValueError("order_flow: instruments needs MNQ and/or MGC, no duplicates")
+        if not re.fullmatch(r"([01]\d|2[0-3]):[0-5]\d", self.flat_at):
+            raise ValueError("order_flow: flat_at is HH:MM")
         if self.rr_min < D("1.5") or self.rr < self.rr_min:
             raise ValueError("order_flow: rr_min ≥ 1.5 and rr ≥ rr_min")
         if self.min_risk_ticks > self.max_risk_ticks:
@@ -1046,6 +1053,9 @@ class RulesConfig(_M):
                 raise ValueError(f"instrument {sym}: unknown super_group {inst.super_group}")
             if inst.group not in self.correlation_groups or sym not in self.correlation_groups[inst.group]:
                 raise ValueError(f"instrument {sym}: not a member of correlation group {inst.group}")
+        missing = [x for x in self.strategy.order_flow_cfg.instruments if x not in self.instruments]
+        if missing:  # D96: tick size / value / fees always come from the instrument config, never from code
+            raise ValueError(f"strategy.order_flow_cfg.instruments: no instrument config for {missing}")
         o = self.one_to_one_mode
         if o.rr != D(1):
             raise ValueError("one_to_one_mode.rr must be exactly 1")

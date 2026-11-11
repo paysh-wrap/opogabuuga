@@ -870,3 +870,22 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   non-paper account (PAPER_ONLY_STRATEGY, tested). DLL, consistency, household hedge lock, news/flat times unchanged.
 - Settings key `strategy.order_flow` (My Settings, versioned). Known gaps: the Pine script has static tests only (no
   Pine compiler here) — compile it once in TradingView; no performance evidence of any kind.
+
+## D96 (user 2026-11-11, session 18): MGC (micro gold) back ON for the ORDER FLOW strategy only — user override of D55
+- User instruction: turn MGC back on for Order Flow only. **Override of D55 ("MGC disabled in every Pro/Flex plan") for
+  Order Flow ONLY.** The global switch `instruments.MGC.enabled` stays **false** in every plan, so NOISE, PM fade,
+  Opening-drive, AI-only, LunqFX and manual orders keep MGC off exactly as before (AI Duo keeps its own D83 markets list).
+- Per-strategy switch: plan file `strategy.order_flow_cfg.instruments` (validated: MNQ and/or MGC, no duplicates, each
+  must exist under `instruments:`). Pro/Flex plans: `[MNQ, MGC]`; legacy Daily file unchanged (`[MNQ]`, code default).
+  `run_order_flow` passes `enabled = symbol in instruments` to the shared G1 gate (window / calendar / news unchanged).
+- Unchanged: default OFF, UNVERIFIED (no order-flow backtest of any kind, MNQ or MGC), PAPER accounts only
+  (PAPER_ONLY_STRATEGY), 1 micro fixed, rr ≥ 1.5 (2R target), DLL / consistency / fixed_contracts worst-case checks,
+  household hedge lock (MGC = METALS super-group, separate from EQUITY_INDEX) + the signal-level lock vs AI Duo MGC.
+  Tick size / tick value / fee come from the MGC instrument config (0.10 / $1.00 / $1.60 VERIFY); the market's own
+  `min_stop_ticks` (MGC 16) now tightens the order-flow risk floor (max of the two — tighten-only).
+- New: `order_flow_cfg.flat_at` "16:00" — every open order-flow position is flattened at 16:00 ET (reason OF_FLAT_1600,
+  runs even with the button off; the global 16:40 / 16:44 flats still apply).
+- Pine: `pine/Paytience_OrderFlow.pine` runs on MNQ1! or MGC1! only (runtime.error otherwise); `MGC1!` maps to MGC.
+  Any future MGC research must use Databento `MGC.v.0` (volume roll), never `MGC.c.0`.
+- UI: the Order Flow card shows "Trades: MNQ + MGC · PAPER accounts only · flat 16:00 ET · 1 micro" (from the plan).
+- Known gaps: no backtest; Pine still not compiled here (static tests only); MGC order-flow alerts untested live.
