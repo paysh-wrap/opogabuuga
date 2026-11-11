@@ -167,6 +167,7 @@ def sigs_B(tf, stf=15, extra=None, W=6):
 ET_T = df.index.values.astype("datetime64[m]").astype("int64")
 DAYN = ET_T // 1440
 WINS = dict(AM=(10 * 60, 11 * 60), PM=(14 * 60, 15 * 60))
+FLATCAP = True   # False = original new_ict behaviour (time exit may run to the 16:00 bar close)
 ICT_MINR = 6.0 if MKT == "MNQ" else 1.6
 _h_ = pd.Series(H); _l_ = pd.Series(L)
 _pc = np.r_[C[0], C[:-1]]
@@ -283,7 +284,7 @@ def ict_sim(cands, tgt, hold=60, expire=30, maxrisk=250.0, buf=1):
         if R < ICT_MINR or R * PV + FEE + 2 * TICK * PV > maxrisk: continue
         tp = round((E + dr * tgt * R) / TICK) * TICK
         tend = min(int(np.searchsorted(ET_T, cd["day"] * 1440 + WINS[cd["win"]][1] + hold, side="left")), N - 1)
-        tend = min(tend, int(np.searchsorted(ET_T, cd["day"] * 1440 + 960, side="left")) - 1)   # flat 15:59 (orig. ran to the 16:00 bar close)
+        if FLATCAP: tend = min(tend, int(np.searchsorted(ET_T, cd["day"] * 1440 + 960, side="left")) - 1)   # flat 15:59 (orig. ran to the 16:00 bar close)
         f = -1
         for b in range(k + 1, min(k + 1 + expire, tend)):
             if (dr == -1 and H[b] >= stop) or (dr == 1 and L[b] <= stop): break

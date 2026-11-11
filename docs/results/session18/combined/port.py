@@ -117,12 +117,12 @@ def day_table(t, era):
     return [by.get(d, []) for d in days]
 
 
-def eval_run(tab, A, horizon=120):
+def eval_run(tab, A, horizon=120, strict=True):
     B0, TGT, MLL = A["start"], A["tgt"], A["mll"]
     bal = peak = B0; floor = B0 - MLL
     for n, trades in enumerate(tab[:horizon]):
         for pnl, mae in trades:
-            if bal - max(mae, -pnl, 0.0) <= floor: return "BUST", n + 1
+            if strict and bal - max(mae, -pnl, 0.0) <= floor: return "BUST", n + 1
             bal += pnl
             if bal <= floor: return "BUST", n + 1
         peak = max(peak, bal)
@@ -136,17 +136,17 @@ def _sum(res):
     return dict(n=n, pas=100 * len(ps) / n, bust=100 * sum(o == "BUST" for o, _ in res) / n, med=float(np.median(ps)) if ps else np.nan)
 
 
-def eval_roll(t, A, era, step=2, horizon=120):
+def eval_roll(t, A, era, step=2, horizon=120, strict=True):
     tab = day_table(t, era); n = len(tab)
-    res = [eval_run(tab[s0:], A, horizon) for s0 in range(0, max(1, n - 40), step)]
+    res = [eval_run(tab[s0:], A, horizon, strict) for s0 in range(0, max(1, n - 40), step)]
     return _sum(res)
 
 
-def eval_boot(t, A, era, n_paths=600, cap=500, block=10, seed=7):
+def eval_boot(t, A, era, n_paths=600, cap=500, block=10, seed=7, strict=True):
     tab = day_table(t, era); rnd = random.Random(seed); out = []
     for _ in range(n_paths):
         p = []
         while len(p) < cap:
             i = rnd.randrange(len(tab)); p.extend(tab[i:i + block])
-        out.append(eval_run(p[:cap], A, cap))
+        out.append(eval_run(p[:cap], A, cap, strict))
     return _sum(out)
