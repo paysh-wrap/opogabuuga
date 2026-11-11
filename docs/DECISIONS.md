@@ -808,3 +808,28 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - Per side (NOISE, AI_DUO): contracts = half, rounded DOWN, minimum 1 micro (`split_contracts`, applied after every other size rule incl. tables, brakes, AI sizing, Fast Eval and the 150K Duo size), and a per-side daily loss budget = half of the account DLL (`split_budget`): realised loss today of THAT strategy (from its plan rows, `state.strategy_day_pnl`; profits never add room) + the risk still open on its positions + the new trade's worst case + the DLL safety margin must fit it, else `SPLIT_BUDGET_EXCEEDED` (new `TradeLimits.side_budget_left`, check "split_budget" in `pretrade`). Tighten-only: every other check (DLL/MLL, kill distance, consistency, day stops, max positions, news, flat) still runs; each use is audited (`trade.split_risk`).
 - AI Duo stays PAPER only: `ai_duo_cfg.paper_only` is still `Literal[True]` and the controller refuses AI_DUO on any non-simulator account (`PAPER_ONLY_STRATEGY`) with the split on (tested). Hedge lock unchanged (tested: NOISE long open -> Duo short = HEDGE_LOCK).
 - Assumptions (VERIFY with the user): the split is applied to NOISE on every account, also non-paper ones where AI Duo cannot trade (NOISE then simply runs at half size / half DLL budget: conservative); an account without a DLL gets the half size but no budget check; the budget is half of the account's own DLL limit (not of today's remaining DLL). Not measured: the AI half cannot be back-tested, so the card shows no win/pass numbers.
+## D93 (user-approved 2026-11-11, session 17): "Mission control" UI look + mandatory-connection highlight and checklist
+- Look: docs/results/session17/ui_concepts/mission.html applied app-wide by one stylesheet loaded after index.css
+  (frontend/src/mission.css, scoped by the `.mission` class on Layout): mono uppercase gold page labels rendered as
+  "PAYTIENCE · <PAGE>", every card a rounded mission tile, pill nav, wider canvas (1500 px), phone bottom dock
+  (components/MobileDock.tsx; the full scrolling nav stays). Dashboard hero = components/MissionBento.tsx (cushion gauge
+  and day P&L vs DLL for the account closest to its drawdown limit, safety tile linking to Automation, today, balance)
+  from /api/dashboard only. Strategy and all other pages get the look through the shared CSS (no page rewrites).
+- §18 kept: the concept's grey "muted" text became blueLight; red/green only as the small status dots; P&L keeps ▲/▼ and
+  sign. New theme.ts tokens: `mandatory` (#FFC93C, gold family, AA on every surface, tested) and `mission.*` surfaces
+  (backgrounds only). No web fonts are downloaded (offline desktop/WebView): font stacks fall back to system fonts.
+- Mandatory to trade an EVAL or LIVE account (standout `mandatory` colour + "MANDATORY · EVAL/LIVE" tag on the
+  Connections cards; lib/mandatory.ts): broker order route (CrossTrade or Tradovate — Lucid has no API, §1.3), TradingView
+  webhook heartbeat (only live signal source, §1.1), webhook secret, public HTTPS URL (ngrok, or own tunnel / Cloudflare
+  fallback), economic calendar (§15 "no calendar = no trading"), external-positions attestation (§1.11), clock sync
+  (pre-flight < 2 s) and the last pre-flight result (server refuses SEMI/FULL without it). Optional, normal colour:
+  Discord/notifications, AI keys (TradingAgents, Vibe-Trading, Alpha Vantage, FRED), Trading-R1, Databento/OpenBB/Fincept,
+  Lucid link, GitHub updates.
+- "Mandatory connection checklist" (components/MandatoryChecklist.tsx) on Dashboard and Connections, from
+  /api/connections, /api/webhook/status and /api/today/plan (last pre-flight, never triggers one). Anything the API does
+  not report is "unknown" with the reason. "Ready to trade EVAL/LIVE": NO if any item is missing; NOT CONFIRMED if
+  nothing is missing but something is unknown; YES only if all are OK.
+- Known gaps (for the user): the server's pre-flight feeds clock_drift_s = 0.0 (not measured), so clock sync always
+  shows "unknown" and the line cannot reach YES until drift is measured; pre-flight still requires a daily bias, so in
+  practice TradingAgents (classified optional per the user) can still block SEMI/FULL via the pre-flight row; Tradovate
+  credentials cannot be tested here (shown "unknown" when only Tradovate is saved).

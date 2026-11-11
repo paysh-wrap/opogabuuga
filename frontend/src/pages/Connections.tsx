@@ -7,6 +7,8 @@ import { usePageTitle } from "../components/usePageTitle";
 import TradingViewSetup from "../components/TradingViewSetup";
 import TestAlert from "../components/TestAlert";
 import { etDateTime } from "../lib/time";
+import { isMandatoryConnection } from "../lib/mandatory";
+import MandatoryChecklist from "../components/MandatoryChecklist";
 
 const GROUPS: [string, string][] = [
   ["signals", "Signals"],
@@ -57,6 +59,7 @@ function ConnectionCard({ c }: { c: Connection }) {
   });
 
   const connected = c.status === "connected";
+  const mandatory = isMandatoryConnection(c.id);
   const selectedLlm = values.llm_provider || c.hints.llm_provider;
   const llmKeyUrl = selectedLlm ? c.llm_key_urls?.[selectedLlm] : undefined;
   const busy = save.isPending || retest.isPending || remove.isPending;
@@ -67,10 +70,12 @@ function ConnectionCard({ c }: { c: Connection }) {
   }
 
   return (
-    <article data-testid={`conn-${c.id}`} data-status={c.status}
-      className={`rounded-xl border bg-card p-4 transition-all duration-300 hover:border-blue/60 ${connected ? "border-gold shadow-[0_0_0_1px_#D4AF37,0_0_24px_-8px_#D4AF37]" : "border-border"}`}>
+    <article data-testid={`conn-${c.id}`} data-status={c.status} data-mandatory={mandatory ? "true" : undefined}
+      className={`rounded-xl border bg-card p-4 transition-all duration-300 hover:border-blue/60 ${connected ? "border-gold shadow-[0_0_0_1px_#D4AF37,0_0_24px_-8px_#D4AF37]" : "border-border"}${mandatory ? " mandatory-card" : ""}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
-        <h3 className="font-semibold text-gold">{c.name}{c.required && <span className="ml-2 text-xs text-goldLight">required</span>}</h3>
+        <h3 className={`font-semibold ${mandatory ? "text-mandatory" : "text-gold"}`}>{c.name}
+          {mandatory ? <span data-testid="mandatory-tag" className="mandatory-tag ml-2">MANDATORY · EVAL/LIVE</span>
+            : c.required && <span className="ml-2 text-xs text-goldLight">required</span>}</h3>
         <StatusBadge status={c.status} />
       </div>
       <p className="mt-1 text-sm">{c.purpose}</p>
@@ -232,7 +237,7 @@ export default function Connections() {
         </div>
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
           {required.map((r) => (
-            <span key={r.id} className="flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+            <span key={r.id} className={`flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2${isMandatoryConnection(r.id) ? " mandatory-chip text-mandatory" : ""}`}>
               {r.name.split(" (")[0]!.split(" —")[0]} <StatusBadge status={r.status} />
             </span>
           ))}
@@ -243,6 +248,8 @@ export default function Connections() {
           </p>
         )}
       </section>
+
+      <MandatoryChecklist />
 
       {ti?.mode === "cloudflare" && (
         <p role="alert" data-testid="tunnel-banner" className="rounded-lg border border-gold bg-card p-3 text-sm text-goldLight">

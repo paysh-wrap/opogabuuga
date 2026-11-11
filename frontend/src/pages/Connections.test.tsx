@@ -106,3 +106,20 @@ test("ngrok failed: Cloudflare fallback banner is shown", async () => {
   expect(await screen.findByTestId("tunnel-banner")).toHaveTextContent("temporary Cloudflare link");
   expect(screen.queryByTestId("permanent-note")).toBeNull();
 });
+
+test("D93: only mandatory EVAL/LIVE connections get the standout tag; optional ones keep the normal colour", async () => {
+  const p = payload("not_set");
+  p.connections = [
+    { ...base, id: "crosstrade", name: "CrossTrade (Tradovate orders + positions)", category: "broker", status: "not_set" },
+    { ...base, id: "discord", name: "Discord (notifications)", category: "notifications", status: "connected" },
+  ];
+  setup([p]);
+  const ct = await screen.findByTestId("conn-crosstrade");
+  expect(ct).toHaveAttribute("data-mandatory", "true");
+  expect(ct.className).toContain("mandatory-card");
+  expect(within(ct).getByTestId("mandatory-tag")).toHaveTextContent("MANDATORY");
+  const dc = screen.getByTestId("conn-discord");
+  expect(dc).not.toHaveAttribute("data-mandatory");
+  expect(within(dc).queryByTestId("mandatory-tag")).toBeNull();
+  expect(screen.getByTestId("mandatory-checklist")).toBeInTheDocument();
+});

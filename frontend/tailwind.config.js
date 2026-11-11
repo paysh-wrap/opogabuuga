@@ -11,6 +11,7 @@ export default {
         bg: "#0A1020",
         card: "#111A33",
         border: "#1E2A4A",
+        mandatory: "#FFC93C",
       },
     },
   },
