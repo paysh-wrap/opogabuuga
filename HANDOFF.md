@@ -441,3 +441,12 @@ D94 Trading-R1 info-only card DONE (967a2cf, fake-runner tests only; real venv+k
 Done: D94 Trading-R1 card, updater fix (aac4215: force-kill stuck old app after 15 s, hidden console, TerminateProcess), D95 Order Flow button (UNVERIFIED, paper only, default OFF; Pine + engine/order_flow.py).
 Studies (docs/results/session18/): new_ict (no edge), smc (SuperTrend/FVG/combined lose after costs), order_flow (Databento LOCKED; 1-yr estimated-bar study of generic signals + teacher CZT: no edge on judge window; real tick data needed to test properly), TEACHER_RULES_4H.md (rules distilled from the user's pasted transcript).
 OPEN: Databento account locked (user must unlock) -> rerun order flow on real trades data; Triple RSI / DMI / SuperTrend-15m vote study (Sonnet) not run; Order Flow button stays shadow/paper; Pine script not compiled in TradingView; gamma data unavailable.
+
+## Session 18 final (2026-11-11) — last UI/strategy update
+Built + pushed (1080 backend / 100 frontend tests, 100% cov, lint+typecheck green at d5171e7): D96 MGC for Order Flow only; D97 never serve a stale
+Paytience (port guard, build identity banner, no-store index, verified updates); update-button restart notice + auto-reload; D98 Order Flow chart
+page (footprint/delta/CVD/profile, ESTIMATED from bars); D99 only mandatory connections block live start, measured clock sync, rule matrix
+(found + fixed Order Flow sizing KeyError). Final desktop build triggered.
+Results: docs/results/session18/FINAL_RESULTS.md — no new strategy beats NOISE; Order Flow stays paper-only/default OFF until tested on real tick data.
+Untested: Windows behaviour of port guard/.bat (try: start Paytience twice, then update), canvas chart rendering, Pine compile in TradingView.
+OPEN: Databento account locked; AR-Model + 83-min order-flow transcripts not provided.
