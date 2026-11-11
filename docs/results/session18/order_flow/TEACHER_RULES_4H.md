@@ -40,3 +40,42 @@ extremes where aggressors got absorbed.
 - Exit when control shifts: exhaustion (CVD flat, volume dying), opposing aggression getting a return, accepted back through the balance.
 - Low-conviction/choppy days: ~half risk, one attempt; be wider in positive gamma; if a first idea fails, re-read the market (condition may have flipped).
 - Entries early in RTH (first minutes after 09:30) want fast follow-through; if not, expect chop.
+
+---
+## Addendum (full transcript re-pasted 2026-11-11): order-flow-only timestamp index + worked examples
+Only order-flow/strategy content is used; intro/sales/psychology/comments/recommendations are ignored.
+
+| Time | Topic (order flow only) |
+|---|---|
+| 2:10-13:30 | Auction market theory: balance/shift/imbalance, acceptance vs rejection, premium/discount |
+| 14:00-20:40 | Order book: passive (limit) vs aggressive (market); absorption defined |
+| 20:47-25:00 | Return on effort: aggression / absorption / exhaustion defined |
+| 31:00-36:30 | Delta, CVD, footprint, heat map, big trades |
+| 36:46-45:00 | Aggression patterns (price confirms effort; trail stops under aggressor zones) |
+| 45:00-56:48 | Absorption patterns (big effort, close away from it; CVD falls but price flat) |
+| 56:48-1:05:00 | Exhaustion (aggression into zone dies: volume drops, CVD flattens, wicks) |
+| 1:05:00-1:41:48 | Volume profile: RTH 09:30-16:00, VAH/VAL/POC (70%), HVN/LVN, D/P/B/thin profiles, value up/down, open vs prior value |
+| 1:42-2:19 | Gamma (needs options data - not available; stats listed in the first section) |
+| 2:19:18-2:35 | CZT process: condition -> zone -> trigger; no-trade rules; band extreme |
+| 2:35-2:40 | Trade management: trail behind each new balance; who is in control |
+| 2:40-4:20 | Live examples (below) |
+
+### Worked examples (all use the same logic)
+1. **Positive-gamma fade**: value trending down, open conflicting; pre-market tapped an LVN; at a round number (29,400) buyers
+   aggressive with no return, passive sellers absorbing, CVD tops -> short after sellers get a return; stop just above the round number;
+   low risk (~half), at most one more attempt after a loss; first idea failed (stopped), second (same logic) won after trailing.
+2. **Negative-gamma value-down trend day**: open below prior value AND weekly value, inside an LVN; huge aggressive selling with
+   rising volume (opposite of exhaustion); short on the opening drive; stop moved up after every balance/pivot, to entry once
+   price stalled, tighter near round numbers (29,000); exit on rebound/loss of control. ~$10k in ~15 min.
+3. **Gap-and-go long**: open above prior VAH (bullish condition); first minutes sellers hit into passive buyers at VAH and are absorbed
+   (zone = prior VAH, trigger = absorption + buyers get a return); stop under the absorbed low; trail up under each new balance and under
+   aggressor zones; aggressive trail at round number 28,000.
+4. **Plan fails**: bullish lean (open above value) but price blasts through every level with heavy aggression and no passive buyers ->
+   drop bias, short the retrace into the broken balance after sellers keep getting a return; stop above where recent aggressors sat
+   (+ticks), to entry quickly, trail above round number; out when volume/CVD momentum dies. "If you're wrong there is often a better trade."
+
+### Implementable rules for our bar-only tests (what was already tested in of1y/czt1y)
+open vs prior-RTH value area (VAH/VAL/POC from 1m volume), premium/discount, zone = prior VAH/VAL/POC + round numbers (100/50 pts) +
+LVN, trigger = estimated absorption/exhaustion/aggression-with-acceptance, stop beyond zone (+2-3 ticks), trail behind balances, no
+trade when levels bunched / at the day band extreme. Result so far: no edge on the estimated-bar proxy (see RESULTS.md); real footprint
+data needed.
