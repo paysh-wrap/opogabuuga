@@ -34,7 +34,7 @@
 indicator("Paytience Order Flow", overlay = true, max_labels_count = 200, max_bars_back = 1000)
 
 secret    = input.string("", "Webhook secret")
-useFp     = input.bool(true, "Use real footprint (request.footprint) when available")
+useFp     = input.bool(false, "Use real footprint (request.footprint) — needs a plan with footprint + seconds timeframes (Premium/Ultimate); leave OFF otherwise")
 ltf       = input.timeframe("1", "Fallback: lower timeframe for estimated delta (use 1 = minutes; seconds like 5S need a TradingView Plus plan)")
 rowTicks  = input.int(4, "Footprint / profile row size (ticks)", minval = 1)
 imbPct    = input.int(400, "Imbalance % (diagonal)", minval = 100)
