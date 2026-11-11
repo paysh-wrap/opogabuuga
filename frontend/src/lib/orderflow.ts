@@ -1,4 +1,5 @@
 // D98 Order Flow chart — data types + pure helpers (tested). Colours: blue/gold only (§18).
+import type { Connection } from "./api";
 
 export type FlowSource = "estimated" | "tick";
 export interface FlowLevel { p: string; bid: string; ask: string }
@@ -21,7 +22,19 @@ export interface OrderFlowData {
   symbol: string; symbols: string[]; source: FlowSource; estimated: boolean; note: string; method: string;
   tick: string; row_size: string; sessions: string[]; session: string | null;
   bars: FlowBar[]; profile: FlowProfile | null; prior: (FlowProfile & { session: string }) | null;
-  round_levels: string[]; signals: FlowSignal[]; ar?: ArRules; skips?: FlowSkip[];
+  round_levels: string[]; signals: FlowSignal[]; ar?: ArRules; skips?: FlowSkip[]; ta_advisor?: TaAdvisor;
+}
+
+/** D109: TradingAgents advisor for Order Flow — advisory only (blocks only with the plan flag + a proven ledger). */
+export interface TaAdvice { code: string; symbol: string; proxy: string; side: "LONG" | "SHORT" | "NEUTRAL" | null; raw: string | null; confidence: number | null; at: string }
+export interface TaAdvisor { enabled: boolean; setting: string; blocks: boolean; at: string; advisory: boolean; session: string; advice: TaAdvice | null }
+
+/** Public webhook base from the Connections list (same rule as the Connections page): permanent ngrok first. */
+export function publicBaseOf(connections: Connection[]): string | undefined {
+  const tunnel = connections.find((c) => c.id === "tunnel");
+  const ti = connections.find((c) => c.id === "ngrok")?.tunnel;
+  const permanent = ti?.mode === "ngrok" ? ti.public_url : undefined;
+  return permanent ?? (tunnel?.status === "connected" ? tunnel.hints.public_url : undefined) ?? (ti?.mode === "cloudflare" ? ti.public_url : undefined);
 }
 
 /** One-line text of an alert's AR layers (env · location · path · delta source); "—" for a missing value. */

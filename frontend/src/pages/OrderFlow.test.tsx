@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import OrderFlow from "./OrderFlow";
@@ -81,4 +81,31 @@ test("pure helpers", () => {
   expect(profileWidths(null)).toEqual([]);
   expect([fmtVol("2500"), fmtVol("12.5"), fmtVol("2.5"), fmtVol("4")]).toEqual(["2.5k", "13", "2.5", "4"]);
   expect([signed("0"), signed("-3"), signed("4")]).toEqual(["0", "▼ −3", "▲ +4"]);
+});
+
+test("D109: TradingAgents advisor panel + TradingView indicator guide (webhook URL, no secret)", async () => {
+  const conns = { connections: [{ id: "ngrok", status: "connected", hints: {}, tunnel: { mode: "ngrok", public_url: "https://me.ngrok.app", permanent: true, error: "" } }], indicators: [], summary: { connected: 1, total: 1, required_ready: true }, master_key_set: true };
+  const ta = { enabled: true, setting: "strategy.order_flow_cfg.ta_advisor", blocks: false, at: "02:00", advisory: true, session: "2026-11-05",
+    advice: { code: "OF_TA_ADVICE", symbol: "MNQ", proxy: "QQQ", side: "SHORT", raw: "SELL", confidence: 55, at: "2026-11-05T07:00:00+00:00" } };
+  const calls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+    const u = String(input);
+    calls.push(`${init?.method ?? "GET"} ${u}`);
+    if (u.startsWith("/api/connections")) return new Response(JSON.stringify(conns));
+    if (u.startsWith("/api/webhook/status")) return new Response(JSON.stringify({ path: "/api/webhook/tradingview", secret_set: true, feeds: [], accepted: {}, rejected: {} }));
+    if (u.startsWith("/api/risk/settings")) return new Response(JSON.stringify({ ok: true }));
+    return new Response(JSON.stringify({ ...DATA, ta_advisor: ta }));
+  });
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
+  render(<QueryClientProvider client={new QueryClient()}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><OrderFlow /></MemoryRouter></QueryClientProvider>);
+  expect(await screen.findByTestId("of-ta-advice")).toHaveTextContent("▼ SHORT · confidence 55%");
+  expect(screen.getByTestId("of-ta-advisor")).toHaveTextContent("advisory");
+  expect(screen.getByTestId("of-ta-advisor")).toHaveTextContent("02:00 ET");
+  expect(await screen.findByText("https://me.ngrok.app/api/webhook/tradingview")).toBeInTheDocument();
+  const g = screen.getByTestId("of-guide");
+  for (const t of ["Pine Editor", "Add to chart", "MNQ1!", "Premium or Ultimate", "delta_source=est", "CME real-time data", "Any alert() function call", "{{alert message}}", "Open-ended", "per symbol"]) expect(g).toHaveTextContent(t);
+  expect(g).toHaveTextContent("shown only on the Connections page");
+  expect(screen.getByTestId("of-download")).toHaveAttribute("href", "/api/pine/orderflow");
+  fireEvent.click(screen.getByTestId("of-ta-toggle"));
+  await vi.waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings"))).toBe(true));
 });

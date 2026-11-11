@@ -5,6 +5,7 @@ import { api, ApiError, type Connection, type ConnectionsResponse, type Indicato
 import StatusBadge from "../components/StatusBadge";
 import { usePageTitle } from "../components/usePageTitle";
 import TradingViewSetup from "../components/TradingViewSetup";
+import { publicBaseOf } from "../lib/orderflow";
 import TestAlert from "../components/TestAlert";
 import { etDateTime } from "../lib/time";
 import { isMandatoryConnection } from "../lib/mandatory";
@@ -212,11 +213,10 @@ export default function Connections() {
   if (q.isLoading) return <p role="status">Loading connections…</p>;
   if (q.error || !q.data) return <p role="alert">Could not load connections: {String(q.error?.message ?? "unknown")}</p>;
   const { connections, indicators, summary, master_key_set } = q.data;
-  const tunnel = connections.find((c) => c.id === "tunnel");
   const ngrok = connections.find((c) => c.id === "ngrok");
   const ti = ngrok?.tunnel;
   const permanent = ti?.mode === "ngrok" ? ti.public_url : undefined;
-  const base = permanent ?? (tunnel?.status === "connected" ? tunnel.hints.public_url : undefined) ?? (ti?.mode === "cloudflare" ? ti.public_url : undefined);
+  const base = publicBaseOf(connections);
   const required = connections.filter((c) => c.required);
 
   return (

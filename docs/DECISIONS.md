@@ -1028,3 +1028,18 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   prior_va_width_atr. Not implemented (not mechanical / no data): gamma, heat map / DOM, trailing behind balances
   (AR trail stays), half-risk feeler trades, "one more attempt" day rule. Still UNVERIFIED, 1 micro, every safety gate
   unchanged; the Order Flow page lists them as an extra layer.
+- D109 (user 2026-11-11): TradingAgents as an ADVISOR for Order Flow. Toggle on the Order Flow page = My Settings key
+  `strategy.order_flow_cfg.ta_advisor` (default OFF, validated settings flow; also in OrderFlowCfg + all 9 plan yamls with
+  `ta_advisor_blocks: false` and `ta_advisor_lead_min: 60`, both plan-file only). When ON (and the Order Flow button is
+  on) the EXISTING bias job (bias/service.run_bias, new `only=` proxy filter → ta_runner.py subprocess JSON; never
+  imported in the API process) runs once per session at lead_min before the earliest entry-window start of the Order
+  Flow markets (ET, scheduler + injected Clock; today 03:00 − 1 h = 02:00 ET; a proxy already decided today is reused,
+  not re-run). Advice per market is stored as audit `order_flow.ta_advice` (code OF_TA_ADVICE: side, confidence, time)
+  and shown on the Order Flow page with an "advisory" label (bias/of_advisor.py). Semantics: an opposite-side
+  ORDER_FLOW signal gets audit `order_flow.ta_disagrees` + a `ta_advice` annotation; it is skipped OF_TA_DISAGREES only
+  when `ta_advisor_blocks` is true AND the AI-accuracy ledger is proven (bias/ledger.proven at
+  strategy.ai_gate_min_accuracy — advisory until proven). Failure / no key / unknown rating = no advice, never a block
+  (warn notice). Also: Order Flow page step-by-step TradingView guide (download /api/pine/orderflow, Pine Editor → Save
+  → Add to chart on MNQ1!/MGC1! 1m, Premium/Ultimate for request.footprint else delta_source=est, CME real-time data,
+  alert "Any alert() function call", Webhook URL from the Connections tunnel, message {{alert message}}, open-ended
+  expiry note, one alert per symbol); the webhook secret is never printed there (Connections page only).

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { CandleDeltaChart, EstimatedBadge, FootprintGrid, VolumeProfile } from "../components/OrderFlowChart";
+import { OrderFlowGuide, TaAdvisorPanel } from "../components/OrderFlowGuide";
 import { arSummary, casperSummary, signed, snapSignals, type OrderFlowData } from "../lib/orderflow";
 
 const ZONE: Record<string, string> = { premium: "PREMIUM (above prior VAH)", discount: "DISCOUNT (below prior VAL)", value: "inside prior value", unknown: "no prior session" };
@@ -41,6 +42,8 @@ export default function OrderFlow() {
         </label>
         <p className="max-w-xl text-xs text-blue">Display only — nothing here places trades. From your recorded 1-minute bars (TradingView heartbeats). {d?.estimated ? `Method: ${d.method}.` : ""}</p>
       </section>
+      {d?.ta_advisor && <TaAdvisorPanel a={d.ta_advisor} symbol={d.symbol} />}
+      <OrderFlowGuide />
       {d?.ar && (
         <section className="rounded-xl border border-border bg-card p-4 text-sm" data-testid="of-ar">
           <div className="flex flex-wrap items-center gap-2">
