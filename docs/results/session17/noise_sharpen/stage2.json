@@ -1,0 +1,607 @@
+{
+ "selected": {
+  "nolock": {
+   "N10-12": "N11 skip Monday [nolock]",
+   "vwap": "VWAP side filter [nolock]",
+   "hours": "no entry 11:00 [nolock]",
+   "norev": "no flip after any exit [nolock]",
+   "addon-1530": "extra check 15:30 (band entry) [nolock]",
+   "width": "min sigma >= IS p20 (0.29%) [nolock]",
+   "lock": "lock 200->+50"
+  },
+  "lock": {
+   "N10-12": "N11 skip Monday [lock]",
+   "vwap": "VWAP side filter [lock]",
+   "hours": "no entry 11:00 [lock]",
+   "norev": "no reverse after stop-out [lock]",
+   "addon-1530": "extra check 15:30 (band entry) [lock]",
+   "width": "min sigma >= IS p20 (0.29%) [lock]"
+  }
+ },
+ "eligibility": {
+  "nolock": {
+   "N10-12": [
+    [
+     "N10 skip low-vol tercile [nolock]",
+     1.3911700039181132,
+     false
+    ],
+    [
+     "N11 skip Monday [nolock]",
+     1.542234493400184,
+     true
+    ],
+    [
+     "N12 skip Friday [nolock]",
+     1.163019693983512,
+     false
+    ],
+    [
+     "N10+N11 [nolock]",
+     1.4501744765411726,
+     false
+    ],
+    [
+     "N11+N12 (Tue-Thu only) [nolock]",
+     1.3477672166252637,
+     false
+    ]
+   ],
+   "vwap": [
+    [
+     "VWAP side filter [nolock]",
+     1.400011506668629,
+     true
+    ],
+    [
+     "VWAP side+slope filter [nolock]",
+     1.3649554891135802,
+     false
+    ]
+   ],
+   "hours": [
+    [
+     "no entry 10:00 [nolock]",
+     1.5391282764720742,
+     false
+    ],
+    [
+     "no entry 11:00 [nolock]",
+     1.665863753343314,
+     true
+    ],
+    [
+     "no entry 12:00 [nolock]",
+     1.3914736324367472,
+     true
+    ],
+    [
+     "no entry 13:00 [nolock]",
+     1.269215770102552,
+     false
+    ],
+    [
+     "no entry 14:00 [nolock]",
+     1.3149750231478705,
+     false
+    ],
+    [
+     "no entry 15:00 [nolock]",
+     1.058350680285775,
+     false
+    ]
+   ],
+   "norev": [
+    [
+     "no reverse after stop-out [nolock]",
+     1.3721797874313948,
+     true
+    ],
+    [
+     "no flip after any exit [nolock]",
+     1.3748754723195082,
+     true
+    ]
+   ],
+   "addon-1530": [
+    [
+     "extra check 15:30 (band entry) [nolock]",
+     1.516475049470947,
+     true
+    ]
+   ],
+   "stop": [
+    [
+     "session-9 original (1% stop) [nolock]",
+     1.26975444580069,
+     false
+    ]
+   ],
+   "width": [
+    [
+     "min band width >= IS p10 (76 pt) [nolock]",
+     1.3993689423041176,
+     true
+    ],
+    [
+     "min sigma >= IS p10 (0.24%) [nolock]",
+     1.3440394099792297,
+     false
+    ],
+    [
+     "min band width >= IS p20 (100 pt) [nolock]",
+     1.376116167383288,
+     true
+    ],
+    [
+     "min sigma >= IS p20 (0.29%) [nolock]",
+     1.4516443112810176,
+     true
+    ],
+    [
+     "min band width >= IS p30 (126 pt) [nolock]",
+     1.321309392004585,
+     false
+    ],
+    [
+     "min sigma >= IS p30 (0.33%) [nolock]",
+     1.3661617550211553,
+     false
+    ],
+    [
+     "min band width >= IS p40 (149 pt) [nolock]",
+     1.3614139203551263,
+     false
+    ],
+    [
+     "min sigma >= IS p40 (0.39%) [nolock]",
+     1.3542249025941275,
+     false
+    ]
+   ],
+   "lock": [
+    [
+     "lock 50->+0",
+     1.1693493540752007,
+     false
+    ],
+    [
+     "lock 50->+10",
+     0.9629934917558057,
+     false
+    ],
+    [
+     "lock 50->+25",
+     0.9463174403411079,
+     false
+    ],
+    [
+     "lock 75->+0",
+     1.3019853639788233,
+     false
+    ],
+    [
+     "lock 75->+10",
+     1.3339101912122353,
+     false
+    ],
+    [
+     "lock 75->+25",
+     1.1466963738794902,
+     false
+    ],
+    [
+     "lock 75->+50",
+     1.324989955732114,
+     false
+    ],
+    [
+     "lock 100->+0",
+     1.4521257285319584,
+     true
+    ],
+    [
+     "lock 100->+10",
+     1.4552418095905788,
+     true
+    ],
+    [
+     "lock 100->+25",
+     1.4050996853423494,
+     false
+    ],
+    [
+     "lock 100->+50",
+     1.348698934559622,
+     false
+    ],
+    [
+     "lock 125->+0",
+     1.4581913753656441,
+     true
+    ],
+    [
+     "lock 125->+10",
+     1.4516763669265993,
+     true
+    ],
+    [
+     "lock 125->+25",
+     1.4393227971866098,
+     true
+    ],
+    [
+     "lock 125->+50",
+     1.3726894538051961,
+     false
+    ],
+    [
+     "lock 150->+0",
+     1.4228844496684019,
+     true
+    ],
+    [
+     "lock 150->+10",
+     1.4162110731465043,
+     true
+    ],
+    [
+     "lock 150->+25",
+     1.435834117259833,
+     true
+    ],
+    [
+     "lock 150->+50",
+     1.3888786855500468,
+     false
+    ],
+    [
+     "lock 200->+0",
+     1.4274287546745028,
+     true
+    ],
+    [
+     "lock 200->+10",
+     1.4345194424108734,
+     true
+    ],
+    [
+     "lock 200->+25",
+     1.4411921687168805,
+     true
+    ],
+    [
+     "lock 200->+50",
+     1.460732890216185,
+     true
+    ]
+   ],
+   "tlock": [
+    [
+     "trail-lock +75 give back 40",
+     1.1921872273242677,
+     false
+    ],
+    [
+     "trail-lock +75 give back 60",
+     1.1619892471237712,
+     false
+    ],
+    [
+     "trail-lock +75 give back 100",
+     1.428189760471996,
+     false
+    ],
+    [
+     "trail-lock +100 give back 40",
+     1.3717824705739372,
+     false
+    ],
+    [
+     "trail-lock +100 give back 60",
+     1.3645926037920977,
+     false
+    ],
+    [
+     "trail-lock +100 give back 100",
+     1.4536953762707845,
+     false
+    ],
+    [
+     "trail-lock +150 give back 40",
+     1.4680167710573455,
+     false
+    ],
+    [
+     "trail-lock +150 give back 60",
+     1.4369786287063493,
+     false
+    ],
+    [
+     "trail-lock +150 give back 100",
+     1.4318360212295127,
+     false
+    ]
+   ]
+  },
+  "lock": {
+   "N10-12": [
+    [
+     "N10 skip low-vol tercile [lock]",
+     1.5454316583742984,
+     false
+    ],
+    [
+     "N11 skip Monday [lock]",
+     1.615670828632208,
+     true
+    ],
+    [
+     "N12 skip Friday [lock]",
+     1.2090068214764949,
+     false
+    ],
+    [
+     "N10+N11 [lock]",
+     1.598382610233061,
+     false
+    ],
+    [
+     "N11+N12 (Tue-Thu only) [lock]",
+     1.3622472302106712,
+     false
+    ]
+   ],
+   "vwap": [
+    [
+     "VWAP side filter [lock]",
+     1.5055991541125415,
+     true
+    ],
+    [
+     "VWAP side+slope filter [lock]",
+     1.4706614455012323,
+     true
+    ]
+   ],
+   "hours": [
+    [
+     "no entry 10:00 [lock]",
+     1.6459864740183576,
+     false
+    ],
+    [
+     "no entry 11:00 [lock]",
+     1.7034091387729537,
+     true
+    ],
+    [
+     "no entry 12:00 [lock]",
+     1.4596345191868667,
+     true
+    ],
+    [
+     "no entry 13:00 [lock]",
+     1.341661220146982,
+     false
+    ],
+    [
+     "no entry 14:00 [lock]",
+     1.4158659383916212,
+     false
+    ],
+    [
+     "no entry 15:00 [lock]",
+     1.1473954248084943,
+     false
+    ]
+   ],
+   "norev": [
+    [
+     "no reverse after stop-out [lock]",
+     1.4552418095905788,
+     true
+    ],
+    [
+     "no flip after any exit [lock]",
+     1.452775391638215,
+     false
+    ]
+   ],
+   "addon-1530": [
+    [
+     "extra check 15:30 (band entry) [lock]",
+     1.5822660590905202,
+     true
+    ]
+   ],
+   "width": [
+    [
+     "min band width >= IS p10 (76 pt) [lock]",
+     1.4941012679864516,
+     true
+    ],
+    [
+     "min sigma >= IS p10 (0.24%) [lock]",
+     1.4615322997821043,
+     false
+    ],
+    [
+     "min band width >= IS p20 (100 pt) [lock]",
+     1.4965297273412892,
+     true
+    ],
+    [
+     "min sigma >= IS p20 (0.29%) [lock]",
+     1.5875526253577066,
+     true
+    ],
+    [
+     "min band width >= IS p30 (126 pt) [lock]",
+     1.4237684928612648,
+     false
+    ],
+    [
+     "min sigma >= IS p30 (0.33%) [lock]",
+     1.4759850930525114,
+     false
+    ],
+    [
+     "min band width >= IS p40 (149 pt) [lock]",
+     1.4973412916209299,
+     false
+    ],
+    [
+     "min sigma >= IS p40 (0.39%) [lock]",
+     1.479725594522986,
+     false
+    ]
+   ]
+  }
+ },
+ "ranked": [
+  [
+   "hours",
+   "no entry 11:00 [lock]",
+   1.7034091387729537
+  ],
+  [
+   "N10-12",
+   "N11 skip Monday [lock]",
+   1.615670828632208
+  ],
+  [
+   "width",
+   "min sigma >= IS p20 (0.29%) [lock]",
+   1.5875526253577066
+  ],
+  [
+   "addon-1530",
+   "extra check 15:30 (band entry) [lock]",
+   1.5822660590905202
+  ],
+  [
+   "vwap",
+   "VWAP side filter [lock]",
+   1.5055991541125415
+  ]
+ ],
+ "combos": {
+  "COMBO(best-2 IS) = no entry 11:00 + N11 skip Monday": {
+   "name": "COMBO(best-2 IS) = no entry 11:00 + N11 skip Monday",
+   "fam": "combo",
+   "file": "COMBO_0",
+   "IS": {
+    "n": 537,
+    "win": 49.162011173184354,
+    "pf": 1.4903042082900149,
+    "net": 10847.0,
+    "dd": 917.0,
+    "avg": 20.19925512104283,
+    "roll": {
+     "n": 588,
+     "pass_": 39.795918367346935,
+     "bust": 0.0,
+     "open_": 60.204081632653065,
+     "med": 67.0
+    },
+    "boot": {
+     "n": 1000,
+     "pass_": 86.2,
+     "bust": 13.7,
+     "open_": 0.1,
+     "med": 105.0
+    },
+    "ratio": 1.8406192869746851
+   },
+   "HO": {
+    "n": 336,
+    "win": 54.761904761904766,
+    "pf": 1.422804186228482,
+    "net": 8645.5,
+    "dd": 2135.0,
+    "avg": 25.730654761904763,
+    "roll": {
+     "n": 353,
+     "pass_": 55.80736543909349,
+     "bust": 36.26062322946176,
+     "open_": 7.932011331444759,
+     "med": 61.0
+    },
+    "boot": {
+     "n": 1000,
+     "pass_": 63.0,
+     "bust": 37.0,
+     "open_": 0.0,
+     "med": 54.5
+    },
+    "ratio": 0.9933198212898533,
+    "roll_strict": {
+     "n": 353,
+     "pass_": 52.40793201133145,
+     "bust": 41.92634560906516,
+     "open_": 5.665722379603399,
+     "med": 59.0
+    }
+   }
+  },
+  "COMBO(best-3 IS) = no entry 11:00 + N11 skip Monday + min sigma >= IS p20 (0.29%)": {
+   "name": "COMBO(best-3 IS) = no entry 11:00 + N11 skip Monday + min sigma >= IS p20 (0.29%)",
+   "fam": "combo",
+   "file": "COMBO_1",
+   "IS": {
+    "n": 480,
+    "win": 50.416666666666664,
+    "pf": 1.5398414042651474,
+    "net": 10518.0,
+    "dd": 732.0,
+    "avg": 21.9125,
+    "roll": {
+     "n": 588,
+     "pass_": 40.64625850340136,
+     "bust": 0.0,
+     "open_": 59.35374149659864,
+     "med": 79.0
+    },
+    "boot": {
+     "n": 1000,
+     "pass_": 88.5,
+     "bust": 11.3,
+     "open_": 0.2,
+     "med": 114.0
+    },
+    "ratio": 1.9677387414033334
+   },
+   "HO": {
+    "n": 297,
+    "win": 56.56565656565656,
+    "pf": 1.3750939034960994,
+    "net": 6491.0,
+    "dd": 1211.0,
+    "avg": 21.855218855218855,
+    "roll": {
+     "n": 353,
+     "pass_": 52.40793201133145,
+     "bust": 25.77903682719547,
+     "open_": 21.813031161473088,
+     "med": 63.0
+    },
+    "boot": {
+     "n": 1000,
+     "pass_": 65.0,
+     "bust": 35.0,
+     "open_": 0.0,
+     "med": 73.0
+    },
+    "ratio": 1.0248944269500402,
+    "roll_strict": {
+     "n": 353,
+     "pass_": 49.008498583569406,
+     "bust": 33.42776203966006,
+     "open_": 17.56373937677054,
+     "med": 61.0
+    }
+   }
+  }
+ }
+}
