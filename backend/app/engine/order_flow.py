@@ -14,6 +14,10 @@ OF_PATH_UNKNOWN / OF_PATH_EXHAUSTED / OF_NO_CONFIRM / OF_DELTA_ESTIMATED); `buil
 absorption zone (the far side of the absorbed aggressors) when the alert gives one; `trail_stop` is the AR trail
 (behind the last closed 5m/15m candle, break-even after follow-through, ratchet only) — pure, not yet wired into the
 order manager (no candle feed there; see D101).
+D108 (Casper 4h course, docs/results/session18/order_flow/TEACHER_RULES_4H.md): `check_casper` adds separately
+switchable REFINEMENTS after the AR layers (codes OF_CASPER_PRICE_CONFIRMS / _STACKED / _CVD / _CONDITION / _BUNCHED)
+and `casper_round_stop` keeps the stop off round numbers (OF_CASPER_ROUND_STOP when the moved stop no longer fits).
+They only ever remove trades or widen the stop inside max_risk_ticks; they never relax an AR rule.
 Every other gate (window, news, hedge lock, DLL, consistency, flat times, paper-only) is applied by the callers.
 """
 
@@ -190,3 +194,87 @@ def trail_stop(
         if (c - new) * s > 0:
             new = c
     return new
+
+
+# ---------- D108 Casper 4h course refinements (after the AR layers; each a switch) ----------
+
+
+@dataclass(frozen=True)
+class CasperFields:
+    """Casper values one alert carries (None = not sent → an active rule skips: no silent pass)."""
+
+    close_pos: Decimal | None = None  # entry candle close in its range: 0 = low, 1 = high
+    stacked: int | None = None  # stacked diagonal imbalances on the trade side
+    cvd_slope: Decimal | None = None  # CVD change over the last bars (sum of delta)
+    open_vs_value: str | None = None  # RTH open vs prior RTH value: ABOVE_VAH | IN_VALUE | BELOW_VAL
+    prior_va_width_atr: Decimal | None = None  # (prior VAH − prior VAL) / daily ATR(20)
+
+
+@dataclass(frozen=True)
+class CasperRules:
+    price_confirms: bool = True
+    close_pos_min: Decimal = Decimal("0.5")
+    stacked_definition: bool = True
+    min_stacked: int = 3
+    cvd_confirm: bool = False
+    condition: bool = False
+    inside_value_ok: bool = True
+    bunched: bool = False
+    min_va_width_atr: Decimal = Decimal("0.25")
+
+
+def _cs(rule: str, detail: str) -> OrderFlowSkip:
+    return OrderFlowSkip(f"OF_CASPER_{rule}", detail, "CASPER")
+
+
+def check_casper(direction: Direction, kind: str, f: CasperFields, r: CasperRules) -> OrderFlowSkip | None:
+    """None = every active Casper rule agrees; else the first failing rule's skip."""
+    long = direction is Direction.LONG
+    if r.bunched:  # no-trade day filter first (condition before trigger)
+        if f.prior_va_width_atr is None or f.prior_va_width_atr < r.min_va_width_atr:
+            return _cs("BUNCHED", f"prior value width {f.prior_va_width_atr} ATR < {r.min_va_width_atr}")
+    if r.condition:
+        ov = f.open_vs_value
+        against = "BELOW_VAL" if long else "ABOVE_VAH"
+        if ov not in ("ABOVE_VAH", "IN_VALUE", "BELOW_VAL") or ov == against or (
+            ov == "IN_VALUE" and not r.inside_value_ok
+        ):
+            return _cs("CONDITION", f"open vs prior value {ov} against {direction.value}")
+    if r.stacked_definition and kind == "STACKED_IMBALANCE" and (f.stacked is None or f.stacked < r.min_stacked):
+        return _cs("STACKED", f"stacked {f.stacked} < {r.min_stacked}")
+    if r.cvd_confirm and (f.cvd_slope is None or f.cvd_slope * direction.sign <= 0):
+        return _cs("CVD", f"CVD slope {f.cvd_slope} does not confirm {direction.value}")
+    if r.price_confirms:
+        pos = None if f.close_pos is None else (f.close_pos if long else 1 - f.close_pos)
+        if pos is None or pos < r.close_pos_min:
+            return _cs("PRICE_CONFIRMS", f"close position {f.close_pos} not away from the trapped side")
+    return None
+
+
+def casper_round_stop(
+    plan: OrderFlowPlan,
+    *,
+    tick: Decimal,
+    step: Decimal,
+    buffer_ticks: int,
+    rr: Decimal,
+    rr_min: Decimal,
+    max_risk_ticks: int,
+) -> OrderFlowPlan | OrderFlowSkip:
+    """Casper: a stop never sits ON (or just inside) a round number — move it buffer_ticks beyond the nearest round
+    level when it is closer than that; widen only, then re-check max risk and R:R (target re-derived from rr)."""
+    s = plan.direction.sign
+    level = (plan.stop / step).quantize(Decimal(1)) * step
+    if (plan.entry - level) * s <= 0 or abs(plan.stop - level) >= buffer_ticks * tick:
+        return plan
+    stop = level - s * buffer_ticks * tick
+    if (plan.stop - stop) * s <= 0:
+        return plan
+    risk = abs(plan.entry - stop)
+    if risk / tick > max_risk_ticks:
+        return _cs("ROUND_STOP", f"stop moved off round {level} → {risk / tick} ticks > {max_risk_ticks}")
+    tp = round_to_tick(plan.entry + s * rr * risk, tick, toward=plan.entry)
+    got = abs(tp - plan.entry) / risk
+    if got < rr_min:
+        return _cs("ROUND_STOP", f"R:R {got} < {rr_min} after moving the stop off {level}")
+    return OrderFlowPlan(plan.direction, plan.kind, plan.entry, plan.defended, stop, tp, risk, got)
