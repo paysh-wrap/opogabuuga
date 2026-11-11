@@ -108,7 +108,7 @@ def confirm(c, clock, t_ms=MS - 2 * MIN, fr=None):
             status="PASS",
             passed=True,
             score=D(80),
-            features={},
+            features={"invalid": str(f["invalid"]), "t2": str(f["t2"]), "c1_high": str(f["c1_high"])},
         )
         s.add(sig)
         s.flush()

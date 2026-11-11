@@ -130,9 +130,7 @@ def test_strategy_overview(authed, clock):
     r = authed.get("/api/strategy").json()
     mnq = next(i for i in r["instruments"] if i["symbol"] == "MNQ")
     assert mnq["bias"] == "LONG_ONLY" and mnq["proxy"] == "QQQ" and mnq["feeds"][0]["profile"] == "TIGHT"
-    assert [g["id"] for g in r["gates"]] == [f"G{i}" for i in range(1, 9)]
-    assert r["last_signal"]["status"] == "PASS" and r["gates"][1]["last"] is True
-    assert "LunqFX" in r["indicators"][0] and "BigBeluga" in r["indicators"][1]
+    assert "gates" not in r and "last_signal" not in r  # D105: the LunqFX gate panel is gone
 
 
 @pytest.mark.parametrize(

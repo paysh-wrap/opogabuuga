@@ -29,6 +29,23 @@ def hb(age_s=1, **over):
     return p
 
 
+def mso_evt(event="MSO_CHOCH", age_s=5, **over):
+    p = {
+        "v": 1,
+        "secret": WEBHOOK_SECRET,
+        "id": f"MNQ1!-TIGHT-{NOW_MS}-{event}-LONG",
+        "symbol": "MNQ1!",
+        "profile": "TIGHT",
+        "tf": "1",
+        "bar_time_ms": NOW_MS - age_s * 1000,
+        "event": event,
+        "direction": "LONG",
+        "mso": {"trend": "BULL", "osc": "60", "div": None, "htf_trend": "BULL", "confirm_time_ms": NOW_MS - age_s * 1000},
+    }
+    p.update(over)
+    return p
+
+
 def fractal_evt(event="MODEL_CONFIRMED", age_s=5, **over):
     p = {
         "v": 1,
@@ -114,8 +131,8 @@ def test_empty_server_secret_rejects_everything(wc):
     [
         (hb, 29, True),
         (hb, 31, False),  # HEARTBEAT > 30 s → reject
-        (fractal_evt, 89, True),
-        (fractal_evt, 91, False),  # events > 90 s → reject
+        (mso_evt, 89, True),
+        (mso_evt, 91, False),  # events > 90 s → reject
     ],
 )
 def test_freshness_limits(wc, payload_fn, age, ok):
@@ -194,11 +211,13 @@ def test_pine_empty_extra_produces_valid_json(wc):
     assert "price" in r.json()["detail"]
 
 
-def test_model_event_updates_market_state(wc):
-    assert post(wc, fractal_evt()).status_code == 200
-    st = wc.app.state.market.get("MNQ", "TIGHT")
-    key = f"MNQ-TIGHT-{NOW_MS - 1_800_000}"
-    assert st.models[key].status == "MODEL_CONFIRMED" and st.models[key].fields["invalid"] == 19981
+def test_lunqfx_model_event_is_ignored_and_stores_nothing(wc):
+    """D105: fractal alerts answer 200 {ignored, LUNQFX_REMOVED}; no Event row, no market state."""
+    r = post(wc, fractal_evt())
+    assert r.status_code == 200 and r.json()["ignored"] is True and r.json()["code"] == "LUNQFX_REMOVED"
+    assert wc.app.state.market.get("MNQ", "TIGHT") is None
+    with wc.app.state.sessionmaker() as s:
+        assert s.query(Event).count() == 0
 
 
 def test_rate_limit(wc):
@@ -244,8 +263,8 @@ def test_pine_download(authed):
 
 def test_same_bar_opposite_direction_events_are_not_deduplicated(wc):
     """Spec §5.3's id had no direction: an outside bar sweeping both sides would collide. Ids now end in -DIR."""
-    base = fractal_evt("C1_SWEPT")
-    a = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-C1_SWEPT-LONG", "direction": "LONG"}
-    b = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-C1_SWEPT-SHORT", "direction": "SHORT"}
+    base = mso_evt("MSO_BOS")
+    a = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-MSO_BOS-LONG", "direction": "LONG"}
+    b = {**base, "id": f"MNQ1!-TIGHT-{NOW_MS}-MSO_BOS-SHORT", "direction": "SHORT"}
     assert post(wc, a).json() == {"ok": True, "duplicate": False}
     assert post(wc, b).json() == {"ok": True, "duplicate": False}

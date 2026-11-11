@@ -43,72 +43,12 @@ def test_history_t1_rate_and_atr_percentile(client):
     assert atr_percentile(History([], []), D(1)) == (None, 0)
 
 
-def test_disabled_instrument_is_evaluated_in_shadow_never_traded(client, clock, authed):
-    client.app.state.calendar = lambda d: []
+def test_bias_is_per_proxy(client):
+    """A GLD bias must not let an MNQ (QQQ) strategy through: today_bias reads THIS instrument's proxy only."""
+    from app.signals.service import today_bias
+
     with client.app.state.sessionmaker() as s:
         s.add(BiasDecision(session_date=AT.date(), proxy="GLD", raw_rating="Buy", mapped="LONG_ONLY", version="x"))
         s.commit()
-    fr = {
-        "c1_high": "2015.0",
-        "c1_low": "2002.0",
-        "c1_time_ms": MS - 30 * MIN,
-        "htf_atr14": "10",
-        "t1": "2008.5",
-        "t2": "2015.0",
-        "invalid": "1999.0",
-        "sweep_extreme": "1999.0",
-        "sweep_time_ms": MS - 10 * MIN,
-        "cisd_level": "2003.0",
-        "cisd_before_c2_close": True,
-        "t1_preticked": False,
-        "c3_close_time_ms": MS + 13 * MIN,
-    }
-
-    def send(event, t_ms, **extra):
-        clock.set(datetime.fromtimestamp(t_ms / 1000 + 1, tz=UTC))
-        p = {
-            "v": 1,
-            "secret": WEBHOOK_SECRET,
-            "id": f"MGC1!-TIGHT-{t_ms}-{event}",
-            "symbol": "MGC1!",
-            "profile": "TIGHT",
-            "tf": "1",
-            "bar_time_ms": t_ms,
-            "event": event,
-            "direction": "NONE" if event == "HEARTBEAT" else "LONG",
-            **extra,
-        }
-        assert client.post("/api/webhook/tradingview", content=json.dumps(p)).status_code == 200
-
-    send("MSO_CHOCH", MS - 5 * MIN, mso={**MSO, "confirm_time_ms": MS - 5 * MIN})
-    send(
-        "HEARTBEAT",
-        MS - 2 * MIN,
-        price={"o": "2003.0", "h": "2003.0", "l": "2003.0", "c": "2003.0", "v": "1"},
-        mso={**MSO, "confirm_time_ms": MS - 2 * MIN},
-    )
-    send("MODEL_CONFIRMED", MS - 2 * MIN, fractal=fr)
-    with client.app.state.sessionmaker() as s:
-        sig = s.query(Signal).one()
-        from app.models import SignalGate
-
-        gates = {g.gate: g.detail["code"] for g in s.query(SignalGate).all()}
-        assert sig.symbol == "MGC" and sig.status == "SHADOWED" and not sig.passed, (sig.status, gates)
-        assert sig.skip_reason == "INSTRUMENT_DISABLED"
-        assert sig.features["shadow"]["outcome"] == "PASS"
-        assert D(sig.features["shadow"]["plan"]["stop"]) == D("1998.6")
-        assert s.query(TradePlanRow).count() == 0  # no real plan for a shadow signal
-    assert authed.get("/api/signals/skips?date=2026-11-05").json()["counts"] == {}
-
-
-def test_bias_is_per_proxy(client, clock):
-    """A GLD bias must not let an MNQ (QQQ) signal through."""
-    client.app.state.calendar = lambda d: []
-    with client.app.state.sessionmaker() as s:
-        s.add(BiasDecision(session_date=AT.date(), proxy="GLD", raw_rating="Buy", mapped="LONG_ONLY", version="x"))
-        s.commit()
-    choch(client, clock)
-    hb(client, clock, MS - 2 * MIN, close="20010")
-    confirm(client, clock)
-    with client.app.state.sessionmaker() as s:
-        assert s.query(Signal).one().skip_reason == "BIAS_NO_TRADE"
+        assert today_bias(s, AT.date(), "QQQ") == "NO_TRADE"
+        assert today_bias(s, AT.date(), "GLD") == "LONG_ONLY"
