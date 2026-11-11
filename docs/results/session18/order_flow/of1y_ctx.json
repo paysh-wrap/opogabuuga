@@ -1,0 +1,1733 @@
+{
+ "filter_effect": [
+  {
+   "sig": "ABS",
+   "filt": "none",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 26,
+    "win": 11.5,
+    "pf": 0.19,
+    "avg": -47.27,
+    "net": -1229,
+    "dd": 1336,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 97,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 16,
+    "win": 18.8,
+    "pf": 0.56,
+    "avg": -20.97,
+    "net": -336,
+    "dd": 422,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 45,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 42,
+    "win": 14.3,
+    "pf": 0.32,
+    "avg": -37.25,
+    "net": -1564,
+    "dd": 1672,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 90,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "ABS",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 1.5,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 10,
+    "win": 10.0,
+    "pf": 0.22,
+    "avg": -49.2,
+    "net": -492,
+    "dd": 600,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 21,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 4,
+    "win": 50.0,
+    "pf": 1.97,
+    "avg": 36.75,
+    "net": 147,
+    "dd": 92,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 3,
+    "boot_bust": 0,
+    "med_days": 183.0
+   },
+   "year": {
+    "n": 14,
+    "win": 21.4,
+    "pf": 0.56,
+    "avg": -24.64,
+    "net": -345,
+    "dd": 600,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 2,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "ABS",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 23,
+    "win": 8.7,
+    "pf": 0.11,
+    "avg": -54.35,
+    "net": -1250,
+    "dd": 1250,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 98,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 12,
+    "win": 16.7,
+    "pf": 0.59,
+    "avg": -17.42,
+    "net": -209,
+    "dd": 296,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 21,
+    "med_days": 151.5
+   },
+   "year": {
+    "n": 35,
+    "win": 11.4,
+    "pf": 0.24,
+    "avg": -41.69,
+    "net": -1459,
+    "dd": 1459,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 84,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "ABS",
+   "filt": "VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 19,
+    "win": 5.3,
+    "pf": 0.08,
+    "avg": -59.84,
+    "net": -1137,
+    "dd": 1137,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 97,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 13,
+    "win": 15.4,
+    "pf": 0.31,
+    "avg": -35.35,
+    "net": -460,
+    "dd": 492,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 76,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 32,
+    "win": 9.4,
+    "pf": 0.16,
+    "avg": -49.89,
+    "net": -1596,
+    "dd": 1596,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 90,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "ABS",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 18,
+    "win": 5.6,
+    "pf": 0.09,
+    "avg": -57.47,
+    "net": -1034,
+    "dd": 1034,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 93,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 13,
+    "win": 15.4,
+    "pf": 0.31,
+    "avg": -35.35,
+    "net": -460,
+    "dd": 492,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 76,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 31,
+    "win": 9.7,
+    "pf": 0.17,
+    "avg": -48.19,
+    "net": -1494,
+    "dd": 1494,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 86,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "ABS",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 17,
+    "win": 5.9,
+    "pf": 0.09,
+    "avg": -59.88,
+    "net": -1018,
+    "dd": 1018,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 91,
+    "med_days": NaN
+   },
+   "judge": {
+    "n": 10,
+    "win": 10.0,
+    "pf": 0.19,
+    "avg": -35.6,
+    "net": -356,
+    "dd": 388,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 47,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 27,
+    "win": 7.4,
+    "pf": 0.12,
+    "avg": -50.89,
+    "net": -1374,
+    "dd": 1374,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 75,
+    "med_days": NaN
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "none",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 453,
+    "win": 39.1,
+    "pf": 1.17,
+    "avg": 6.29,
+    "net": 2848,
+    "dd": 2030,
+    "roll_pass": 64,
+    "roll_bust": 25,
+    "boot_pass": 63,
+    "boot_bust": 37,
+    "med_days": 28.0
+   },
+   "judge": {
+    "n": 240,
+    "win": 30.4,
+    "pf": 0.97,
+    "avg": -1.27,
+    "net": -306,
+    "dd": 1417,
+    "roll_pass": 51,
+    "roll_bust": 45,
+    "boot_pass": 28,
+    "boot_bust": 72,
+    "med_days": 27.0
+   },
+   "year": {
+    "n": 693,
+    "win": 36.1,
+    "pf": 1.1,
+    "avg": 3.67,
+    "net": 2542,
+    "dd": 2030,
+    "roll_pass": 61,
+    "roll_bust": 32,
+    "boot_pass": 49,
+    "boot_bust": 51,
+    "med_days": 31.0
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 407,
+    "win": 38.3,
+    "pf": 1.08,
+    "avg": 2.93,
+    "net": 1193,
+    "dd": 1910,
+    "roll_pass": 32,
+    "roll_bust": 43,
+    "boot_pass": 50,
+    "boot_bust": 50,
+    "med_days": 41.0
+   },
+   "judge": {
+    "n": 217,
+    "win": 30.4,
+    "pf": 0.95,
+    "avg": -1.71,
+    "net": -372,
+    "dd": 1476,
+    "roll_pass": 53,
+    "roll_bust": 45,
+    "boot_pass": 32,
+    "boot_bust": 68,
+    "med_days": 29.0
+   },
+   "year": {
+    "n": 624,
+    "win": 35.6,
+    "pf": 1.04,
+    "avg": 1.32,
+    "net": 822,
+    "dd": 1910,
+    "roll_pass": 35,
+    "roll_bust": 53,
+    "boot_pass": 39,
+    "boot_bust": 61,
+    "med_days": 39.0
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 366,
+    "win": 34.7,
+    "pf": 0.89,
+    "avg": -4.36,
+    "net": -1595,
+    "dd": 1989,
+    "roll_pass": 0,
+    "roll_bust": 51,
+    "boot_pass": 17,
+    "boot_bust": 83,
+    "med_days": 41.0
+   },
+   "judge": {
+    "n": 202,
+    "win": 28.7,
+    "pf": 0.82,
+    "avg": -6.46,
+    "net": -1306,
+    "dd": 1444,
+    "roll_pass": 18,
+    "roll_bust": 39,
+    "boot_pass": 13,
+    "boot_bust": 87,
+    "med_days": 54.0
+   },
+   "year": {
+    "n": 568,
+    "win": 32.6,
+    "pf": 0.87,
+    "avg": -5.11,
+    "net": -2900,
+    "dd": 2900,
+    "roll_pass": 4,
+    "roll_bust": 61,
+    "boot_pass": 15,
+    "boot_bust": 85,
+    "med_days": 46.0
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 281,
+    "win": 41.6,
+    "pf": 1.38,
+    "avg": 13.55,
+    "net": 3808,
+    "dd": 1057,
+    "roll_pass": 48,
+    "roll_bust": 16,
+    "boot_pass": 81,
+    "boot_bust": 19,
+    "med_days": 36.0
+   },
+   "judge": {
+    "n": 153,
+    "win": 30.7,
+    "pf": 0.9,
+    "avg": -4.27,
+    "net": -654,
+    "dd": 1235,
+    "roll_pass": 0,
+    "roll_bust": 16,
+    "boot_pass": 14,
+    "boot_bust": 86,
+    "med_days": 59.5
+   },
+   "year": {
+    "n": 434,
+    "win": 37.8,
+    "pf": 1.19,
+    "avg": 7.27,
+    "net": 3154,
+    "dd": 1235,
+    "roll_pass": 43,
+    "roll_bust": 17,
+    "boot_pass": 57,
+    "boot_bust": 43,
+    "med_days": 48.0
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 249,
+    "win": 40.2,
+    "pf": 1.27,
+    "avg": 9.64,
+    "net": 2401,
+    "dd": 930,
+    "roll_pass": 15,
+    "roll_bust": 0,
+    "boot_pass": 82,
+    "boot_bust": 18,
+    "med_days": 61.5
+   },
+   "judge": {
+    "n": 140,
+    "win": 29.3,
+    "pf": 0.87,
+    "avg": -5.69,
+    "net": -797,
+    "dd": 1074,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 11,
+    "boot_bust": 89,
+    "med_days": 57.0
+   },
+   "year": {
+    "n": 389,
+    "win": 36.2,
+    "pf": 1.11,
+    "avg": 4.12,
+    "net": 1604,
+    "dd": 1074,
+    "roll_pass": 13,
+    "roll_bust": 0,
+    "boot_pass": 47,
+    "boot_bust": 53,
+    "med_days": 65.0
+   }
+  },
+  {
+   "sig": "DIV",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 220,
+    "win": 35.9,
+    "pf": 1.03,
+    "avg": 1.3,
+    "net": 287,
+    "dd": 967,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 36,
+    "boot_bust": 61,
+    "med_days": 97.5
+   },
+   "judge": {
+    "n": 131,
+    "win": 26.0,
+    "pf": 0.65,
+    "avg": -15.46,
+    "net": -2026,
+    "dd": 2026,
+    "roll_pass": 0,
+    "roll_bust": 57,
+    "boot_pass": 0,
+    "boot_bust": 100,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 351,
+    "win": 32.2,
+    "pf": 0.88,
+    "avg": -4.95,
+    "net": -1738,
+    "dd": 2358,
+    "roll_pass": 0,
+    "roll_bust": 36,
+    "boot_pass": 13,
+    "boot_bust": 86,
+    "med_days": 86.5
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "none",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 74,
+    "win": 31.1,
+    "pf": 0.71,
+    "avg": -18.13,
+    "net": -1342,
+    "dd": 1998,
+    "roll_pass": 0,
+    "roll_bust": 28,
+    "boot_pass": 6,
+    "boot_bust": 91,
+    "med_days": 85.0
+   },
+   "judge": {
+    "n": 34,
+    "win": 35.3,
+    "pf": 1.01,
+    "avg": 0.91,
+    "net": 31,
+    "dd": 1510,
+    "roll_pass": 20,
+    "roll_bust": 53,
+    "boot_pass": 38,
+    "boot_bust": 61,
+    "med_days": 67.5
+   },
+   "year": {
+    "n": 108,
+    "win": 32.4,
+    "pf": 0.81,
+    "avg": -12.13,
+    "net": -1310,
+    "dd": 1998,
+    "roll_pass": 10,
+    "roll_bust": 38,
+    "boot_pass": 13,
+    "boot_bust": 84,
+    "med_days": 82.0
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 63,
+    "win": 27.0,
+    "pf": 0.53,
+    "avg": -29.88,
+    "net": -1882,
+    "dd": 2246,
+    "roll_pass": 0,
+    "roll_bust": 51,
+    "boot_pass": 1,
+    "boot_bust": 96,
+    "med_days": 87.0
+   },
+   "judge": {
+    "n": 25,
+    "win": 28.0,
+    "pf": 0.62,
+    "avg": -25.38,
+    "net": -634,
+    "dd": 1280,
+    "roll_pass": 0,
+    "roll_bust": 47,
+    "boot_pass": 11,
+    "boot_bust": 86,
+    "med_days": 108.0
+   },
+   "year": {
+    "n": 88,
+    "win": 27.3,
+    "pf": 0.56,
+    "avg": -28.6,
+    "net": -2517,
+    "dd": 2517,
+    "roll_pass": 0,
+    "roll_bust": 50,
+    "boot_pass": 3,
+    "boot_bust": 94,
+    "med_days": 95.0
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 66,
+    "win": 28.8,
+    "pf": 0.73,
+    "avg": -16.86,
+    "net": -1113,
+    "dd": 1783,
+    "roll_pass": 0,
+    "roll_bust": 27,
+    "boot_pass": 9,
+    "boot_bust": 87,
+    "med_days": 94.0
+   },
+   "judge": {
+    "n": 31,
+    "win": 32.3,
+    "pf": 0.79,
+    "avg": -14.44,
+    "net": -448,
+    "dd": 1452,
+    "roll_pass": 0,
+    "roll_bust": 53,
+    "boot_pass": 22,
+    "boot_bust": 75,
+    "med_days": 77.5
+   },
+   "year": {
+    "n": 97,
+    "win": 29.9,
+    "pf": 0.75,
+    "avg": -16.09,
+    "net": -1560,
+    "dd": 1868,
+    "roll_pass": 0,
+    "roll_bust": 37,
+    "boot_pass": 9,
+    "boot_bust": 88,
+    "med_days": 120.0
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 37,
+    "win": 43.2,
+    "pf": 0.7,
+    "avg": -19.48,
+    "net": -721,
+    "dd": 1442,
+    "roll_pass": 0,
+    "roll_bust": 24,
+    "boot_pass": 7,
+    "boot_bust": 75,
+    "med_days": 141.0
+   },
+   "judge": {
+    "n": 18,
+    "win": 38.9,
+    "pf": 1.06,
+    "avg": 4.25,
+    "net": 76,
+    "dd": 896,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 27,
+    "boot_bust": 63,
+    "med_days": 117.0
+   },
+   "year": {
+    "n": 55,
+    "win": 41.8,
+    "pf": 0.83,
+    "avg": -11.71,
+    "net": -644,
+    "dd": 1442,
+    "roll_pass": 0,
+    "roll_bust": 24,
+    "boot_pass": 14,
+    "boot_bust": 68,
+    "med_days": 144.5
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 29,
+    "win": 48.3,
+    "pf": 0.87,
+    "avg": -8.2,
+    "net": -238,
+    "dd": 1193,
+    "roll_pass": 0,
+    "roll_bust": 24,
+    "boot_pass": 16,
+    "boot_bust": 53,
+    "med_days": 177.0
+   },
+   "judge": {
+    "n": 13,
+    "win": 30.8,
+    "pf": 0.67,
+    "avg": -26.71,
+    "net": -347,
+    "dd": 624,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 5,
+    "boot_bust": 68,
+    "med_days": 149.0
+   },
+   "year": {
+    "n": 42,
+    "win": 42.9,
+    "pf": 0.79,
+    "avg": -13.93,
+    "net": -585,
+    "dd": 1268,
+    "roll_pass": 0,
+    "roll_bust": 24,
+    "boot_pass": 7,
+    "boot_bust": 59,
+    "med_days": 161.0
+   }
+  },
+  {
+   "sig": "SWEEP",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 34,
+    "win": 35.3,
+    "pf": 0.7,
+    "avg": -21.59,
+    "net": -734,
+    "dd": 1404,
+    "roll_pass": 0,
+    "roll_bust": 24,
+    "boot_pass": 5,
+    "boot_bust": 74,
+    "med_days": 154.0
+   },
+   "judge": {
+    "n": 17,
+    "win": 23.5,
+    "pf": 0.64,
+    "avg": -33.09,
+    "net": -562,
+    "dd": 1374,
+    "roll_pass": 0,
+    "roll_bust": 47,
+    "boot_pass": 18,
+    "boot_bust": 80,
+    "med_days": 96.0
+   },
+   "year": {
+    "n": 51,
+    "win": 31.4,
+    "pf": 0.67,
+    "avg": -25.42,
+    "net": -1296,
+    "dd": 1604,
+    "roll_pass": 0,
+    "roll_bust": 34,
+    "boot_pass": 8,
+    "boot_bust": 81,
+    "med_days": 129.5
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "none",
+   "P": {
+    "k": 2.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 30,
+    "win": 50.0,
+    "pf": 1.69,
+    "avg": 32.83,
+    "net": 985,
+    "dd": 400,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 68,
+    "boot_bust": 3,
+    "med_days": 140.0
+   },
+   "judge": {
+    "n": 21,
+    "win": 47.6,
+    "pf": 1.77,
+    "avg": 38.36,
+    "net": 806,
+    "dd": 379,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 77,
+    "boot_bust": 16,
+    "med_days": 90.0
+   },
+   "year": {
+    "n": 51,
+    "win": 49.0,
+    "pf": 1.72,
+    "avg": 35.1,
+    "net": 1790,
+    "dd": 400,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 73,
+    "boot_bust": 9,
+    "med_days": 114.0
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 42,
+    "win": 33.3,
+    "pf": 0.92,
+    "avg": -3.55,
+    "net": -149,
+    "dd": 917,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 11,
+    "boot_bust": 53,
+    "med_days": 160.0
+   },
+   "judge": {
+    "n": 22,
+    "win": 72.7,
+    "pf": 6.25,
+    "avg": 80.52,
+    "net": 1772,
+    "dd": 97,
+    "roll_pass": 2,
+    "roll_bust": 0,
+    "boot_pass": 100,
+    "boot_bust": 0,
+    "med_days": 77.0
+   },
+   "year": {
+    "n": 64,
+    "win": 46.9,
+    "pf": 1.71,
+    "avg": 25.35,
+    "net": 1622,
+    "dd": 917,
+    "roll_pass": 21,
+    "roll_bust": 0,
+    "boot_pass": 72,
+    "boot_bust": 10,
+    "med_days": 124.5
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 63,
+    "win": 42.9,
+    "pf": 1.02,
+    "avg": 0.94,
+    "net": 59,
+    "dd": 858,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 24,
+    "boot_bust": 54,
+    "med_days": 159.0
+   },
+   "judge": {
+    "n": 31,
+    "win": 48.4,
+    "pf": 1.19,
+    "avg": 10.19,
+    "net": 316,
+    "dd": 1082,
+    "roll_pass": 0,
+    "roll_bust": 12,
+    "boot_pass": 42,
+    "boot_bust": 56,
+    "med_days": 92.0
+   },
+   "year": {
+    "n": 94,
+    "win": 44.7,
+    "pf": 1.08,
+    "avg": 3.99,
+    "net": 375,
+    "dd": 1180,
+    "roll_pass": 0,
+    "roll_bust": 19,
+    "boot_pass": 33,
+    "boot_bust": 55,
+    "med_days": 116.0
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "VOL",
+   "P": {
+    "k": 1.5,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 46,
+    "win": 45.7,
+    "pf": 1.27,
+    "avg": 14.54,
+    "net": 669,
+    "dd": 626,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 52,
+    "boot_bust": 28,
+    "med_days": 123.0
+   },
+   "judge": {
+    "n": 18,
+    "win": 33.3,
+    "pf": 1.24,
+    "avg": 14.69,
+    "net": 264,
+    "dd": 542,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 44,
+    "boot_bust": 39,
+    "med_days": 126.0
+   },
+   "year": {
+    "n": 64,
+    "win": 42.2,
+    "pf": 1.26,
+    "avg": 14.59,
+    "net": 934,
+    "dd": 626,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 54,
+    "boot_bust": 31,
+    "med_days": 124.5
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 28,
+    "win": 35.7,
+    "pf": 1.13,
+    "avg": 6.23,
+    "net": 174,
+    "dd": 556,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 14,
+    "boot_bust": 18,
+    "med_days": 178.0
+   },
+   "judge": {
+    "n": 12,
+    "win": 75.0,
+    "pf": 6.81,
+    "avg": 97.83,
+    "net": 1174,
+    "dd": 142,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 99,
+    "boot_bust": 0,
+    "med_days": 109.0
+   },
+   "year": {
+    "n": 40,
+    "win": 47.5,
+    "pf": 1.89,
+    "avg": 33.71,
+    "net": 1348,
+    "dd": 556,
+    "roll_pass": 3,
+    "roll_bust": 0,
+    "boot_pass": 59,
+    "boot_bust": 2,
+    "med_days": 152.5
+   }
+  },
+  {
+   "sig": "POC",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 41,
+    "win": 36.6,
+    "pf": 1.17,
+    "avg": 8.71,
+    "net": 357,
+    "dd": 584,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 33,
+    "boot_bust": 28,
+    "med_days": 163.0
+   },
+   "judge": {
+    "n": 19,
+    "win": 36.8,
+    "pf": 0.98,
+    "avg": -1.13,
+    "net": -22,
+    "dd": 941,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 26,
+    "boot_bust": 65,
+    "med_days": 115.5
+   },
+   "year": {
+    "n": 60,
+    "win": 36.7,
+    "pf": 1.09,
+    "avg": 5.59,
+    "net": 336,
+    "dd": 941,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 31,
+    "boot_bust": 47,
+    "med_days": 140.0
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "none",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 93,
+    "win": 45.2,
+    "pf": 1.1,
+    "avg": 8.38,
+    "net": 780,
+    "dd": 1509,
+    "roll_pass": 5,
+    "roll_bust": 71,
+    "boot_pass": 38,
+    "boot_bust": 62,
+    "med_days": 39.0
+   },
+   "judge": {
+    "n": 40,
+    "win": 40.0,
+    "pf": 0.75,
+    "avg": -20.29,
+    "net": -812,
+    "dd": 1548,
+    "roll_pass": 0,
+    "roll_bust": 63,
+    "boot_pass": 12,
+    "boot_bust": 87,
+    "med_days": 63.0
+   },
+   "year": {
+    "n": 133,
+    "win": 43.6,
+    "pf": 1.0,
+    "avg": -0.24,
+    "net": -32,
+    "dd": 2388,
+    "roll_pass": 3,
+    "roll_bust": 67,
+    "boot_pass": 28,
+    "boot_bust": 72,
+    "med_days": 50.0
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 15,
+    "win": 40.0,
+    "pf": 1.18,
+    "avg": 9.87,
+    "net": 148,
+    "dd": 386,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 2,
+    "boot_bust": 22,
+    "med_days": 230.0
+   },
+   "judge": {
+    "n": 9,
+    "win": 55.6,
+    "pf": 2.07,
+    "avg": 34.11,
+    "net": 307,
+    "dd": 242,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 37,
+    "boot_bust": 1,
+    "med_days": 183.5
+   },
+   "year": {
+    "n": 24,
+    "win": 45.8,
+    "pf": 1.41,
+    "avg": 18.96,
+    "net": 455,
+    "dd": 386,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 7,
+    "boot_bust": 8,
+    "med_days": 206.0
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 31,
+    "win": 45.2,
+    "pf": 1.15,
+    "avg": 11.65,
+    "net": 361,
+    "dd": 1163,
+    "roll_pass": 4,
+    "roll_bust": 37,
+    "boot_pass": 37,
+    "boot_bust": 53,
+    "med_days": 118.0
+   },
+   "judge": {
+    "n": 15,
+    "win": 33.3,
+    "pf": 0.52,
+    "avg": -51.93,
+    "net": -779,
+    "dd": 1147,
+    "roll_pass": 0,
+    "roll_bust": 59,
+    "boot_pass": 1,
+    "boot_bust": 95,
+    "med_days": 193.0
+   },
+   "year": {
+    "n": 46,
+    "win": 41.3,
+    "pf": 0.9,
+    "avg": -9.08,
+    "net": -418,
+    "dd": 2176,
+    "roll_pass": 2,
+    "roll_bust": 35,
+    "boot_pass": 16,
+    "boot_bust": 72,
+    "med_days": 104.0
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 62,
+    "win": 41.9,
+    "pf": 0.97,
+    "avg": -2.4,
+    "net": -149,
+    "dd": 1436,
+    "roll_pass": 23,
+    "roll_bust": 21,
+    "boot_pass": 30,
+    "boot_bust": 70,
+    "med_days": 51.5
+   },
+   "judge": {
+    "n": 26,
+    "win": 30.8,
+    "pf": 0.48,
+    "avg": -48.93,
+    "net": -1272,
+    "dd": 1878,
+    "roll_pass": 0,
+    "roll_bust": 71,
+    "boot_pass": 2,
+    "boot_bust": 98,
+    "med_days": 92.0
+   },
+   "year": {
+    "n": 88,
+    "win": 38.6,
+    "pf": 0.81,
+    "avg": -16.15,
+    "net": -1421,
+    "dd": 2776,
+    "roll_pass": 14,
+    "roll_bust": 39,
+    "boot_pass": 18,
+    "boot_bust": 82,
+    "med_days": 50.5
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 11,
+    "win": 36.4,
+    "pf": 1.14,
+    "avg": 6.61,
+    "net": 73,
+    "dd": 350,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 2,
+    "boot_bust": 3,
+    "med_days": 209.5
+   },
+   "judge": {
+    "n": 6,
+    "win": 33.3,
+    "pf": 0.41,
+    "avg": -28.17,
+    "net": -169,
+    "dd": 269,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 5,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 17,
+    "win": 35.3,
+    "pf": 0.88,
+    "avg": -5.66,
+    "net": -96,
+    "dd": 350,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 0,
+    "boot_bust": 5,
+    "med_days": 218.0
+   }
+  },
+  {
+   "sig": "STACK",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.0,
+    "m": 1.5
+   },
+   "R": 1.5,
+   "pick": {
+    "n": 20,
+    "win": 45.0,
+    "pf": 1.08,
+    "avg": 4.86,
+    "net": 97,
+    "dd": 528,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 8,
+    "boot_bust": 7,
+    "med_days": 174.5
+   },
+   "judge": {
+    "n": 9,
+    "win": 11.1,
+    "pf": 0.18,
+    "avg": -122.78,
+    "net": -1105,
+    "dd": 1340,
+    "roll_pass": 0,
+    "roll_bust": 59,
+    "boot_pass": 0,
+    "boot_bust": 99,
+    "med_days": NaN
+   },
+   "year": {
+    "n": 29,
+    "win": 34.5,
+    "pf": 0.6,
+    "avg": -34.75,
+    "net": -1008,
+    "dd": 1868,
+    "roll_pass": 0,
+    "roll_bust": 13,
+    "boot_pass": 1,
+    "boot_bust": 68,
+    "med_days": 165.0
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "none",
+   "P": {
+    "k": 2.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 458,
+    "win": 39.7,
+    "pf": 1.3,
+    "avg": 10.87,
+    "net": 4980,
+    "dd": 974,
+    "roll_pass": 90,
+    "roll_bust": 0,
+    "boot_pass": 84,
+    "boot_bust": 16,
+    "med_days": 29.0
+   },
+   "judge": {
+    "n": 241,
+    "win": 31.5,
+    "pf": 1.0,
+    "avg": -0.1,
+    "net": -24,
+    "dd": 1508,
+    "roll_pass": 43,
+    "roll_bust": 51,
+    "boot_pass": 31,
+    "boot_bust": 69,
+    "med_days": 33.0
+   },
+   "year": {
+    "n": 699,
+    "win": 36.9,
+    "pf": 1.19,
+    "avg": 7.09,
+    "net": 4956,
+    "dd": 1508,
+    "roll_pass": 78,
+    "roll_bust": 15,
+    "boot_pass": 64,
+    "boot_bust": 36,
+    "med_days": 33.0
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "PD_SESS",
+   "P": {
+    "k": 2.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 421,
+    "win": 38.5,
+    "pf": 1.11,
+    "avg": 3.81,
+    "net": 1606,
+    "dd": 1782,
+    "roll_pass": 48,
+    "roll_bust": 37,
+    "boot_pass": 58,
+    "boot_bust": 42,
+    "med_days": 43.0
+   },
+   "judge": {
+    "n": 222,
+    "win": 30.2,
+    "pf": 0.91,
+    "avg": -3.39,
+    "net": -753,
+    "dd": 1674,
+    "roll_pass": 41,
+    "roll_bust": 51,
+    "boot_pass": 22,
+    "boot_bust": 78,
+    "med_days": 39.0
+   },
+   "year": {
+    "n": 643,
+    "win": 35.6,
+    "pf": 1.04,
+    "avg": 1.33,
+    "net": 852,
+    "dd": 1782,
+    "roll_pass": 40,
+    "roll_bust": 52,
+    "boot_pass": 39,
+    "boot_bust": 61,
+    "med_days": 46.0
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "PD_PREV",
+   "P": {
+    "k": 1.5,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 398,
+    "win": 35.7,
+    "pf": 0.96,
+    "avg": -1.54,
+    "net": -612,
+    "dd": 1415,
+    "roll_pass": 3,
+    "roll_bust": 91,
+    "boot_pass": 26,
+    "boot_bust": 74,
+    "med_days": 38.5
+   },
+   "judge": {
+    "n": 212,
+    "win": 29.7,
+    "pf": 0.9,
+    "avg": -3.65,
+    "net": -774,
+    "dd": 1581,
+    "roll_pass": 4,
+    "roll_bust": 45,
+    "boot_pass": 15,
+    "boot_bust": 85,
+    "med_days": 50.0
+   },
+   "year": {
+    "n": 610,
+    "win": 33.6,
+    "pf": 0.94,
+    "avg": -2.27,
+    "net": -1386,
+    "dd": 1990,
+    "roll_pass": 4,
+    "roll_bust": 84,
+    "boot_pass": 22,
+    "boot_bust": 78,
+    "med_days": 41.5
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "VOL",
+   "P": {
+    "k": 2.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 281,
+    "win": 41.6,
+    "pf": 1.37,
+    "avg": 13.71,
+    "net": 3852,
+    "dd": 828,
+    "roll_pass": 59,
+    "roll_bust": 0,
+    "boot_pass": 89,
+    "boot_bust": 11,
+    "med_days": 44.0
+   },
+   "judge": {
+    "n": 152,
+    "win": 30.9,
+    "pf": 0.89,
+    "avg": -5.35,
+    "net": -814,
+    "dd": 1641,
+    "roll_pass": 0,
+    "roll_bust": 45,
+    "boot_pass": 3,
+    "boot_bust": 97,
+    "med_days": 65.0
+   },
+   "year": {
+    "n": 433,
+    "win": 37.9,
+    "pf": 1.17,
+    "avg": 7.02,
+    "net": 3038,
+    "dd": 1641,
+    "roll_pass": 51,
+    "roll_bust": 12,
+    "boot_pass": 60,
+    "boot_bust": 40,
+    "med_days": 55.5
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "PD_SESS+VOL",
+   "P": {
+    "k": 2.0,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 254,
+    "win": 40.6,
+    "pf": 1.31,
+    "avg": 10.91,
+    "net": 2770,
+    "dd": 760,
+    "roll_pass": 23,
+    "roll_bust": 0,
+    "boot_pass": 92,
+    "boot_bust": 8,
+    "med_days": 61.0
+   },
+   "judge": {
+    "n": 141,
+    "win": 29.1,
+    "pf": 0.84,
+    "avg": -6.99,
+    "net": -986,
+    "dd": 1294,
+    "roll_pass": 0,
+    "roll_bust": 0,
+    "boot_pass": 2,
+    "boot_bust": 98,
+    "med_days": 69.0
+   },
+   "year": {
+    "n": 395,
+    "win": 36.5,
+    "pf": 1.12,
+    "avg": 4.52,
+    "net": 1785,
+    "dd": 1294,
+    "roll_pass": 18,
+    "roll_bust": 0,
+    "boot_pass": 53,
+    "boot_bust": 47,
+    "med_days": 73.0
+   }
+  },
+  {
+   "sig": "ALL",
+   "filt": "PD_PREV+VOL",
+   "P": {
+    "k": 1.5,
+    "m": 1.5
+   },
+   "R": 2.0,
+   "pick": {
+    "n": 237,
+    "win": 36.3,
+    "pf": 1.03,
+    "avg": 1.15,
+    "net": 272,
+    "dd": 1068,
+    "roll_pass": 0,
+    "roll_bust": 31,
+    "boot_pass": 34,
+    "boot_bust": 65,
+    "med_days": 85.0
+   },
+   "judge": {
+    "n": 135,
+    "win": 25.9,
+    "pf": 0.72,
+    "avg": -12.6,
+    "net": -1700,
+    "dd": 2048,
+    "roll_pass": 0,
+    "roll_bust": 59,
+    "boot_pass": 0,
+    "boot_bust": 100,
+    "med_days": 128.5
+   },
+   "year": {
+    "n": 372,
+    "win": 32.5,
+    "pf": 0.91,
+    "avg": -3.84,
+    "net": -1429,
+    "dd": 2380,
+    "roll_pass": 0,
+    "roll_bust": 55,
+    "boot_pass": 15,
+    "boot_bust": 85,
+    "med_days": 74.0
+   }
+  }
+ ],
+ "best": []
+}
