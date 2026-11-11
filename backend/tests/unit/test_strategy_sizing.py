@@ -64,3 +64,18 @@ def test_bias_size_d74() -> None:
     assert bias_size(1, 2, -1, 1) == 1  # never below 1
     assert bias_size(2, 2, 1, 0) == 2  # no proven call: unchanged
     assert bias_size(2, 2, 0, 1) == 2
+
+
+def test_plan_contracts_and_risk_cap_d115():
+    from decimal import Decimal as Dd
+
+    from app.risk.strategy_sizing import plan_contracts, risk_cap
+
+    assert plan_contracts(5, Dd(150000), Dd(150000)) == 5  # the plan's own size
+    assert plan_contracts(5, Dd(150000), Dd(200000)) == 5  # never more for a bigger account
+    assert plan_contracts(5, Dd(150000), Dd(50000)) == 1  # 5 x 1/3 = 1 (rounded down)
+    assert plan_contracts(5, Dd(150000), Dd(100000)) == 3
+    assert plan_contracts(1, Dd(25000), Dd(10000)) == 1  # min 1
+    assert plan_contracts(3, Dd(0), Dd(1)) == 3  # no plan size → unchanged
+    assert risk_cap(None, None) is None
+    assert risk_cap(Dd(600), None, Dd(500)) == Dd(500)
