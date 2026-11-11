@@ -793,3 +793,29 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - Pure `risk/consistency.py`: `payout_consistency` (cycle profit = sum of day profits incl. losing days; "exactly at the limit" counts as eligible = VERIFY; `needed_cycle_profit` rounds UP to a whole dollar so it is never understated; `still_needed`), `payout_limit`, `payout_rule_applies` (FUNDED only), plain-text explanation. Service `payouts/service.py`: cycle = since last processed payout (else stage start), `plan_for` returns CONSISTENCY (no payout proposed) while unmet, and `POST /api/payouts/{id}/status -> submitted` is refused with 409 while unmet. "What is still needed" on Payouts (card, `GET /api/payouts/consistency`), Dashboard (per account) and Accounts.
 - N6: for fixed-size strategy trades (NOISE etc.) the pre-entry "TP reward must fit the cap" fit is skipped (the far safety TP is not the exit, so it rejected every entry); instead no entry opens at/after the cap or the day stop, and the watchdog (`Controller._monitor`) flattens the account's strategy trades as soon as today's realised + open profit reaches the consistency day stop (`live_day_stop_hit`, uses the harvest-tightened limit; protective, never waits). No cap was loosened: LunqFX trades keep the TP-reward fit.
 - Assumptions (VERIFY with Lucid): equality at the limit is eligible; cycle = closed trades after the last processed payout, grouped by CME session date; the Accounts date picker stores 12:00 ET of the chosen day (a purchase on the cutoff day itself therefore counts as <= cutoff = stricter 35%).
+
+## D93 (user-approved 2026-11-11, session 17): "Mission control" UI look + mandatory-connection highlight and checklist
+- Look: docs/results/session17/ui_concepts/mission.html applied app-wide by one stylesheet loaded after index.css
+  (frontend/src/mission.css, scoped by the `.mission` class on Layout): mono uppercase gold page labels rendered as
+  "PAYTIENCE · <PAGE>", every card a rounded mission tile, pill nav, wider canvas (1500 px), phone bottom dock
+  (components/MobileDock.tsx; the full scrolling nav stays). Dashboard hero = components/MissionBento.tsx (cushion gauge
+  and day P&L vs DLL for the account closest to its drawdown limit, safety tile linking to Automation, today, balance)
+  from /api/dashboard only. Strategy and all other pages get the look through the shared CSS (no page rewrites).
+- §18 kept: the concept's grey "muted" text became blueLight; red/green only as the small status dots; P&L keeps ▲/▼ and
+  sign. New theme.ts tokens: `mandatory` (#FFC93C, gold family, AA on every surface, tested) and `mission.*` surfaces
+  (backgrounds only). No web fonts are downloaded (offline desktop/WebView): font stacks fall back to system fonts.
+- Mandatory to trade an EVAL or LIVE account (standout `mandatory` colour + "MANDATORY · EVAL/LIVE" tag on the
+  Connections cards; lib/mandatory.ts): broker order route (CrossTrade or Tradovate — Lucid has no API, §1.3), TradingView
+  webhook heartbeat (only live signal source, §1.1), webhook secret, public HTTPS URL (ngrok, or own tunnel / Cloudflare
+  fallback), economic calendar (§15 "no calendar = no trading"), external-positions attestation (§1.11), clock sync
+  (pre-flight < 2 s) and the last pre-flight result (server refuses SEMI/FULL without it). Optional, normal colour:
+  Discord/notifications, AI keys (TradingAgents, Vibe-Trading, Alpha Vantage, FRED), Trading-R1, Databento/OpenBB/Fincept,
+  Lucid link, GitHub updates.
+- "Mandatory connection checklist" (components/MandatoryChecklist.tsx) on Dashboard and Connections, from
+  /api/connections, /api/webhook/status and /api/today/plan (last pre-flight, never triggers one). Anything the API does
+  not report is "unknown" with the reason. "Ready to trade EVAL/LIVE": NO if any item is missing; NOT CONFIRMED if
+  nothing is missing but something is unknown; YES only if all are OK.
+- Known gaps (for the user): the server's pre-flight feeds clock_drift_s = 0.0 (not measured), so clock sync always
+  shows "unknown" and the line cannot reach YES until drift is measured; pre-flight still requires a daily bias, so in
+  practice TradingAgents (classified optional per the user) can still block SEMI/FULL via the pre-flight row; Tradovate
+  credentials cannot be tested here (shown "unknown" when only Tradovate is saved).
