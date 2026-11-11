@@ -131,7 +131,9 @@ def _run(cmd: list[str]) -> None:
     """Run a helper command with a clean environment (the frozen app's PYTHON* vars break child Pythons) and
     surface its real error text instead of a bare CalledProcessError."""
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith(("PYTHON", "VIRTUAL_ENV", "_MEI", "PIP_"))}
-    r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    # D119: cwd=paytience-data — the app's cwd is inside _internal, and a long uv/pip child inheriting it kept
+    # _internal locked so an update could not swap it
+    r = subprocess.run(cmd, capture_output=True, text=True, env=env, cwd=str(DATA))
     if r.returncode:
         raise RuntimeError(f"{' '.join(cmd[:4])}… exit {r.returncode}: {(r.stderr or r.stdout).strip()[-600:]}")
 

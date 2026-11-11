@@ -275,3 +275,24 @@ def test_install_unexpected_error_names_cause(authed, mock_http, monkeypatch, tm
     monkeypatch.setattr(updater, "download", boom)
     r = authed.post("/api/updates/install")
     assert r.status_code == 502 and "RuntimeError" in r.json()["detail"] and "old version kept" in r.json()["detail"]
+
+
+def test_bat_d119_cwd_start_and_cleanup(tmp_path):
+    """D119: the script leaves the app folder first, starts the new app with its own cwd, kills tunnels on rollback."""
+    app = tmp_path / "My Docs" / "Paytience"
+    up = tmp_path / "My Docs" / "Paytience" / "paytience-data" / "updates"
+    s = updater.updater_script(app, up / "staging" / "Paytience", up / "old-1", up, 4242)
+    lines = s.split("\r\n")
+    assert lines[2] == f'cd /d "{up}"'  # before any move: cmd must not hold _internal open
+    assert s.count(f'start "Paytience" /D "{app}" "{app}\\Paytience.exe"') == 2
+    assert 'start "" ' not in s
+    stop = s[s.index(":stopnew") : s.index(":restore")]
+    assert "taskkill /IM ngrok.exe /F" in stop and "taskkill /IM cloudflared.exe /F" in stop
+    assert "paytience-data\\updates\"" in lines[2] and "rmdir" not in s.split(":restore")[0]  # data never deleted
+
+
+def test_script_encoding_is_oem_on_windows(monkeypatch):
+    monkeypatch.setattr(updater.os, "name", "nt")
+    assert updater.script_encoding() == "oem"
+    monkeypatch.setattr(updater.os, "name", "posix")
+    assert updater.script_encoding() == "utf-8"

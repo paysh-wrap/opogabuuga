@@ -1,4 +1,4 @@
-"""D63 automatic size per account for the fixed-size strategies (NOISE, PM_FADE). PURE.
+"""D63 automatic size per account for the fixed-size strategies (NOISE, PM_FADE); D115 per-plan size helpers. PURE.
 
 Each account is sized by its OWN Lucid account size (Account.starting_balance; the plan's account_size when unknown),
 using the plan's strategy.size_table (config/rules/*.yaml). Tier = the largest row with account_size ≤ the account's
@@ -71,3 +71,17 @@ def bias_size(contracts: int, base_contracts: int, side: int, call: int) -> int:
     if call == side:
         return min(contracts + 1, base_contracts + 1)
     return max(1, contracts - 1)
+
+
+def plan_contracts(contracts: int, plan_size: Decimal, account_size: Decimal) -> int:
+    """D115: a strategy's per-plan size (config/rules/*.yaml) is written for the plan's own account size. An account
+    SMALLER than the plan (mixed household) gets proportionally fewer micros (rounded down, min 1); never more."""
+    if plan_size <= 0 or account_size >= plan_size:
+        return contracts
+    return max(1, min(contracts, int(contracts * account_size / plan_size)))
+
+
+def risk_cap(*caps: Decimal | None) -> Decimal | None:
+    """D115: the tightest per-trade $ cap that applies (strategy budget, AI Duo cap, the plan's per-trade cap)."""
+    vals = [c for c in caps if c is not None]
+    return min(vals) if vals else None

@@ -221,6 +221,9 @@ def updater_script(
     lines = [
         "@echo off",
         "setlocal",
+        # D119: never sit inside the old app's folder (cwd inherited from the app = _internal\\backend kept
+        # _internal "in use", so the move always failed and the update restored itself)
+        f'cd /d "{updates_dir}"',
         f'set "LOG={log}"',
         'echo [%date% %time%] update started >> "%LOG%"',
         "set /a w=0",
@@ -255,7 +258,7 @@ def updater_script(
         f'move "{new_dir}\\Paytience.exe" "{app_dir}\\" >> "%LOG%" 2>&1 || goto restore',
         f'move "{new_dir}\\_internal" "{app_dir}\\" >> "%LOG%" 2>&1 || goto restore',
         'echo [%date% %time%] files swapped, starting new app >> "%LOG%"',
-        f'start "" "{app_dir}\\Paytience.exe"',
+        f'start "Paytience" /D "{app_dir}" "{app_dir}\\Paytience.exe"',
         "set /a n=0",
         ":health",
         f'if exist "{unhealthy}" goto stopnew',
@@ -271,6 +274,8 @@ def updater_script(
         ":stopnew",
         'echo [%date% %time%] new app did not become healthy, restoring >> "%LOG%"',
         "taskkill /IM Paytience.exe /F >nul 2>&1",
+        "taskkill /IM ngrok.exe /F >nul 2>&1",
+        "taskkill /IM cloudflared.exe /F >nul 2>&1",
         "timeout /t 2 /nobreak >nul",
         ":restore",
         'echo [%date% %time%] restoring backup >> "%LOG%"',
@@ -281,10 +286,15 @@ def updater_script(
         ":fail",
         f'echo Update failed at %date% %time% - old version restored. See update.log > "{failed}"',
         'echo [%date% %time%] update FAILED, old version kept >> "%LOG%"',
-        f'start "" "{app_dir}\\Paytience.exe"',
+        f'start "Paytience" /D "{app_dir}" "{app_dir}\\Paytience.exe"',
         "exit /b 1",
     ]
     return "\r\n".join(lines) + "\r\n"
+
+
+def script_encoding() -> str:
+    """D119: cmd.exe reads a .bat in the console (OEM) code page, not UTF-8: a path like C:\\Users\\Jürgen broke."""
+    return "oem" if os.name == "nt" else "utf-8"
 
 
 def on_healthy_start(updates_dir: Path, running_commit: str | None = None) -> str | None:

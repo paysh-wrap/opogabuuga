@@ -278,7 +278,9 @@ class NoiseCfg(_M):
     # study (docs/results/session10 §10–12): $250 ties 1% on PF (1.36 vs 1.35), no losing year, worst trade −$250.
     emergency_stop_usd: D | None = D("250")
     max_entries_per_day: int = 3
-    contracts: int = 1  # fixed size (user: Pro 25K at 1 micro); still subject to every pre-trade risk check
+    # D115: fallback size when the plan has no size_table (Daily 25K); per plan in config/rules/*.yaml. Every
+    # pre-trade risk check still applies (firm/internal max, DLL/MLL worst case, plan per-trade cap, split, hedge).
+    contracts: int = Field(default=1, ge=1)
     roll_gap_pct: D = D("0.015")  # |RTH open / prior RTH close − 1| above this → contract roll or shock: no trades
     # D82 (preset C, D75-P1): once a trade is trigger pts in profit the stop moves to entry + lock pts (ratchet); a
     # locked-stop exit ends NOISE for the day. None = no lock. Both set together (management/profit_lock.py).
@@ -458,7 +460,11 @@ class OrderFlowCfg(_M):
     min_risk_ticks: int = Field(default=8, ge=1)
     max_risk_ticks: int = Field(default=120, ge=1)
     max_per_day: int = Field(default=3, ge=1, le=10)
-    contracts: int = 1
+    # D115 (user 2026-11-11): per-plan size CAP (config/rules/*.yaml; 25K = 1 micro). Risk-based: the trade gets
+    # min(contracts, floor(max_risk_usd / per-contract risk at its own ATR/absorption stop)); 0 → STOP_TOO_WIDE.
+    contracts: int = Field(default=1, ge=1)
+    max_risk_usd: D | None = Field(default=None, gt=D(0))
+    brake_below: D = Field(default=D("0.5"), gt=D(0), le=D(1))  # 1 micro while cushion < brake_below × MLL
     paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
     flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
     ar: ArModelCfg = ArModelCfg()  # D101: AR Model layers
@@ -485,8 +491,6 @@ class OrderFlowCfg(_M):
             raise ValueError("order_flow: min_risk_ticks ≤ max_risk_ticks")
         if self.amt.target_max_rr < self.rr_min:
             raise ValueError("order_flow.amt: target_max_rr ≥ rr_min")
-        if self.contracts != 1:  # D102: paper_only is a user choice now; the fixed 1 micro stays (D95)
-            raise ValueError("order_flow: UNVERIFIED — contracts must stay 1 (D95)")
         return self
 
 
@@ -500,7 +504,10 @@ class AiBiasCfg(_M):
     stop_pct: D = D("0.005")  # 0.5% of price (≈ $276 per micro): 1% was break-even even with perfect calls
     take_profit_pct: D = D("0.10")  # far safety target; the 16:00 flat exits
     flat_at: str = "16:00"
-    contracts: int = 1
+    # D115: per-plan size (config/rules/*.yaml; 25K = 1) + per-trade $ budget at the 0.5% stop (smaller fit → fewer)
+    contracts: int = Field(default=1, ge=1)
+    max_risk_usd: D | None = Field(default=None, gt=D(0))
+    brake_below: D = Field(default=D("0.5"), gt=D(0), le=D(1))  # 1 micro while cushion < brake_below × MLL
     paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
 
 
@@ -621,7 +628,7 @@ class PmFadeCfg(_M):
     stop_usd: D = D("250")
     min_target_ticks: int = 4
     flat_at: str = "15:55"
-    contracts: int = 1
+    contracts: int = Field(default=1, ge=1)  # D115: fallback when the plan has no size_table (Daily 25K)
     paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
 
 
@@ -718,6 +725,9 @@ class StrategyCfg(_M):
     # Tighten-only.
     noise_ai_split: bool = False
     noise_ai_split_share: D = Field(default=D("0.5"), gt=D(0), le=D("0.5"))
+    # D115 (user 2026-11-11): the plan's per-trade worst-case cap for EVERY fixed-size strategy (qty × (stop ticks ×
+    # tick value + fee + slippage)); the size is reduced to fit, 0 contracts → STOP_TOO_WIDE. None = off.
+    max_trade_risk_usd: D | None = Field(default=None, gt=D(0))
     # D57: NOISE / AI_BIAS scale their emergency stop down as the account draws down instead of pausing at the pause
     # floor: worst case ≤ this fraction of the room (DLL left / distance to MLL − kill distance); None = old pause.
     drawdown_shrink: D | None = D("0.6")
@@ -1190,6 +1200,24 @@ class RulesConfig(_M):
                 raise ValueError(f"instrument {sym}: unknown super_group {inst.super_group}")
             if inst.group not in self.correlation_groups or sym not in self.correlation_groups[inst.group]:
                 raise ValueError(f"instrument {sym}: not a member of correlation group {inst.group}")
+        st, firm = self.strategy, self.max_contracts.micros
+        sizes = {  # D115: every strategy's own size stays inside the firm's micro cap for this plan
+            "noise_cfg.contracts": st.noise_cfg.contracts,
+            "pm_fade_cfg.contracts": st.pm_fade_cfg.contracts,
+            "ai_bias_cfg.contracts": st.ai_bias_cfg.contracts,
+            "ai_duo_cfg.contracts": st.ai_duo_cfg.contracts,
+            "ai_duo_cfg.max_qty": st.ai_duo_cfg.max_qty,
+            "order_flow_cfg.contracts": st.order_flow_cfg.contracts,
+        }
+        for table in (st.size_table, st.size_table_high, st.size_table_eval, st.size_table_eval_high):
+            for t in table:
+                if t.account_size == self.account_size:
+                    sizes[f"size_table {t.account_size}"] = max(t.contracts, t.max_contracts or 0)
+        over = [k for k, n in sizes.items() if n > firm]
+        if over:
+            raise ValueError(f"strategy: contracts above the firm max of {firm} micros: {over}")
+        if st.max_trade_risk_usd is not None and st.max_trade_risk_usd >= min(self.eval.max_loss_limit, self.funded.max_loss_limit):
+            raise ValueError("strategy.max_trade_risk_usd must be below the plan's max loss limit")
         missing = [x for x in self.strategy.order_flow_cfg.instruments if x not in self.instruments]
         if missing:  # D96: tick size / value / fees always come from the instrument config, never from code
             raise ValueError(f"strategy.order_flow_cfg.instruments: no instrument config for {missing}")

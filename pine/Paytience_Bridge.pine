@@ -3,7 +3,6 @@
 // Mirrors backend/app/indicators/ exactly (Python reference) — both are ports of the ORIGINAL sources:
 //  • "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (open-source, © LunqFX) — fractal state machine
 //    (D105: LunqFX was removed from Paytience; its alerts are ignored by the app. Only HEARTBEAT bars matter now.)
-//  • "Market Structure Oscillator [BigBeluga]" (© BigBeluga, CC BY-NC-SA 4.0) — MSO block below
 // This bridge is shared under CC BY-NC-SA 4.0. PERSONAL USE ONLY. Verified against both sources 2026-11-05.
 //
 // Setup: MNQ1! chart, 1-minute for profile TIGHT or 5-minute for STD. Add this indicator, paste the webhook secret,
@@ -12,12 +11,6 @@ indicator("Paytience_Bridge", overlay = true, max_labels_count = 200)
 
 secret    = input.string("", "Webhook secret")
 profile   = input.string("STD", "Profile", options = ["TIGHT", "STD"])
-pivL      = input.int(5, "MSO pivot left", minval = 1)
-pivR      = input.int(5, "MSO pivot right", minval = 1)
-momLen    = input.int(14, "MSO momentum length", minval = 1)
-smoothLen = input.int(10, "MSO smoothing length", minval = 1)
-divL      = input.int(5, "MSO divergence pivot left", minval = 1)
-divR      = input.int(5, "MSO divergence pivot right", minval = 1)
 atrLen    = input.int(14, "HTF ATR length", minval = 1)
 showMarks = input.bool(true, "Show markers")
 
@@ -97,66 +90,6 @@ bool mkSweepS = false
 bool mkConfL = false
 bool mkConfS = false
 
-// ---------- MSO — logic from "Market Structure Oscillator [BigBeluga]" (© BigBeluga, CC BY-NC-SA 4.0) ----------
-// https://creativecommons.org/licenses/by-nc-sa/4.0/ — this bridge is shared under the same license. PERSONAL USE ONLY.
-var bool msUp = false
-var bool msAny = false
-var int bullN = 0
-var int bearN = 0
-var float swHi = na
-var float swLo = na
-float ph = ta.pivothigh(pivL, pivR)
-float pl = ta.pivotlow(pivL, pivR)
-if not na(ph)
-    swHi := ph
-if not na(pl)
-    swLo := pl
-bool xUp = ta.crossover(close, swHi)
-bool xDn = ta.crossunder(close, swLo)
-bool brkUp = xUp and not na(swHi)
-string evUp = bullN + 1 <= 1 ? "MSO_CHOCH" : "MSO_BOS"
-if brkUp
-    msUp := true
-    msAny := true
-    bullN += 1
-    bearN := 0
-    swHi := na
-bool brkDn = xDn and not na(swLo)
-string evDn = bearN + 1 <= 1 ? "MSO_CHOCH" : "MSO_BOS"
-if brkDn
-    msUp := false
-    msAny := true
-    bearN += 1
-    bullN := 0
-    swLo := na
-string trend = msAny ? (msUp ? "BULL" : "BEAR") : "NONE"
-float roc = ta.change(close, momLen)
-float vol = ta.stdev(ta.change(close), momLen)
-float rawMom = vol != 0 ? roc / vol : 0.0
-float smoothed = ta.ema(100 / (1 + math.exp(-rawMom)), smoothLen)
-float osc = na(smoothed) ? na : msUp ? 50 + math.abs(smoothed - 50) : 50 - math.abs(smoothed - 50)
-float oph = ta.pivothigh(smoothed, divL, divR)
-float opl = ta.pivotlow(smoothed, divL, divR)
-var float prevOH = na
-var float prevOHP = na
-var float prevOL = na
-var float prevOLP = na
-bool divShort = false
-bool divLong = false
-if not na(oph)
-    float curP = high[divR]
-    if not na(prevOH) and curP > prevOHP and oph < prevOH
-        divShort := true
-    prevOH := oph
-    prevOHP := curP
-if not na(opl)
-    float curPl = low[divR]
-    if not na(prevOL) and curPl < prevOLP and opl > prevOL
-        divLong := true
-    prevOL := opl
-    prevOLP := curPl
-
-if barstate.isconfirmed
     // ---------- HTF candle (closed on the first bar of the next period, like the original) ----------
     bool htfClosed = false
     if newH and not na(hO)
@@ -296,22 +229,9 @@ if barstate.isconfirmed
                 mkSweepS := true
             f_send("C1_SWEPT", dnSw ? "LONG" : "SHORT", f_fr(c1H, c1L, c1S, atrV, (c1H + c1L) / 2, dnSw ? c1H : c1L, swX, swX, swT, cisdLvl, false, false, na))
 
-    // ---------- MSO events + heartbeat ----------
-    string oscS = na(osc) ? "null" : str.tostring(osc, "#.##")
-    if brkUp
-        f_send(evUp, "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
-    if brkDn
-        f_send(evDn, "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
-    // D112: real-time check - on a live bar, timenow - time_close is the delay of the data feed (CME real-time = ~0).
     string dataFeed = barstate.isrealtime ? ((timenow - time_close) <= 90000 ? "realtime" : "delayed") : "unknown"
     f_send("HEARTBEAT", "NONE", '"data_feed":"' + dataFeed + '","price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
-                                ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '},"mso":{"trend":"' + trend +
-                                '","osc":' + oscS + ',"div":null,"htf_trend":"' + hTrend + '","confirm_time_ms":' +
-                                str.tostring(time_close) + "}")
-    if divShort
-        f_send("MSO_DIV", "SHORT", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":"BEAR","htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
-    if divLong
-        f_send("MSO_DIV", "LONG", '"mso":{"trend":"' + trend + '","osc":' + oscS + ',"div":"BULL","htf_trend":"' + hTrend + '","confirm_time_ms":' + str.tostring(time_close) + "}")
+                                ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '}')
 
 plotshape(showMarks and mkSweepL, "C1 low swept", shape.triangleup, location.belowbar, color.new(#3B82F6, 0), size = size.tiny)
 plotshape(showMarks and mkSweepS, "C1 high swept", shape.triangledown, location.abovebar, color.new(#3B82F6, 0), size = size.tiny)

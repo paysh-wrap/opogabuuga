@@ -99,8 +99,15 @@ def dismiss(_: Principal = Depends(current_user)) -> dict[str, bool]:
 def _launch(script: Path) -> None:  # pragma: no cover - Windows only
     # CREATE_NO_WINDOW (not DETACHED_PROCESS): the script's tasklist/findstr/timeout share one hidden console
     # instead of each flashing a black window.
+    # D119: cwd = the updates folder (the app's own cwd is inside _internal and would keep it locked), and break away
+    # from any job object so TerminateProcess of this app 2 s later cannot take the script down with it.
     flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-    subprocess.Popen(["cmd", "/c", str(script)], creationflags=flags, close_fds=True)  # noqa: S603,S607 - our script
+    breakaway = getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
+    args = ["cmd", "/c", str(script)]
+    try:
+        subprocess.Popen(args, creationflags=flags | breakaway, close_fds=True, cwd=str(script.parent))  # noqa: S603,S607
+    except OSError:  # the job forbids breakaway: still start it (no job is the normal case)
+        subprocess.Popen(args, creationflags=flags, close_fds=True, cwd=str(script.parent))  # noqa: S603,S607
     asyncio.get_running_loop().call_later(2.0, _hard_exit)
 
 
@@ -142,7 +149,7 @@ async def install(
         (updates / updater.EXPECTED_FILE).write_text(expected, encoding="utf-8")  # D97: new app must run THIS commit
         script.write_text(
             updater.updater_script(app_dir, new_dir, backup, updates, os.getpid(), expected_commit=expected),
-            encoding="utf-8",
+            encoding=updater.script_encoding(),
         )
         (updates / updater.FAILED_FLAG).unlink(missing_ok=True)
     except (updater.UpdateError, OSError) as e:

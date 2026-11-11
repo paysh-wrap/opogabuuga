@@ -62,7 +62,7 @@ function RestartNotice() {
           const target = uiOrigin(b?.commit, b?.built_at, window.location);
           if (target) window.location.href = target; // D103: the NEW build lives under its own browser name
           else window.location.reload();
-        }
+        } else if (!r.ok) sawDown = true; // D119: a 5xx while the old server stops also counts as "gone"
       } catch {
         sawDown = true; // old server is gone; the new one is starting
       }
