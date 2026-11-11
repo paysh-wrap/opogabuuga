@@ -61,7 +61,7 @@ def _struct(r: Any) -> list[dict[str, Any]]:
     sf = r.strategy.structure_filters
     if not sf.enabled:
         return []
-    codes = ("OB_BLOCK", "SMT_BLOCK", "MSO_DIV_BLOCK") if r.indicators.mso.enabled else ("OB_BLOCK", "SMT_BLOCK")
+    codes = ("OB_BLOCK", "SMT_BLOCK")  # D120: MSO_DIV_BLOCK removed with the MSO indicator
     return [_g("STRUCTURE", "Order-block / SMT filter (D76)", "Blocks an entry when structure is against it.", codes)]
 
 
@@ -345,9 +345,10 @@ def lucid_rules(r: Any) -> list[dict[str, Any]]:
     i, ev, fu, b = r.internal, r.eval, r.funded, r.behavior
 
     def usd(x: Any) -> str:
-        return "none" if x is None else f"${x}"
+        return "none in this plan" if x is None else f"${x}"  # D116: null in the plan yaml = no DLL (Pro eval / Flex)
 
-    cons = "none" if ev.consistency_max_day_pct is None else f"{ev.consistency_max_day_pct:%}"
+    # D116: the plan stores 40 (= 40 %), never a fraction — the old `:%` format printed "4000%"
+    cons = "none" if ev.consistency_max_day_pct is None else f"{ev.consistency_max_day_pct.normalize():f}%"
     return [
         _g(
             "NEWS",

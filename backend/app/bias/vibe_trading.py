@@ -22,6 +22,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.connections.registry import QWEN_DEFAULT_BASE_URL, qwen_base_url, qwen_model
+
 PIN = "0.1.19"  # vibe-trading-ai on PyPI (github.com/HKUDS/Vibe-Trading)
 VETO_CONFIDENCE = 60
 TIMEOUT_S = 600
@@ -31,8 +33,8 @@ PROVIDERS: dict[str, tuple[str, str, str, dict[str, str]]] = {
     "qwen": (
         "dashscope",
         "DASHSCOPE_API_KEY",
-        "qwen-plus-latest",
-        {"DASHSCOPE_BASE_URL": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"},
+        "",  # D116: resolved by registry.qwen_model("quick") — the SAME id TradingAgents uses
+        {"DASHSCOPE_BASE_URL": QWEN_DEFAULT_BASE_URL},
     ),
     "openrouter": (
         "openrouter",
@@ -60,8 +62,9 @@ def env_for(creds: dict[str, str]) -> dict[str, str]:
     lc, key_env, model, extra = PROVIDERS[pid]
     if not creds.get("api_key"):
         raise ValueError("api_key missing")
-    if pid == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):
-        extra = {**extra, "DASHSCOPE_BASE_URL": os.environ["PAYTIENCE_QWEN_BASE_URL"]}
+    if pid == "qwen":
+        extra = {**extra, "DASHSCOPE_BASE_URL": qwen_base_url()}
+        model = qwen_model("quick", creds.get("model") or "")
     return {
         "LANGCHAIN_PROVIDER": lc,
         "LANGCHAIN_MODEL_NAME": creds.get("model") or model,

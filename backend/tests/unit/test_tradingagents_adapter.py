@@ -70,3 +70,29 @@ async def test_parent_api_keys_not_leaked_to_runner(tmp_path, monkeypatch):
     dump.chmod(0o755)
     r = await TradingAgentsAdapter(str(dump), "0.7.1", 5)._call({"cmd": "version"})
     assert r.data["k"] == ""
+
+
+def test_qwen_shared_models_url_and_denied_error(monkeypatch):
+    """D116: TradingAgents + Vibe-Trading resolve the SAME Qwen model ids and base URL; a 403 names the model."""
+    from app.bias import vibe_trading as vt
+    from app.bias.tradingagents_adapter import llm_error, used_models
+    from app.connections.registry import QWEN_DEFAULT_BASE_URL, explain_llm_error, qwen_base_url, qwen_model
+
+    monkeypatch.delenv("PAYTIENCE_QWEN_BASE_URL", raising=False)
+    monkeypatch.delenv("PAYTIENCE_QWEN_QUICK_MODEL", raising=False)
+    assert qwen_base_url() == QWEN_DEFAULT_BASE_URL
+    ta = TradingAgentsAdapter.env_for({"llm_provider": "qwen", "api_key": "sk-ws-1"}, None)
+    v = vt.env_for({"llm_provider": "qwen", "api_key": "sk-ws-1"})
+    assert v["LANGCHAIN_MODEL_NAME"] == ta["TRADINGAGENTS_QUICK_THINK_LLM"] == qwen_model("quick")
+    assert v["DASHSCOPE_BASE_URL"] == ta["DASHSCOPE_BASE_URL"] == QWEN_DEFAULT_BASE_URL
+    monkeypatch.setenv("PAYTIENCE_QWEN_BASE_URL", "https://ws.example/compatible-mode/v1/")
+    monkeypatch.setenv("PAYTIENCE_QWEN_QUICK_MODEL", "qwen-plus")
+    ta = TradingAgentsAdapter.env_for({"llm_provider": "qwen", "api_key": "k"}, None)
+    v = vt.env_for({"llm_provider": "qwen", "api_key": "k"})
+    assert ta["DASHSCOPE_BASE_URL"] == v["DASHSCOPE_BASE_URL"] == "https://ws.example/compatible-mode/v1"
+    assert ta["TRADINGAGENTS_QUICK_THINK_LLM"] == v["LANGCHAIN_MODEL_NAME"] == "qwen-plus"
+    msg = llm_error("Error code: 403 - Access to model denied", "qwen", ta, v)
+    assert "qwen-plus" in msg and "qwen3.8-max" in msg and "denied" in msg
+    assert used_models(None) == []
+    assert explain_llm_error("timeout", "qwen", ["m"]) == "timeout"
+    assert "unknown" in explain_llm_error("403", "qwen", [])

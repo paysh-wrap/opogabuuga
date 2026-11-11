@@ -261,7 +261,7 @@ async def strategy(request: Request, _: Principal = Depends(current_user), db: S
             "configured": configured,
             "schedule": r.schedule.bias,
         },
-        "mso_enabled": r.indicators.mso.enabled,
+        "mso_enabled": False,  # D120: MSO removed
         "instruments": instruments,
         "one_to_one": r.one_to_one_mode.enabled,
     }

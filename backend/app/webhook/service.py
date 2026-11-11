@@ -17,7 +17,7 @@ from app.indicators.bars import tf_minutes
 from app.models import Bar as BarRow
 from app.models import Event
 from app.webhook.parser_bridge import map_symbol, parse
-from app.webhook.schemas import FRACTAL_EVENTS, WebhookPayload
+from app.webhook.schemas import FRACTAL_EVENTS, MSO_EVENTS, WebhookPayload
 from app.webhook.security import Rejection, freshness, secret_ok
 
 
@@ -90,6 +90,9 @@ def ingest(
         stats.accepted["LUNQFX_REMOVED"] += 1
         detail = "LunqFX was removed from Paytience (D105): this alert is ignored - delete it in TradingView"
         return Ignored("LUNQFX_REMOVED", detail)
+    if p.event in MSO_EVENTS:
+        stats.accepted["MSO_REMOVED"] += 1
+        return Ignored("MSO_REMOVED", "BigBeluga MSO was removed from Paytience (D120): this alert is ignored - delete it in TradingView")
     expected_tf = rules.profiles.TIGHT.ltf if p.profile == "TIGHT" else rules.profiles.STD.ltf
     try:
         tf_ok = tf_minutes(p.tf) == tf_minutes(expected_tf)

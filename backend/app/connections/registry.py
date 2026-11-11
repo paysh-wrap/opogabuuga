@@ -108,6 +108,36 @@ BEST_MODELS: dict[str, dict[str, str]] = {
     "qwen": {"deep": "qwen3.8-max", "quick": "qwen3.8-flash"},
 }
 
+QWEN_DEFAULT_BASE_URL = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+
+
+def qwen_base_url() -> str:
+    """D116: ONE Qwen endpoint for the connection test, TradingAgents and Vibe-Trading (workspace keys `sk-ws-…` only
+    work on their own regional endpoint → PAYTIENCE_QWEN_BASE_URL)."""
+    import os
+
+    return (os.environ.get("PAYTIENCE_QWEN_BASE_URL") or "").strip().rstrip("/") or QWEN_DEFAULT_BASE_URL
+
+
+def qwen_model(kind: str, configured: str = "") -> str:
+    """D116: ONE Qwen model id per role (quick | deep): the user's Connections field, else PAYTIENCE_QWEN_<KIND>_MODEL,
+    else BEST_MODELS. TradingAgents and Vibe-Trading both resolve through here, so a model the key may not use is the
+    same one everywhere and the error names it."""
+    import os
+
+    return (configured or os.environ.get(f"PAYTIENCE_QWEN_{kind.upper()}_MODEL") or BEST_MODELS["qwen"][kind]).strip()
+
+
+def explain_llm_error(err: str, provider: str, models: list[str]) -> str:
+    """D116: a 403 / "Access to model denied" names the model(s) that were used, so the user can enable them in the
+    provider console or set another id (Connections → model fields / PAYTIENCE_QWEN_*_MODEL)."""
+    low = err.lower()
+    if "denied" in low or "403" in low or "access to model" in low:
+        used = ", ".join(dict.fromkeys(m for m in models if m))
+        return f"{err} [{provider} model denied: {used or 'unknown'} — enable it for this key or set another model id]"
+    return err
+
+
 LLM_NAMES = {"anthropic": "Claude (Anthropic) — default", "kimi": "Kimi (Moonshot)", "qwen": "Qwen (Alibaba)"}
 
 BIGBELUGA_NAME = "Market Structure Oscillator [BigBeluga]"
@@ -127,7 +157,7 @@ PROVIDERS: tuple[Provider, ...] = (
         category="signals",
         required=True,
         testable=False,
-        purpose="Runs the Paytience Bridge + your two indicators and sends alerts to this app on every closed bar.",
+        purpose="Runs the Paytience Bridge and sends alerts to this app on every closed bar.",
         links=(
             Link("Log in", "https://www.tradingview.com/accounts/signin/"),
             Link("Plans (webhooks need a paid plan)", "https://www.tradingview.com/pricing/"),
@@ -136,7 +166,7 @@ PROVIDERS: tuple[Provider, ...] = (
         ),
         steps=(
             "Use a paid plan with webhooks and turn on 2FA.",
-            "Add both indicators and Paytience_Bridge to an MGC chart (MGC1!, Micro Gold — MNQ is off, D42).",
+            "Add Paytience_Bridge to a chart of each enabled instrument (for example MNQ1!).",
             "Create an alert → 'Any alert() function call' → Webhook URL below.",
             "This card turns gold when the first heartbeat arrives (Phase 2).",
         ),

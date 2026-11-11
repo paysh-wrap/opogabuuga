@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta
 
 from app import audit
+from decimal import Decimal as D
+
 from app.api.strategy_gates import LUCID, describe, evaluate, lucid_rules
 from app.clock import FixedClock
 from app.models import Signal
@@ -136,3 +138,19 @@ def test_split_card_shows_both_sides(loaded_rules):
         update={"strategy": r.strategy.model_copy(update={"noise": True, "ai_duo": True, "noise_ai_split": True})}
     )
     assert _by_key(on)["noise_ai_split"]["on"] is True
+
+
+def test_lucid_rules_display_values(loaded_rules):
+    """D116: consistency prints 40% (the plan stores 40, not 0.40) and a null DLL reads as "none in this plan"."""
+    r = loaded_rules.rules
+    rows = {g["id"]: g["text"] for g in lucid_rules(r)}
+    if r.eval.consistency_max_day_pct is not None:
+        assert f"{r.eval.consistency_max_day_pct.normalize():f}%" in rows["CONSISTENCY"]
+        assert "4000" not in rows["CONSISTENCY"]
+    ev = r.eval.model_copy(update={"consistency_max_day_pct": D("40"), "daily_loss_limit": None})
+    r2 = r.model_copy(update={"eval": ev})
+    rows2 = {g["id"]: g["text"] for g in lucid_rules(r2)}
+    assert "≤ 40% of the target" in rows2["CONSISTENCY"] and "4000" not in rows2["CONSISTENCY"]
+    assert "DLL eval none in this plan" in rows2["DLL_MLL"]
+    r3 = r.model_copy(update={"eval": r.eval.model_copy(update={"consistency_max_day_pct": None})})
+    assert "≤ none" in {g["id"]: g["text"] for g in lucid_rules(r3)}["CONSISTENCY"]

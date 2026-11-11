@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import vibe_trading as vt
-from app.bias.tradingagents_adapter import TradingAgentsAdapter, map_rating
+from app.bias.tradingagents_adapter import TradingAgentsAdapter, llm_error, map_rating
 from app.models import ApiCredential, BiasDecision
 
 OK = ("LONG_ONLY", "SHORT_ONLY", "NEUTRAL")
@@ -70,13 +70,16 @@ async def run_bias(
             else:
                 d = res.data
                 raw = str(d.get("rating") or "") if res.ok else "ERROR"
-                reasoning = str(d.get("decision") or d.get("error") or "")[:20000]
+                reasoning = str(d.get("decision") or "")[:20000] or llm_error(
+                    str(d.get("error") or "")[:2000], str(vault.open(cred.ciphertext).get("llm_provider", "llm")), env
+                )
                 version = str(d.get("version") or "")
         mapped, alert = map_rating(raw, rules.bias.rating_map)
         note, label = "", raw
         if vcred is not None and vt_root is not None and not alert:  # D53: second opinion, can only unblock
             from pathlib import Path
 
+            venv: dict[str, str] | None = None
             try:
                 venv = vt.env_for(vault.open(vcred.ciphertext))
             except (ValueError, KeyError) as e:
@@ -102,6 +105,7 @@ async def run_bias(
                 label = f"{raw}·VT {outlook.direction} {outlook.confidence}"
                 note += f" — VT: {outlook.reason}"
             else:
+                status = llm_error(str(status), "vibe-trading", venv)
                 note += f" ({status})"
                 notify(
                     "warn",

@@ -17,7 +17,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
-from app.connections.registry import BEST_MODELS, LLM_PROVIDERS
+from app.connections.registry import BEST_MODELS, LLM_PROVIDERS, explain_llm_error, qwen_base_url, qwen_model
 
 Mapped = Literal["LONG_ONLY", "SHORT_ONLY", "NEUTRAL", "NO_TRADE"]
 RUNNER = Path(__file__).with_name("ta_runner.py")
@@ -97,8 +97,10 @@ class TradingAgentsAdapter:
         quick = quick or best.get("quick") or (opts.get("quick") or [""])[0]
         deep = deep or best.get("deep") or (opts.get("deep") or [""])[0]
         env = {spec["env"]: creds["api_key"], "TRADINGAGENTS_LLM_PROVIDER": provider}
-        if provider == "qwen" and os.environ.get("PAYTIENCE_QWEN_BASE_URL"):
-            env["DASHSCOPE_BASE_URL"] = os.environ["PAYTIENCE_QWEN_BASE_URL"]
+        if provider == "qwen":  # D116: same base URL + model ids as Vibe-Trading and the connection test
+            env["DASHSCOPE_BASE_URL"] = qwen_base_url()
+            quick = qwen_model("quick", creds.get("quick_think_llm") or "")
+            deep = qwen_model("deep", creds.get("deep_think_llm") or "")
         if quick:
             env["TRADINGAGENTS_QUICK_THINK_LLM"] = quick
         if deep:
@@ -116,3 +118,13 @@ class TradingAgentsAdapter:
         """D84: MGC research run (same venv, same key path as `run`): gold-driver analysis → structured setup JSON."""
         req = {"cmd": "research", "ticker": ticker, "date": today.isoformat(), "market": market, "context": context}
         return await self._call(req, env, timeout_s=self.timeout_s * 1.5)
+
+
+def used_models(*envs: dict[str, str] | None) -> list[str]:
+    """D116: the model ids a run was started with (TradingAgents quick/deep, Vibe-Trading) — named in LLM errors."""
+    keys = ("TRADINGAGENTS_QUICK_THINK_LLM", "TRADINGAGENTS_DEEP_THINK_LLM", "LANGCHAIN_MODEL_NAME")
+    return [e[k] for e in envs if e for k in keys if e.get(k)]
+
+
+def llm_error(err: str, provider: str, *envs: dict[str, str] | None) -> str:
+    return explain_llm_error(err, provider, used_models(*envs))

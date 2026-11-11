@@ -12,6 +12,8 @@ indicator("Paytience_Bridge", overlay = true, max_labels_count = 200)
 
 secret    = input.string("", "Webhook secret")
 profile   = input.string("STD", "Profile", options = ["TIGHT", "STD"])
+pivL      = input.int(5, "HTF pivot left", minval = 1)
+pivR      = input.int(5, "HTF pivot right", minval = 1)
 atrLen    = input.int(14, "HTF ATR length", minval = 1)
 showMarks = input.bool(true, "Show markers")
 

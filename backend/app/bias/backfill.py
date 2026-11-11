@@ -26,7 +26,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.bias import vibe_trading as vt
 from app.bias.service import MARKET_OF, OK
-from app.bias.tradingagents_adapter import TradingAgentsAdapter, map_rating
+from app.bias.tradingagents_adapter import TradingAgentsAdapter, llm_error, map_rating
 from app.models import ApiCredential, BiasDecision
 
 SUFFIX = ".BF"
@@ -162,7 +162,9 @@ async def run_job(
                 if alert:  # no valid TradingAgents rating: store nothing, count the error, maybe stop
                     job.failed += 1
                     consecutive += 1
-                    job.error = f"{day}: {str(res.data.get('error') or raw)[:200]}"
+                    job.error = f"{day}: " + llm_error(
+                        str(res.data.get("error") or raw)[:200], job.provider or "llm", env, venv
+                    )
                     if consecutive >= MAX_CONSECUTIVE_ERRORS:
                         job.status = "stopped_on_error"
                         notify(
@@ -184,7 +186,7 @@ async def run_job(
                         label = f"{raw}·VT {outlook.direction} {outlook.confidence}"
                         reasoning += f"\n\n[Blend] VT: {outlook.reason}"
                     else:
-                        reasoning += f"\n\n[Blend] Vibe-Trading: {vstatus}"
+                        reasoning += "\n\n[Blend] Vibe-Trading: " + llm_error(str(vstatus), "vibe-trading", venv)
                 s.add(
                     BiasDecision(
                         session_date=day,

@@ -40,10 +40,8 @@ async def test_llm_key(provider: str, key: str, http: httpx.AsyncClient) -> Test
     else:
         headers = {"Authorization": f"Bearer {key}"}
     url = spec["models_url"]
-    if provider == "qwen" and os.environ.get(
-        "PAYTIENCE_QWEN_BASE_URL"
-    ):  # workspace keys (sk-ws-…) only work on their own endpoint
-        url = os.environ["PAYTIENCE_QWEN_BASE_URL"].rstrip("/") + "/models"
+    if provider == "qwen":  # D116: the same endpoint TradingAgents + Vibe-Trading use (sk-ws- keys: own endpoint)
+        url = qwen_base_url() + "/models"
     r = await http.get(url, headers=headers)
     return _status_msg(r, f"{provider} key accepted")
 
