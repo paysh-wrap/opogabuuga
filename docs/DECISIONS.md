@@ -967,3 +967,12 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
 - D104 (user 2026-11-11): TradingAgents + Vibe-Trading auto-install fixed. A venv counts as installed only with its `.paytience-ok`
   marker (written after a successful install) or a working import — a half-built venv (install killed, window closed) is rebuilt,
   not skipped forever. Installs run in a background thread so the dashboard opens at once; retried on EVERY start (needs internet).
+- D105 (user 2026-11-11): "Remove LunqFX". The LunqFX fractal confluence strategy is gone from everything the user sees and
+  from runtime: Strategy-page button, LunqFX gates panel (G2/G3/G5/G7, fractal agreement, "LunqFX only" badges, structure-filter
+  card), the strategy catalog row, the Connections indicator card, `strategy.lunqfx` + `strategy.lunqfx_structure.*` settings
+  and the key in all plan yamls. The TradingView webhook acknowledges LunqFX fractal alerts with 200 `{ignored, code
+  LUNQFX_REMOVED}` (nothing stored, no banner); `signals.service.process` / the confluence evaluation is no longer called, so
+  nothing can trade or shadow-trade LunqFX. Old plan files / stored settings that still carry the keys load fine (ignored by
+  StrategyCfg). Deleted: engine/lunq_structure.py + its test. Left DORMANT (pure, unused at runtime; deleting touches
+  shared types/tests and risked the risk/phase code): engine/confluence.py, engine/state_machine.py,
+  indicators/lunqfx_fractal.py, bigbeluga_mso.py, backtest/parity.py, Cooldown table/API. Risk/phase/management untouched.

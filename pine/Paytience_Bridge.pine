@@ -2,6 +2,7 @@
 // Paytience_Bridge — sends closed-bar events to the Paytience app via ONE webhook alert per chart.
 // Mirrors backend/app/indicators/ exactly (Python reference) — both are ports of the ORIGINAL sources:
 //  • "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" (open-source, © LunqFX) — fractal state machine
+//    (D105: LunqFX was removed from Paytience; its alerts are ignored by the app. Only HEARTBEAT bars matter now.)
 //  • "Market Structure Oscillator [BigBeluga]" (© BigBeluga, CC BY-NC-SA 4.0) — MSO block below
 // This bridge is shared under CC BY-NC-SA 4.0. PERSONAL USE ONLY. Verified against both sources 2026-11-05.
 //

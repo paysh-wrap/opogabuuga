@@ -64,7 +64,6 @@ Ratings map Buy/Overweight → LONG_ONLY, Hold → NEUTRAL, Underweight/Sell →
 (including `REVIEW`) → NO_TRADE + alert. Until you add an LLM key, bias is NO_TRADE and no trades are taken.
 
 ## Indicators — PERSONAL USE ONLY where licensed so
-- "ICT Fractal Model, HTF Candles, CISD & C2 Targets [LunqFX]" — © LunqFX
 - "Market Structure Oscillator [BigBeluga]" — © BigBeluga
 Paste each script's source + license on the Connections page. The app records the license; non-commercial
 licenses mean this project is for personal use only.
@@ -75,13 +74,14 @@ licenses mean this project is for personal use only.
    TIGHT, **5-minute** for STD (one chart + one alert per market per profile = 4 alerts).
 3. Pine Editor → paste the script → **Add to chart**.
 4. Indicator settings → paste the **Webhook secret** (Connections page → Reveal) → choose the profile.
-5. Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
+5. (D105: the old LunqFX fractal alerts are ignored by the app - Paytience only needs the 1-minute bar heartbeat.)
+   Create alert → Condition **Paytience_Bridge** → **Any alert() function call** → Expiration open-ended →
    Notifications → **Webhook URL** = the URL shown on the Connections page.
 6. Within one bar the **Live feeds** list shows the symbol as Fresh and the TradingView card turns gold.
    If not, the rejection counter on the same page says why (bad secret, wrong chart timeframe, stale, …).
 
 The bridge is Paytience's own implementation of docs/INDICATOR_SPEC.md (spec-derived). It has not yet been verified
-against the original LunqFX/BigBeluga source; LIVE stays blocked until parity passes over ≥ 20 sessions.
+against the original BigBeluga source; LIVE stays blocked until parity passes over ≥ 20 sessions.
 
 ## Exposing the webhook (TradingView → your app)
 TradingView only posts to HTTPS on port 443. Use a Cloudflare Tunnel to `http://127.0.0.1:8000`; a VPN alone

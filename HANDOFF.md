@@ -457,3 +457,7 @@ Engine gates + skip codes (OF_COMPRESSION / OF_LOCATION / OF_PATH_EXHAUSTED / OF
 (fallback est, `delta_source`), /orderflow + Strategy card show the 4 layers + refused alerts. Still UNVERIFIED · paper only · default OFF.
 Tests: 1101 backend passed (100% cov risk/management/phases) + 100 frontend; lint/typecheck green. Open: compile Pine in TradingView
 (request.footprint names unverified); trail helper not wired (no 5m candle feed in the order manager).
+
+## D105 - LunqFX removed (2026-11-11)
+User asked to remove LunqFX. UI, strategy button/keys, plan yamls and the signal runtime are gone; webhook ignores LunqFX alerts
+(`LUNQFX_REMOVED`, 200). Pure engine modules (confluence, state_machine, lunqfx_fractal) stay dormant. See docs/DECISIONS.md D105.
