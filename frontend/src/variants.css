@@ -1,0 +1,138 @@
+/* ---------- Style variants (user 2026-11-11): pick one of four finishes. Loaded after finish.css. ----------
+   Selected by <html data-style="glass|terminal|neon|minimal"> (src/style-switch.ts: ?style= or localStorage
+   "paytience.style"). No attribute = the current D117 look. Same navy/blue/gold tokens and the same structure; font colours
+   stay blue/gold only (§18). Fonts are the bundled Inter / JetBrains Mono. Motion is off under prefers-reduced-motion. */
+
+/* ===== 1 · Luxe Glass ===== */
+html[data-style="glass"] {
+  background: linear-gradient(125deg, #070C19 0%, #0E1A3D 30%, #1A1F4F 55%, #0B1530 80%, #070C19 100%) 0 0 / 220% 220% !important;
+  animation: v-drift 40s ease-in-out infinite alternate;
+}
+html[data-style="glass"] body {
+  background:
+    radial-gradient(900px 520px at 80% -5%, rgba(var(--gold-a), .16), transparent 62%),
+    radial-gradient(700px 420px at 15% 105%, rgba(var(--gold-a), .08), transparent 60%),
+    radial-gradient(900px 600px at -10% 10%, rgba(var(--blue-a), .14), transparent 60%) !important;
+  background-color: transparent !important; animation: v-fade .6s var(--ease) both;
+}
+@keyframes v-drift { to { background-position: 100% 100%; } }
+@keyframes v-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+html[data-style="glass"] .mission main .bg-card:not(input):not(select):not(textarea),
+html[data-style="glass"] .mission main .mode-card, html[data-style="glass"] .mission main .stat-tile {
+  background: linear-gradient(160deg, rgba(40, 56, 105, .38), rgba(14, 22, 48, .46)) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.4); backdrop-filter: blur(22px) saturate(1.4);
+  border: 1px solid rgba(var(--gold-a), .26); border-radius: 20px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .08) inset, 0 24px 50px -28px rgba(0, 0, 0, .9);
+}
+html[data-style="glass"] .mission main .bg-card:not(input):hover, html[data-style="glass"] .mission main .mode-card:hover {
+  border-color: rgba(var(--gold-a), .7);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .1) inset, 0 0 26px -6px rgba(var(--gold-a), .55), 0 24px 50px -26px rgba(0, 0, 0, .9);
+}
+html[data-style="glass"] .mission header.bg-card, html[data-style="glass"] .mission nav[aria-label="Main"] { background: rgba(10, 16, 38, .5) !important; }
+html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary), html[data-style="glass"] .mission main button.border-gold,
+html[data-style="glass"] .mission header.bg-card button.border-2 {
+  border-radius: 999px; position: relative; overflow: hidden;
+}
+html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary)::after, html[data-style="glass"] .mission main button.border-gold::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; transform: translateX(-120%) skewX(-20deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .35), transparent);
+}
+html[data-style="glass"] .mission main button:is(.bg-gold, .btn-primary):hover::after, html[data-style="glass"] .mission main button.border-gold:hover::after {
+  transform: translateX(120%) skewX(-20deg); transition: transform .8s var(--ease);
+}
+
+/* ===== 2 · Trading Terminal Pro ===== */
+html[data-style="terminal"] { --r-chip: 2px; --r-ctl: 2px; --r-card: 2px; font-size: 14px; }
+html[data-style="terminal"] body { font-size: 13px; line-height: 1.4; letter-spacing: 0; background: var(--navy-0) !important; font-family: var(--f-mono); }
+html[data-style="terminal"] .mission main { --gap-t: .5rem; }
+html[data-style="terminal"] .mission main .bg-card:not(input):not(select):not(textarea), html[data-style="terminal"] .mission main .stat-tile,
+html[data-style="terminal"] .mission main .mode-card, html[data-style="terminal"] .mission main :is(input, select, textarea, button),
+html[data-style="terminal"] .mission nav[aria-label="Main"] a {
+  border-radius: 2px !important; -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html[data-style="terminal"] .mission main .bg-card:not(input):not(select):not(textarea) {
+  background: #0A1124 !important; border: 1px solid rgba(var(--gold-a), .22); box-shadow: none; padding: .6rem .75rem !important;
+}
+html[data-style="terminal"] .mission main .bg-card:hover { border-color: rgba(var(--gold-a), .5); box-shadow: none; transform: none; }
+html[data-style="terminal"] .mission main :is(section, article).bg-card > h2:first-child {
+  border-bottom: 1px solid rgba(var(--gold-a), .22); padding-bottom: .3rem; margin-bottom: .45rem; text-transform: uppercase;
+}
+html[data-style="terminal"] .mission main :is(section, article).bg-card > h2:first-child::before { border-radius: 50%; transform: none; width: 6px; height: 6px; background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+html[data-style="terminal"] .mission .mission-bento { gap: 6px; }
+html[data-style="terminal"] .mission main :is(.mission-num, .font-serif, td, .tabular-nums), html[data-style="terminal"] .mission-num-svg { font-family: var(--f-mono); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+html[data-style="terminal"] .mission main h1 { font-family: var(--f-mono); text-transform: uppercase; }
+html[data-style="terminal"] .mission main table tbody td, html[data-style="terminal"] .mission main table thead th { padding-top: .2rem; padding-bottom: .2rem; border: 1px solid rgba(var(--gold-a), .1); }
+html[data-style="terminal"] .mission main table thead th { background: #0E1730; box-shadow: none; }
+html[data-style="terminal"] .mission main tbody tr:nth-child(even) { background: rgba(var(--gold-a), .03); }
+html[data-style="terminal"] .mission nav[aria-label="Main"] a { font-family: var(--f-mono); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; padding: .3rem .6rem; }
+html[data-style="terminal"] .mission nav[aria-label="Main"] a[aria-current="page"] { box-shadow: none; background: rgba(var(--gold-a), .14); }
+html[data-style="terminal"] .mission main button { letter-spacing: .06em; text-transform: uppercase; font-family: var(--f-mono); font-size: .72rem; }
+html[data-style="terminal"] .mission main :is(span.rounded.border, span.rounded-full.border), html[data-style="terminal"] .mission header.bg-card [class*="rounded"][class*="border"] {
+  border-radius: 2px !important; padding-left: .4rem !important;
+}
+/* LED-dot status chips: a lit dot before every chip */
+html[data-style="terminal"] .mission main :is(span.rounded.border, span.rounded-full.border, .check-word, .mandatory-tag)::before,
+html[data-style="terminal"] .mission header.bg-card :is([data-testid="mode"], [data-testid="conn-summary"], [data-testid="trading-count"])::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; background: currentColor; box-shadow: 0 0 6px currentColor;
+}
+
+/* ===== 3 · Neon Gold Futuristic ===== */
+@property --v-ang { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+html[data-style="neon"] body { background: radial-gradient(1000px 520px at 85% -10%, rgba(var(--gold-a), .16), transparent 60%),
+  radial-gradient(900px 560px at -10% 10%, rgba(var(--blue-a), .20), transparent 60%) !important; background-color: #050914 !important; }
+html[data-style="neon"] .mission main .bg-card:not(input):not(select):not(textarea) {
+  border: 1.5px solid transparent !important; border-radius: 18px;
+  background: linear-gradient(#0B1330, #080F26) padding-box, conic-gradient(from var(--v-ang), #D4AF37, #3B82F6, #F2D27A, #3B82F6, #D4AF37) border-box !important;
+  animation: v-spin 9s linear infinite; box-shadow: 0 0 24px -12px rgba(var(--blue-a), .8), 0 0 18px -12px rgba(var(--gold-a), .8);
+}
+@keyframes v-spin { to { --v-ang: 360deg; } }
+html[data-style="neon"] .mission main h1, html[data-style="neon"] .mission main h3 { text-transform: uppercase; letter-spacing: .14em; font-weight: 800; }
+html[data-style="neon"] .mission main h1 { font-size: .95rem; text-shadow: 0 0 14px rgba(var(--gold-a), .6); }
+html[data-style="neon"] .mission-num, html[data-style="neon"] .mission main .font-serif {
+  background: linear-gradient(100deg, currentColor 35%, #F2D27A 50%, currentColor 65%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; animation: v-shimmer 5s linear infinite;
+}
+@keyframes v-shimmer { to { background-position: -250% 0; } }
+html[data-style="neon"] .mission main :is(span.rounded.border, span.rounded-full.border), html[data-style="neon"] .mission header.bg-card [class*="rounded"][class*="border"] {
+  box-shadow: 0 0 0 2px rgba(var(--gold-a), .12), 0 0 12px -2px currentColor; animation: v-ring 2.6s ease-in-out infinite;
+}
+@keyframes v-ring { 50% { box-shadow: 0 0 0 3px rgba(var(--blue-a), .18), 0 0 18px 0 currentColor; } }
+html[data-style="neon"] .mission nav[aria-label="Main"] a[aria-current="page"]::after {
+  height: 3px; left: 10%; right: 10%; background: linear-gradient(90deg, var(--blue-2), var(--gold-2), var(--blue-2)); animation: v-pulse 1.8s ease-in-out infinite;
+}
+@keyframes v-pulse { 50% { opacity: .45; box-shadow: 0 0 4px rgba(var(--gold-a), .4); } }
+html[data-style="neon"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: 0 0 22px -4px rgba(var(--gold-a), .8); }
+html[data-style="neon"] .mission main :is(input, select, textarea):focus { box-shadow: 0 0 0 2px rgba(var(--blue-a), .5), 0 0 18px rgba(var(--gold-a), .4); }
+
+/* ===== 4 · Minimal Luxury ===== */
+html[data-style="minimal"] body { background: #090E1D !important; line-height: 1.65; animation: v-fade .8s var(--ease) both; }
+html[data-style="minimal"] .mission main { padding-top: 2rem; }
+html[data-style="minimal"] .mission .mission-bento { gap: 28px; }
+html[data-style="minimal"] .mission main .bg-card:not(input):not(select):not(textarea) {
+  background: #0E1630 !important; -webkit-backdrop-filter: none; backdrop-filter: none; border: 1px solid rgba(var(--blue-a), .10);
+  border-radius: 18px; padding: 1.5rem !important; box-shadow: 0 20px 50px -34px rgba(0, 0, 0, .6);
+}
+html[data-style="minimal"] .mission main .bg-card:hover { box-shadow: 0 24px 56px -34px rgba(0, 0, 0, .7); border-color: rgba(var(--blue-a), .2); transform: none; }
+html[data-style="minimal"] .mission main .bg-card.border-gold { border-color: rgba(var(--gold-a), .35) !important; background: #0E1630 !important; }
+html[data-style="minimal"] .mission main h1 { font-size: 1.5rem; font-weight: 300; letter-spacing: .04em; margin-bottom: 1.5rem; }
+html[data-style="minimal"] .mission main h1::after { max-width: 80px; background: rgba(var(--gold-a), .6); }
+html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child { font-family: var(--f-display); font-size: 1.05rem; font-weight: 400; letter-spacing: .01em; margin-bottom: 1rem; }
+html[data-style="minimal"] .mission main :is(section, article).bg-card > h2:first-child::before { display: none; }
+html[data-style="minimal"] .mission-num { font-weight: 300; }
+html[data-style="minimal"] .mission main :is(span.rounded.border, span.rounded-full.border) { background: transparent !important; border-color: rgba(var(--gold-a), .45); }
+html[data-style="minimal"] .mission main button.border-gold:not([class*="bg-"]), html[data-style="minimal"] .mission main button.border-blue:not([class*="bg-"]) { background-image: none; border-color: rgba(var(--blue-a), .35); }
+html[data-style="minimal"] .mission main button:is(.bg-gold, .btn-primary) { box-shadow: none; background: var(--gold) !important; }
+html[data-style="minimal"] .mission nav[aria-label="Main"] a[aria-current="page"] { background: transparent; box-shadow: none; border-color: transparent; }
+html[data-style="minimal"] .mission nav[aria-label="Main"] a[aria-current="page"]::after { height: 1px; box-shadow: none; }
+
+/* ===== accessibility + phone ===== */
+@media (max-width: 767px) {
+  html[data-style] .mission main { overflow-x: clip; }
+  html[data-style="minimal"] .mission main .bg-card:not(input) { padding: 1.1rem !important; }
+  html[data-style="minimal"] .mission .mission-bento { gap: 16px; }
+  html[data-style="neon"] .mission main .bg-card:not(input) { border-radius: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-style], html[data-style] body, html[data-style] * , html[data-style] *::after { animation: none !important; transition: none !important; }
+  html[data-style="glass"] .mission main button::after { display: none; }
+}

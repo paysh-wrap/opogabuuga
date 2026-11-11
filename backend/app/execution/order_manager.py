@@ -20,7 +20,9 @@ from typing import Literal
 
 from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill, round_to_tick
 from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerError, Fill, Side
+from app.indicators.bars import Bar
 from app.management.drawdown_guard import ratchet, runner_stop, split_legs
+from app.management.dynamic_trail import TrailParams, dynamic_stop
 from app.management.exits import adverse_half_due, early_exit_allowed, exit_allowed_now
 from app.management.profit_lock import PROFIT_LOCK_REASON, lock_stop
 from app.management.trade_manage import ManageCfg, managed_stop
@@ -71,6 +73,7 @@ class OpenTrade:
     profit_lock: tuple[Decimal, Decimal] | None = None  # D82: (trigger_pts, lock_pts) — NOISE profit lock (D75-P1)
     profit_locked: bool = False  # the stop has been moved to entry + lock_pts
     manage: ManageCfg | None = None  # D85: AI Duo break-even / profit lock / trail (management/trade_manage.py)
+    dyn_trail: TrailParams | None = None  # D122: dynamic trailing stop (management/dynamic_trail.py), toggle per strategy
 
     @property
     def d(self) -> Direction:
@@ -120,6 +123,8 @@ class OrderManager:
     split_for_defence: bool = False
     scalp_runner: tuple[Decimal, Decimal] | None = None  # (runner target R, trail R) when Scalp mode is on
     trades: dict[str, OpenTrade] = field(default_factory=dict)
+    bars: dict[str, list[Bar]] = field(default_factory=dict)  # D122: recent heartbeat bars per symbol (finest feed)
+    max_bars: int = 600
     _ids: itertools.count[int] = field(default_factory=lambda: itertools.count(1))
 
     # ---------- open ----------
@@ -416,9 +421,38 @@ class OrderManager:
                 break  # stop-modify failure: flattening, nothing more to move
         return out
 
-    # ---------- price ----------
-    async def on_bar(self, symbol: str, high: Decimal, low: Decimal, close: Decimal | None = None) -> list[Event]:
+    async def _dynamic(self, t: OpenTrade, last: Decimal | None) -> list[Event]:
+        """D122: dynamic trailing stop for each open leg (ratchet only, never closer than the min distance)."""
+        assert t.dyn_trail is not None and t.best is not None
         out: list[Event] = []
+        bars = self.bars.get(t.symbol, [])
+        for leg in [x for x in t.legs if x.entry is not None and not x.closed]:
+            mv = dynamic_stop(
+                t.d, leg.entry or Decimal(0), t.plan.risk_pts, t.best, leg.stop, bars, t.dyn_trail, t.tick, last
+            )
+            if mv is None:
+                continue
+            out += await self._move_stop(t, leg, mv.stop, f"DYN_TRAIL:{mv.rule}")
+            if t.closing:
+                break  # stop-modify failure: flattening, nothing more to move
+        return out
+
+    def add_bar(self, symbol: str, bar: Bar) -> None:
+        """Keep the last max_bars heartbeat bars (a repeated bar replaces its earlier copy)."""
+        buf = self.bars.setdefault(symbol, [])
+        if buf and buf[-1].close_ms == bar.close_ms:
+            buf[-1] = bar
+        elif not buf or bar.close_ms > buf[-1].close_ms:
+            buf.append(bar)
+        del buf[: -self.max_bars]
+
+    # ---------- price ----------
+    async def on_bar(
+        self, symbol: str, high: Decimal, low: Decimal, close: Decimal | None = None, bar: Bar | None = None
+    ) -> list[Event]:
+        out: list[Event] = []
+        if bar is not None:
+            self.add_bar(symbol, bar)
         for t in list(self.trades.values()):
             if t.symbol != symbol or any(x.entry is None for x in t.legs):
                 continue
@@ -429,6 +463,8 @@ class OrderManager:
                 out += await self._profit_lock(t, last)
             if t.manage is not None and not t.closing:
                 out += await self._managed(t, last)
+            if t.dyn_trail is not None and not t.closing:
+                out += await self._dynamic(t, last)
             trail = t.runner_trail or (self.trail_r if t.guard_on else None)
             if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")

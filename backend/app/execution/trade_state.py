@@ -8,6 +8,7 @@ from typing import Any
 
 from app.engine.trade_plan import Direction, TradePlan
 from app.execution.order_manager import Leg, OpenTrade
+from app.management.dynamic_trail import TrailParams
 from app.management.trade_manage import ManageCfg
 
 
@@ -97,7 +98,38 @@ def dump(t: OpenTrade) -> dict[str, Any]:
             "fee_cover_ticks": t.manage.fee_cover_ticks,
             "ai_lock_price": None if t.manage.ai_lock_price is None else str(t.manage.ai_lock_price),
         },
+        "dyn_trail": None if t.dyn_trail is None else _dump_trail(t.dyn_trail),
     }
+
+
+def _dump_trail(p: TrailParams) -> dict[str, Any]:
+    return {
+        **{k: str(getattr(p, k)) for k in ("activate_r", "low_vol_percentile", "low_vol_mult", "k_floor", "k_minus")},
+        **{k: getattr(p, k) for k in ("min_distance_ticks", "atr_tf_min", "atr_period", "swing_tf_min")},
+        "low_vol_lookback": p.low_vol_lookback,
+        "fee_cover_ticks": p.fee_cover_ticks,
+        "steps": [[_d(u), str(k)] for u, k in p.steps],
+        "of_trail": None if p.of_trail is None else [p.of_trail[0], str(p.of_trail[1])],
+    }
+
+
+def _trail(m: dict[str, Any]) -> TrailParams:
+    of = m.get("of_trail")
+    return TrailParams(
+        Decimal(m["activate_r"]),
+        int(m["min_distance_ticks"]),
+        int(m["atr_tf_min"]),
+        int(m["atr_period"]),
+        int(m["swing_tf_min"]),
+        tuple((_ld(u), Decimal(k)) for u, k in m["steps"]),
+        Decimal(m["low_vol_percentile"]),
+        Decimal(m["low_vol_mult"]),
+        int(m["low_vol_lookback"]),
+        Decimal(m["k_floor"]),
+        int(m["fee_cover_ticks"]),
+        Decimal(m["k_minus"]),
+        None if of is None else (int(of[0]), Decimal(of[1])),
+    )
 
 
 def _manage(m: dict[str, Any]) -> ManageCfg:
@@ -176,4 +208,5 @@ def load(d: dict[str, Any]) -> OpenTrade:
         else (Decimal(d["profit_lock"][0]), Decimal(d["profit_lock"][1])),
         profit_locked=bool(d.get("profit_locked", False)),
         manage=None if not d.get("manage") else _manage(d["manage"]),
+        dyn_trail=None if not d.get("dyn_trail") else _trail(d["dyn_trail"]),
     )

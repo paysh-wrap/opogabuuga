@@ -7,7 +7,11 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import "./mission.css";
-import "./finish.css"; // D117 refined finish (loaded last)
+import "./finish.css"; // D117 refined finish
+import "./variants.css"; // optional style variants (html[data-style]); loaded last
+import { applyStyle } from "./style-switch";
+
+applyStyle();
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } });
 
