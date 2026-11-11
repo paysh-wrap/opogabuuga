@@ -83,15 +83,15 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
   # Scale = drawdown ratio vs 25K (MLL 3000 / 1000 = 3x), rounded down; 25K stays at 1 micro (NOISE was
   # verified at 1 micro on 25K; the unverified strategies keep 1 micro on 25K).
   max_trade_risk_usd: 1500      # plan per-trade cap for every fixed-size strategy: 50% of the MLL (3000) — one trade never risks half the drawdown
-  noise_cfg: {contracts: 3}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
-  pm_fade_cfg: {contracts: 3}       # fallback only — PM_FADE uses size_table below (same as NOISE)
-  ai_bias_cfg: {contracts: 3, max_risk_usd: 900}   # floor(MLL ratio); budget 30% of MLL at the 0.5% stop (25K: none = unchanged); UNVERIFIED
-  ai_duo_cfg: {contracts: 3}         # floor(MLL ratio); D85 max_risk_usd $250 per trade (user, all sizes) and 150K max_qty 4 unchanged; UNVERIFIED
+  noise_cfg: {contracts: 2}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
+  pm_fade_cfg: {contracts: 2}       # fallback only — PM_FADE uses size_table below (same as NOISE)
+  ai_bias_cfg: {contracts: 2, max_risk_usd: 900}   # floor(MLL ratio); budget 30% of MLL at the 0.5% stop (25K: none = unchanged); UNVERIFIED
+  ai_duo_cfg: {contracts: 2}         # floor(MLL ratio); D85 max_risk_usd $250 per trade (user, all sizes) and 150K max_qty 4 unchanged; UNVERIFIED
   noise: true
   pm_fade: true
   order_flow: false   # D95: Order Flow button (UNVERIFIED, paper accounts only, default OFF)
   order_flow_cfg:   # D96 (user 2026-11-11): MGC on for ORDER FLOW only; instruments.MGC.enabled stays false (every other strategy keeps MGC off). Data: Databento MGC.v.0 (volume roll), never MGC.c.0
-    contracts: 3                # D115 risk-based cap: min(contracts, floor(max_risk_usd / per-contract risk at the ATR/absorption stop)); UNVERIFIED → 25K 1 micro
+    contracts: 2                # D115 risk-based cap: min(contracts, floor(max_risk_usd / per-contract risk at the ATR/absorption stop)); UNVERIFIED → 25K 1 micro
     max_risk_usd: 900          # D115 30% of the MLL (25K: none = unchanged; the plan cap above still applies)
     brake_below: 0.5          # D115 1 micro while (equity - MLL) < 50% of the MLL (the size-table brake)
     instruments: [MNQ, MGC]
@@ -154,14 +154,14 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
   size_table:   # D63/D64 REGULAR: automatic micros per account size + drawdown brake (research §21–23)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
-    - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.3, brake_contracts: 1}
-    - {account_size: 150000, mll: 4500, contracts: 5, brake_below: 0.5, brake_contracts: 3}
+    - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
+    - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 2}
   high_risk: false   # D64: Strategy-page button "High risk" → size_table_high
   size_table_high:   # D64 (user 2026-11-09): HIGH RISK — 100K 3 micros, 150K 4 micros (same brake system)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
-    - {account_size: 100000, mll: 3000, contracts: 4, brake_below: 0.5, brake_contracts: 2}
-    - {account_size: 150000, mll: 4500, contracts: 5, brake_below: 0.5, brake_contracts: 3}
+    - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+    - {account_size: 150000, mll: 4500, contracts: 4, brake_below: 0.5, brake_contracts: 2}
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0

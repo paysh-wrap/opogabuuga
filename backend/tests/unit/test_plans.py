@@ -102,8 +102,8 @@ def test_strategy_buttons_d55(plan):
     n = s.noise_cfg
     assert (n.symbol, n.lookback_days, n.check_minutes, n.first_check, n.flat_at) == ("MNQ", 14, 60, "10:00", "16:00")
     assert n.emergency_stop_pct == D("0.01") and n.emergency_stop_usd == D(250) and n.max_entries_per_day == 3
-    # D115: per-plan fallback size (25K 1 · 50K 2 · 100K 3 · 150K 5); the D63 size_table sizes each account
-    assert n.contracts == {25: 1, 50: 2, 100: 3, 150: 5}[int(plan.split("_")[-1][:-1])]
+    # D115/D121: per-plan fallback size = D63 regular table (25K 1 · 50K 2 · 100K 2 · 150K 3)
+    assert n.contracts == {25: 1, 50: 2, 100: 2, 150: 3}[int(plan.split("_")[-1][:-1])]
     assert not s.order_flow_cfg.paper_only and not s.ai_duo_cfg.paper_only  # D102: none forced paper-only
 
 
@@ -152,14 +152,14 @@ def test_size_table_validation_and_plans():  # D63
             assert [(t.account_size, t.contracts) for t in st.size_table] == [
                 (D(25000), 1),
                 (D(50000), 2),
-                (D(100000), 3),  # D115
-                (D(150000), 5),
+                (D(100000), 2),  # D63/D64 research table (kept: bigger sizes raised bust risk, session19 refine)
+                (D(150000), 3),
             ]
             assert [(t.account_size, t.contracts) for t in st.size_table_high] == [
                 (D(25000), 1),
                 (D(50000), 2),
-                (D(100000), 4),  # D115
-                (D(150000), 5),
+                (D(100000), 3),  # D64 high-risk table
+                (D(150000), 4),
             ]
             assert all(t.brake_below is not None for t in st.size_table_high if t.contracts > 1)  # brake on every row
             assert not st.high_risk and st.active_size_table() is st.size_table
