@@ -36,8 +36,13 @@ def _scan(line: str) -> tuple[str, bool]:
 
 def test_header_and_license_attribution():
     assert SRC.startswith("//@version=6\n")
-    for s in ("[LunqFX]", "[BigBeluga]", "PERSONAL USE ONLY", "Verified against both sources"):
+    for s in ("[LunqFX]", "PERSONAL USE ONLY", "D120"):
         assert s in SRC
+
+
+def test_bigbeluga_mso_removed_d120():
+    for s in ("BigBeluga", "MSO", '"mso"', "pivL", "divL", "momLen", "smoothLen"):
+        assert s not in "\n".join(CODE_LINES), s
 
 
 def test_brackets_and_quotes_balanced_per_statement():
@@ -79,12 +84,10 @@ def test_every_reassigned_name_is_declared():
 
 
 def test_contract_matches_python_payload_schema():
-    from app.webhook.schemas import FractalFields, MsoFields
+    from app.webhook.schemas import FractalFields
 
     for f in FractalFields.model_fields:
         assert f'"{f}"' in SRC, f"fractal field {f} missing from the bridge"
-    for f in MsoFields.model_fields:
-        assert f'"{f}"' in SRC, f"mso field {f} missing from the bridge"
     for evt in (
         "HEARTBEAT",
         "C1_SWEPT",
@@ -94,9 +97,6 @@ def test_contract_matches_python_payload_schema():
         "T2_HIT",
         "MODEL_FAILED",
         "C3_CLOSED",
-        "MSO_CHOCH",
-        "MSO_BOS",
-        "MSO_DIV",
     ):
         assert f'"{evt}"' in SRC, evt
     assert 'evt + "-" + dir' in SRC  # id carries the direction (collision fix)
