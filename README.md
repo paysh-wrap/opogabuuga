@@ -48,7 +48,7 @@ Away from home: use a Cloudflare Tunnel (below) and open your tunnel address on 
   paste your API key → **Save & Test**. Without it the daily bias is NO_TRADE and nothing trades.
 - **OpenBB (optional):** Connections → OpenBB → optional OpenBB Hub token / FMP / Polygon keys. The free Yahoo feed
   works without keys; OpenBB is information only (never places or blocks trades).
-- Broker (CrossTrade), Databento (backtest data), Telegram/Discord alerts: same page.
+- Broker (CrossTrade), Databento (backtest data), Discord alerts: same page.
 
 ## Connections page
 - Keys are encrypted with your `PAYTIENCE_MASTER_KEY` (Fernet), never shown again (last 4 chars only), never logged.

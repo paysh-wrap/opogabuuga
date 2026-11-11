@@ -346,14 +346,6 @@ PROVIDERS: tuple[Provider, ...] = (
         fields=(FieldSpec("webhook_url", "Webhook URL", placeholder="https://discord.com/api/webhooks/..."),),
     ),
     Provider(
-        id="telegram",
-        name="Telegram (notifications)",
-        category="notifications",
-        purpose="Alternative alert channel.",
-        links=(Link("Create a bot (BotFather)", "https://t.me/BotFather"),),
-        fields=(FieldSpec("bot_token", "Bot token"), FieldSpec("chat_id", "Chat ID", "text")),
-    ),
-    Provider(
         id="ngrok",
         name="ngrok (permanent webhook URL)",
         category="network",

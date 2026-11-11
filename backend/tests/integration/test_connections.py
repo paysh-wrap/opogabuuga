@@ -26,7 +26,6 @@ def test_lists_every_service_with_links(authed, mock_http):
         "forexfactory",
         "crosstrade",
         "discord",
-        "telegram",
         "tunnel",
         "alpha_vantage",
         "fred",

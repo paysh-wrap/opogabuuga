@@ -87,13 +87,6 @@ async def _discord(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     return _status_msg(r, "Webhook valid") if r.status_code != 404 else TestResult(False, "Webhook not found")
 
 
-async def _telegram(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
-    r = await http.get(f"https://api.telegram.org/bot{v['bot_token']}/getMe")
-    if r.status_code == 200 and r.json().get("ok"):
-        return TestResult(True, f"Bot @{r.json()['result'].get('username', '?')} reachable")
-    return TestResult(False, f"Bot token rejected (HTTP {r.status_code})")
-
-
 async def _tunnel(v: dict[str, str], http: httpx.AsyncClient) -> TestResult:
     base = v["public_url"].rstrip("/")
     if not base.startswith("https://"):
@@ -167,7 +160,6 @@ TESTERS: dict[str, Tester] = {
     "fred": _fred,
     "databento": _databento,
     "discord": _discord,
-    "telegram": _telegram,
     "tunnel": _tunnel,
     "ngrok": _ngrok,
 }

@@ -22,7 +22,7 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/dashboard") return j({ accounts: [{ id: 1, idle_days: 25, idle_alert_days: 21 }] });
     if (u === "/api/health") return j({ mode: "PAPER" });
     if (u === "/api/rules") return j({ rules: { schedule: { preflight: "02:50", sync: ["18:00", "16:50"] }, automation: { default_mode: "OFF", accounts_to_trade: 5, selection_mode: "priority", semi_auto_sessions_per_stage: 5, require_external_attestation: true, auto_resume_after_recovery: { paper: true, live: false } }, score: { weights: { cisd_before_c2_close: 25, choch_after_sweep: 20 }, min_score: 60, neutral_min_score: 60, osc_strength_min: 20 } }, verify_paths: ["a.b"] });
-    if (u === "/api/connections") return j({ connections: [{ id: "x", name: "Telegram", status: "not_set", required: false }] });
+    if (u === "/api/connections") return j({ connections: [{ id: "x", name: "Discord", status: "not_set", required: false }] });
     if (u === "/api/gate/purchase") return j({ run_id: null, passed: false, unmeasured: ["violations"], checks: [{ key: "trades", label: "Backtest trades", need: ">= 100", value: null, ok: null }] });
     return j({});
   });
@@ -96,7 +96,7 @@ test("Settings: mode, schedule, connections and purchase gate from the API", asy
   wrap(<Settings />);
   expect(await screen.findByTestId("settings-mode")).toHaveTextContent("PAPER");
   expect(await screen.findByTestId("settings-schedule")).toHaveTextContent("18:00, 16:50");
-  expect(await screen.findByTestId("settings-connections")).toHaveTextContent("Telegram");
+  expect(await screen.findByTestId("settings-connections")).toHaveTextContent("Discord");
   expect(await screen.findByTestId("gate-status")).toHaveTextContent("Not passed");
   expect(screen.getByTestId("gate-trades")).toHaveTextContent("not tracked");
   expect(document.title).toBe("Paytience · Settings");
