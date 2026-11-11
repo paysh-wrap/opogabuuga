@@ -60,6 +60,9 @@ class Account(_Row, Base):
     is_sim: Mapped[bool] = mapped_column(Boolean, default=True, server_default="1")
     starting_balance: Mapped[Decimal | None] = mapped_column(DecimalType, nullable=True)
     stage_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    purchased_at: Mapped[datetime | None] = mapped_column(
+        UTCDateTime, nullable=True
+    )  # D89: bought / last reset at Lucid
 
 
 class AccountStageHistory(_Row, Base):

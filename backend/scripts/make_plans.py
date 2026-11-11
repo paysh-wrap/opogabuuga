@@ -89,7 +89,13 @@ def make(plan: str, k: int) -> str:
             f"max_first: {PRO_CAP[k][0]}, max_next: {PRO_CAP[k][1]}, max_payouts: 5}}   # 12890092, 16558826"
         )
         scaling = ""
+        pcons = (
+            '\n  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}'
+            '   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; '
+            "35% for accounts bought/reset on or before 11/28/2025 3 PM ET"
+        )
     else:
+        pcons = ""
         payout = (
             f"  payout: {{split: 0.90, buffer: {lock}, min_request: 500, min_cycle_profit: 1, max_first: {FLEX_CAP[k]}, "
             f"max_next: {FLEX_CAP[k]}, max_pct_of_profit: 0.5, min_profitable_days: 5, min_day_profit: {FLEX_DAY[k]}, "
@@ -112,7 +118,7 @@ def make(plan: str, k: int) -> str:
   news_breach_min_after: 1
   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
-  payouts_live_review: 5               # 16558826: review pool after payout 5{scaling}
+  payouts_live_review: 5               # 16558826: review pool after payout 5{scaling}{pcons}
 {payout}""",
     )
     t = line(

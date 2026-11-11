@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import Principal, current_user, get_db
 from app.models import Account, RiskProfile, RuleProfile
+from app.payouts.service import consistency_view
 from app.phases.phase_engine import stage_rules
 from app.risk import settings_store as ss
 from app.risk.eval_mode import eval_mode_effective
@@ -333,6 +334,8 @@ def list_accounts(
                 "paused_reason": a.paused_reason,
                 "mode_override": a.mode_override or "inherit",
                 "consistency_pct": _consistency_pct(request.app.state.rules.rules, a.stage),
+                "purchased_at": a.purchased_at.isoformat() if a.purchased_at else None,  # D89
+                "payout_consistency": consistency_view(db, request.app.state.rules.rules, a),
             }
             for a in rows
         ]

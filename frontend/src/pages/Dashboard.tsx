@@ -7,6 +7,7 @@ import WhyNoTrade from "../components/WhyNoTrade";
 import IncomeProjection from "../components/IncomeProjection";
 import HindsightNote from "../components/HindsightNote";
 import RuleMeters from "../components/RuleMeters";
+import { PayoutConsistencyNote, type PayoutConsistencyView } from "../components/PayoutConsistency";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
 const chip = "rounded border px-1.5 text-[11px] font-semibold";
@@ -16,7 +17,7 @@ interface Acct {
   balance?: string; open_pnl?: string; mll?: string | null; to_mll?: string | null; kill_at?: string; today_pnl?: string;
   trades_today?: number; dll_left?: string | null; consistency_cap?: string | null; consistency_stop?: string | null;
   target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number; idle_days?: number; idle_alert_days?: number; idle_delete_days?: number;
-  max_loss?: string; dll_limit?: string | null;
+  max_loss?: string; dll_limit?: string | null; payout_consistency?: PayoutConsistencyView | null;
   guard_on?: boolean; eval_mode_on?: boolean; day_lockin?: boolean; day_net_r?: string; day_lockin_r?: string;
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
@@ -105,6 +106,7 @@ export default function Dashboard() {
                   <Stat k={`Profit from ≤${a.fast_hold_s}s trades (Lucid max ${a.fast_limit_pct}%)`} v={`${Number(a.fast_profit_pct ?? 0).toFixed(1)}%`} warn={Number(a.fast_profit_pct) >= Number(a.fast_warn_pct)} />
                 </div>
               )}
+              {!a.error && a.payout_consistency && <div className="mt-2"><PayoutConsistencyNote v={a.payout_consistency} id={a.id} /></div>}
               {!a.error && <RuleMeters a={a} />}
               {a.stage === "EVAL" && <EvalPaceCard id={a.id} />}
             </section>

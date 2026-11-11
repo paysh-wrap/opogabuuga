@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Any, Literal
 
@@ -195,6 +196,10 @@ class AccountPatch(BaseModel):
     clear_pause: str | None = None  # typed "RESUME" to clear a pause that never auto-resumes
     drawdown_type: Literal["eod", "intraday"] | None = None  # must match the account at Lucid
     mode_override: Literal["inherit", "SEMI", "OFF"] | None = None  # §13: only more restrictive than global
+    purchased_at: datetime | None = (
+        None  # D89: when the Lucid account was bought / last reset (consistency limit 40 vs 35)
+    )
+    clear_purchased_at: bool = False
 
 
 @router.patch("/accounts/{acct_id}")
@@ -223,6 +228,12 @@ async def patch_account(
         a.drawdown_type = body.drawdown_type
     if body.mode_override is not None:
         a.mode_override = None if body.mode_override == "inherit" else body.mode_override
+    if body.purchased_at is not None:
+        if body.purchased_at.tzinfo is None:
+            raise HTTPException(422, "purchased_at needs a time zone (e.g. 2025-12-01T10:00:00-05:00)")
+        a.purchased_at = body.purchased_at
+    elif body.clear_purchased_at:
+        a.purchased_at = None
     for k in ("armed", "selected", "priority", "label"):
         v = getattr(body, k)
         if v is not None:
@@ -233,7 +244,7 @@ async def patch_account(
         p.user.username,
         "account.updated",
         a.broker_account_id,
-        body.model_dump(exclude_none=True),
+        body.model_dump(mode="json", exclude_none=True),
     )
     c = _ctl(request)
     if body.armed and c.mode == "FULL":  # §13: an account in its first sessions of a stage may only run OFF/SEMI

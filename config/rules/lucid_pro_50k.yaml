@@ -31,6 +31,7 @@ funded:
   max_daily_profit_live_trigger: null  # Pro/Flex: no $-per-day live trigger (review pool after payout 5, 16558826)
   payouts_to_live: 1                   # 16558826: each funded account needs ≥ 1 payout
   payouts_live_review: 5               # 16558826: review pool after payout 5
+  payout_consistency: {pct: 40, legacy_pct: 35, legacy_cutoff: "2025-11-28T15:00:00-05:00"}   # D89 Lucid support "Consistency Percentage" 2026-08-26: FUNDED payout eligibility, not a breach; 35% for accounts bought/reset on or before 11/28/2025 3 PM ET
   payout: {split: 0.90, buffer: 52100, min_request: 500, min_cycle_profit: 500, max_first: 2000, max_next: 2500, max_payouts: 5}   # 12890092, 16558826
 
 live: {starting_balance: 0, max_loss_limit: 2000, drawdown_type: eod, lock_trigger: 2100, lock_level: 100, sim_payout_cap_on_move: 0}   # 16558826 (lock at $100 once profit = start DD) VERIFY

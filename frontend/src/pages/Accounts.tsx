@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
+import { PayoutConsistencyNote, type PayoutConsistencyView } from "../components/PayoutConsistency";
 
 interface Acct {
   id: number;
@@ -21,6 +22,8 @@ interface Acct {
   paused_reason: string | null;
   mode_override?: "inherit" | "SEMI" | "OFF";
   consistency_pct?: string | null;
+  purchased_at?: string | null;
+  payout_consistency?: PayoutConsistencyView | null;
 }
 interface Dash { accounts: { id: number; idle_days?: number; idle_alert_days?: number }[] }
 
@@ -140,6 +143,19 @@ export default function Accounts() {
                   <p key={l.id}>{new Date(l.at).toLocaleString()} · {l.actor} · <b className="text-gold">{l.action}</b> {l.payload ? JSON.stringify(l.payload).slice(0, 120) : ""}</p>
                 ))}
               </details>
+              {a.stage === "FUNDED" && a.payout_consistency && (
+                <div className="mt-2 space-y-1">
+                  <PayoutConsistencyNote v={a.payout_consistency} id={a.id} />
+                  <label className="flex flex-wrap items-center gap-2 text-xs">Purchased / last reset at Lucid
+                    <input type="date" data-testid={`purchased-${a.id}`} aria-label={`Purchase or reset date of ${a.label}`}
+                      defaultValue={a.purchased_at ? a.purchased_at.slice(0, 10) : ""} disabled={run.isPending}
+                      onChange={(e) => e.target.value
+                        ? patch(a.id, { purchased_at: `${e.target.value}T12:00:00-05:00` })
+                        : patch(a.id, { clear_purchased_at: true })} />
+                    <span>(decides the 40% or 35% limit; unknown = 35% until you enter it)</span>
+                  </label>
+                </div>
+              )}
               {a.drawdown_check && <p className="mt-2 text-xs text-goldLight">⚠ {a.drawdown_check}</p>}
             </li>
           );

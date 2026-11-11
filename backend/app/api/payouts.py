@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.models import Account, Payout
-from app.payouts.service import session_check, weekly_check
+from app.payouts.service import consistency_view, payout_consistency_for, session_check, weekly_check
 
 router = APIRouter(prefix="/api")
 NEXT = {"ready": {"submitted", "cancelled"}, "submitted": {"processed", "cancelled"}}
@@ -37,6 +37,22 @@ def _row(p: Payout, a: Account | None) -> dict[str, Any]:
 def list_payouts(_: Principal = Depends(current_user), db: Session = Depends(get_db)) -> dict[str, Any]:
     rows = db.execute(select(Payout).order_by(Payout.id.desc()).limit(200)).scalars()
     return {"payouts": [_row(p, db.get(Account, p.account_id)) for p in rows]}
+
+
+@router.get("/payouts/consistency")
+def consistency(
+    request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    """D89: Lucid payout-consistency status of every FUNDED account (largest day / cycle profit vs the limit)."""
+    r = request.app.state.rules.rules
+    out = []
+    for a in db.execute(
+        select(Account).where(Account.stage == "FUNDED").order_by(Account.priority, Account.id)
+    ).scalars():
+        v = consistency_view(db, r, a)
+        if v is not None:
+            out.append({"account_id": a.id, "label": a.label or a.broker_account_id, **v})
+    return {"accounts": out}
 
 
 @router.post("/payouts/check")
@@ -64,6 +80,12 @@ async def set_status(
     if body.status not in NEXT.get(row.status, set()):
         raise HTTPException(409, f"cannot go from {row.status} to {body.status}")
     a = db.get(Account, row.account_id)
+    if body.status == "submitted" and a is not None:  # D89: never submit while Lucid's consistency rule is not met
+        got = payout_consistency_for(db, st.rules.rules, a)
+        if got is not None and not got[0].eligible:
+            from app.risk.consistency import payout_consistency_text
+
+            raise HTTPException(409, "Payout consistency not met. " + payout_consistency_text(got[0]))
     now = st.clock.now()
     row.status = body.status
     if body.status == "submitted":

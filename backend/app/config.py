@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -126,6 +127,23 @@ class ScaleTier(_M):
     micros: int
 
 
+class PayoutConsistencyCfg(_M):
+    """D89: Lucid's payout-eligibility consistency rule (LucidPro funded). Limit = `pct`, or `legacy_pct` for accounts
+    purchased/reset on or before `legacy_cutoff`. A payout may only be requested while largest day ≤ limit × profit."""
+
+    pct: D = Field(gt=0, le=100)
+    legacy_pct: D = Field(gt=0, le=100)
+    legacy_cutoff: datetime
+
+    @model_validator(mode="after")
+    def _check(self) -> PayoutConsistencyCfg:
+        if self.legacy_cutoff.tzinfo is None:
+            raise ValueError("legacy_cutoff needs a time zone offset, e.g. 2025-11-28T15:00:00-05:00")
+        if self.legacy_pct > self.pct:
+            raise ValueError("legacy_pct can't be looser than pct")
+        return self
+
+
 class FundedRules(_M):
     max_loss_limit: D
     drawdown_type: DrawdownType
@@ -140,6 +158,7 @@ class FundedRules(_M):
     scaling: list[ScaleTier] | None = None  # LucidFlex funded: max micros by cycle profit
     payouts_to_live: int | None = None
     payouts_live_review: int | None = None
+    payout_consistency: PayoutConsistencyCfg | None = None  # D89 (LucidPro only; None = no such rule)
     payout: PayoutRules
 
 

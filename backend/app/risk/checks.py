@@ -256,7 +256,24 @@ def _finish(
     open_risk: Decimal = Decimal(0),
 ) -> PreTrade:
     """Checks every trade passes after sizing: consistency cap, then worst case vs DLL left / MLL distance."""
-    if consistency is not None:
+    if consistency is not None and lim.fixed_contracts is not None:
+        # N6 / D89: a fixed-size strategy trade exits by its own rules (NOISE: band/VWAP/hourly exits; the far TP
+        # is only a 10% safety order), so "the take-profit reward must fit the cap" would reject EVERY entry. The cap is
+        # enforced live instead: the controller flattens the account's strategy trades as soon as today's realised +
+        # open profit reaches consistency.day_stop (< cap), and no new entry opens once the day stop is reached.
+        room_ok = day.today_profit_for_consistency < consistency.cap
+        if not r.log(
+            "consistency_cap",
+            room_ok,
+            mode="live_day_stop",
+            today=day.today_profit_for_consistency,
+            cap=consistency.cap,
+            day_stop=consistency.day_stop,
+            contracts=n,
+        ):
+            r.reason = "CONSISTENCY_CAP"
+            return r
+    elif consistency is not None:
         reward = (plan.take_profit - plan.entry) * plan.direction.sign / lim.tick * lim.tick_value - lim.fee_rt
         fit = fit_contracts(n, day.today_profit_for_consistency, reward, consistency, lim.min_qty)
         if not r.log(

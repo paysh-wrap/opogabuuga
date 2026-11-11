@@ -16,6 +16,7 @@ from app.clock import session_date
 from app.execution.adapters.base import BrokerError
 from app.management.drawdown_guard import GuardCfgView, guard_active
 from app.models import Account, BiasDecision, Signal, Trade
+from app.payouts.service import consistency_view
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
 from app.risk.eval_mode import eval_mode_effective
@@ -75,6 +76,7 @@ async def dashboard(
             "dll_left": _s(dll_remaining(dll, day.today_pnl, day.today_peak_pnl)) if dll is not None else None,
             "consistency_cap": _s(cons.cap) if cons else None,
             "consistency_stop": _s(cons.day_stop) if cons else None,
+            "payout_consistency": consistency_view(db, r, a),  # D89 (FUNDED + Pro only)
             "target_left": str(max(start + r.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
             "mll_locked": a.mll_locked,
             "guard_on": guard_active(a.drawdown_type, bool(a.mll_locked), GuardCfgView(r.drawdown_guard.mode)),

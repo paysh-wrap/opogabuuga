@@ -476,7 +476,17 @@ def test_fixed_size_blocked_by_dll_and_mll_room():
     assert not r.ok and r.reason == "WORST_CASE_EXCEEDS_LIMITS"
     r = run(plan=NOISE_PLAN, lim=_fixed(0), consistency=None, acct_dll=None)
     assert not r.ok and r.reason == "STOP_TOO_WIDE"
-    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))  # consistency
+    # N6 / D89 (changed assertion): the far safety TP no longer rejects every fixed-size entry with CONSISTENCY_CAP;
+    # below the day stop the trade is allowed (the live monitor flattens at it), at/after it the day stop blocks
+    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))
+    assert r.ok and any(c["check"] == "consistency_cap" and c["mode"] == "live_day_stop" for c in r.checks)
+    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, day=DayState(1, 0, 1, D(440), D(440)))
+    assert not r.ok and r.reason == "CONSISTENCY_DAY_STOP"
+
+
+def test_fixed_size_never_trades_at_or_above_the_cap_even_if_day_stop_were_looser():
+    loose = ConsistencyLimits(cap=D(500), day_stop=D(600))  # defensive: cap itself is still enforced
+    r = run(plan=NOISE_PLAN, lim=_fixed(), acct_dll=None, consistency=loose, day=DayState(1, 0, 1, D(500), D(500)))
     assert not r.ok and r.reason == "CONSISTENCY_CAP"
 
 

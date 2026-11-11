@@ -38,6 +38,7 @@ from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
+from app.risk.consistency import live_day_stop_hit
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
@@ -1106,6 +1107,18 @@ class Controller:
             if dll is not None and dll_remaining(dll, day.today_pnl, day.today_peak_pnl) <= 0 and opnl != 0:
                 await self._flatten_account(s, a, "DLL_LIMIT")
                 st.day_stats(s, a, self.clock.now()).stopped_reason = "DLL_LIMIT"
+                continue
+            if opnl > 0 and any(t.account == a.broker_account_id and t.strategy for t in self.om.trades.values()):
+                # N6: fixed-size strategy trades are not fitted to the consistency cap before entry, so the day stop is
+                # enforced here, live: flatten once today's realised + open profit reaches it (protective, never waits)
+                clim = st.consistency(s, a, r)
+                fcfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
+                if clim is not None and fcfg is not None:
+                    clim = harvest_limits(clim, fcfg, r.eval.profit_target)
+                if clim is not None and live_day_stop_hit(day.today_profit_for_consistency, opnl, clim):
+                    await self._flatten_account(s, a, "CONSISTENCY_DAY_STOP")
+                    st.day_stats(s, a, self.clock.now()).stopped_reason = "CONSISTENCY_DAY_STOP"
+                    self.notify("warn", "Consistency day stop", f"{a.label}: strategy trades flattened at the day stop")
 
     async def reconcile(self, s: Session) -> list[Any]:
         """Broker vs our open trades; mismatching accounts are paused (§13)."""
