@@ -73,6 +73,18 @@ class OrderFlowFields(_M):
     delta: Decimal | None = None
     cum_delta: Decimal | None = None
     poc: Decimal | None = None
+    # D101 AR Model layers (optional: older indicator versions omit them → the engine skips OF_NO_CONFIRM)
+    env: Literal["EXPANSION", "ROTATION", "COMPRESSION"] | None = None
+    location_zone: str | None = Field(default=None, max_length=24)  # label only (F0705 … / BEYOND_0886)
+    fib: Decimal | None = Field(default=None, ge=0, le=5)
+    value_side: Literal["BELOW_VAL", "IN_VALUE", "ABOVE_VAH"] | None = None
+    path_zone: Literal["INSIDE", "L1", "AVR-", "AVR", "AVR+", "MAX"] | None = None
+    path_side: Literal["ABOVE", "BELOW", "INSIDE"] | None = None
+    delta_source: Literal["real", "est"] | None = None
+    confirm_time: int | None = Field(default=None, gt=1_500_000_000_000, lt=4_000_000_000_000)
+    absorption_low: Decimal | None = Field(default=None, gt=0)
+    absorption_high: Decimal | None = Field(default=None, gt=0)
+    stacked: int | None = Field(default=None, ge=0, le=100)
 
 
 class WebhookPayload(_M):

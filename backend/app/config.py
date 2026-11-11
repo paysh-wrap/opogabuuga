@@ -323,6 +323,11 @@ class ArModelCfg(_M):
     teacher's rules (fib zone inside 0.5–0.886, compression never allowed, path block at MAX or tighter)."""
 
     required: bool = True  # an alert WITHOUT the AR fields (pre-D101 indicator) → OF_NO_CONFIRM
+    # ENVIRONMENT + CONFIRMATION are always on. LOCATION and PATH are separate switches: the session-18 AR study
+    # (docs/results/session18/ar_model/RESULTS.md, ESTIMATED delta) found they did not help on bar data; real delta
+    # may change that. ON by default = the teacher's full model (they only ever remove trades).
+    location_filter: bool = True
+    path_filter: bool = True
     allowed_envs: list[Literal["EXPANSION", "ROTATION"]] = ["EXPANSION", "ROTATION"]  # COMPRESSION: never (type)
     fib_min: D = D("0.705")  # retracement depth of the swing range (bias side) — focus zone 0.705–0.886
     fib_max: D = D("0.886")  # a close beyond 0.886 invalidates the reversal idea

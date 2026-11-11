@@ -277,3 +277,19 @@ reliability:                           # session 14: restart recovery, lost-sign
   feed_flatten_min: 6                  # no bar for this long -> flatten (protective exit, never waits)
   reprocess_window_min: 5              # unprocessed heartbeats this recent are replayed (exits/management only)
   missed_check_alert_s: 90             # NOISE check minute with no stored bar this long after it closed -> alert
+
+strategy:   # D101: Order Flow AR-Model defaults (legacy Daily plan: everything else = code defaults)
+  order_flow_cfg:
+    ar:   # D101 AR Model gates (UNVERIFIED; only remove trades). Env + confirmation always on; location/path = switches
+      required: true            # alert without AR fields → OF_NO_CONFIRM
+      allowed_envs: [EXPANSION, ROTATION]   # COMPRESSION never trades (OF_COMPRESSION)
+      location_filter: true     # session-18 AR study (estimated delta): location did NOT help — re-test on real delta
+      fib_min: 0.705            # focus zone 0.705–0.886 of the swing range (bias side); validator: 0.5 ≤ min < max ≤ 0.886
+      fib_max: 0.886
+      value_side: OUTSIDE_VALUE # LONG below VAL / SHORT above VAH of the swing's fixed-range profile
+      path_filter: true         # study: path did NOT help on estimated data — re-test on real delta
+      path_block_zone: MAX      # Asia + ATR(20) zone at/beyond which a trade WITH the move is skipped (OF_PATH_EXHAUSTED)
+      confirm_max_age_min: 3    # entry (pullback) candle ≤ 3 min after the confirmation candle
+      require_real_delta: false # true → delta_source "est" alerts skipped (OF_DELTA_ESTIMATED)
+      trail_candle_min: 5       # trail behind the last closed 5m candle (pure helper; not wired yet, D101)
+      be_after_r: 1.0           # break-even after 1R follow-through

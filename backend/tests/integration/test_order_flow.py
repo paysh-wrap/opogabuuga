@@ -29,8 +29,15 @@ def _p(ms=MS, direction="LONG", entry="20010", defended="20000", stop="19999.75"
     return {
         "v": 1, "secret": WEBHOOK_SECRET, "id": f"MNQ1!-TIGHT-{ms}-ORDER_FLOW-{direction}", "symbol": "MNQ1!",
         "profile": "TIGHT", "tf": "1", "bar_time_ms": ms, "event": "ORDER_FLOW", "direction": direction,
-        "order_flow": {"kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5"},
+        "order_flow": {"kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR, "confirm_time": ms - 60000},
     }  # fmt: skip
+
+
+# D101: an alert whose four AR-Model layers agree (LONG: discount below value, inside Asia, confirmed 1 bar earlier)
+AR = {
+    "env": "ROTATION", "location_zone": "F0788", "fib": "0.79", "value_side": "BELOW_VAL", "path_zone": "INSIDE",
+    "path_side": "INSIDE", "delta_source": "real",
+}  # fmt: skip
 
 
 def _run(s, rules, p, cal=lambda _d: []):

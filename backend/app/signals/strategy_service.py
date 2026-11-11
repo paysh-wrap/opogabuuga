@@ -392,7 +392,40 @@ def run_order_flow(
     day = at.date().isoformat()
     direction = Direction(payload.direction)
     inst = rules.instrument(symbol)
-    res = OF.build_plan(
+    ar = OF.ArFields(
+        env=of.env,
+        fib=of.fib,
+        value_side=of.value_side,
+        path_zone=of.path_zone,
+        path_side=of.path_side,
+        delta_source=of.delta_source,
+        confirm_time_ms=of.confirm_time,
+    )
+    a = cfg.ar
+    absorption = (
+        (of.absorption_low, of.absorption_high)
+        if of.absorption_low is not None and of.absorption_high is not None
+        else None
+    )
+    # D101 AR Model: ENVIRONMENT → LOCATION → PATH → CONFIRMATION first ("the signal comes last"), then the plan
+    res: OF.OrderFlowPlan | OF.OrderFlowSkip | None = OF.check_ar(
+        direction,
+        payload.bar_time_ms,
+        ar,
+        OF.ArRules(
+            required=a.required,
+            allowed_envs=tuple(a.allowed_envs),
+            location_filter=a.location_filter,
+            fib_min=a.fib_min,
+            fib_max=a.fib_max,
+            value_side=a.value_side,
+            path_filter=a.path_filter,
+            path_block_zone=a.path_block_zone,
+            confirm_max_age_min=a.confirm_max_age_min,
+            require_real_delta=a.require_real_delta,
+        ),
+    )
+    res = res or OF.build_plan(
         kind=of.kind,
         direction=direction,
         entry=of.entry,
@@ -404,10 +437,33 @@ def run_order_flow(
         min_risk_ticks=max(cfg.min_risk_ticks, inst.min_stop_ticks or 0),  # D96: the market's own floor (MGC 16)
         max_risk_ticks=cfg.max_risk_ticks,
         alert_stop=of.stop,
+        absorption=absorption,
     )
+    layers = {
+        "env": of.env,
+        "location_zone": of.location_zone,
+        "fib": None if of.fib is None else str(of.fib),
+        "value_side": of.value_side,
+        "path_zone": of.path_zone,
+        "path_side": of.path_side,
+        "delta_source": of.delta_source,
+        "confirm_time": of.confirm_time,
+    }
     if isinstance(res, OF.OrderFlowSkip):  # no valid plan → no signal row; the reason code is audited
         audit.record(
-            s, clock, "engine", "order_flow.skip", f"{symbol}-OF-{day}", {"code": res.code, "detail": res.detail}
+            s,
+            clock,
+            "engine",
+            "order_flow.skip",
+            f"{symbol}-OF-{day}",
+            {
+                "code": res.code,
+                "detail": res.detail,
+                "layer": res.layer,
+                "direction": direction.value,
+                "bar_time_ms": payload.bar_time_ms,
+                **layers,
+            },
         )
         s.commit()
         return out
@@ -435,7 +491,13 @@ def run_order_flow(
         direction=direction,
         at=at,
         gate=gate,
-        features={"kind": res.kind, "defended": str(res.defended), "paper_only": cfg.paper_only, "unverified": True},
+        features={
+            "kind": res.kind,
+            "defended": str(res.defended),
+            "paper_only": cfg.paper_only,
+            "unverified": True,
+            "ar": layers,  # D101: the four AR-Model layers this signal passed
+        },
         plan=("ORDER_FLOW", res.entry, res.stop, res.take_profit, res.risk_pts, res.rr),
     )
     s.commit()
