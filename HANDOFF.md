@@ -461,3 +461,9 @@ Tests: 1101 backend passed (100% cov risk/management/phases) + 100 frontend; lin
 ## D105 - LunqFX removed (2026-11-11)
 User asked to remove LunqFX. UI, strategy button/keys, plan yamls and the signal runtime are gone; webhook ignores LunqFX alerts
 (`LUNQFX_REMOVED`, 200). Pure engine modules (confluence, state_machine, lunqfx_fractal) stay dormant. See docs/DECISIONS.md D105.
+
+## Session 18 end (2026-11-11) — start the next session here
+Branch claude/laughing-feynman-1f0fm5, tip f53f7d5 (D113). Latest Windows build run 25 = d5439f9 (server name paytience-d5439f9-202611111539.localhost:8000); f53f7d5 (BigBeluga card removed + tunnel https hint) NOT built yet → trigger desktop.yml when needed.
+Done this session: D100–D113 (AR Model main Order Flow source, Casper/AMT+/ATR-zone types, TA advisor toggle + TV guide, per-strategy gates, LunqFX + Opening drive removed, paper-only forcing removed (live gates kept), per-build server name, AI-tools auto-install fix, CME real-time feed gate FEED_DELAYED).
+Open: (1) build f53f7d5+; (2) user's ngrok: use the "ngrok (permanent webhook URL)" card (authtoken + static domain, no https://), Remove the Cloudflare Public URL card; (3) Pine scripts never compiled in TradingView (footprint call; fallback `footprint fp = na`); (4) 5m-candle trail rule not wired to the order manager; (5) Order Flow/AMT+/ATR-zone UNVERIFIED — paper-test on CME feed, Databento locked (no real tick backtest); (6) up/down volume not sent by Pine bridge; (7) phone APK skipped.
+NOISE stays the main live strategy; projected ≈ $150–170/week on 1 micro MNQ (backtest, not a promise); eval PASS 60–67% / BUST 33–39%.
