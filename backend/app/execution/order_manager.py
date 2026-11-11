@@ -73,7 +73,9 @@ class OpenTrade:
     profit_lock: tuple[Decimal, Decimal] | None = None  # D82: (trigger_pts, lock_pts) — NOISE profit lock (D75-P1)
     profit_locked: bool = False  # the stop has been moved to entry + lock_pts
     manage: ManageCfg | None = None  # D85: AI Duo break-even / profit lock / trail (management/trade_manage.py)
-    dyn_trail: TrailParams | None = None  # D122: dynamic trailing stop (management/dynamic_trail.py), toggle per strategy
+    dyn_trail: TrailParams | None = (
+        None  # D122: dynamic trailing stop (management/dynamic_trail.py), toggle per strategy
+    )
 
     @property
     def d(self) -> Direction:

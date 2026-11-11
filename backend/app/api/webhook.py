@@ -147,7 +147,9 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
             ctl.notify("info", "CME data is real-time again", acc.symbol, "feed")
         finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
         if finest:
-            await ctl.on_bar(acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now())
+            await ctl.on_bar(
+                acc.symbol, p.price.o, p.price.h, p.price.l, p.price.c, st.clock.now(), p.bar_time_ms, p.tf
+            )
         if replay:
             return
         await ctl.flat_time_check()

@@ -162,6 +162,41 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
     - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
     - {account_size: 150000, mll: 4500, contracts: 4, brake_below: 0.5, brake_contracts: 2}
+  # D122 (user 2026-11-11): dynamic trailing stop + cushion level controls, per-strategy toggles (Strategy page,
+  # My Settings), default OFF, UNVERIFIED (no backtest). Tighten-only: never loosens a stop, never raises a size above
+  # the size tables / every other check (kill switch, size-table brake, DLL, MLL worst case, consistency).
+  dynamic_trail:
+    noise: false
+    pm_fade: false
+    ai_bias: false
+    ai_duo: false
+    order_flow: false          # ON also wires the D101 Order Flow AR candle trail (AR-type trades)
+    activate_r: 1.0            # starts at +1R: stop -> breakeven + fee cover (0.5-3)
+    min_distance_ticks: 8      # never closer than this to the market (2-200)
+    atr_tf_min: 5              # ATR(atr_period) of 5m bars built from the 1m heartbeat bars (1 or 5)
+    atr_period: 14
+    swing_tf_min: 5            # swing structure: last closed 5m bar low (LONG) / high (SHORT) +/- 1 tick
+    steps:                     # trail = max(k x ATR, swing) behind the best price; k tightens with profit
+      - {until_r: 2.0, k: 2.0}
+      - {until_r: 3.0, k: 1.5}
+      - {until_r: null, k: 1.0}
+    low_vol_percentile: 0.25   # current ATR in the lowest 25% of its last low_vol_lookback values = compression
+    low_vol_mult: 0.75         # ... then k x 0.75 (tighter)
+    low_vol_lookback: 50
+    k_floor: 0.5               # k never below this (after the cushion reduction)
+  cushion:                     # cushion = equity incl. open P&L - current MLL, as a share of the MLL distance
+    noise: false
+    pm_fade: false
+    ai_bias: false
+    ai_duo: false
+    order_flow: false
+    normal_min: 0.75           # >= 75%: normal
+    reduce_min: 0.50           # 50-75%: size -reduce_size_minus micros (min 1), trail k -reduce_k_minus
+    minimal_min: 0.25          # 25-50%: 1 micro, trail k -minimal_k_minus, <= minimal_max_trades trades/day; < 25%: STOP
+    reduce_size_minus: 1
+    reduce_k_minus: 0.25
+    minimal_k_minus: 0.5
+    minimal_max_trades: 1
 
 filters:
   c1_min_range_atr: 0.4                # tunable 0.4–1.0

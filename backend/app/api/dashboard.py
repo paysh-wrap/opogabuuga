@@ -19,6 +19,7 @@ from app.models import Account, BiasDecision, Signal, Trade
 from app.payouts.service import consistency_view
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
+from app.risk.cushion import cushion_level, cushion_share
 from app.risk.eval_mode import eval_mode_effective
 from app.risk.split_risk import split_active
 from app.signals.service import today_bias
@@ -39,6 +40,25 @@ def _fast_share(db: Session, a: Account, r: Any) -> Decimal:
         (t.pnl_usd or Decimal(0), (t.closed_at - t.opened_at).total_seconds()) for t in rows if t.closed_at is not None
     ]
     return rapid_profit_share(data, r.behavior.firm_microscalp_hold_seconds)
+
+
+def _cushion(r: Any, eq: Decimal, mll: Decimal | None, max_loss: Decimal) -> dict[str, Any] | None:
+    """D122: current cushion level (equity incl. open P&L − MLL vs the MLL distance) + which strategies use it."""
+    if mll is None:
+        return None
+    from app.automation.controller import cushion_levels
+    from app.config import TRAIL_STRATEGIES
+
+    cc, dt = r.strategy.cushion, r.strategy.dynamic_trail
+    share = cushion_share(eq, mll, max_loss)
+    return {
+        "usd": str(eq - mll),
+        "pct": str((share * 100).quantize(Decimal("0.1"))),
+        "level": cushion_level(share, cushion_levels(cc)),
+        "strategies": [k.upper() for k in TRAIL_STRATEGIES if getattr(cc, k)],
+        "trail_strategies": [k.upper() for k in TRAIL_STRATEGIES if getattr(dt, k)],
+        "unverified": True,
+    }
 
 
 @router.get("/dashboard")
@@ -70,7 +90,8 @@ async def dashboard(
             "mll": _s(a.mll),
             "to_mll": _s(eq - a.mll) if a.mll is not None else None,
             "kill_at": str(r.internal.kill_switch_mll_distance),
-            "max_loss": str(stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
+            "max_loss": str(max_loss := stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
+            "cushion": _cushion(r, eq, a.mll, max_loss),  # D122
             "dll_limit": _s(dll),
             "today_pnl": str(day.today_pnl),
             "trades_today": day.trades_today,

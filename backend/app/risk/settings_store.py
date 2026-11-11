@@ -85,6 +85,28 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo_cfg.windows",
         "strategy.ai_duo_cfg.accounts",
         "strategy.pm_fade",
+        *(  # D122: dynamic trailing stop + cushion level controls (Strategy page; validated by the config models)
+            f"strategy.{part}.{k}"
+            for part, keys in (
+                (
+                    "dynamic_trail",
+                    ("activate_r", "min_distance_ticks", "steps", "low_vol_percentile", "low_vol_mult", "k_floor"),
+                ),
+                (
+                    "cushion",
+                    (
+                        "normal_min",
+                        "reduce_min",
+                        "minimal_min",
+                        "reduce_size_minus",
+                        "reduce_k_minus",
+                        "minimal_k_minus",
+                        "minimal_max_trades",
+                    ),
+                ),
+            )
+            for k in ("noise", "pm_fade", "ai_bias", "ai_duo", "order_flow", *keys)
+        ),
         "strategy.high_risk",
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
         # D80: gate toggles shown on the Strategy page (all default OFF / unproven; each is a pure filter that can only block)  # noqa: E501

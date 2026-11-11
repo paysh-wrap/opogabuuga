@@ -22,7 +22,7 @@ from app.automation.account_selector import Candidate
 from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
 from app.bias import ledger as bias_ledger
-from app.clock import Clock, parse_hhmm, to_et
+from app.clock import Clock, parse_hhmm, session_date, to_et
 from app.engine.filters import news_flatten_due
 from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
@@ -30,15 +30,25 @@ from app.execution import trade_state
 from app.execution.adapters.base import BrokerError, conservative_mode
 from app.execution.adapters.router import RoutingAdapter
 from app.execution.order_manager import Event, OpenTrade, OrderManager, OrphanedPosition
+from app.indicators.bars import Bar as PriceBar
 from app.indicators.bars import tf_minutes
 from app.management.drawdown_guard import GuardCfgView, apply_guard, guard_active, min_contracts
+from app.management.dynamic_trail import TrailParams
 from app.management.profit_lock import PROFIT_LOCK_REASON
 from app.management.trade_manage import ManageCfg
-from app.models import Account, Bar, Order, Payout, Signal, Trade, TradePlanRow
+from app.models import Account, AuditLog, Bar, Order, Payout, Signal, Trade, TradePlanRow
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
 from app.risk.consistency import live_day_stop_hit
+from app.risk.cushion import (
+    CushionLevels,
+    cushion_block,
+    cushion_contracts,
+    cushion_k_minus,
+    cushion_level,
+    cushion_share,
+)
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
@@ -95,6 +105,23 @@ def override_allows(override: str | None, actor: str, mode: str, manual: bool) -
     if actor == "automation":
         return override != "SEMI"
     return override == "SEMI" if mode == "FULL" else True
+
+
+def cushion_levels(c: Any) -> CushionLevels:
+    """D122: the plan's / My Settings' CushionCfg as the pure risk/cushion.py levels."""
+    return CushionLevels(
+        c.normal_min, c.reduce_min, c.minimal_min, c.reduce_size_minus, c.reduce_k_minus, c.minimal_k_minus,
+        c.minimal_max_trades,
+    )  # fmt: skip
+
+
+def trail_params(c: Any, fee_ticks: int, k_minus: Decimal, of_trail: tuple[int, Decimal] | None) -> TrailParams:
+    """D122: the DynamicTrailCfg as the pure management/dynamic_trail.py parameters."""
+    return TrailParams(
+        c.activate_r, c.min_distance_ticks, c.atr_tf_min, c.atr_period, c.swing_tf_min,
+        tuple((x.until_r, x.k) for x in c.steps), c.low_vol_percentile, c.low_vol_mult, c.low_vol_lookback,
+        c.k_floor, fee_ticks, k_minus, of_trail,
+    )  # fmt: skip
 
 
 @dataclass
@@ -616,6 +643,28 @@ class Controller:
                 a.broker_account_id,
                 {"signal": sig.id, "strategy": strategy, "contracts": fixed, "budget_left": str(side_left)},
             )
+        cush_k = Decimal(0)
+        cc = r.strategy.cushion
+        if strategy and fixed is not None and getattr(cc, strategy.lower(), False):
+            # D122 cushion level controls: tighten-only on top of every check below (size tables untouched)
+            lv = cushion_levels(cc)
+            level = cushion_level(cushion_share(equity, mll.mll, mll.max_loss), lv)
+            stopped = self._cushion_stopped(s, a, now)
+            if level == "STOP" and not stopped:
+                audit.record(
+                    s, self.clock, actor, "risk.cushion_stop", a.broker_account_id,
+                    {"session": session_date(now).isoformat(), "cushion": str(equity - mll.mll)},
+                )  # fmt: skip
+                self.notify("warn", "Cushion STOP - no new entries this session", f"{a.label}: cushion below STOP")
+            skip = cushion_block(level, st.day_stats(s, a, now).trades, stopped, lv)
+            sized = cushion_contracts(level, fixed, lv)
+            audit.record(
+                s, self.clock, actor, "trade.cushion", a.broker_account_id,
+                {"signal": sig.id, "level": level, "contracts_before": fixed, "contracts_after": sized, "skip": skip},
+            )  # fmt: skip
+            if skip is not None:
+                return AccountResult(a.id, False, skip)
+            fixed, cush_k = sized, cushion_k_minus(level, lv)
         lim = TradeLimits(
             inst.tick,
             inst.tick_value,
@@ -720,6 +769,15 @@ class Controller:
                     fee_cover_ticks(inst.fee_rt, inst.tick_value), Decimal(str(ai)) if ai else None,
                     step[0] if step else None, step[1] if step else None,
                 )  # fmt: skip
+            dt = r.strategy.dynamic_trail
+            if strategy and getattr(dt, strategy.lower(), False):  # D122 dynamic trailing stop (toggle per strategy)
+                ar = r.strategy.order_flow_cfg.ar
+                of = (
+                    (ar.trail_candle_min, ar.be_after_r)
+                    if strategy == "ORDER_FLOW" and "zone" not in (sig.features or {})
+                    else None
+                )  # D101 AR candle trail wired here (zone trades keep their own D111 bar-close trail)
+                t.dyn_trail = trail_params(dt, fee_cover_ticks(inst.fee_rt, inst.tick_value), cush_k, of)
             nc = r.strategy.noise_cfg
             if strategy == "NOISE" and nc.profit_lock_trigger_pts is not None and nc.profit_lock_pts is not None:
                 t.profit_lock = (nc.profit_lock_trigger_pts, nc.profit_lock_pts)  # D82 / D75-P1 (preset C)
@@ -746,6 +804,17 @@ class Controller:
         for f in self.adapter.drain_fills():
             await self._handle_events(s, await self.om.on_fill(f))
         return AccountResult(a.id, True, None, pt.contracts, t.trade_id, pt.checks)
+
+    @staticmethod
+    def _cushion_stopped(s: Session, a: Account, now: datetime) -> bool:
+        """D122: a cushion STOP earlier this session (audited, so it survives a restart) blocks until the next one."""
+        row = s.execute(
+            select(AuditLog)
+            .where(AuditLog.action == "risk.cushion_stop", AuditLog.entity == a.broker_account_id)
+            .order_by(AuditLog.id.desc())
+            .limit(1)
+        ).scalar_one_or_none()
+        return row is not None and (row.payload or {}).get("session") == session_date(now).isoformat()
 
     @staticmethod
     def _strategy_deadline(sig: Signal) -> datetime | None:
@@ -983,13 +1052,28 @@ class Controller:
         seen[m] = now
         return not any(t < m and 0 <= (now - last).total_seconds() <= 3 * 60 * t for t, last in seen.items())
 
-    async def on_bar(self, symbol: str, o: Decimal, h: Decimal, low: Decimal, c: Decimal, at: datetime) -> None:
+    async def on_bar(
+        self,
+        symbol: str,
+        o: Decimal,
+        h: Decimal,
+        low: Decimal,
+        c: Decimal,
+        at: datetime,
+        bar_close_ms: int | None = None,
+        tf: str = "1",
+    ) -> None:
+        bar = None
+        if bar_close_ms is not None:  # D122: the heartbeat bar itself feeds the dynamic trail (ATR / swing)
+            with contextlib.suppress(ValueError):  # an unknown timeframe string: no bar history, nothing else changes
+                span = tf_minutes(tf) * 60_000
+                bar = PriceBar(bar_close_ms - span, bar_close_ms, o, h, low, c)
         async with self.lock:
             with self.sessionmaker() as s:
                 for f in self.adapter.on_bar(symbol, o, h, low, c, at):
                     await self._handle_events(s, await self.om.on_fill(f))
                 await self._handle_events(s, await self.om.expire_unfilled(self.clock.now()))
-                await self._handle_events(s, await self.om.on_bar(symbol, h, low, c))
+                await self._handle_events(s, await self.om.on_bar(symbol, h, low, c, bar))
                 await self._retry_strategy_exits(s)
                 await self._scalp_time_stop(s, symbol)
                 await self._monitor(s)
