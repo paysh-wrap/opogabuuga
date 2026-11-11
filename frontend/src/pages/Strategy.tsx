@@ -6,7 +6,7 @@ import StrategyButtons from "../components/StrategyButtons";
 import StrategyPresets from "../components/StrategyPresets";
 import TaMgcCard from "../components/TaMgcCard";
 import TradingR1Card from "../components/TradingR1Card";
-import GateChain from "../components/GateChain";
+import StrategyGates from "../components/StrategyGates";
 import AiLedger from "../components/AiLedger";
 
 interface Feed { profile: string; feed: string; mso_trend: string | null; mso_osc: string | null; last_mso_event: [string, string] | null }
@@ -33,7 +33,7 @@ export default function Strategy() {
       <StrategyButtons />
       <TaMgcCard />
       <TradingR1Card />
-      <GateChain />
+      <StrategyGates />
       <AiLedger />
       <div className="grid gap-4 lg:grid-cols-3">
         <section className={card} data-testid="ta-card">

@@ -37,6 +37,7 @@ from app.api.research import router as research_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
+from app.api.strategy_gates import router as strategy_gates_router
 from app.api.system import router as system_router
 from app.api.updates import router as updates_router
 from app.api.webhook import router as webhook_router
@@ -560,6 +561,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(market_router)
     app.include_router(replay_router)
     app.include_router(orderflow_router)  # D98: order-flow chart (display only, estimated)
+    app.include_router(strategy_gates_router)  # D106: per-strategy gates (read-only)
     app.include_router(updates_router)
     app.include_router(system_router)  # D97: local-only shutdown for a newer start
 

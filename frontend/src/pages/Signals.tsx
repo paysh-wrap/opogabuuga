@@ -18,14 +18,15 @@ const usd = (v: string | null) => {
   const c = Math.round(n * 100) / 100; // −0.004 → 0.00, shown as ▲ +$0.00 (never "▼ −$0.00")
   return (c >= 0 ? "▲ +$" : "▼ −$") + Math.abs(c).toFixed(2);
 };
-const GATES = ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"];
-
-function GateCell({ g }: { g?: Gate }) {
-  if (!g) return <td className="text-center text-blueLight" title="not evaluated">–</td>;
+// D106: only the gates the signal's own strategy recorded (no fixed LunqFX-era G1–G8 columns).
+function GateCell({ gates }: { gates: Gate[] }) {
+  if (gates.length === 0) return <td className="text-blueLight" title="no gate record">–</td>;
   return (
-    <td className="text-center" title={g.code ?? ""}>
-      <span aria-label={g.passed ? "passed" : "failed"} className="inline-block rounded px-1 text-xs"
-        style={{ background: g.passed ? "#22C55E" : "#EF4444", color: "#0A1020" }}>{g.passed ? "✓" : "✗"}</span>
+    <td className="whitespace-nowrap">
+      {gates.map((g) => (
+        <span key={g.gate} title={g.code ?? ""} aria-label={`${g.gate} ${g.passed ? "passed" : "failed"}`} className="mr-1 inline-block rounded px-1 text-xs"
+          style={{ background: g.passed ? "#22C55E" : "#EF4444", color: "#0A1020" }}>{g.passed ? "✓" : "✗"}</span>
+      ))}
     </td>
   );
 }
@@ -37,7 +38,7 @@ export default function Signals() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-gold">Signals</h1>
-      <p className="text-sm">Every confirmed model and why it was taken or skipped. Gates G1–G8 are evaluated at the entry-bar close.</p>
+      <p className="text-sm">Every strategy decision and why it was taken or skipped. Each strategy's own gates are on the Strategy page.</p>
       {q.isLoading && <p role="status">Loading…</p>}
       {q.error && <p role="alert" className="text-goldLight">⚠ Could not load signals: {String(q.error.message)}</p>}
       {q.data?.signals.length === 0 && <p className="rounded-xl border border-border bg-card p-4 text-sm">No signals yet.</p>}
@@ -46,7 +47,7 @@ export default function Signals() {
           <table className="w-full text-sm">
             <thead className="text-left text-gold">
               <tr><th>Time</th><th>Symbol</th><th>Dir</th><th>Status</th><th>Score</th><th>C1/ATR</th>
-                {GATES.map((g) => <th key={g} className="text-center">{g}</th>)}<th>Reason</th><th /></tr>
+                <th>Gates</th><th>Reason</th><th /></tr>
             </thead>
             <tbody>
               {q.data.signals.map((s) => (
@@ -58,14 +59,14 @@ export default function Signals() {
                     <td>{s.status}</td>
                     <td className="font-semibold text-gold">{s.score ?? "–"}</td>
                     <td>{s.c1_range_atr ?? "–"}</td>
-                    {GATES.map((g) => <GateCell key={g} g={s.gates.find((x) => x.gate === g)} />)}
+                    <GateCell gates={s.gates} />
                     <td>{s.skip_reason ?? ""}</td>
                     <td><button className="text-blue hover:text-blueLight" aria-expanded={open === s.id}
                       onClick={() => setOpen(open === s.id ? null : s.id)}>{open === s.id ? "Hide" : "Plan"}</button></td>
                   </tr>
                   {open === s.id && (
                     <tr data-testid={`plan-${s.id}`}>
-                      <td colSpan={16} className="pb-2 text-xs">
+                      <td colSpan={9} className="pb-2 text-xs">
                         {s.plans.length === 0 ? "No trade plan was built." : s.plans.map((p) => (
                           <div key={p.mode}>{p.mode}: entry <b className="text-gold">{p.entry}</b> · stop <b className="text-gold">{p.stop}</b>{" "}
                             · target <b className="text-gold">{p.take_profit}</b> · R:R <b className="text-gold">{p.rr}</b></div>

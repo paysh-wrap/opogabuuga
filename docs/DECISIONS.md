@@ -989,3 +989,18 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   (tests/integration/test_signals_flow.py `confirm`: PASS signal + §7 plan from engine/trade_plan) dispatched through
   the real `app.api.webhook.dispatch_updates` (SEMI approval / FULL execute) - same controller/risk/OM path, same
   assertions.
+- D106 (user 2026-11-11): "Remove all unnecessary gates and have each strategy have different gates". The generic gates
+  panel (GateChain: G1 / RISK / OB / G6 / AI rows "for NOISE + afternoon fade") and the Signals page's fixed G1–G8
+  columns are gone. New read-only `GET /api/strategy-gates` (backend/app/api/strategy_gates.py; pure `describe`,
+  `lucid_rules`, `evaluate`) lists, per kept strategy (NOISE, Afternoon fade, Opening drive, AI only, AI Duo, Order Flow),
+  ONLY the checks its own code in signals/strategy_service.py + engine/* makes, in that order, every number from the live
+  config (e.g. NOISE: decision bar, warm-up/roll guard, noise-band breakout, entries/day, window, AI block advisory;
+  exits VWAP/band trail, $ stop, flat; Order Flow: AR environment → location → path → confirmation (location/path only
+  while their switches are on), stop + R:R plan, window, one position, daily cap). Live status from that strategy's
+  latest signal (Order Flow: or its newer audited `order_flow.skip`): earlier gates PASS, the gate owning the skip
+  code FAIL, later NOT_REACHED; window/news/hedge/risk codes FAIL the strategy's "Lucid rules" step. Off-by-default
+  study filters (D76 OB/SMT) appear only while switched on. Firm/safety checks (news + calendar, DLL/MLL, consistency,
+  hedge lock, kill switch, positions per account, flat times, pre-flight) are shown ONCE as "Lucid rules (always on)",
+  locked. Display only: no backend gate, risk or safety logic changed. The AI proof-threshold editor moved to the NOISE
+  card. Left for the test owner: `/api/strategies` still returns the unused `gate_chain` (tests test_bias_ledger /
+  test_mso_disabled read it) — remove together with those asserts.
