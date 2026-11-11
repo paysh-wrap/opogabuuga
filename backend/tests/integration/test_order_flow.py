@@ -29,7 +29,8 @@ def _p(ms=MS, direction="LONG", entry="20010", defended="20000", stop="19999.75"
     return {
         "v": 1, "secret": WEBHOOK_SECRET, "id": f"MNQ1!-TIGHT-{ms}-ORDER_FLOW-{direction}", "symbol": "MNQ1!",
         "profile": "TIGHT", "tf": "1", "bar_time_ms": ms, "event": "ORDER_FLOW", "direction": direction,
-        "order_flow": {"kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR, "confirm_time": ms - 60000},
+        "order_flow": {"kind": kind, "entry": entry, "defended": defended, "stop": stop, "target": "20030.5", **AR, "confirm_time": ms - 60000,
+                       "value_side": "BELOW_VAL" if direction == "LONG" else "ABOVE_VAH"},
     }  # fmt: skip
 
 
@@ -237,3 +238,36 @@ def test_strategies_card_lists_order_flow_markets(authed):
     assert of["instruments"] == ["MNQ"] and of["paper_only"] is True and of["flat_at"] == "16:00"
     assert "MNQ + MGC" in of["name"]
     assert "instruments" not in next(x for x in d["strategies"] if x["key"] == "noise")
+
+
+def test_d101_ar_layers_gate_and_are_audited(client, loaded_rules):
+    rules = _rules(loaded_rules)
+    with client.app.state.sessionmaker() as s:
+        legacy = _p()
+        for k in (*AR, "confirm_time"):
+            legacy["order_flow"].pop(k)
+        assert _run(s, rules, legacy).updates == []  # pre-D101 indicator alert: no AR layers → skipped
+        for i, (kw, code, layer) in enumerate(
+            [
+                ({"env": "COMPRESSION"}, "OF_COMPRESSION", "ENVIRONMENT"),
+                ({"fib": "0.95"}, "OF_LOCATION", "LOCATION"),
+                ({"path_zone": "MAX", "path_side": "ABOVE"}, "OF_PATH_EXHAUSTED", "PATH"),
+                ({"confirm_time": MS - 3_600_000}, "OF_NO_CONFIRM", "CONFIRMATION"),
+            ]
+        ):
+            p = _p(ms=MS + i * 60000)
+            p["order_flow"].update({**kw, "confirm_time": kw.get("confirm_time", MS + i * 60000 - 60000)})
+            assert _run(s, rules, p).updates == []
+            row = s.query(AuditLog).filter_by(action="order_flow.skip").order_by(AuditLog.id.desc()).first()
+            assert (row.payload["code"], row.payload["layer"]) == (code, layer), row.payload
+            assert row.payload["env"] in ("COMPRESSION", "ROTATION") and row.payload["direction"] == "LONG"
+        first = s.query(AuditLog).filter_by(action="order_flow.skip").order_by(AuditLog.id).first()
+        assert first.payload["code"] == "OF_NO_CONFIRM"
+        # all layers agree + an absorption zone below the defended level → stop beyond the absorption
+        p = _p(ms=MS + 600000)
+        p["order_flow"].update({"absorption_low": "19998", "absorption_high": "20002", "stop": "19997.75"})
+        u = _run(s, rules, p).updates[0]
+        assert u.status == "PASS"
+        sig = s.get(Signal, u.signal_id)
+        assert sig.features["ar"]["env"] == "ROTATION" and sig.features["ar"]["delta_source"] == "real"
+        assert s.query(TradePlanRow).filter_by(signal_id=sig.id).one().stop == D("19997.75")
