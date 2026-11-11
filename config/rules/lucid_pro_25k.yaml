@@ -83,7 +83,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
   # Scale = drawdown ratio vs 25K (MLL 1000 / 1000 = 1x), rounded down; 25K stays at 1 micro (NOISE was
   # verified at 1 micro on 25K; the unverified strategies keep 1 micro on 25K).
   max_trade_risk_usd: 500      # plan per-trade cap for every fixed-size strategy: 50% of the MLL (1000) — one trade never risks half the drawdown
-  noise_cfg: {contracts: 1}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
+  noise_cfg: {contracts: 1, skip_weekdays: [0]}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
   pm_fade_cfg: {contracts: 1}       # fallback only — PM_FADE uses size_table below (same as NOISE)
   ai_bias_cfg: {contracts: 1, max_risk_usd: null}   # floor(MLL ratio); budget 30% of MLL at the 0.5% stop (25K: none = unchanged); UNVERIFIED
   ai_duo_cfg: {contracts: 1}         # floor(MLL ratio); D85 max_risk_usd $250 per trade (user, all sizes) and 150K max_qty 4 unchanged; UNVERIFIED

@@ -286,9 +286,15 @@ class NoiseCfg(_M):
     # locked-stop exit ends NOISE for the day. None = no lock. Both set together (management/profit_lock.py).
     profit_lock_trigger_pts: D | None = None
     profit_lock_pts: D | None = None
+    # D123 (user 2026-11-11): no NEW NOISE entries on these New York weekdays (0 = Monday). Session-19 refine study:
+    # skip-Monday beat the baseline in-sample AND held-out (J win 55.0→59.5 %, PF 1.53→1.72, Pro 25K pass 62→69 %);
+    # evidence weak (year-concentrated) — docs/results/session19/refine/RESULTS.md R6.
+    skip_weekdays: list[int] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _lock_valid(self) -> NoiseCfg:
+        if any(d < 0 or d > 4 for d in self.skip_weekdays):
+            raise ValueError("noise_cfg.skip_weekdays: use 0 (Mon) … 4 (Fri)")
         if (self.profit_lock_trigger_pts is None) != (self.profit_lock_pts is None):
             raise ValueError("noise profit lock: profit_lock_trigger_pts and profit_lock_pts go together")
         locked = self.profit_lock_trigger_pts is not None and self.profit_lock_pts is not None
@@ -704,6 +710,88 @@ class StructureFilterCfg(_M):
     anchor_buffer_pts: D = D("2")  # shadow only: where an OB-anchored stop would sit (never applied live)
 
 
+TRAIL_STRATEGIES = ("noise", "pm_fade", "ai_bias", "ai_duo", "order_flow")  # D122: per-strategy toggles
+
+
+class TrailStepCfg(_M):
+    """D122: one k step of the dynamic trail — k × ATR while the open profit is below until_r (None = after)."""
+
+    until_r: D | None = None
+    k: D
+
+
+class DynamicTrailCfg(_M):
+    """D122 (user 2026-11-11): intelligent dynamic trailing stop, per-strategy toggles (default OFF, UNVERIFIED — no
+    backtest). Ratchet-only broker stop moves (management/dynamic_trail.py): activates after activate_r (stop →
+    breakeven + fee cover), then trails max(k × ATR, last closed swing bar) behind the best price, k tightening
+    with profit and × low_vol_mult in a low-ATR (compression) regime; never closer than min_distance_ticks to the
+    market. The strategy's TP and own exits stay. Order Flow (AR type) also gets its D101 candle trail when ON."""
+
+    noise: bool = False
+    pm_fade: bool = False
+    ai_bias: bool = False
+    ai_duo: bool = False
+    order_flow: bool = False
+    activate_r: D = Field(default=D("1.0"), ge=D("0.5"), le=D("3"))
+    min_distance_ticks: int = Field(default=8, ge=2, le=200)
+    atr_tf_min: Literal[1, 5] = 5
+    atr_period: int = Field(default=14, ge=5, le=50)
+    swing_tf_min: Literal[1, 5] = 5
+    steps: list[TrailStepCfg] = [
+        TrailStepCfg(until_r=D("2"), k=D("2.0")),
+        TrailStepCfg(until_r=D("3"), k=D("1.5")),
+        TrailStepCfg(until_r=None, k=D("1.0")),
+    ]
+    low_vol_percentile: D = Field(default=D("0.25"), ge=D(0), le=D("0.5"))
+    low_vol_mult: D = Field(default=D("0.75"), ge=D("0.5"), le=D(1))
+    low_vol_lookback: int = Field(default=50, ge=20, le=500)
+    k_floor: D = Field(default=D("0.5"), ge=D("0.25"), le=D(2))
+
+    @model_validator(mode="after")
+    def _check(self) -> DynamicTrailCfg:
+        st = self.steps
+        if not st or st[-1].until_r is not None or any(x.until_r is None for x in st[:-1]):
+            raise ValueError("dynamic_trail.steps: the last step (only) has until_r null")
+        ups = [x.until_r for x in st[:-1]]
+        if any(u is None or u <= self.activate_r for u in ups) or ups != sorted(set(ups)):  # type: ignore[type-var]
+            raise ValueError("dynamic_trail.steps: until_r strictly increasing and above activate_r")
+        ks = [x.k for x in st]
+        if any(not (D("0.5") <= k <= D(4)) for k in ks) or ks != sorted(ks, reverse=True):
+            raise ValueError("dynamic_trail.steps: k within 0.5–4 and never larger at a higher profit (tightening)")
+        if self.k_floor > ks[-1]:
+            raise ValueError("dynamic_trail.k_floor ≤ the last step's k")
+        return self
+
+
+class CushionCfg(_M):
+    """D122 (user 2026-11-11): cushion level controls, per-strategy toggles (default OFF, UNVERIFIED). cushion =
+    equity incl. open P&L − current MLL, as a share of the plan's MLL distance (max loss). Levels only ever TIGHTEN
+    (risk/cushion.py): NORMAL ≥ normal_min · REDUCE (−reduce_size_minus micros, min 1; trail k −reduce_k_minus) ·
+    MINIMAL (1 micro, trail k −minimal_k_minus, ≤ minimal_max_trades trades/day) · STOP < minimal_min (no new entries
+    until the next session). On top of the kill switch, size-table brake, DLL, consistency — never loosens them."""
+
+    noise: bool = False
+    pm_fade: bool = False
+    ai_bias: bool = False
+    ai_duo: bool = False
+    order_flow: bool = False
+    normal_min: D = Field(default=D("0.75"), ge=D("0.10"), le=D("0.95"))
+    reduce_min: D = Field(default=D("0.50"), ge=D("0.10"), le=D("0.95"))
+    minimal_min: D = Field(default=D("0.25"), ge=D("0.05"), le=D("0.90"))
+    reduce_size_minus: int = Field(default=1, ge=1, le=10)
+    reduce_k_minus: D = Field(default=D("0.25"), ge=D(0), le=D(1))
+    minimal_k_minus: D = Field(default=D("0.5"), ge=D(0), le=D("1.5"))
+    minimal_max_trades: int = Field(default=1, ge=1, le=5)
+
+    @model_validator(mode="after")
+    def _check(self) -> CushionCfg:
+        if not (self.minimal_min < self.reduce_min < self.normal_min):
+            raise ValueError("cushion: minimal_min < reduce_min < normal_min")
+        if self.minimal_k_minus < self.reduce_k_minus:
+            raise ValueError("cushion: minimal_k_minus ≥ reduce_k_minus (a lower cushion never trails looser)")
+        return self
+
+
 # D105 (LunqFX) + D107 (Opening drive): removed strategies - their keys in old plan files / stored settings are ignored
 LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg")
 
@@ -738,6 +826,8 @@ class StrategyCfg(_M):
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
     order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
+    dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
+    cushion: CushionCfg = CushionCfg()  # D122
     structure_filters: StructureFilterCfg = StructureFilterCfg()
     # D63: automatic size for NOISE / PM_FADE by each account's own size (empty = noise_cfg / pm_fade_cfg.contracts)
     size_table: list[SizeTierCfg] = []

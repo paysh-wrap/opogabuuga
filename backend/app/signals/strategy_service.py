@@ -261,7 +261,7 @@ def run_noise(
         position=position,
         entries_today=entries,
         max_entries=cfg.max_entries_per_day,
-        allow_entry=check and not exits_only and not lock_exit,
+        allow_entry=check and not exits_only and not lock_exit and at.astimezone(ET).weekday() not in cfg.skip_weekdays,
     ):
         if a.kind == "EXIT" and open_sig is not None:
             _close(s, open_sig, a.reason, at, clock)

@@ -1099,3 +1099,5 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   research-verified D63/D64 tables are kept (regular 25K 1 · 50K 2 · 100K 2 · 150K 3; high 1·2·3·4) and the fallback /
   unverified per-plan sizes are capped at the regular table (AI Bias, AI Duo, Order Flow: 100K 2, 150K 3). Hold rule: every
   app-initiated exit waits min_hold_seconds = 7.5 s in all 9 plans (user: ≥ 7 s, also order-block strategies); protective exits never wait.
+- D123 (user 2026-11-11): NOISE skips new entries on Mondays (`strategy.noise_cfg.skip_weekdays: [0]` in all 9 plans). Session-19
+  refine R6: in-sample PF 1.37→1.44 and held-out win 55.0→59.5 %, PF 1.53→1.72, Pro 25K pass 62→69 %; evidence weak (2024-heavy).

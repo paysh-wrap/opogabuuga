@@ -360,3 +360,23 @@ def test_exits_only_replay_never_opens_a_position(db, loaded_rules):
             exits_only=True,
         )
         assert out.updates == [] and s.query(Signal).count() == 0
+
+
+def test_noise_skip_weekdays_blocks_new_entries(db, loaded_rules):
+    """D123: no new NOISE entry on a configured New York weekday (default plans: Monday)."""
+    days = _sessions(12)
+    hist, today = days[:-1], days[-1]
+    base = _rules(loaded_rules, noise=True)
+    ncfg = base.strategy.noise_cfg.model_copy(update={"skip_weekdays": [today.weekday()]})
+    rules = base.model_copy(update={"strategy": base.strategy.model_copy(update={"noise_cfg": ncfg})})
+    clock = FixedClock(today + timedelta(minutes=30))
+    with db() as s:
+        _history(s, hist)
+        _add_day(s, today, {k: D(20000) + 3 * k for k in range(30)})
+        s.commit()
+        out = SS.run(
+            s, rules=rules, clock=clock, calendar=lambda _d: [], symbol="MNQ", tf="1", at=today + timedelta(minutes=30)
+        )
+        assert out.updates == []
+    with pytest.raises(ValueError, match="skip_weekdays"):
+        type(ncfg)(skip_weekdays=[5])
