@@ -1,13 +1,11 @@
 """D16: history-based filter inputs, shadow evaluation of disabled instruments (A5), per-proxy bias."""
 
-import json
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal as D
 
-from app.models import BiasDecision, Event, Signal, TradePlanRow
+from app.models import BiasDecision, Event
 from app.signals.stats import History, atr_percentile, load_history, t1_rate
-from tests.conftest import WEBHOOK_SECRET
-from tests.integration.test_signals_flow import AT, FR, MIN, MS, MSO, choch, confirm, hb
+from tests.integration.test_signals_flow import AT, FR
 
 
 def _ev(s, i, event, c1, atr=None):

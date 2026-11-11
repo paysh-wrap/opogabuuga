@@ -310,7 +310,7 @@ class OpenDriveCfg(_M):
     entry_expires: str = "12:30"
     time_stop: str = "13:00"
     contracts: int = 1
-    paper_only: bool = True
+    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
 
 
 PATH_ZONES = ("INSIDE", "L1", "AVR-", "AVR", "AVR+", "MAX")  # D101: Asia range + daily ATR(20) zones, in order
@@ -364,7 +364,7 @@ class OrderFlowCfg(_M):
     max_risk_ticks: int = Field(default=120, ge=1)
     max_per_day: int = Field(default=3, ge=1, le=10)
     contracts: int = 1
-    paper_only: bool = True
+    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
     flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
     ar: ArModelCfg = ArModelCfg()  # D101: AR Model layers
 
@@ -378,8 +378,8 @@ class OrderFlowCfg(_M):
             raise ValueError("order_flow: rr_min ≥ 1.5 and rr ≥ rr_min")
         if self.min_risk_ticks > self.max_risk_ticks:
             raise ValueError("order_flow: min_risk_ticks ≤ max_risk_ticks")
-        if not self.paper_only or self.contracts != 1:
-            raise ValueError("order_flow: UNVERIFIED — paper_only must stay true and contracts 1 (D95)")
+        if self.contracts != 1:  # D102: paper_only is a user choice now; the fixed 1 micro stays (D95)
+            raise ValueError("order_flow: UNVERIFIED — contracts must stay 1 (D95)")
         return self
 
 
@@ -394,7 +394,7 @@ class AiBiasCfg(_M):
     take_profit_pct: D = D("0.10")  # far safety target; the 16:00 flat exits
     flat_at: str = "16:00"
     contracts: int = 1
-    paper_only: bool = True
+    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
 
 
 class AiDuoCfg(_M):
@@ -402,8 +402,7 @@ class AiDuoCfg(_M):
     (Vibe-Trading is an opinion only, never trades); enter on the first 5-minute VWAP pullback close in that direction
     inside the entry window (09:36–11:30 ET per market, D86); structure stop capped at the NOISE
     dollar stop; target rr_target R (floor 1.5R); 1 micro. Markets: MNQ and/or MGC (AI Duo only; NOISE stays MNQ).
-    NOT back-testable → PAPER only (paper_only can only be True until the live ledger proves ≥ 70% and the user approves
-    a code change). Design: docs/results/session16/ai_combined_strategy_design.md."""
+    NOT back-testable. D102 (user 2026-11-11): no longer forced paper-only; every live gate still applies. Design: docs/results/session16/ai_combined_strategy_design.md."""
 
     markets: list[Literal["MNQ", "MGC"]] = ["MNQ", "MGC"]  # each market decides once a day (own AI proxy: QQQ / GLD)
     # entry window per market, ET (D86, user 2026-11-10: back to the best-tested hours; 03:00 starts lost,
@@ -421,7 +420,7 @@ class AiDuoCfg(_M):
     rr_min: D = D("1.5")  # firm floor (CLAUDE.md D49): config refuses lower
     flat_at: str = "16:00"
     contracts: int = 1  # micros per trade on every account except the big (150K) ones below
-    paper_only: Literal[True] = True
+    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
     # D85 (user 2026-11-10): total risk per trade (stop distance × qty + fees + slippage), all account sizes
     max_risk_usd: D = D("250")
     # D85 (user-approved override of "max 1 open position per account", AI Duo on accounts ≥ big_account_size ONLY):
@@ -515,7 +514,7 @@ class PmFadeCfg(_M):
     min_target_ticks: int = 4
     flat_at: str = "15:55"
     contracts: int = 1
-    paper_only: bool = True
+    paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
 
 
 class SizeTierCfg(_M):

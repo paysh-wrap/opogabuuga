@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.models import BiasDecision, Order, Signal, Trade
+from app.models import BiasDecision
 from tests.conftest import WEBHOOK_SECRET
 from tests.integration.test_signals_flow import AT, FR, MIN, MS, choch, confirm, hb, send  # noqa: F401
 

@@ -40,7 +40,13 @@ def mso_evt(event="MSO_CHOCH", age_s=5, **over):
         "bar_time_ms": NOW_MS - age_s * 1000,
         "event": event,
         "direction": "LONG",
-        "mso": {"trend": "BULL", "osc": "60", "div": None, "htf_trend": "BULL", "confirm_time_ms": NOW_MS - age_s * 1000},
+        "mso": {
+            "trend": "BULL",
+            "osc": "60",
+            "div": None,
+            "htf_trend": "BULL",
+            "confirm_time_ms": NOW_MS - age_s * 1000,
+        },
     }
     p.update(over)
     return p

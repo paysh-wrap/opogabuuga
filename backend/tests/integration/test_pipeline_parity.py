@@ -9,7 +9,7 @@ from app.backtest.parity import compare, replay_payloads
 from app.models import Event
 from app.webhook.schemas import FRACTAL_EVENTS
 from tests.conftest import WEBHOOK_SECRET
-from tests.unit.test_indicators import T0, c1_bars, long_model_c2, mk
+from tests.unit.test_indicators import c1_bars, long_model_c2, mk
 
 
 def test_replayed_session_flows_through_webhook_and_parity_is_clean(client, clock):
