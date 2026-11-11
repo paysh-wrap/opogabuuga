@@ -49,15 +49,18 @@ def delta_table(scen, sizing, base="noise_full", era="HO"):
             dp, db = g(d, p + "roll.pas") - bb["roll.pas"], g(d, p + "roll.bust") - bb["roll.bust"]
             bp, bbu = g(d, p + "boot.pas") - bb["boot.pas"], g(d, p + "boot.bust") - bb["boot.bust"]
             dn = g(d, p + "stream.net") - bb["stream.net"]
-            # "beats" = pass up AND bust not up, in BOTH estimators (margin 1 pp so ties do not count)
-            ok = dp > 1 and db <= 1 and bp > 1 and bbu <= 1
+            # YES = bootstrap PASS up and BUST not up, and the 250-session rolling run is not worse (pass >= -1 pp, bust <= +1 pp)
+            # SAFER-SLOWER = bust clearly lower in the bootstrap and not higher rolling, but fewer evals finish inside 250 sessions
+            if bp > 1 and bbu <= 1 and db <= 1 and dp >= -1: ok = "YES"
+            elif bbu < -1 and db <= 1 and dp < -1: ok = "SAFER, SLOWER"
+            else: ok = "no"
             verdict[(acct, acc)] = ok
-            out.append(f"| {acct} | {int(float(acc)*100)}% | {dp:+.0f} | {db:+.0f} | {bp:+.0f} | {bbu:+.0f} | {dn:+,.0f} | {'YES' if ok else 'no'} |")
+            out.append(f"| {acct} | {int(float(acc)*100)}% | {dp:+.0f} | {db:+.0f} | {bp:+.0f} | {bbu:+.0f} | {dn:+,.0f} | {ok} |")
     return "\n".join(out), verdict
 
 
 if __name__ == "__main__":
-    for scen in [s for s in ("main", "mnq", "strict", "mnq_strict", "main_s15", "mnq_s15") if os.path.exists(f"{HERE}/results_{scen}.json")]:
+    for scen in [s for s in ("main", "mnq", "strict", "mnq_strict", "main_s15", "mnq_s15") if os.path.exists(f"{HERE}/results_{s}.json")]:
         sizing = json.load(open(f"{HERE}/results_{scen}.json"))["cfg"]["sizing"]
         with open(f"{HERE}/tables_{scen}.md", "w") as fh:
             for era in ("HO", "IS"):
