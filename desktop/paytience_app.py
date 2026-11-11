@@ -55,6 +55,7 @@ def ensure_env() -> None:
     os.environ["PAYTIENCE_RULES_PATH"] = str(BUNDLE / "config" / "rules" / "lucid_flex_25k.yaml")
     os.environ["PAYTIENCE_TA_PYTHON"] = str(DATA / ".venv-ta" / ("Scripts/python.exe" if WIN else "bin/python"))
     os.environ["PAYTIENCE_VT_ROOT"] = str(DATA)
+    os.environ["PAYTIENCE_TR1_ROOT"] = str(DATA)  # D94: optional .venv-tr1 + TR1_HOME under paytience-data
     os.environ["PAYTIENCE_TOOLS_DIR"] = str(DATA / "tools")  # D79: ngrok / cloudflared live in their own folder
     os.environ["PAYTIENCE_VERSION_FILE"] = str(BUNDLE / "desktop" / "version.json")  # D88: commit + build time
     if FROZEN:  # D88: auto-update only for the packaged app; paytience-data is never touched by an update

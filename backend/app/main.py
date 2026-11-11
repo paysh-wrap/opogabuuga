@@ -31,6 +31,7 @@ from app.api.orders import router as orders_router
 from app.api.payouts import router as payouts_router
 from app.api.plan import router as plan_router
 from app.api.replay import router as replay_router
+from app.api.research import router as research_router
 from app.api.risk import router as risk_router
 from app.api.routes import http_client, router
 from app.api.signals import router as signals_router
@@ -542,6 +543,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(live_router)
     app.include_router(dashboard_router)
     app.include_router(ai_ledger_router)
+    app.include_router(research_router)  # D94: information only
     app.include_router(income_router)
     app.include_router(plan_router)  # before payouts: /payouts/settings must not hit /payouts/{pid}
     app.include_router(payouts_router)

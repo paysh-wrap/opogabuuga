@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     vt_root: Path = (
         REPO_ROOT  # D53: Vibe-Trading CLI lives in <vt_root>/.venv-vt (isolated); runtime in data/vibe-trading
     )
+    tr1_root: Path = REPO_ROOT  # D94: Trading-R1 in <tr1_root>/.venv-tr1, TR1_HOME <tr1_root>/data/tr1
     web_dist: Path = REPO_ROOT / "frontend" / "dist"
     tools_dir: Path = REPO_ROOT / "data" / "tools"  # D79: ngrok / cloudflared binaries (own folder)
     tunnel_autostart: bool = False  # desktop app sets true: run ngrok (or the Cloudflare fallback) at start

@@ -833,3 +833,21 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   shows "unknown" and the line cannot reach YES until drift is measured; pre-flight still requires a daily bias, so in
   practice TradingAgents (classified optional per the user) can still block SEMI/FULL via the pre-flight row; Tradovate
   credentials cannot be tested here (shown "unknown" when only Tradovate is saved).
+
+## D94 (user-approved 2026-11-11, session 17): Trading-R1 as an INFORMATION-ONLY "Research" card
+- What: TauricResearch/Trading-R1 (`trading-r1==0.1.1`, PyPI, Apache-2.0 — attribution kept) answers a free-text
+  research question; the answer is shown on the Strategy page in the "Research · Trading-R1 (optional)" card with the
+  visible label "Information only — never triggers or gates a trade". It has NO effect on any gate, score, bias, size,
+  order or automation (app/research/ is not imported by engine/, risk/, management/, phases/, bias/ or signals/).
+- Isolation (docs/results/session17/trading_r1/FINDINGS.md): own venv `.venv-tr1` (`make tradingr1`, optional, not in
+  `make install`, ~400 MB); never imported in the API process. `app/research/trading_r1.ServeRunner` starts
+  `trading-r1 serve` on 127.0.0.1 (free port, random bearer token via TR1_API_TOKEN), POSTs /research
+  (mode research, profile anthropic, stream false), then kills the process group. TR1_HOME = `<tr1_root>/data/tr1`
+  (desktop: paytience-data/data/tr1 via PAYTIENCE_TR1_ROOT). Child environment built from scratch: only
+  ANTHROPIC_API_KEY (by env, never its plaintext credential store) + PATH/proxy basics — no TAURIC key, so sync is
+  never configured; daemon, channels and sync subcommands are never called.
+- Key: API Keys page provider `tradingr1` (write-only, encrypted like every other key; optional, normal colour).
+  Missing venv or key → card says "not configured"; no mock data. Last answer kept in memory only (not persisted).
+- Known gaps: ServeRunner itself is untested here (needs the real venv + a key); unit/integration tests use a fake
+  runner. Answers are LLM output from a web-browsing agent (prompt-injection risk) and are not backtestable — advisory
+  text only. The desktop app does not auto-install .venv-tr1.

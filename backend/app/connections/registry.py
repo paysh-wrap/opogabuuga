@@ -296,6 +296,22 @@ PROVIDERS: tuple[Provider, ...] = (
         ),
     ),
     Provider(
+        id="tradingr1",
+        name="Trading-R1 — TauricResearch/Trading-R1 (research card — optional)",
+        category="ai_bias",
+        required=False,
+        testable=False,
+        purpose="Ask Trading-R1 a research question; the answer is shown on the Strategy page as an advisory card. "
+        "INFORMATION ONLY (D94): it never triggers, gates, sizes, scores or biases a trade. Runs in its own "
+        "environment (.venv-tr1, `make tradingr1`) via `trading-r1 serve` on 127.0.0.1; the key is passed by "
+        "environment only. Sync, daemon and channels are never enabled.",
+        links=(
+            Link("GitHub repository", "https://github.com/TauricResearch/Trading-R1"),
+            Link("Claude (Anthropic) key", "https://console.anthropic.com/settings/keys"),
+        ),
+        fields=(FieldSpec("api_key", "Claude (Anthropic) API key", "secret", placeholder="sk-ant-..."),),
+    ),
+    Provider(
         id="openbb",
         name="OpenBB (market data — keys optional)",
         category="data",

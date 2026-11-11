@@ -4,7 +4,7 @@ PY := .venv/bin/python
 TA_TAG := v0.7.1
 TA_COMMIT := 3e44faafa042daf953f6ec2422ae36bb1fd4f50f
 
-.PHONY: help start install tradingagents vibetrading keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
+.PHONY: help start install tradingagents vibetrading tradingr1 keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -27,6 +27,10 @@ tradingagents: ## Install TauricResearch/TradingAgents at the pinned tag into it
 vibetrading: ## Install HKUDS/Vibe-Trading (pinned PyPI release) into its own venv (.venv-vt) — D53 second AI opinion
 	python3 -m venv .venv-vt && .venv-vt/bin/pip install -q --upgrade pip && .venv-vt/bin/pip install -q "vibe-trading-ai[anthropic]==0.1.19"
 	.venv-vt/bin/vibe-trading --version
+
+tradingr1: ## Optional: TauricResearch/Trading-R1 (pinned PyPI, Apache-2.0, ~400 MB) into .venv-tr1 — D94 info-only card
+	python3 -m venv .venv-tr1 && .venv-tr1/bin/pip install -q --upgrade pip && .venv-tr1/bin/pip install -q "trading-r1==0.1.1"
+	.venv-tr1/bin/trading-r1 --help >/dev/null && echo "Trading-R1 0.1.1 installed (.venv-tr1)"
 
 keys: ## Print a new master key + webhook secret (paste into .env)
 	cd backend && ../$(PY) -m app.cli keys
