@@ -43,3 +43,15 @@ def test_restore_bracket_keeps_ids_and_new_ids_never_collide():
     lim = BracketRequest("P-1-2-B", "MNQ", "BUY", 1, D(98), D(102), "LIMIT", D(99))
     sim.restore_bracket("ACC", "B30", "O31", lim, None, D(98))  # a working (unfilled) limit entry
     assert any(o.bracket_id == "B30" and o.status == "WORKING" for o in asyncio.run(sim.get_orders("ACC")))
+
+
+def test_round_trip_keeps_the_dynamic_trail():
+    from app.management.dynamic_trail import TrailParams
+
+    t = make()
+    steps = ((D(2), D(2)), (None, D(1)))
+    t.dyn_trail = TrailParams(D(1), 8, 5, 14, 5, steps, D("0.25"), D("0.75"), 50, D("0.5"), 2, D("0.25"), (5, D(1)))
+    back = trade_state.load(trade_state.dump(t))
+    assert back == t and back.dyn_trail == t.dyn_trail
+    t.dyn_trail = TrailParams(D(1), 8, 5, 14, 5, steps, D("0.25"), D("0.75"), 50, D("0.5"), 2)
+    assert trade_state.load(trade_state.dump(t)).dyn_trail == t.dyn_trail

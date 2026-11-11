@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { PayoutConsistencyNote, type PayoutConsistencyView } from "../components/PayoutConsistency";
+import { CushionChip, type CushionView } from "../components/TrailCushionCard";
 
 interface Acct {
   id: number;
@@ -25,7 +26,7 @@ interface Acct {
   purchased_at?: string | null;
   payout_consistency?: PayoutConsistencyView | null;
 }
-interface Dash { accounts: { id: number; idle_days?: number; idle_alert_days?: number }[] }
+interface Dash { accounts: { id: number; idle_days?: number; idle_alert_days?: number; cushion?: CushionView | null }[] }
 
 export const LUCID_URL = "https://lucidtrading.com/"; // opens Lucid's own site; the app never automates it (§1.3)
 const btn = "rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-50";
@@ -93,6 +94,7 @@ export default function Accounts() {
                 <span className={`rounded border px-1 text-xs ${a.paper ? "border-border text-blue" : "border-gold text-gold"}`}>{a.paper ? "APP PAPER" : "LUCID"}</span>
                 {a.mll_locked && <span className="rounded border border-gold px-1 text-xs text-gold">MLL LOCKED</span>}
                 {a.eval_mode_effective && <span className="rounded border border-gold px-1 text-xs text-goldLight">EVAL MODE</span>}
+                <CushionChip c={dash.data?.accounts.find((x) => x.id === a.id)?.cushion} />
                 {a.paused_reason && <span className="text-goldLight">paused: {a.paused_reason}</span>}
                 <span className="ml-auto text-xs">priority #{i + 1}</span>
                 <button aria-label={`Move ${a.label} up`} className={`${btn} border-border text-blue`} disabled={i === 0 || run.isPending} onClick={() => move(i, -1)}>↑</button>

@@ -71,7 +71,7 @@ def test_dynamic_trail_cfg_validators():
         [s(until_r=D(2), k=D(5)), s(k=D(1))],  # k out of range
     ]
     for steps in bad:
-        with pytest.raises(ValidationError, match="dynamic_trail.steps"):
+        with pytest.raises(ValidationError, match=r"dynamic_trail\.steps"):
             DynamicTrailCfg(steps=steps)
     with pytest.raises(ValidationError, match="k_floor"):
         DynamicTrailCfg(k_floor=D("1.5"))

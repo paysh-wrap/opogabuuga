@@ -7,6 +7,7 @@ import StrategyPresets from "../components/StrategyPresets";
 import TaMgcCard from "../components/TaMgcCard";
 import TradingR1Card from "../components/TradingR1Card";
 import StrategyGates from "../components/StrategyGates";
+import TrailCushionCard from "../components/TrailCushionCard";
 import AiLedger from "../components/AiLedger";
 
 interface Feed { profile: string; feed: string }
@@ -31,6 +32,7 @@ export default function Strategy() {
       <p className="text-xs" data-testid="real-volume-note">Strategies use real CME volume (VWAP-based ones) when the TradingView feed provides it.</p>
       <StrategyPresets />
       <StrategyButtons />
+      <TrailCushionCard />
       <TaMgcCard />
       <TradingR1Card />
       <StrategyGates />

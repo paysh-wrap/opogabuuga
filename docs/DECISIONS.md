@@ -1101,3 +1101,27 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   app-initiated exit waits min_hold_seconds = 7.5 s in all 9 plans (user: ≥ 7 s, also order-block strategies); protective exits never wait.
 - D123 (user 2026-11-11): NOISE skips new entries on Mondays (`strategy.noise_cfg.skip_weekdays: [0]` in all 9 plans). Session-19
   refine R6: in-sample PF 1.37→1.44 and held-out win 55.0→59.5 %, PF 1.53→1.72, Pro 25K pass 62→69 %; evidence weak (2024-heavy).
+- D122 (user 2026-11-11, "an intelligent dynamic trailing stop loss and cushion level controls on all strategies, make it a
+  toggle option"): two new tighten-only controls, per-strategy toggles (NOISE / Afternoon fade / AI only / AI Duo / Order
+  Flow), default OFF, UNVERIFIED (no backtest; UI badge). Numbers in every plan yaml (`strategy.dynamic_trail`,
+  `strategy.cushion`; DynamicTrailCfg / CushionCfg validators), editable on the Strategy page (My Settings, versioned).
+  (1) management/dynamic_trail.py (pure, 100%): from +activate_r (1.0R) the broker stop → breakeven + fee cover, then
+  best − max(k × ATR(14) of 5m bars built from the 1m heartbeat bars, distance to the last closed 5m swing low/high ± 1
+  tick); k 2.0 until 2R, 1.5 until 3R, 1.0 after, × 0.75 when the ATR is in its lowest 25% of the last 50 values, minus the
+  cushion level's k reduction, never below k_floor 0.5; never closer than min_distance_ticks 8 to the market; ratchet only;
+  TP untouched; the strategy's own exits (NOISE VWAP/band, flat) stay. Wired in the order manager next to the D85/D82
+  moves (OrderManager.bars buffer fed by Controller.on_bar from the webhook heartbeat; protective → no D8 hold; stop-modify
+  failure → flatten + pause, §8). Snapshot in trade_state (restart). Order Flow: with its toggle ON, AR-type trades also get
+  the D101 `order_flow.trail_stop` (BE after be_after_r, behind the last closed trail_candle_min candle) — the D101 rule
+  that was left unwired; zone-type trades keep the already-wired D111 bar-close zone trail. After a restart the bar buffer
+  is empty: only breakeven moves until 5m bars build up.
+  (2) risk/cushion.py (pure, 100%): cushion = equity incl. open P&L − current MLL, share of the plan's max loss:
+  ≥ 75% NORMAL · 50–75% REDUCE (−1 micro, min 1; trail k −0.25) · 25–50% MINIMAL (1 micro, k −0.5, ≤ 1 trade/day →
+  CUSHION_MAX_TRADES) · < 25% STOP (CUSHION_STOP, audited `risk.cushion_stop`, blocked for the rest of the session even
+  if the cushion recovers; survives a restart). Applied in the controller after the size table / brake / split and before
+  pretrade: only ever lowers `fixed`, so the D121 size tables (100K 2 · 150K 3) are unchanged (user 2026-11-11: cushion
+  may only reduce size temporarily) and the kill switch, pause floor, DLL, MLL worst case, consistency, hedge lock all still
+  run. Dashboard + Accounts show a "CUSHION <level> · x%" chip per account (GET /api/dashboard `cushion`).
+  Tests: tests/unit/test_dynamic_trail.py, test_cushion.py, order manager + trade_state cases,
+  tests/integration/test_cushion_trail.py (controller, webhook bar feed, dashboard, settings validation);
+  frontend TrailCushionCard.test.tsx.

@@ -3,6 +3,12 @@ Restore: base64 -d paytience.bundle.b64.txt > p.bundle && git clone p.bundle pay
 git checkout phase-5 && make install. Futures data: futures/*.csv → data/futures/. Tests: 441 passed, 100% cov,
 lint + typecheck clean. Read CLAUDE.md, docs/DECISIONS.md (D1–D36), docs/LUCID_RULES.md, docs/GOLD.md.
 
+## D122 (2026-11-11) dynamic trailing stop + cushion levels
+Per-strategy toggles on the Strategy page (default OFF, UNVERIFIED, tighten-only): management/dynamic_trail.py (BE at
++1R, then max(k×ATR 5m, swing) with k 2.0/1.5/1.0 by R, low-vol ×0.75, min 8 ticks; also wires the D101 Order Flow
+AR trail) and risk/cushion.py (NORMAL ≥75% · REDUCE −1 micro · MINIMAL 1 micro 1 trade/day · STOP <25% until next
+session). Size tables unchanged (D121). Numbers: plan yaml `strategy.dynamic_trail` / `strategy.cushion`. Not backtested.
+
 ## User preferences (binding)
 Short simple answers · never break Lucid rules · intraday only (nothing overnight), intraday > scalping · MGC + MNQ
 FUTURES only (no spot gold) · ALL subagents on Opus, low effort (changed session 6; was Sonnet) · ask before building improvements (user has approved: 1.75 R:R,

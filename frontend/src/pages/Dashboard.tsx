@@ -9,6 +9,7 @@ import HindsightNote from "../components/HindsightNote";
 import RuleMeters from "../components/RuleMeters";
 import { PayoutConsistencyNote, type PayoutConsistencyView } from "../components/PayoutConsistency";
 import MissionBento from "../components/MissionBento";
+import { CushionChip, type CushionView } from "../components/TrailCushionCard";
 import MandatoryChecklist from "../components/MandatoryChecklist";
 import { ApprovalQueue, BiasAndBlackouts, CooldownBanner, EvalPaceCard, PlanProgress } from "../components/DashboardExtras";
 
@@ -21,6 +22,7 @@ interface Acct {
   target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number; idle_days?: number; idle_alert_days?: number; idle_delete_days?: number;
   max_loss?: string; dll_limit?: string | null; payout_consistency?: PayoutConsistencyView | null;
   guard_on?: boolean; eval_mode_on?: boolean; day_lockin?: boolean; day_net_r?: string; day_lockin_r?: string;
+  cushion?: CushionView | null;
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
 
@@ -74,6 +76,7 @@ export default function Dashboard() {
                 {a.mll_locked && <span className={`${chip} border-gold text-gold`}>MLL LOCKED</span>}
                 {a.guard_on !== undefined && <span className={`${chip} border-border text-blueLight`}>GUARD {a.guard_on ? "ON" : "OFF"}</span>}
                 {a.eval_mode_on && <span className={`${chip} border-gold text-gold`}>EVAL MODE</span>}
+                <CushionChip c={a.cushion} />
                 {a.day_lockin && <span className={`${chip} border-gold text-goldLight`} title={`Today ${a.day_net_r}R ≥ ${a.day_lockin_r}R: next trade at floor %`}>DAY LOCK-IN</span>}
               </div>
               {a.paused && <p className="text-sm text-goldLight">⚠ paused: {a.paused}</p>}

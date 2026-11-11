@@ -424,3 +424,63 @@ async def test_flatten_fill_is_shared_between_trades_of_one_account_by_quantity(
     assert [e.kind for e in ev] == ["CLOSED", "CLOSED"] and not om.trades
     assert [t.exit_qty for t in ts] == [1, 2] and all(t.legs[0].exit == D(19990) for t in ts)
     assert sum(t.exit_fee for t in ts) == D(3)
+
+
+def _trail(**kw):
+    from app.management.dynamic_trail import TrailParams
+
+    base = dict(
+        activate_r=D(1), min_distance_ticks=8, atr_tf_min=1, atr_period=3, swing_tf_min=1,
+        steps=((D(2), D(2)), (D(3), D("1.5")), (None, D(1))), low_vol_percentile=D("0.25"),
+        low_vol_mult=D("0.75"), low_vol_lookback=50, k_floor=D("0.5"), fee_cover_ticks=2,
+    )  # fmt: skip
+    base.update(kw)
+    return TrailParams(**base)
+
+
+def _bar(i, h, lo):
+    from app.indicators.bars import Bar
+
+    return Bar(i * 60_000, (i + 1) * 60_000, D(lo), D(h), D(lo), D(h))
+
+
+async def test_dynamic_trail_breakeven_then_atr_ratchet_tp_untouched(env):
+    """D122: +1R → breakeven + fee cover, then k × ATR behind the best price; ratchet only, TP stays."""
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, _ = await opened(sim, om, plan, 1, False)
+    t.dyn_trail = _trail()
+    tp = t.legs[0].take_profit
+    ev = await pump(sim, om, 20000, 20010, 19999, 20008)  # +10 pts < 1R (20 pts): nothing
+    assert not [e for e in ev if e.kind == "STOP_MOVED"]
+    ev = await pump(sim, om, 20008, 20021, 20007, 20020)  # +1R, no bars fed → breakeven only
+    assert ("STOP_MOVED", "DYN_TRAIL:BREAKEVEN 20000.50") in [(e.kind, e.detail) for e in ev]
+    for i in range(5):  # feed bars (range 4 → ATR 4)
+        om.add_bar("MNQ", _bar(i, "20040", "20036"))
+    for f in sim.on_bar("MNQ", D(20036), D(20040), D(20036), D(20040), AT):
+        await om.on_fill(f)
+    ev = await om.on_bar("MNQ", D(20040), D(20036), D(20040), _bar(5, "20040", "20036"))
+    assert ("STOP_MOVED", "DYN_TRAIL:ATR 20034.00") in [(e.kind, e.detail) for e in ev]  # 2R → k 1.5 × 4
+    assert t.legs[0].stop == D(20034) and t.legs[0].take_profit == tp
+    ev = await om.on_bar("MNQ", D(20038), D(20035), D(20036))  # pull-back: never loosens
+    assert not [e for e in ev if e.kind == "STOP_MOVED"] and t.legs[0].stop == D(20034)
+
+
+async def test_dynamic_trail_stop_modify_failure_flattens_and_pauses(env):
+    sim, om, _ = env
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, _ = await opened(sim, om, plan, 2, False)
+    t.dyn_trail = _trail()
+    sim.fail_next.add("modify_stop")
+    ev = await pump(sim, om, 20000, 20025, 19999, 20024)
+    assert ("PAUSE", "STOP_MODIFY_FAILED") in [(e.kind, e.detail) for e in ev]
+    assert t.closing == "STOP_MODIFY_FAILED"
+
+
+def test_bar_buffer_dedupes_and_caps():
+    om = OrderManager(None, max_bars=3)  # type: ignore[arg-type]
+    for i in range(5):
+        om.add_bar("MNQ", _bar(i, "10", "9"))
+    om.add_bar("MNQ", _bar(4, "11", "9"))  # same bar again: replaces
+    om.add_bar("MNQ", _bar(1, "12", "9"))  # older bar: ignored
+    assert [(b.open_ms // 60_000, b.h) for b in om.bars["MNQ"]] == [(2, D(10)), (3, D(10)), (4, D(11))]
