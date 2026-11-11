@@ -38,6 +38,38 @@ function useUpdates() {
   return { q, check, install, dismiss };
 }
 
+/** After "Install now": explains what happens and reloads the page by itself once the NEW server answers. */
+function RestartNotice() {
+  const [waited, setWaited] = useState(0);
+  useEffect(() => {
+    let sawDown = false;
+    let stopped = false;
+    const t = window.setInterval(async () => {
+      if (stopped) return;
+      setWaited((w) => w + 2);
+      try {
+        const r = await fetch("/api/health", { cache: "no-store" });
+        if (r.ok && sawDown) {
+          stopped = true;
+          window.location.reload();
+        }
+      } catch {
+        sawDown = true; // old server is gone; the new one is starting
+      }
+    }, 2000);
+    return () => window.clearInterval(t);
+  }, []);
+  return (
+    <div data-testid="update-restart-notice" className="mt-2">
+      <b className="text-gold">Installing the update — a NEW Paytience server is starting.</b> The old window closes and a new one
+      opens in about 30–60 seconds ({waited}s). This page reloads by itself when the new server is ready; if it says it cannot
+      connect, just wait. A black window may flash — leave it alone. If nothing has appeared after 3 minutes
+      {waited >= 180 ? " (now)" : ""}: open Task Manager, end <b>Paytience</b>, then start Paytience again — your old version is restored
+      automatically if the update fails.
+    </div>
+  );
+}
+
 /** D88: "Update available — Install now?" banner. Checks once on start (desktop app + token only). Never auto-installs. */
 export function UpdateBanner() {
   const { q, check, install, dismiss } = useUpdates();
@@ -75,6 +107,7 @@ export function UpdateBanner() {
             {install.isPending ? "Downloading…" : install.isSuccess ? "Restarting…" : "Install now"}
           </button>
         )}
+        {install.isSuccess && <RestartNotice />}
         {install.error && <span className="ml-2">⚠ {(install.error as Error).message} — old version kept.</span>}
       </div>,
     );
