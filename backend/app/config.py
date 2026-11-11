@@ -367,42 +367,6 @@ class CasperCfg(_M):
         return self
 
 
-class CasperCfg(_M):
-    """D108 (user 2026-11-11 "implement 1st transcript knowledge too"): Casper / Jesse Rogers 4h order-flow course
-    (docs/results/session18/order_flow/TEACHER_RULES_4H.md) as REFINEMENTS of the AR Model (D100: never override it).
-    Each rule is its own switch (engine/order_flow.check_casper, codes OF_CASPER_<RULE>). UNVERIFIED. ON by default
-    only where it simply tightens an AR definition; new filters default OFF. Validators refuse anything looser."""
-
-    # "price confirms order flow": the entry candle closes away from the trapped side (LONG upper part, SHORT lower)
-    price_confirms: bool = True
-    close_pos_min: D = D("0.5")  # close location in the entry candle range on the trade side (0.5 = favourable half)
-    # aggression = a REAL stack: a STACKED_IMBALANCE alert needs ≥ min_stacked diagonal imbalances in a row
-    stacked_definition: bool = True
-    min_stacked: int = Field(default=3, ge=3, le=6)
-    # CVD confirmation: the other side gets a return — CVD over the last bars moves in the trade direction
-    cvd_confirm: bool = False
-    # CONDITION: RTH open vs the PRIOR RTH value area (above = bullish lean, below = bearish); no trade against it
-    condition: bool = False
-    inside_value_ok: bool = True  # open inside prior value = no lean → both sides allowed
-    # no-trade: levels bunched (prior RTH value area narrower than min_va_width_atr × daily ATR(20)) = flat day
-    bunched: bool = False
-    min_va_width_atr: D = D("0.25")
-    # stop never ON a round number: push it round_buffer_ticks beyond a nearby round level (plan re-checked)
-    round_stop: bool = False
-    round_buffer_ticks: int = Field(default=2, ge=1, le=3)
-    round_step: dict[Literal["MNQ", "MGC"], D] = {"MNQ": D("50"), "MGC": D("5")}
-
-    @model_validator(mode="after")
-    def _check(self) -> CasperCfg:
-        if not (D("0.5") <= self.close_pos_min <= D("0.9")):
-            raise ValueError("order_flow.casper: 0.5 ≤ close_pos_min ≤ 0.9")
-        if not (D("0.05") <= self.min_va_width_atr <= D("1")):
-            raise ValueError("order_flow.casper: min_va_width_atr within 0.05–1 daily ATR")
-        if any(v <= 0 for v in self.round_step.values()):
-            raise ValueError("order_flow.casper: round_step must be > 0")
-        return self
-
-
 class OrderFlowCfg(_M):
     """D95 (user button, 2026-11-11): order-flow signals from pine/Paytience_OrderFlow.pine (ORDER_FLOW webhook
     alerts) — UNVERIFIED (no order-flow backtest: no tick data); D102: not forced paper-only (contracts stay 1).
@@ -421,7 +385,6 @@ class OrderFlowCfg(_M):
     paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
     flat_at: str = "16:00"  # D96: an open order-flow position is flattened at this ET time (before the global flat)
     ar: ArModelCfg = ArModelCfg()  # D101: AR Model layers
-    casper: CasperCfg = CasperCfg()  # D108: Casper 4h course refinements (each a switch)
     casper: CasperCfg = CasperCfg()  # D108: Casper 4h course refinements (each a switch)
 
     @model_validator(mode="after")
