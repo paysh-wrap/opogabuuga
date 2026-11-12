@@ -348,7 +348,11 @@ def lucid_rules(r: Any) -> list[dict[str, Any]]:
         return "none in this plan" if x is None else f"${x}"  # D116: null in the plan yaml = no DLL (Pro eval / Flex)
 
     # D116: the plan stores 40 (= 40 %), never a fraction — the old `:%` format printed "4000%"
-    cons = "none" if ev.consistency_max_day_pct is None else f"{ev.consistency_max_day_pct.normalize():f}%"
+    cons = (  # B8: a plan without the rule said "Eval largest day ≤ none of the target"
+        "No consistency rule in this plan's evaluation."
+        if ev.consistency_max_day_pct is None
+        else f"Eval largest day ≤ {ev.consistency_max_day_pct.normalize():f}% of the target; size cut to fit."
+    )
     return [
         _g(
             "NEWS",
@@ -363,7 +367,7 @@ def lucid_rules(r: Any) -> list[dict[str, Any]]:
             f"DLL eval {usd(ev.daily_loss_limit)} / funded {usd(fu.daily_loss_limit)}; max loss eval "
             f"{usd(ev.max_loss_limit)} / funded {usd(fu.max_loss_limit)}.",
         ),
-        _g("CONSISTENCY", "Consistency", f"Eval largest day ≤ {cons} of the target; size cut to fit."),
+        _g("CONSISTENCY", "Consistency", cons),
         _g("HEDGE", "Hedge lock", f"Never both sides ({b.hedge_lock_scope}).", ("HEDGE_LOCK",)),
         _g("KILL", "Kill switch", f"Freeze within ${i.kill_switch_mll_distance} of the max loss; never auto-resumes."),
         _g("ONE_POSITION", "Positions", f"Max {b.max_open_positions_per_account} open position per account."),

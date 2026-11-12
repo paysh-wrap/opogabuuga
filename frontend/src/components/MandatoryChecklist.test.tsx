@@ -41,7 +41,7 @@ test("live statuses from the API, NO when something mandatory is missing", async
   expect(within(box).getByTestId("check-heartbeat")).toHaveAttribute("data-state", "fail");
   expect(within(box).getByTestId("check-attestation")).toHaveAttribute("data-state", "fail");
   expect(within(box).getByTestId("check-calendar")).toHaveAttribute("data-state", "ok");
-  expect(within(box).getByTestId("check-clock")).toHaveTextContent(/unknown — the server does not measure clock drift/);
+  expect(within(box).getByTestId("check-clock")).toHaveTextContent(/unknown — not measured yet: run pre-flight/);
   expect(within(box).getByTestId("check-preflight")).toHaveTextContent(/not run yet/);
 });
 

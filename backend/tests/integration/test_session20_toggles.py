@@ -64,3 +64,24 @@ def test_strategy_page_lists_the_session20_toggles_and_saves_are_versioned(authe
     assert authed.get("/api/risk/settings").json()["version"] == v0 + 3  # each save is a new version
     st = authed.app.state.rules.rules.strategy
     assert st.noise_profit_lock() == (D(80), D(10)) and not st.eval_size_s19 and not st.pm_fade_cfg.eval_off
+
+
+def test_b8_plain_text_payout_cadence_consistency_and_never_traded(authed, loaded_rules):
+    from app.api.plan import frequency_label
+    from app.api.strategy_gates import lucid_rules
+
+    assert frequency_label("every_n_sessions", 10) == "every 10 trading days"
+    assert frequency_label("every_n_sessions", None) == "every 10 trading days"
+    assert (frequency_label("weekly", None), frequency_label("on_demand", None)) == ("weekly", "on demand")
+    assert frequency_label("odd_value", None) == "odd value"
+    nxt = authed.get("/api/plan").json()["next_payout"]
+    assert "_" not in nxt["frequency_label"]
+    aid = authed.post("/api/accounts", json={"label": "n", "stage": "EVAL", "balance": "25000"}).json()["id"]
+    acct = next(a for a in authed.get("/api/dashboard").json()["accounts"] if a["id"] == aid)
+    assert acct["never_traded"] is True
+    r = loaded_rules.rules
+    none = r.model_copy(update={"eval": r.eval.model_copy(update={"consistency_max_day_pct": None})})
+    text = next(g for g in lucid_rules(none) if g["id"] == "CONSISTENCY")["text"]
+    assert text == "No consistency rule in this plan's evaluation." and "none of" not in text
+    text = next(g for g in lucid_rules(r) if g["id"] == "CONSISTENCY")["text"]
+    assert text.startswith("Eval largest day ≤ ") and text.endswith("% of the target; size cut to fit.")

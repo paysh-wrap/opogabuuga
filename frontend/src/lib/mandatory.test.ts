@@ -31,7 +31,7 @@ test("no API data at all → every item unknown, readiness not confirmed (never 
   expect(r.ready).toBe("unconfirmed");
 });
 
-test("everything the API reports is OK → only clock sync stays unknown (server does not measure drift)", () => {
+test("everything the API reports is OK → only clock sync stays unknown (not measured until pre-flight runs)", () => {
   const r = buildChecklist({ conns: allGood, webhook: hook(true), plan: goodPlan });
   expect(r.items.filter((i) => i.state !== "ok").map((i) => i.id)).toEqual(["clock"]);
   expect(r.ready).toBe("unconfirmed");

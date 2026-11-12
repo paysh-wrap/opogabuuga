@@ -26,7 +26,7 @@ interface Acct {
   purchased_at?: string | null;
   payout_consistency?: PayoutConsistencyView | null;
 }
-interface Dash { accounts: { id: number; idle_days?: number; idle_alert_days?: number; cushion?: CushionView | null }[] }
+interface Dash { accounts: { id: number; idle_days?: number; never_traded?: boolean; idle_alert_days?: number; cushion?: CushionView | null }[] }
 
 export const LUCID_URL = "https://lucidtrading.com/"; // opens Lucid's own site; the app never automates it (§1.3)
 const btn = "rounded-md border px-2.5 py-1 text-xs font-semibold disabled:opacity-50";
@@ -133,7 +133,7 @@ export default function Accounts() {
                   onChange={(e) => patch(a.id, { armed: e.target.checked })} />armed</label>
                 {d?.idle_days !== undefined && (
                   <span data-testid={`idle-${a.id}`}>
-                    Last trade {d.idle_days}d ago{d.idle_alert_days !== undefined && d.idle_days >= d.idle_alert_days && <b className="text-goldLight"> · inactivity alert</b>}
+                    {d.never_traded ? "No trades yet" : `Last trade ${d.idle_days}d ago`}{d.idle_alert_days !== undefined && d.idle_days >= d.idle_alert_days && <b className="text-goldLight"> · inactivity alert</b>}
                   </span>
                 )}
               </div>

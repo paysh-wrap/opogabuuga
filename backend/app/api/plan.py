@@ -60,6 +60,13 @@ def account_eval_pace(
     return out
 
 
+def frequency_label(frequency: str, n: int | None) -> str:
+    """B8 (session 20): plain words for the payout cadence (the UI showed 'every_n_sessions')."""
+    if frequency == "every_n_sessions":
+        return f"every {n or 10} trading days"
+    return {"weekly": "weekly", "on_demand": "on demand"}.get(frequency, frequency.replace("_", " "))
+
+
 # ---------- payout settings ----------
 class PayoutSettingsIn(BaseModel):
     skim_mode: Literal["half", "off"]  # off = sweep only
@@ -184,6 +191,7 @@ async def plan(request: Request, _: Principal = Depends(current_user), db: Sessi
         "next_payout": {
             "check_at": next_check(now, pc.check_time).isoformat() if pc.frequency == "weekly" else None,
             "frequency": pc.frequency,
+            "frequency_label": frequency_label(pc.frequency, pc.min_sessions_between),  # B8: never the raw enum
             "skim_mode": pc.skim_mode,
             "accounts": nxt,
             "total": str(sum((Decimal(x["amount"]) for x in nxt if "amount" in x), Decimal(0))),

@@ -110,7 +110,7 @@ function clock(plan?: PlanSlice): CheckItem {
   // it never blocks, but it is never shown as OK either. Only a KNOWN drift over 2 s fails.
   const label = "Clock sync (drift < 2 s)";
   const c = plan?.preflight?.checks?.find((x) => x.check === "clock_drift");
-  if (!c) return { id: "clock", label, state: "unknown", detail: "unknown — the server does not measure clock drift yet (no pre-flight result)" };
+  if (!c) return { id: "clock", label, state: "unknown", detail: "unknown — not measured yet: run pre-flight (the server checks the clock drift there)" };
   if (c.unknown) return { id: "clock", label, state: "unknown", detail: c.detail || "unknown — not measurable (no time source reachable)" };
   return c.ok ? { id: "clock", label, state: "ok", detail: c.detail } : { id: "clock", label, state: "fail", detail: c.detail };
 }

@@ -1,3 +1,4 @@
+import { money } from "../lib/money";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -6,12 +7,12 @@ import { etTime } from "../lib/time";
 import { signedUsd } from "../lib/insights";
 
 const card = "rounded-xl border border-border bg-card p-4";
-const usd = (v?: string | null) => (v == null ? "—" : `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+const usd = money;
 
 // ---------- $50k / $70k progress + next Friday payout estimate (§14, §18 Dashboard) ----------
 interface PlanResp {
   tracker: { year: number; ytd_net: string; target_net: string; floor_net: string; target_pct: string; floor_pct: string };
-  next_payout: { check_at: string | null; frequency: string; total: string; accounts: { account_id: number; label: string; kind?: string | null; amount?: string; reason?: string; error?: string }[] };
+  next_payout: { check_at: string | null; frequency: string; frequency_label?: string; total: string; accounts: { account_id: number; label: string; kind?: string | null; amount?: string; reason?: string; error?: string }[] };
 }
 
 function Bar({ label, pct, testid }: { label: string; pct: number; testid: string }) {
@@ -40,7 +41,7 @@ export function PlanProgress() {
       </div>
       <div className="mt-3 text-sm" data-testid="next-payout">
         <b className="text-gold">Next payout estimate {usd(n.total)}</b>
-        {n.check_at ? <> · check {new Date(n.check_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} {etTime(n.check_at)}</> : <> · {n.frequency}</>}
+        {n.check_at ? <> · check {new Date(n.check_at).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} {etTime(n.check_at)}</> : <> · {n.frequency_label ?? n.frequency.replace(/_/g, " ")}</>}
         {n.accounts.length === 0 && <p className="text-xs">No FUNDED accounts yet.</p>}
         {n.accounts.map((a) => (
           <p key={a.account_id} className="text-xs">{a.label}: {a.error ? `⚠ ${a.error}` : a.kind ? `${a.kind} ${usd(a.amount)}` : `none (${a.reason?.replace(/_/g, " ").toLowerCase()})`}</p>

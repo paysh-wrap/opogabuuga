@@ -1,3 +1,4 @@
+import { money } from "../lib/money";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
@@ -26,7 +27,7 @@ interface Acct {
 }
 interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
 
-const money = (v?: string | null) => (v == null ? "—" : `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`);
+
 function Pnl({ v }: { v?: string }) {
   const n = Number(v ?? 0);
   return <span className="font-semibold text-gold">{n > 0 ? "▲ +" : n < 0 ? "▼ −" : ""}{money(String(Math.abs(n)))}</span>;

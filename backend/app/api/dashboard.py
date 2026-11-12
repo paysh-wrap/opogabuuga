@@ -108,6 +108,7 @@ async def dashboard(
             "day_lockin": stt.day_stats(db, a, now).day_net_r >= r.internal.day_lockin_r,
             "fast_profit_pct": str(_fast_share(db, a, r)),
             "idle_days": (now - (a.last_trade_at or a.stage_started_at or now)).days,
+            "never_traded": a.last_trade_at is None,  # B8: "No trades yet" instead of "Last trade 0d ago"
             "idle_alert_days": r.behavior.inactivity_alert_days,
             "idle_delete_days": r.behavior.firm_inactivity_delete_days,
             "fast_warn_pct": str(r.behavior.rapid_trade_warn_pct),
