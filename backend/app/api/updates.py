@@ -153,11 +153,13 @@ async def install(
         )
         (updates / updater.FAILED_FLAG).unlink(missing_ok=True)
     except (updater.UpdateError, OSError) as e:
+        (updates / updater.EXPECTED_FILE).unlink(missing_ok=True)  # B6: never leave a stale expected commit
         _fail(request, "Update failed — old version kept", str(e))
         raise HTTPException(502, str(e)) from e
     except Exception as e:  # D101: name the real cause, never a bare "internal error"
         log.exception("update.install_failed", error=type(e).__name__)
         msg = f"{type(e).__name__}: {str(e)[:200]}"
+        (updates / updater.EXPECTED_FILE).unlink(missing_ok=True)  # B6
         _fail(request, "Update failed — old version kept", msg)
         raise HTTPException(502, f"Update failed — old version kept ({msg})") from e
     try:
@@ -168,6 +170,7 @@ async def install(
             _launch(script)
     except Exception as e:  # launch/audit failure must say why and leave the old version running
         log.exception("update.launch_failed", error=type(e).__name__)
+        (updates / updater.EXPECTED_FILE).unlink(missing_ok=True)  # B6: the old app keeps running — no stale flag
         msg = f"{type(e).__name__}: {str(e)[:200]}"
         _fail(request, "Update could not start — old version kept", msg)
         raise HTTPException(502, f"Update could not start — old version kept ({msg})") from e

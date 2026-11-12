@@ -13,6 +13,7 @@ import json
 import os
 import re
 import shutil
+import time
 import zipfile
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -204,6 +205,7 @@ def updater_script(
     flag = updates_dir / HEALTHY_FLAG
     failed = updates_dir / FAILED_FLAG
     unhealthy = updates_dir / UNHEALTHY_FLAG
+    expected = updates_dir / EXPECTED_FILE
     want = re.sub(r"[^0-9a-f]", "", expected_commit.lower())[:7]  # hex only: safe inside the batch file
     # D97: after the app says "healthy", /api/health must ALSO report the new commit (skipped if curl is missing)
     if want:
@@ -225,6 +227,7 @@ def updater_script(
         # _internal "in use", so the move always failed and the update restored itself)
         f'cd /d "{updates_dir}"',
         f'set "LOG={log}"',
+        'set "RESULT=old version restored"',
         'echo [%date% %time%] update started >> "%LOG%"',
         "set /a w=0",
         ":wait",
@@ -279,12 +282,36 @@ def updater_script(
         "timeout /t 2 /nobreak >nul",
         ":restore",
         'echo [%date% %time%] restoring backup >> "%LOG%"',
-        f'if exist "{backup}\\Paytience.exe" (del /f "{app_dir}\\Paytience.exe" 2>nul & '
-        f'move "{backup}\\Paytience.exe" "{app_dir}\\" >> "%LOG%" 2>&1)',
-        f'if exist "{backup}\\_internal" (rmdir /s /q "{app_dir}\\_internal" 2>nul & '
-        f'move "{backup}\\_internal" "{app_dir}\\" >> "%LOG%" 2>&1)',
+        # B6 (session 20): the killed new app / antivirus can still hold files for a few seconds — retry the restore
+        # like the forward move (20 tries, 1 s apart), check that each part really came back, log every try
+        "set /a r=0",
+        ":restoreexe",
+        f'if not exist "{backup}\\Paytience.exe" goto restoreint',
+        f'del /f "{app_dir}\\Paytience.exe" 2>nul',
+        f'move "{backup}\\Paytience.exe" "{app_dir}\\" >> "%LOG%" 2>&1 && goto restoreint',
+        "set /a r+=1",
+        'echo [%date% %time%] restore of Paytience.exe failed (try %r%), retrying >> "%LOG%"',
+        "if %r% geq 20 goto restorefail",
+        "timeout /t 1 /nobreak >nul",
+        "goto restoreexe",
+        ":restoreint",
+        "set /a r=0",
+        ":restoreint2",
+        f'if not exist "{backup}\\_internal" goto restored',
+        f'rmdir /s /q "{app_dir}\\_internal" 2>nul',
+        f'move "{backup}\\_internal" "{app_dir}\\" >> "%LOG%" 2>&1 && goto restored',
+        "set /a r+=1",
+        'echo [%date% %time%] restore of _internal failed (try %r%), retrying >> "%LOG%"',
+        "if %r% geq 20 goto restorefail",
+        "timeout /t 1 /nobreak >nul",
+        "goto restoreint2",
+        ":restorefail",
+        f'echo [%date% %time%] backup could NOT be put back - copy {backup} into {app_dir} by hand >> "%LOG%"',
+        f'set "RESULT=old version NOT fully restored - copy {backup} back by hand"',
+        ":restored",
         ":fail",
-        f'echo Update failed at %date% %time% - old version restored. See update.log > "{failed}"',
+        f'del "{expected}" 2>nul',  # B6: a stale expected commit would flag every later start of the old app
+        f'echo Update failed at %date% %time% - %RESULT%. See update.log > "{failed}"',
         'echo [%date% %time%] update FAILED, old version kept >> "%LOG%"',
         f'start "Paytience" /D "{app_dir}" "{app_dir}\\Paytience.exe"',
         "exit /b 1",
@@ -297,6 +324,17 @@ def script_encoding() -> str:
     return "oem" if os.name == "nt" else "utf-8"
 
 
+EXPECTED_STALE_S = 900  # B6: the .bat waits ≤ 120 s for the new app; an expected-commit file this old is stale
+
+
+def expected_is_stale(updates_dir: Path, exp_file: Path, now: float | None = None) -> bool:
+    """B6: the .bat already rolled back (failed flag present) or the file outlived any update window."""
+    if (updates_dir / FAILED_FLAG).exists():
+        return True
+    age = (time.time() if now is None else now) - exp_file.stat().st_mtime
+    return age > EXPECTED_STALE_S
+
+
 def on_healthy_start(updates_dir: Path, running_commit: str | None = None) -> str | None:
     """Called by the new app once ITS OWN /api/health answers: confirm to the .bat, drop backups, report a failure.
 
@@ -307,6 +345,8 @@ def on_healthy_start(updates_dir: Path, running_commit: str | None = None) -> st
     if not updates_dir.is_dir():
         return None
     exp_file = updates_dir / EXPECTED_FILE
+    if exp_file.exists() and expected_is_stale(updates_dir, exp_file):
+        exp_file.unlink(missing_ok=True)  # B6: left by a failed launch / rollback — not about THIS start
     if exp_file.exists() and running_commit is not None:
         expected = exp_file.read_text(encoding="utf-8").strip()
         if not commits_match(running_commit, expected):

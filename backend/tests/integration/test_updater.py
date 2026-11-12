@@ -3,6 +3,7 @@
 import hashlib
 import io
 import json
+import os
 import zipfile
 
 import httpx
@@ -251,6 +252,7 @@ def test_install_dry_run_writes_script(authed, mock_http, monkeypatch, tmp_path)
     r = authed.post("/api/updates/install")
     assert r.status_code == 502 and "Checksum" in r.json()["detail"]
     assert not (up / "apply-update.bat").exists()
+    assert not (up / updater.EXPECTED_FILE).exists()  # B6: a failed install leaves no stale expected commit
     (up / "update-failed.txt").write_text("Update failed")
     assert authed.get("/api/updates").json()["failed_update"] == "Update failed"
     authed.post("/api/updates/dismiss-failure")
@@ -296,3 +298,35 @@ def test_script_encoding_is_oem_on_windows(monkeypatch):
     assert updater.script_encoding() == "oem"
     monkeypatch.setattr(updater.os, "name", "posix")
     assert updater.script_encoding() == "utf-8"
+
+
+def test_bat_restore_retries_and_clears_the_expected_commit(tmp_path):
+    """B6 (session 20): the rollback retries like the forward move, checks each part, logs every try, and deletes
+    expected-commit.txt so later starts of the old app raise no false 'Update check failed' banner."""
+    app = tmp_path / "Paytience"
+    up = app / "paytience-data" / "updates"
+    s = updater.updater_script(app, up / "staging" / "Paytience", up / "old-1", up, 4242, expected_commit="ab" * 20)
+    rest = s[s.index(":restore\r\n") :]
+    assert rest.count("if %r% geq 20 goto restorefail") == 2 and "goto restoreint2" in rest
+    assert f'if not exist "{up / "old-1"}\\_internal" goto restored' in rest
+    assert "restore of _internal failed (try %r%)" in rest and "restore of Paytience.exe failed (try %r%)" in rest
+    fail = s[s.index(":fail") :]
+    assert f'del "{up / updater.EXPECTED_FILE}"' in fail and "%RESULT%" in fail
+    assert "NOT fully restored" in s[s.index(":restorefail") : s.index(":restored")]
+
+
+def test_stale_expected_commit_is_cleared_without_a_false_banner(tmp_path):
+    exp = tmp_path / updater.EXPECTED_FILE
+    exp.write_text("1234567890abcdef")
+    (tmp_path / updater.FAILED_FLAG).write_text("Update failed - old version restored")  # the .bat rolled back
+    assert updater.on_healthy_start(tmp_path, "aaaaaaa1") == "Update failed - old version restored"
+    assert not exp.exists() and not (tmp_path / updater.UNHEALTHY_FLAG).exists()
+    (tmp_path / updater.FAILED_FLAG).unlink()
+    exp.write_text("1234567890abcdef")  # left behind long ago (launch failed before the fix)
+    old = exp.stat().st_mtime - updater.EXPECTED_STALE_S - 5
+    os.utime(exp, (old, old))
+    assert updater.on_healthy_start(tmp_path, "aaaaaaa1") is None
+    assert not exp.exists() and not (tmp_path / updater.UNHEALTHY_FLAG).exists()
+    exp.write_text("1234567890abcdef")  # fresh: a real update in progress is still checked (D97)
+    assert updater.expected_is_stale(tmp_path, exp) is False
+    assert updater.expected_is_stale(tmp_path, exp, now=exp.stat().st_mtime + updater.EXPECTED_STALE_S + 1)
