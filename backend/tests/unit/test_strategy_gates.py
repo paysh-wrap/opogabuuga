@@ -152,4 +152,6 @@ def test_lucid_rules_display_values(loaded_rules):
     assert "≤ 40% of the target" in rows2["CONSISTENCY"] and "4000" not in rows2["CONSISTENCY"]
     assert "DLL eval none in this plan" in rows2["DLL_MLL"]
     r3 = r.model_copy(update={"eval": r.eval.model_copy(update={"consistency_max_day_pct": None})})
-    assert "≤ none" in {g["id"]: g["text"] for g in lucid_rules(r3)}["CONSISTENCY"]
+    assert {g["id"]: g["text"] for g in lucid_rules(r3)}[
+        "CONSISTENCY"
+    ] == "No consistency rule in this plan's evaluation."  # B8
