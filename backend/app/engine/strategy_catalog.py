@@ -1,9 +1,12 @@
-"""D55: research results shown next to each strategy button (static facts from the session 9 study — NOT live data).
+"""D55: research results shown next to each strategy button (static facts — NOT live data).
 
-Source: docs/results/2026-11-09_session9_strategy_research.md (Databento MNQ 1-minute 2019-05 → 2026-11, pick on
-2019–2023, judge unchanged on 2024-01 → 2026-11, 1 micro, costs included). Pro 25K figures: tools/sim25k.py rolling
-starts on real held-out days (eval: +$1,250 target, $1,000 EOD trailing max loss; open-trade drawdown and news not
-modeled → somewhat optimistic)."""
+B7 / D135 (session 20): the NOISE and MAIN cards are re-based on the session-19 study of the SHIPPED config
+(docs/results/session19/refine/RESULTS.md R6 + docs/results/session19/shipped_config.md): Databento MNQ 1-minute
+2019-05 → 2026-11 (7.5 yr), NOISE preset C ($250 stop, +100 pt → entry +10 profit lock) with Mondays off, the fade on
+days NOISE did not trade (Mondays off), 1 micro, costs included. Pro 25K pass / bust = block-bootstrap evaluations
+(+$1,250 target, $1,000 EOD trailing MLL), shown as shares of finished evaluations (pass + bust = 100; D126). News and
+intraday MLL touches are not modeled. The other cards keep their own (older or not back-testable) notes.
+"""
 
 from __future__ import annotations
 
@@ -11,20 +14,21 @@ CATALOG: list[dict[str, object]] = [
     {
         "key": "pm_fade",
         "name": "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)",
-        "source": "D58: NOISE (fixed $250 emergency stop) + 13:00–15:29 VWAP ±2 sd fade on days NOISE didn't trade",
+        "source": "D58 / D132: NOISE (profit lock, $250 stop, Mondays off) + 13:00–15:29 VWAP ±2 sd fade on days NOISE "
+        "didn't trade (Mondays off)",
         "verified": True,
         "status": "MAIN",
-        "win_pct": 50.0,
-        "profit_factor": 1.33,
-        "usd_per_trade": 19.63,
-        "trades_per_week": 5.2,
-        "held_out_trades": 1291,
-        "pro25k_pass_pct": 65.7,
-        "pro25k_bust_pct": 32.2,
-        "period": "5 years 2021-11 → 2026-10 (Databento MNQ, 1 micro): +$25,345, no losing full year; pass 71% "
-        "(2021–23) / 66% (2024–26)",
-        "note": "Turns NOISE + the fade on together. "
-        "Grid of stop sizes: fade $200–400 all ≈ equal; NOISE $250 is a narrow peak (±$50 → ≈ 60% pass).",
+        "win_pct": 52.9,
+        "profit_factor": 1.38,
+        "usd_per_trade": 18.54,
+        "trades_per_week": 3.9,
+        "held_out_trades": 192,
+        "pro25k_pass_pct": 68.0,
+        "pro25k_bust_pct": 32.0,
+        "period": "7.5 years 2019-05 → 2026-11 (1,535 trades, +$28,452 at 1 micro); held-out last 12 months: win "
+        "59.9%, PF 1.69, Pro 25K pass 72% / bust 28%",
+        "note": "Turns NOISE + the fade on together. On EVAL accounts the fade is OFF by default (toggle below): NOISE "
+        "alone passes more evaluations (72% vs 68% over 7.5 yr); funded accounts keep the fade for the extra profit.",
         "also": ["strategy.noise"],
     },
     {
@@ -33,16 +37,18 @@ CATALOG: list[dict[str, object]] = [
         "source": "Zarattini, Aziz & Barbon 2024, 'Beat the Market' (noise-area bands, VWAP trail)",
         "verified": True,
         "status": "VERIFIED",
-        "win_pct": 45.0,
-        "profit_factor": 1.33,
-        "usd_per_trade": 25.81,
-        "trades_per_week": 3.0,
-        "held_out_trades": 440,
-        "pro25k_pass_pct": 56.9,
-        "pro25k_bust_pct": 42.2,
-        "period": "held-out 2024-01 → 2026-11",
-        "note": "Hourly checks 10:00–15:00, exit on band/VWAP, 1% emergency stop, flat 16:00. Warm-up: 10 sessions "
-        "of TradingView 1-minute bars.",
+        "win_pct": 50.1,
+        "profit_factor": 1.49,
+        "usd_per_trade": 24.86,
+        "trades_per_week": 2.4,
+        "held_out_trades": 121,
+        "pro25k_pass_pct": 72.0,
+        "pro25k_bust_pct": 28.0,
+        "period": "7.5 years 2019-05 → 2026-11 (935 trades, +$23,242 at 1 micro); held-out last 12 months: win 59.5%, "
+        "PF 1.72, Pro 25K pass 67% / bust 33%",
+        "note": "Hourly checks 10:00–15:00, exit on band/VWAP, $250 emergency stop per micro, profit lock (+100 pt → "
+        "stop to entry +10, then done for the day), Mondays off, flat 16:00. Warm-up: 10 sessions of TradingView "
+        "1-minute bars.",
     },
     {
         "key": "ai_bias",

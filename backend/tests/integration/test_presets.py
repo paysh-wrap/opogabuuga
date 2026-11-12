@@ -26,14 +26,20 @@ def test_preset_file_has_the_three_user_approved_presets():
     p = load_presets()
     assert list(p) == list(KEYS)
     assert [p[k]["recommended"] for k in KEYS] == [False, False, False, False, True]
-    assert [p[k].get("superseded", False) for k in KEYS] == [False, False, True, False, False]  # D134: classic kept, labelled
+    assert [p[k].get("superseded", False) for k in KEYS] == [
+        False,
+        False,
+        True,
+        False,
+        False,
+    ]  # D134: classic kept, labelled
     assert (p["pro25k_s19"]["pass_pct"], p["pro25k_s19"]["bust_pct"]) == (72, 28)  # D134: session 19 §4
     assert (p["pro50k_s19"]["pass_pct"], p["pro50k_s19"]["bust_pct"]) == (70, 30)
     assert (p["pro25k_classic"]["pass_pct"], p["pro25k_classic"]["bust_pct"]) == (64, 36)
     assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (85, 15)  # D125
     assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (85, 15)  # D125
     assert all(p[k]["pass_pct"] + p[k]["bust_pct"] == 100 for k in KEYS)  # D126: user — pass + bust add up to 100
-    assert p["pro25k_s19"]["warning"] is None and "94%" in p["pro50k_s19"]["warning"]
+    assert p["pro25k_s19"]["warning"] is None and "93%" in p["pro50k_s19"]["warning"]
     assert (
         p["pro25k_classic"]["warning"]
         and p["pro100k_low_risk"]["warning"] is None

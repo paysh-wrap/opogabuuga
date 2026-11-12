@@ -42,3 +42,15 @@ def test_at_most_one_fade_per_day_and_hindsight_file_is_the_old_rule():
     # hindsight: the fade only trades on days NOISE never trades
     assert not any(r["d"] in noise_days for r in old if r["strategy"] == "FADE")
     assert {r["causal"] for r in old} == {"0"}
+
+
+def test_shipped_session19_stream_is_causal_and_has_no_monday_trades():  # B7 / D135
+    from datetime import date
+
+    rows = _rows("main_strategy_s19.csv")
+    assert rows and {r["strategy"] for r in rows} == {"NOISE", "FADE"} and {r["causal"] for r in rows} == {"1"}
+    assert not any(date.fromisoformat(r["d"]).weekday() == 0 for r in rows)  # D123 / D132: Mondays off for both
+    noise_days = {r["d"] for r in rows if r["strategy"] == "NOISE"}
+    fades = [r["d"] for r in rows if r["strategy"] == "FADE"]
+    assert len(fades) == len(set(fades)) and not set(fades) & noise_days  # one fade, only on NOISE-free days
+    assert len(rows) == 1535 and abs(sum(float(r["pnl"]) for r in rows) - 28452.27) < 1  # shipped_config.md S2

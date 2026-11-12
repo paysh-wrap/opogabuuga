@@ -88,10 +88,10 @@ def test_funded_path_payouts_bust_dll_and_lock():
 
 def test_projection_from_research_file():
     names, days = research_days()
-    assert names[0] == "2021-11-01" and len(names) == len(days) > 1200
+    assert names[0] == "2019-05-24" and len(names) == len(days) > 1900  # B7: session-19 shipped-config stream
     p = project(PRO25, accounts=5, micros=1, cadence=10)
-    assert p.year_mean == D("4408.91") and p.max_possible_year == D("31500.00")
-    # CAUSAL stream (session 14); the old hindsight stream gave 8232.03 (session-10 study)
+    assert p.year_mean == D("7089.66") and p.max_possible_year == D("31500.00")
+    # B7 / D135: session-19 shipped config (lock + Mondays off + fade); session 14 gave 4408.91, hindsight 8232.03
     assert p.week_mean * 52 == p.year_mean.quantize(D("0.01")) or abs(p.week_mean * 52 - p.year_mean) < 1
     tiny = project(PRO25, accounts=1, micros=1, cadence=5, horizon=10, days=[(D(0),)] * 30)
     assert tiny.any_payout_pct == 0 and tiny.median_sessions_to_first is None
@@ -105,18 +105,20 @@ def test_income_endpoint(authed):
     r = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "accounts": 5, "micros": 1})
     assert r.status_code == 200, r.text
     b = r.json()
-    assert b["year_mean"] == "4408.91" and "lucid_pro_50k" in b["plans"] and b["accounts"] == 5
+    assert (
+        b["year_mean"] == "7089.66" and "Mondays" in b["basis"] and "lucid_pro_50k" in b["plans"] and b["accounts"] == 5
+    )
     assert authed.get("/api/income/projection", params={"plan": "../../etc/passwd"}).status_code == 422
     assert authed.get("/api/income/projection", params={"accounts": 9}).status_code == 422
     assert authed.get("/api/income/projection").status_code == 200  # current plan
     a = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k"}).json()  # D63/D64 auto, Regular
     assert a["micros"] == 3 and a["auto"] == {"contracts": 3, "brake_below": "0.5", "brake_contracts": 2}
-    assert a["profile"] == "regular" and a["bust_pct"] == "48.6"
+    assert a["profile"] == "regular" and a["bust_pct"] == "27.6"
     h = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "profile": "high"}).json()
-    assert h["micros"] == 4 and h["profile"] == "high" and h["year_median"] == "7471.70"
+    assert h["micros"] == 4 and h["profile"] == "high" and h["year_median"] == "2489.05"
     assert authed.get("/api/income/projection", params={"profile": "max"}).status_code == 422
     g = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "grow": 1000}).json()
-    assert g["grow"] == 1000 and g["year_mean"] == "4173.14"  # D60 growth, CAUSAL stream (hindsight was $9,049)
+    assert g["grow"] == 1000 and g["year_mean"] == "7609.05"  # D60 growth (session-14 stream $4,173, hindsight $9,049)
 
 
 def test_account_growth_sizing_and_eval_path():

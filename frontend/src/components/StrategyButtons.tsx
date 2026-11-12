@@ -50,10 +50,11 @@ export interface SizeTierRow {
 }
 export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string }
 
-// D64: research numbers for each profile (5 funded accounts, payout every 2 weeks, 5-year MNQ replay — README §24)
+// B7 / D135: evaluation pass / bust per profile, session-19 study (NOISE profit lock + Mondays off, 7.5 yr, §4), shown as
+// shares of finished evaluations so pass + bust = 100 (D126)
 const PROFILE_NOTE: Record<string, string> = {
-  regular: "150K ≈ $881 / 2 wk, typical year $21,072, bust 24% · 100K ≈ $643, $16,025, bust 26%",
-  high: "150K ≈ $952 / 2 wk, typical year $23,706, bust 27% · 100K ≈ $637, $11,250, bust 24% (no gain over Regular on 100K)",
+  regular: "Eval pass / bust (session 19, 7.5 yr): 25K 72/28 · 50K 70/30 · 100K 85/15 · 150K 85/15",
+  high: "Eval pass / bust (session 19, 7.5 yr): 100K 3 micros 69/31 · 150K 4 micros 75/25 — higher bust than Regular",
 };
 const k$ = (v: string) => `${Math.round(Number(v) / 1000)}K`;
 
@@ -89,7 +90,7 @@ export default function StrategyButtons() {
   return (
     <section className={card} data-testid="strategy-buttons">
       <h2 className="font-semibold text-gold">Strategies — tap to turn on/off</h2>
-      <p className="text-xs text-blue">Results are from the session 9 study on real MNQ data (picked on 2019–2023, judged unchanged on 2024–2026, 1 micro, costs included). Pro 25K = share of simulated evaluations that passed / busted. Past results do not guarantee future results.</p>
+      <p className="text-xs text-blue">Results are from the session-19 study on real MNQ data (7.5 years 2019-05 → 2026-11, NOISE with the profit lock and Mondays off, picked on 2019-05 → 2025-11 and judged on the last 12 months, 1 micro, costs included; AI / Order Flow cards: their own notes). Pro 25K = share of simulated evaluations that passed / busted. Past results do not guarantee future results.</p>
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
         {d.strategies.map((s) => (
           <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
@@ -225,7 +226,7 @@ export default function StrategyButtons() {
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit and $250-per-micro emergency stop in both profiles.</p>
+          <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit, profit lock and $250-per-micro emergency stop in both profiles.</p>
         </div>
       )}
       {d.ai_duo_log && d.ai_duo_log.length > 0 && (

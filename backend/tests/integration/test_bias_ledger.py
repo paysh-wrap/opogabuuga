@@ -86,7 +86,8 @@ def test_strategies_endpoint(authed):
         "order_flow_zone",
     ]
     noise = body["strategies"][1]
-    assert noise["win_pct"] == 45.0 and noise["pro25k_pass_pct"] == 56.9 and noise["setting"] == "strategy.noise"
+    assert noise["win_pct"] == 50.1 and noise["pro25k_pass_pct"] == 72.0  # B7 / D135: session 19
+    assert noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10
     # the button saves through versioned My Settings
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.noise": True}, "note": "test"})

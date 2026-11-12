@@ -33,7 +33,7 @@ presets:
     held_out: false
     recommended: false
     superseded: false
-    warning: "1 micro on 50K measured far safer (pass 94% / bust 6% of finished evaluations, smaller profit) — see the NOISE size toggle"
+    warning: "1 micro on 50K measured far safer (pass 93% / bust 7% of finished evaluations, smaller profit) — see the NOISE size toggle"
     overlay:
       noise: true
       pm_fade: false

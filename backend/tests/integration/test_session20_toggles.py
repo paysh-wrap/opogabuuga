@@ -1,4 +1,4 @@
-"""D132 (session 20): afternoon fade off on EVAL accounts (I3) and the NOISE profit-lock trigger toggle (100 / 80 pt)."""
+"""D132 (session 20): fade off on EVAL accounts (I3) and the NOISE profit-lock trigger toggle (100 / 80 pt)."""
 
 import asyncio
 from decimal import Decimal as D

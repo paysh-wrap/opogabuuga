@@ -1,8 +1,10 @@
 """D59 projected income from FUNDED Lucid accounts (dashboard). PURE: no I/O except reading the shipped research file.
 
-Replays the MAIN strategy's real per-trade results (app/backtest/data/main_strategy_5y.csv: D58 NOISE + CAUSAL
-afternoon fade, session 14; the old hindsight set is main_strategy_5y_hindsight.csv; Databento MNQ 2021-11 → 2026-10,
-1 micro, net of costs) through a funded account with the plan's OWN funded rules
+Replays the MAIN strategy's real per-trade results (app/backtest/data/main_strategy_s19.csv, B7 / D135: the session-19
+shipped config — NOISE preset C profit lock + Mondays off, plus the CAUSAL afternoon fade on days NOISE did not trade,
+Mondays off too; Databento MNQ 2019-05 → 2026-11, 1 micro, net of costs; built by
+docs/results/session19/refine/build_income_csv.py. Older streams kept for comparison: main_strategy_5y.csv = session 14,
+main_strategy_5y_hindsight.csv = the hindsight fade) through a funded account with the plan's OWN funded rules
 (RulesConfig.funded: EOD trailing MLL + lock, soft DLL, payout buffer / minimum / cycle profit / caps / consistency /
 max payouts / split, LucidFlex 50%-of-profit + profitable-days + MLL lock on payout). Rolling starts every `step`
 sessions; each start is followed for `horizon` sessions or until bust / max payouts. A payout is requested every
@@ -25,7 +27,7 @@ from app.config import RulesConfig
 
 ZERO = Decimal(0)
 CENT = Decimal("0.01")
-DATA = Path(__file__).parent / "data" / "main_strategy_5y.csv"
+DATA = Path(__file__).parent / "data" / "main_strategy_s19.csv"
 
 
 @dataclass(frozen=True)

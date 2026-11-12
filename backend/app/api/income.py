@@ -76,7 +76,9 @@ def income_projection(
         "profile": "high" if high else "regular",
         "plans": plans,
         "current_plan": st.rules.plan,
-        "basis": "MAIN strategy (NOISE $250 + afternoon fade $250), Databento MNQ 2021-11 → 2026-10, replayed through "
+        "basis": "MAIN strategy, session-19 shipped config (NOISE $250 stop + profit lock +100 pt → entry +10, Mondays "
+        "off, plus the afternoon fade $250 on days NOISE did not trade, Mondays off), Databento MNQ 2019-05 → 2026-11, "
+        "replayed through "
         "the plan's funded payout rules; rolling starts, first 12 months per account. Research projection, not a "
         "promise: same trades on every account, open-trade drawdown and news not modeled, eval fees not subtracted.",
     }

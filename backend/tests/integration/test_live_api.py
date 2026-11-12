@@ -25,7 +25,8 @@ def _paper_trade(st, at, strategy="NOISE", mode="PAPER"):
 
     with st.sessionmaker() as s:
         sig = Signal(symbol="MNQ", profile="TIGHT", direction="LONG", model_key=f"k{at.isoformat()}{strategy}",
-                     bar_time=at, status="PASS", passed=True, features={"strategy": strategy}, updated_at=at)  # fmt: skip
+                     bar_time=at, status="PASS", passed=True, features={"strategy": strategy},
+                     updated_at=at)  # fmt: skip
         s.add(sig)
         s.flush()
         s.add(Trade(account_id=_acct(s), signal_id=sig.id, symbol="MNQ", direction="LONG", qty=1, entry=D(1),
