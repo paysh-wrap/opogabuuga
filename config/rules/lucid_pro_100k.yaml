@@ -83,8 +83,16 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
   # Scale = drawdown ratio vs 25K (MLL 3000 / 1000 = 3x), rounded down; 25K stays at 1 micro (NOISE was
   # verified at 1 micro on 25K; the unverified strategies keep 1 micro on 25K).
   max_trade_risk_usd: 1500      # plan per-trade cap for every fixed-size strategy: 50% of the MLL (3000) — one trade never risks half the drawdown
-  noise_cfg: {contracts: 2, skip_weekdays: [0]}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
-  pm_fade_cfg: {contracts: 2}       # fallback only — PM_FADE uses size_table below (same as NOISE)
+  noise_cfg: {contracts: 2, skip_weekdays: [0], profit_lock_trigger_pts: 100, profit_lock_pts: 10, profit_lock_trigger_alt_pts: 80}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
+  pm_fade_cfg: {contracts: 2, eval_off: true}       # fallback only — PM_FADE uses size_table below (same as NOISE)
+  # D132 (session 20, B2): NOISE preset C profit lock ON in every plan (+100 pt -> stop to entry +10, as the session-19
+  # numbers were measured); Mondays off also apply to the fade. alt trigger 80 pt = Strategy-page toggle noise_lock_alt
+  # (EXPERIMENTAL, likely chance). pm_fade_cfg.eval_off: fade OFF on EVAL accounts (shipped_config.md: better pass/bust).
+  noise_lock_alt: false
+  eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
+  eval_size_caps:
+    - {account_size: 100000, max_contracts: 2}   # 100K x2 pass/bust 83/15 vs x3 69/31, x4 58/42 (7.5 yr, Mondays off)
+    - {account_size: 150000, max_contracts: 3}   # 150K x3 83/15 vs x4 75/24
   ai_bias_cfg: {contracts: 2, max_risk_usd: 900}   # floor(MLL ratio); budget 30% of MLL at the 0.5% stop (25K: none = unchanged); UNVERIFIED
   ai_duo_cfg: {contracts: 2}         # floor(MLL ratio); D85 max_risk_usd $250 per trade (user, all sizes) and 150K max_qty 4 unchanged; UNVERIFIED
   noise: true

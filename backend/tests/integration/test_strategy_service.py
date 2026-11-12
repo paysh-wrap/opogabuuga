@@ -272,6 +272,21 @@ def test_pm_fade_fades_a_stretch_only_on_noise_free_days(db, loaded_rules):
         assert out.exits == [(sig.id, "FADE_FLAT_1555")]
 
 
+def test_pm_fade_respects_the_noise_weekday_skip(db, loaded_rules):  # D132 (B2): Mondays off for the fade too
+    monday = DAY0
+    assert monday.weekday() == 0
+    with db() as s:
+        _add_day(s, monday, {k: (D(20100) if k >= 210 else D(20000)) for k in range(212)})
+        s.commit()
+        at = monday + timedelta(minutes=212)
+        for skip, n in (([0], 0), ([], 1)):
+            r = _rules(loaded_rules, pm_fade=True)
+            nc = r.strategy.noise_cfg.model_copy(update={"skip_weekdays": skip})
+            r = r.model_copy(update={"strategy": r.strategy.model_copy(update={"noise_cfg": nc})})
+            out = SS.run(s, rules=r, clock=FixedClock(at), calendar=lambda _d: [], symbol="MNQ", tf="1", at=at)
+            assert len(out.updates) == n, skip
+
+
 def test_pm_fade_skips_when_noise_traded_or_target_too_close(db, loaded_rules):
     rules = _rules(loaded_rules, pm_fade=True)
     d1, d2 = _sessions(3)[-2:]

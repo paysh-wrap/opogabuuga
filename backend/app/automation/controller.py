@@ -258,7 +258,9 @@ class Controller:
         persisted trades opened in the last `reliability.hedge_inflight_s` seconds and not closed (covers a restart
         before recovery). Only ever adds positions → the lock can only block more, never less."""
         out = [
-            OpenPosition(t.account, t.symbol, t.profile or "?", t.d.value) for t in self.om.trades.values() if not t.closed
+            OpenPosition(t.account, t.symbol, t.profile or "?", t.d.value)
+            for t in self.om.trades.values()
+            if not t.closed
         ]
         since = self.clock.now() - timedelta(seconds=self.rules.rules.reliability.hedge_inflight_s)
         rows = s.execute(
@@ -438,6 +440,8 @@ class Controller:
         }
         if paper_only.get(strategy) and not a.is_sim:
             return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # opted in by the plan file
+        if strategy == "PM_FADE" and a.stage == "EVAL" and r.strategy.pm_fade_cfg.eval_off:
+            return AccountResult(a.id, False, "FADE_OFF_IN_EVAL")  # D132 / I3: EVAL stage only (FUNDED/LIVE keep it)
         one_to_one = (
             plan0.mode == "ONE_TO_ONE"
             and a.stage in r.one_to_one_mode.stages
@@ -804,9 +808,9 @@ class Controller:
                     else None
                 )  # D101 AR candle trail wired here (zone trades keep their own D111 bar-close trail)
                 t.dyn_trail = trail_params(dt, fee_cover_ticks(inst.fee_rt, inst.tick_value), cush_k, of)
-            nc = r.strategy.noise_cfg
-            if strategy == "NOISE" and nc.profit_lock_trigger_pts is not None and nc.profit_lock_pts is not None:
-                t.profit_lock = (nc.profit_lock_trigger_pts, nc.profit_lock_pts)  # D82 / D75-P1 (preset C)
+            lock = r.strategy.noise_profit_lock()  # D82 / D75-P1 (preset C); D132 100/80 pt trigger toggle
+            if strategy == "NOISE" and lock is not None:
+                t.profit_lock = lock
         except OrphanedPosition as e:
             # leg placement failed AND the emergency flatten failed: keep the position tracked (watchdog flattens it),
             # pause the account for good (never auto-resumes) and raise the banner (§1.8)

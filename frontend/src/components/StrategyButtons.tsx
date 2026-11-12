@@ -28,7 +28,10 @@ export interface StrategiesResp {
   presets?: PresetsResp;
   ai_duo_log?: DuoRow[];
   ta_mgc?: TaMgcResp;
+  toggles?: ToggleRow[];
 }
+// D132 / D133: two-way toggles (My Settings keys; each save is validated, versioned and audit-logged)
+export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
   enabled: boolean; connected: boolean; message: string | null;
@@ -73,6 +76,11 @@ export default function StrategyButtons() {
   const suggest = useMutation({
     mutationFn: (on: boolean) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.suggested_size": on }, note: `NOISE size: ${on ? "suggested" : "as configured"}` }) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+  });
+  const flip = useMutation({
+    mutationFn: ({ t, v }: { t: ToggleRow; v: boolean }) =>
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [t.setting]: v }, note: `${t.title}: ${v ? t.on_label : t.off_label}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
@@ -145,6 +153,28 @@ export default function StrategyButtons() {
           </div>
         ))}
       </div>
+      {d.toggles && d.toggles.length > 0 && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-3" data-testid="strategy-toggles">
+          {d.toggles.map((t) => (
+            <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
+              <h3 className="font-semibold text-gold">{t.title}</h3>
+              <div className="mt-2 grid gap-2">
+                {([true, false] as const).map((v) => {
+                  const on = t.value === v;
+                  return (
+                    <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending || on} onClick={() => flip.mutate({ t, v })}
+                      data-testid={`toggle-${t.key}-${v ? "on" : "off"}`}
+                      className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
+                      {on ? "ON" : "OFF"} · {v ? t.on_label : t.off_label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-xs text-blue">{t.note}</p>
+            </div>
+          ))}
+        </div>
+      )}
       {d.size_profiles && (
         <div className="mt-4" data-testid="size-profiles">
           {d.size_profiles.suggested && d.size_profiles.suggested.length > 0 && (

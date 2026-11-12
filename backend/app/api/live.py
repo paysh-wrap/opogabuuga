@@ -67,7 +67,7 @@ def paper_days(db: Session, r: RulesConfig, now: datetime) -> list[PaperDay]:
 
 def readiness_mode(db: Session) -> str:
     m = stt.get_setting(db, READINESS_KEY, "paper_sessions")
-    return m if m in READINESS_MODES else "paper_sessions"  # type: ignore[return-value]
+    return m if m in READINESS_MODES else "paper_sessions"
 
 
 async def live_inputs(request: Request, db: Session) -> LiveInputs:

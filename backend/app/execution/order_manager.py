@@ -27,6 +27,9 @@ from app.management.exits import adverse_half_due, early_exit_allowed, exit_allo
 from app.management.profit_lock import PROFIT_LOCK_REASON, lock_stop
 from app.management.trade_manage import ManageCfg, managed_stop
 
+if TYPE_CHECKING:
+    from app.risk.holder import RulesHolder
+
 
 @dataclass
 class Leg:
@@ -140,7 +143,9 @@ class OrderManager:
         return self.holder.rules.drawdown_guard.runner_trail_r if self.holder is not None else self.trail_r
 
     def early_until_r(self) -> Decimal:
-        return self.holder.rules.drawdown_guard.early_exits_until_r if self.holder is not None else self.early_exit_until_r
+        return (
+            self.holder.rules.drawdown_guard.early_exits_until_r if self.holder is not None else self.early_exit_until_r
+        )
 
     # ---------- open ----------
     def legs_for(self, plan: TradePlan, n: int, guard_on: bool, tick: Decimal | None = None) -> list[Leg]:

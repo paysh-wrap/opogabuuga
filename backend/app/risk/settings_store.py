@@ -109,6 +109,9 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         ),
         "strategy.high_risk",
         "strategy.suggested_size",  # D127: NOISE size Suggested (session 19, lowest bust) / As configured
+        "strategy.noise_lock_alt",  # D132: NOISE lock trigger 100 pt (default) / alternative (80 pt, experimental)
+        "strategy.pm_fade_cfg.eval_off",  # D132 / I3: afternoon fade off on EVAL accounts (default on)
+        "strategy.eval_size_s19",  # D133 / I1: Evaluation-Mode sizes capped at the session-19 lowest-bust sizes
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
         # D80: gate toggles shown on the Strategy page (all default OFF / unproven; each is a pure filter that can only block)  # noqa: E501
         "strategy.structure_filters.enabled",

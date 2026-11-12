@@ -17,7 +17,7 @@ presets:
     overlay:
       noise: true
       pm_fade: true
-      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null}
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null, profit_lock_trigger_alt_pts: null}
       size_table:
         - {account_size: 25000, mll: 1000, contracts: 1}
       size_table_high:

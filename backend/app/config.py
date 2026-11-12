@@ -290,6 +290,10 @@ class NoiseCfg(_M):
     # skip-Monday beat the baseline in-sample AND held-out (J win 55.0→59.5 %, PF 1.53→1.72, Pro 25K pass 62→69 %);
     # evidence weak (year-concentrated) — docs/results/session19/refine/RESULTS.md R6.
     skip_weekdays: list[int] = Field(default_factory=list)
+    # D132 (user 2026-11-12): optional alternative lock trigger for the Strategy-page toggle strategy.noise_lock_alt
+    # (80 pt in the plans — EXPERIMENTAL, likely chance: session19/more/RESULTS.md 6a J PF 1.89, IS-neutral).
+    # The lock distance (profit_lock_pts, entry +10) is the same either way.
+    profit_lock_trigger_alt_pts: D | None = None
 
     @model_validator(mode="after")
     def _lock_valid(self) -> NoiseCfg:
@@ -300,6 +304,9 @@ class NoiseCfg(_M):
         locked = self.profit_lock_trigger_pts is not None and self.profit_lock_pts is not None
         if locked and not (D(0) <= (self.profit_lock_pts or D(0)) < (self.profit_lock_trigger_pts or D(0))):
             raise ValueError("noise profit lock: 0 ≤ profit_lock_pts < profit_lock_trigger_pts")
+        alt = self.profit_lock_trigger_alt_pts
+        if alt is not None and (self.profit_lock_pts is None or alt <= self.profit_lock_pts):
+            raise ValueError("noise profit lock: profit_lock_trigger_alt_pts needs profit_lock_pts and must exceed it")
         return self
 
 
@@ -636,6 +643,18 @@ class PmFadeCfg(_M):
     flat_at: str = "15:55"
     contracts: int = Field(default=1, ge=1)  # D115: fallback when the plan has no size_table (Daily 25K)
     paper_only: bool = False  # D102 (user 2026-11-11): no strategy is forced paper-only; live gates unchanged
+    # D132 / I3 (user 2026-11-12): Strategy-page toggle "Afternoon fade off during evaluations" — EVAL-stage accounts
+    # skip PM_FADE (FADE_OFF_IN_EVAL); FUNDED/LIVE keep it. Default ON: session-20 shipped-config backtest
+    # (docs/results/session19/shipped_config.md) NOISE C + Mondays off WITHOUT the fade passes more Pro 25K evals
+    # (7.5 yr 72/28 vs 68/32, IS 75/25 vs 66/34; only the last 12 months favour the fade 67/33 vs 72/28).
+    eval_off: bool = True
+
+
+class EvalCapCfg(_M):
+    """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
+
+    account_size: D
+    max_contracts: int = Field(ge=1)
 
 
 class SizeTierCfg(_M):
@@ -796,6 +815,28 @@ class CushionCfg(_M):
 LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg")
 
 
+def capped_eval_table(table: list[SizeTierCfg], caps: list[EvalCapCfg]) -> list[SizeTierCfg]:
+    """D133 / I1: lower each row to its cap (base size, growth ceiling, brake); a row whose growth ceiling is no
+    longer above its base size stops growing. Only ever lowers a size."""
+    by = {c.account_size: c.max_contracts for c in caps}
+    out = []
+    for t in table:
+        cap = by.get(t.account_size)
+        if cap is None or (t.contracts <= cap and (t.max_contracts or 0) <= cap):
+            out.append(t)
+            continue
+        n = min(t.contracts, cap)
+        mx = None if t.max_contracts is None else min(t.max_contracts, cap)
+        grow = t.grow_per if mx is not None and mx > n else None
+        upd: dict[str, Any] = {"contracts": n, "grow_per": grow, "max_contracts": mx if grow is not None else None}
+        if t.brake_contracts is not None:
+            upd["brake_contracts"] = min(t.brake_contracts, n)
+        if t.taper_contracts is not None and t.taper_contracts >= n:
+            upd["taper_below_remaining"], upd["taper_contracts"] = None, None
+        out.append(t.model_copy(update=upd))
+    return out
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). D105: the LunqFX button/keys were removed;
     old plan files / stored settings that still carry them are tolerated and ignored (see _apply_preset)."""
@@ -852,6 +893,14 @@ class StrategyCfg(_M):
     # Off (default) = the configured table (size_table or size_table_high). Only NOISE / PM_FADE size; all checks stay.
     suggested_size: bool = False
     size_table_suggested: list[SizeTierCfg] = []
+    # D132 (user 2026-11-12): Strategy-page toggle — NOISE profit-lock trigger 100 pt (off, default = session-19
+    # preset C) or noise_cfg.profit_lock_trigger_alt_pts (80 pt, experimental). Lock distance unchanged.
+    noise_lock_alt: bool = False
+    # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
+    # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,
+    # ×4 58/42 → no grow above 2). Off = the eval tables as written (150K 4 micros, 100K grows to 4).
+    eval_size_s19: bool = True
+    eval_size_caps: list[EvalCapCfg] = []
 
     # D66: Evaluation Mode (EVAL stage only, non-negotiable 10) sizes NOISE / PM_FADE from this table when present
     size_table_eval: list[SizeTierCfg] = []
@@ -876,7 +925,16 @@ class StrategyCfg(_M):
         return out
 
     def active_eval_table(self) -> list[SizeTierCfg]:
-        return self.size_table_eval_high if self.high_risk and self.size_table_eval_high else self.size_table_eval
+        table = self.size_table_eval_high if self.high_risk and self.size_table_eval_high else self.size_table_eval
+        return capped_eval_table(table, self.eval_size_caps) if self.eval_size_s19 else table
+
+    def noise_profit_lock(self) -> tuple[D, D] | None:
+        """D82 lock (trigger pts, lock pts) or None; D132 toggle swaps in the alternative trigger when configured."""
+        nc = self.noise_cfg
+        if nc.profit_lock_trigger_pts is None or nc.profit_lock_pts is None:
+            return None
+        alt = nc.profit_lock_trigger_alt_pts
+        return (alt if self.noise_lock_alt and alt is not None else nc.profit_lock_trigger_pts), nc.profit_lock_pts
 
     def active_size_table(self) -> list[SizeTierCfg]:
         if self.suggested_size and self.size_table_suggested:

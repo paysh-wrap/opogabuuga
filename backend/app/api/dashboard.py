@@ -445,9 +445,61 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "suggested": [_tier(t) for t in r.strategy.size_table_suggested],  # D127
             "suggested_on": bool(r.strategy.suggested_size and r.strategy.size_table_suggested),
             "suggested_setting": "strategy.suggested_size",
-            "eval_regular": [
-                _tier(t) for t in r.strategy.size_table_eval
-            ],  # D66 / D69 — EVAL accounts, Evaluation Mode on
-            "eval_high": [_tier(t) for t in r.strategy.size_table_eval_high],
+            # D66 / D69 — EVAL accounts, Evaluation Mode on; D133: shown as traded (capped while eval_size_s19 is on)
+            "eval_regular": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval)],
+            "eval_high": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval_high)],
         },
+        "toggles": _session20_toggles(r),
     }
+
+
+def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
+    from app.config import capped_eval_table
+
+    return capped_eval_table(table, r.strategy.eval_size_caps) if r.strategy.eval_size_s19 else table
+
+
+def _session20_toggles(r: Any) -> list[dict[str, Any]]:
+    """D132 / D133: two-way Strategy-page toggles (My Settings keys; each save is validated, versioned, audited)."""
+    st, nc = r.strategy, r.strategy.noise_cfg
+    caps = ", ".join(f"{int(c.account_size) // 1000}K ≤ {c.max_contracts}" for c in st.eval_size_caps)
+    out: list[dict[str, Any]] = [
+        {
+            "key": "fade_eval_off",
+            "setting": "strategy.pm_fade_cfg.eval_off",
+            "title": "Afternoon fade during evaluations",
+            "value": st.pm_fade_cfg.eval_off,
+            "on_label": "Off on EVAL accounts (default — better pass/bust)",
+            "off_label": "On everywhere",
+            "note": "EVAL stage only; funded accounts keep the fade. Pro 25K, NOISE + Mondays off, 7.5 yr: fade off "
+            "pass 72% / bust 28%, fade on 68% / 32% (last 12 months alone favour the fade 72/28 vs 67/33).",
+        }
+    ]
+    if nc.profit_lock_trigger_alt_pts is not None and nc.profit_lock_trigger_pts is not None:
+        out.append(
+            {
+                "key": "noise_lock_alt",
+                "setting": "strategy.noise_lock_alt",
+                "title": "NOISE profit-lock trigger",
+                "value": st.noise_lock_alt,
+                "on_label": f"{nc.profit_lock_trigger_alt_pts.normalize():f} pt — experimental, likely chance",
+                "off_label": f"{nc.profit_lock_trigger_pts.normalize():f} pt (default, session-19 preset C)",
+                "note": f"Stop moves to entry +{(nc.profit_lock_pts or 0):f} pt once the trade is that far in profit "
+                "(same lock distance either way). 80 pt: last 12 months PF 1.89, Pro 25K pass 76% vs 66%, but no gain "
+                "in-sample — treat as chance until paper proves it.",
+            }
+        )
+    if st.eval_size_caps:
+        out.append(
+            {
+                "key": "eval_size_s19",
+                "setting": "strategy.eval_size_s19",
+                "title": "Evaluation-Mode size (100K / 150K)",
+                "value": st.eval_size_s19,
+                "on_label": f"Session 19 lowest bust ({caps}) — default",
+                "off_label": "Previous (150K 4 micros, 100K grows to 4)",
+                "note": "EVAL accounts with Evaluation Mode on. Mondays off, 7.5 yr: 150K 3 micros pass 83% / bust 15% "
+                "vs 4 micros 75/24; 100K 2 micros 83/15 vs 3: 69/31, 4: 58/42.",
+            }
+        )
+    return out

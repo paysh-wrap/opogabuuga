@@ -168,8 +168,19 @@ def test_size_table_validation_and_plans():  # D63
                 assert hi[D(25000)].contracts == 3 and hi[D(25000)].taper_contracts == 1
                 assert hi[D(25000)].stop_usd == D(150)  # D70: 3 micros × $150 = $450 total
                 assert hi[D(25000)].taper_below_remaining == D("0.5") and hi[D(150000)].contracts == 4
-                assert st.active_eval_table() is st.size_table_eval
-                assert st.model_copy(update={"high_risk": True}).active_eval_table() is st.size_table_eval_high
+                raw = st.model_copy(update={"eval_size_s19": False})  # D133 toggle off = the tables as written
+                assert raw.active_eval_table() is st.size_table_eval
+                assert raw.model_copy(update={"high_risk": True}).active_eval_table() is st.size_table_eval_high
+                assert st.eval_size_s19  # D133 default: session-19 caps 100K ≤ 2, 150K ≤ 3
+                for tbl in (st.active_eval_table(), st.model_copy(update={"high_risk": True}).active_eval_table()):
+                    cap = {t.account_size: t for t in tbl}
+                    assert cap[D(150000)].contracts == 3 and cap[D(100000)].contracts == 2
+                    assert cap[D(100000)].grow_per is None and cap[D(100000)].max_contracts is None
+                    assert cap[D(100000)].day_lock_pct == D("0.33") and cap[D(25000)] in tbl
+                # D132: preset-C lock on in every plan, 80 pt alternative behind the toggle, fade off in EVAL
+                assert st.noise_profit_lock() == (D(100), D(10)) and st.noise_cfg.skip_weekdays == [0]
+                assert st.model_copy(update={"noise_lock_alt": True}).noise_profit_lock() == (D(80), D(10))
+                assert st.pm_fade_cfg.eval_off is True and st.noise_lock_alt is False
                 ev = {t.account_size: t for t in st.size_table_eval}
                 assert ev[D(150000)].contracts == 4 and ev[D(25000)].contracts == 1
                 assert ev[D(100000)].grow_per == D(1200) and ev[D(100000)].max_contracts == 4
@@ -254,3 +265,43 @@ def test_suggested_size_table_d127():
         on = st.model_copy(update={"suggested_size": True})
         assert on.active_size_table() is on.size_table_suggested
         assert on.model_copy(update={"high_risk": True}).active_size_table() is on.size_table_suggested
+
+
+def test_capped_eval_table_only_ever_lowers_sizes():  # D133 / I1
+    from app.config import EvalCapCfg, SizeTierCfg, capped_eval_table
+
+    rows = [
+        SizeTierCfg(account_size=D(25000), mll=D(1000), contracts=3, taper_below_remaining=D("0.5"), taper_contracts=1),
+        SizeTierCfg(account_size=D(50000), mll=D(2000), contracts=2, grow_per=D(500), max_contracts=4),
+        SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, brake_below=D("0.3"), brake_contracts=1,
+                    grow_per=D(1200), max_contracts=4),
+        SizeTierCfg(account_size=D(150000), mll=D(4500), contracts=4, brake_below=D("0.5"), brake_contracts=2),
+    ]  # fmt: skip
+    caps = [
+        EvalCapCfg(account_size=D(25000), max_contracts=2),
+        EvalCapCfg(account_size=D(50000), max_contracts=3),
+        EvalCapCfg(account_size=D(100000), max_contracts=2),
+        EvalCapCfg(account_size=D(150000), max_contracts=3),
+    ]
+    out = {t.account_size: t for t in capped_eval_table(rows, caps)}
+    assert (out[D(25000)].contracts, out[D(25000)].taper_contracts) == (2, 1)  # taper still below the new size
+    assert (out[D(50000)].contracts, out[D(50000)].grow_per, out[D(50000)].max_contracts) == (2, D(500), 3)
+    assert (out[D(100000)].contracts, out[D(100000)].grow_per, out[D(100000)].max_contracts) == (2, None, None)
+    assert (out[D(150000)].contracts, out[D(150000)].brake_contracts) == (3, 2)
+    tiny = capped_eval_table([rows[0]], [EvalCapCfg(account_size=D(25000), max_contracts=1)])[0]
+    assert (tiny.contracts, tiny.taper_contracts, tiny.taper_below_remaining) == (1, None, None)
+    assert capped_eval_table(rows, []) == rows
+
+
+def test_noise_lock_alt_validation():  # D132
+    from pydantic import ValidationError
+
+    from app.config import NoiseCfg, StrategyCfg
+
+    with pytest.raises(ValidationError):
+        NoiseCfg(profit_lock_trigger_alt_pts=D(80))  # needs the lock distance
+    with pytest.raises(ValidationError):
+        NoiseCfg(profit_lock_trigger_pts=D(100), profit_lock_pts=D(10), profit_lock_trigger_alt_pts=D(10))
+    assert StrategyCfg(noise_lock_alt=True).noise_profit_lock() is None  # no lock configured → none
+    nc = NoiseCfg(profit_lock_trigger_pts=D(100), profit_lock_pts=D(10))
+    assert StrategyCfg(noise_cfg=nc, noise_lock_alt=True).noise_profit_lock() == (D(100), D(10))  # no alt → 100

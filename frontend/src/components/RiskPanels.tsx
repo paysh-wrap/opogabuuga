@@ -61,9 +61,10 @@ export function EvalModePanel() {
       <h2 className="font-semibold text-gold">Evaluation Mode {d?.enabled ? "· ON" : "· OFF"}</h2>
       <p className="text-xs">EVAL accounts only (funded/live never change).</p>
       <ul className="mt-1 text-xs" data-testid="eval-mode-main">
-        <li><b className="text-gold">MAIN strategy (NOISE + fade), Lucid Pro:</b> 150K trades 4 micros (brake to 2 below 50% cushion) — pass ≈ 19 sessions faster;
-          100K starts at 2 and grows +1 per $1,200 of cushion up to 4, and stops for the day once today&apos;s profit ≥ 33% of the remaining target — ≈ 14 sessions faster;
-          25K / 50K unchanged (every faster setting lost value in the 5-year test).</li>
+        <li><b className="text-gold">MAIN strategy (NOISE), Lucid Pro — default &quot;Session 19 lowest bust&quot; (Strategy page toggle):</b> 150K trades 3 micros
+          (pass 83% / bust 15% vs 4 micros 75/24, 7.5 yr, Mondays off); 100K stays at 2 micros (83/15 vs growing to 3–4: 69/31, 58/42) and stops for the day once
+          today&apos;s profit ≥ 33% of the remaining target. Switch the toggle to &quot;Previous&quot; for the old table (150K 4 micros, 100K grows +1 per $1,200 up to 4).
+          25K / 50K unchanged.</li>
         <li>Never changes gates, stops, DLL/MLL, day stops, kill switch or flat rules. Applies to the next new trade.</li>
       </ul>
       {err && <p role="alert" className="mt-2 text-sm text-goldLight">⚠ {err}</p>}

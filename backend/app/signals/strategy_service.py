@@ -675,6 +675,8 @@ def run_pm_fade(
         return out
     if exits_only or not N.hhmm_to_k(cfg.first_signal) <= k <= N.hhmm_to_k(cfg.last_signal):
         return out
+    if at.astimezone(ET).weekday() in rules.strategy.noise_cfg.skip_weekdays:
+        return out  # D132 (B2): the NOISE weekday skip (Mondays) applies to the fade too — shipped_config.md
     if _today_signals(s, cfg.symbol, "FADE", day):
         return out  # one per day (a skipped signal also ends the day)
     if any(x.status == "PASS" for x in _today_signals(s, cfg.symbol, "NOISE", day)):

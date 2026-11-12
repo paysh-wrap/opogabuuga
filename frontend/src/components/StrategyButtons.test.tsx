@@ -29,6 +29,10 @@ const resp: StrategiesResp = {
     suggested: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "50000", contracts: 1, brake_below: null, brake_contracts: null }],
     suggested_on: false, suggested_setting: "strategy.suggested_size",
   },
+  toggles: [
+    { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
+    { key: "noise_lock_alt", setting: "strategy.noise_lock_alt", title: "NOISE profit-lock trigger", value: false, on_label: "80 pt — experimental, likely chance", off_label: "100 pt (default, session-19 preset C)", note: "same lock distance" },
+  ],
 };
 
 test("strategy buttons show tested win/pass rates and toggle via versioned settings", async () => {
@@ -81,4 +85,10 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("ON · As configured — 50K 2 micros");
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
+  // D132: session-20 toggles (fade off in evals ON by default; profit-lock trigger 100 pt by default)
+  expect(screen.getByTestId("toggle-fade_eval_off-on")).toHaveTextContent("ON · Off on EVAL accounts");
+  expect(screen.getByTestId("toggle-noise_lock_alt-off")).toHaveTextContent("ON · 100 pt (default");
+  expect(screen.getByTestId("toggle-noise_lock_alt-on")).toHaveTextContent("OFF · 80 pt — experimental, likely chance");
+  await userEvent.click(screen.getByTestId("toggle-noise_lock_alt-on"));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.noise_lock_alt":true'))).toBe(true));
 });

@@ -258,12 +258,28 @@ def test_eval_growth_row_is_applied_by_the_controller(authed, clock):  # D66 —
     aid = _eval_account(authed, clock, "100000")
     h = st.controller.rules
     ev = [SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, grow_per=D(400), max_contracts=4)]
-    strat = h.rules.strategy.model_copy(update={"size_table_eval": ev, "max_trade_risk_usd": None})  # D115 cap off
-    h.rules = h.rules.model_copy(update={"strategy": strat})
+    upd = {"size_table_eval": ev, "max_trade_risk_usd": None, "eval_size_s19": False}  # D115 cap off, D133 caps off
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=upd)})
     res = asyncio.run(st.controller.execute(_signal(st), "automation", only=[aid]))
     fixed = next(c for c in res[0].checks if c["check"] == "fixed_size")
     # this test plan's loss limit is $1,000 → cushion $1,000 → 2 + (1,000 // 400 − 1) = 3 micros (was ignored before)
     assert fixed["contracts"] == "3"
+
+
+def test_eval_size_toggle_caps_the_growth_row_in_the_controller(authed, clock):  # D133 / I1 (default on)
+    from app.config import EvalCapCfg, SizeTierCfg
+
+    st = authed.app.state
+    aid = _eval_account(authed, clock, "100000")
+    h = st.controller.rules
+    ev = [SizeTierCfg(account_size=D(100000), mll=D(3000), contracts=2, grow_per=D(400), max_contracts=4)]
+    caps = [EvalCapCfg(account_size=D(100000), max_contracts=2)]
+    upd = {"size_table_eval": ev, "max_trade_risk_usd": None, "eval_size_caps": caps}
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=upd)})
+    assert h.rules.strategy.eval_size_s19 is True
+    res = asyncio.run(st.controller.execute(_signal(st), "automation", only=[aid]))
+    fixed = next(c for c in res[0].checks if c["check"] == "fixed_size")
+    assert fixed["contracts"] == "2"  # session-19 cap: no growth above 2 micros on 100K
 
 
 def test_high_risk_eval_taper_on_25k(authed, clock, monkeypatch):  # D69 sprint then protect
