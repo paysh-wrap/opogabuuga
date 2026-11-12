@@ -149,7 +149,7 @@ export default function StrategyButtons() {
         <div className="mt-4" data-testid="size-profiles">
           {d.size_profiles.suggested && d.size_profiles.suggested.length > 0 && (
             <div className="mb-3 rounded-lg border border-border p-3" data-testid="noise-size-toggle">
-              <h3 className="font-semibold text-gold">NOISE contract size</h3>
+              <h3 className="font-semibold text-gold">NOISE contract size — 50K: 1 or 2 micros</h3>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {([false, true] as const).map((v) => {
                   const on = !!d.size_profiles!.suggested_on === v;
@@ -157,13 +157,13 @@ export default function StrategyButtons() {
                     <button key={String(v)} type="button" aria-pressed={on} disabled={suggest.isPending || on} onClick={() => suggest.mutate(v)}
                       data-testid={v ? "noise-size-suggested" : "noise-size-configured"}
                       className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
-                      {on ? "ON" : "OFF"} · {v ? "Suggested (lowest bust)" : "As configured (how it is)"}
+                      {on ? "ON" : "OFF"} · {v ? "Suggested — 50K 1 micro (lowest bust)" : "As configured — 50K 2 micros (how it is)"}
                     </button>
                   );
                 })}
               </div>
               <p className="mt-2 text-sm">Suggested: {d.size_profiles.suggested.map((t) => <span key={t.account_size} className="mr-2">{k$(t.account_size)} <b className="text-gold">{t.contracts}</b></span>)}</p>
-              <p className="mt-1 text-xs text-blue">Suggested = the session-19 study's lowest-bust sizes (7.5 years, bootstrap: 50K×1 bust 6–10 % vs 50K×2 30–36 %). As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
+              <p className="mt-1 text-xs text-blue">Only the 50K size differs (25K 1 · 100K 2 · 150K 3 in both). 50K NOISE, Mondays off, 7.5 yr: 1 micro pass 94 % / bust 6 %; 2 micros pass 70 % / bust 30 %. As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
             </div>
           )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>

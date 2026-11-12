@@ -78,7 +78,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
   // D127: NOISE size toggle — Suggested (lowest bust) / As configured
   expect(screen.getByTestId("noise-size-toggle")).toHaveTextContent("50K 1");
-  expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("ON · As configured");
+  expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("ON · As configured — 50K 2 micros");
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
 });
