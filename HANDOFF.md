@@ -473,3 +473,12 @@ Branch claude/laughing-feynman-1f0fm5, tip f53f7d5 (D113). Latest Windows build 
 Done this session: D100–D113 (AR Model main Order Flow source, Casper/AMT+/ATR-zone types, TA advisor toggle + TV guide, per-strategy gates, LunqFX + Opening drive removed, paper-only forcing removed (live gates kept), per-build server name, AI-tools auto-install fix, CME real-time feed gate FEED_DELAYED).
 Open: (1) build f53f7d5+; (2) user's ngrok: use the "ngrok (permanent webhook URL)" card (authtoken + static domain, no https://), Remove the Cloudflare Public URL card; (3) Pine scripts never compiled in TradingView (footprint call; fallback `footprint fp = na`); (4) 5m-candle trail rule not wired to the order manager; (5) Order Flow/AMT+/ATR-zone UNVERIFIED — paper-test on CME feed, Databento locked (no real tick backtest); (6) up/down volume not sent by Pine bridge; (7) phone APK skipped.
 NOISE stays the main live strategy; projected ≈ $150–170/week on 1 micro MNQ (backtest, not a promise); eval PASS 60–67% / BUST 33–39%.
+
+## Session 20 (2026-11-12) — strategy review (research only, nothing built)
+Branch ccr-7161a63b-boxqzd (= claude/laughing-feynman-1f0fm5 tip 5741227 + this session). Databento still LOCKED (403 auth_account_locked).
+Data: MNQ + MES 1m RTH 2021-10-01..2026-10-30 recovered from git history (docs/results/session12/days.pkl, blob fabd3f3); baseline = session-19 R6 trade for trade.
+Study: docs/results/session20/strategy_review/RESULTS.md — 6 new pre-registered families on the shipped eval config (preset C + Mondays off, fade off):
+MES breakout confirmation, %-of-price lock, band-scaled lock, second ratchet step, 30/15-min exit checks, VWAP-only / band-only trail.
+IS-pick on 2021-10..2025-11-05, judge on 2025-11-06..2026-10-30. ALL SIX REJECTED; no app/config change. Tight locks over-fit (0.5σ: IS 84/16 → J 44/56).
+Random-direction J 25K pass spread 12–77 % (sd 18): J alone cannot resolve < ~10 pt differences.
+OPEN: unlock Databento (needed for any 2019–2021 re-check, MES/MGC refresh, real tick data for Order Flow).
