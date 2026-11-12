@@ -1127,3 +1127,4 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   frontend TrailCushionCard.test.tsx.
 - D124 (user 2026-11-11): Neon Gold style is the default UI (frontend/src/style-switch.ts); ?style=classic shows the previous look.
 - D125 (user 2026-11-12 "bust numbers wrong"): Strategy presets Pro 100K / 150K low risk re-based on the session-19 study (7.5 yr, NOISE preset C + Mondays off): 100K = 2 micros (brake 1 under $900, fade OFF), 150K = 3 micros; both pass 83% / bust 15% (held-out last 12 mo 78/22). The old 100K card (3 micros + fade, 63/22) was optimistic.
+- D126 (user 2026-11-12): preset pass/bust shown as shares of finished evaluations so they add up to 100 (25K 64/36, 100K 85/15, 150K 85/15; raw had 1–2% still open at the 400-session cap).

@@ -26,9 +26,10 @@ def test_preset_file_has_the_three_user_approved_presets():
     p = load_presets()
     assert list(p) == list(KEYS)
     assert [p[k]["recommended"] for k in KEYS] == [False, False, True]
-    assert (p["pro25k_classic"]["pass_pct"], p["pro25k_classic"]["bust_pct"]) == (63, 36)
-    assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (83, 15)  # D125
-    assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (83, 15)  # D125
+    assert (p["pro25k_classic"]["pass_pct"], p["pro25k_classic"]["bust_pct"]) == (64, 36)
+    assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (85, 15)  # D125
+    assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (85, 15)  # D125
+    assert all(p[k]["pass_pct"] + p[k]["bust_pct"] == 100 for k in KEYS)  # D126: user — pass + bust add up to 100
     assert (
         p["pro25k_classic"]["warning"]
         and p["pro100k_low_risk"]["warning"] is None

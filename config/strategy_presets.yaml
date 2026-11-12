@@ -9,7 +9,7 @@ presets:
     summary: "NOISE $250 stop + afternoon fade ON, 1 micro"
     account: "Pro 25K"
     study: "Session 10"
-    pass_pct: 63
+    pass_pct: 64   # D126: pass + bust = 100 (share of evaluations that finished; raw 63/36, 1% still open at the cap)
     bust_pct: 36
     held_out: false
     recommended: false
@@ -27,7 +27,7 @@ presets:
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $900"
     account: "Pro 100K"
     study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"
-    pass_pct: 83
+    pass_pct: 85   # D126: pass + bust = 100 (raw 83/15, 2% still open at the 400-session cap)
     bust_pct: 15
     held_out: false
     recommended: false
@@ -45,7 +45,7 @@ presets:
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 3 micros, 1 micro while the cushion is under $2,250"
     account: "Pro 150K"
     study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"   # D125: was Session 15 77/18
-    pass_pct: 83
+    pass_pct: 85   # D126: pass + bust = 100 (raw 83/15, 2% still open at the 400-session cap)
     bust_pct: 15
     held_out: false
     recommended: true
