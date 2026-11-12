@@ -9,8 +9,8 @@ const presets: PresetsResp = {
   active: null, setting: "strategy.preset", plan_account_size: "150000",
   rows: [
     { key: "pro25k_classic", label: "Pro 25K classic", summary: "NOISE $250 stop + afternoon fade ON, 1 micro", account: "Pro 25K", study: "Session 10", pass_pct: 63, bust_pct: 36, held_out: false, recommended: false, warning: WARN, fade: true, stop_usd: "250", profit_lock: null, size: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }], matches_plan: false },
-    { key: "pro100k_low_risk", label: "Pro 100K low risk", summary: "NOISE + fade, 3 micros", account: "Pro 100K", study: "Session 10", pass_pct: 63, bust_pct: 22, held_out: false, recommended: false, warning: WARN, fade: true, stop_usd: "250", profit_lock: null, size: [{ account_size: "100000", contracts: 3, brake_below: "0.5", brake_contracts: 1 }], matches_plan: false },
-    { key: "pro150k_low_risk", label: "Pro 150K low risk", summary: "NOISE + profit lock", account: "Pro 150K", study: "Session 15", pass_pct: 77, bust_pct: 18, held_out: true, recommended: true, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 1 }], matches_plan: true },
+    { key: "pro100k_low_risk", label: "Pro 100K low risk", summary: "NOISE + fade, 3 micros", account: "Pro 100K", study: "Session 19, 7.5 yr", pass_pct: 83, bust_pct: 15, held_out: false, recommended: false, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "100000", contracts: 2, brake_below: "0.3", brake_contracts: 1 }], matches_plan: false },
+    { key: "pro150k_low_risk", label: "Pro 150K low risk", summary: "NOISE + profit lock", account: "Pro 150K", study: "Session 19, 7.5 yr", pass_pct: 83, bust_pct: 15, held_out: false, recommended: true, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 1 }], matches_plan: true },
   ],
 };
 const resp = { strategies: [], noise_warmup: { sessions: 0, needed: 10, ready: false }, ai_ledger: [], markets: {}, presets } as StrategiesResp;
@@ -28,11 +28,11 @@ function setup(r: StrategiesResp = resp) {
 test("three presets with labels, warning badges, recommended default and audited apply", async () => {
   const calls = setup();
   expect(await screen.findByTestId("preset-rates-pro25k_classic")).toHaveTextContent("Pass 63% / bust 36%");
-  expect(screen.getByTestId("preset-rates-pro100k_low_risk")).toHaveTextContent("Pass 63% / bust 22%");
-  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("Pass 77% / bust 18%");
-  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("held-out 2024–26");
+  expect(screen.getByTestId("preset-rates-pro100k_low_risk")).toHaveTextContent("Pass 83% / bust 15%");
+  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("Pass 83% / bust 15%");
+  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("Session 19");
   expect(screen.getByTestId("preset-warning-pro25k_classic")).toHaveTextContent("likely optimistic");
-  expect(screen.getByTestId("preset-warning-pro100k_low_risk")).toHaveTextContent("honest ~57%/42%");
+  expect(screen.queryByTestId("preset-warning-pro100k_low_risk")).toBeNull(); // D125: re-based on session 19
   expect(screen.queryByTestId("preset-warning-pro150k_low_risk")).toBeNull();
   expect(screen.getByTestId("preset-pro150k_low_risk")).toHaveAttribute("aria-checked", "true"); // recommended is preselected
   expect(screen.getByTestId("preset-pro150k_low_risk")).toHaveTextContent("recommended");

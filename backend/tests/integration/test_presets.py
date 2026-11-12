@@ -27,10 +27,12 @@ def test_preset_file_has_the_three_user_approved_presets():
     assert list(p) == list(KEYS)
     assert [p[k]["recommended"] for k in KEYS] == [False, False, True]
     assert (p["pro25k_classic"]["pass_pct"], p["pro25k_classic"]["bust_pct"]) == (63, 36)
-    assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (63, 22)
-    assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (77, 18)
+    assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (83, 15)  # D125
+    assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (83, 15)  # D125
     assert (
-        p["pro25k_classic"]["warning"] and p["pro100k_low_risk"]["warning"] and p["pro150k_low_risk"]["warning"] is None
+        p["pro25k_classic"]["warning"]
+        and p["pro100k_low_risk"]["warning"] is None
+        and p["pro150k_low_risk"]["warning"] is None
     )
     assert "27% rosy" in p["pro25k_classic"]["warning"] and "57%/42%" in p["pro25k_classic"]["warning"]
 
@@ -45,13 +47,13 @@ def test_preset_a_classic(loaded_rules):
 
 def test_preset_b_low_risk_100k(loaded_rules):
     st = _with_preset(loaded_rules, "pro100k_low_risk").strategy
-    assert st.noise and st.pm_fade and st.noise_cfg.profit_lock_pts is None
+    assert st.noise and not st.pm_fade and st.noise_cfg.profit_lock_pts == D(10)  # D125: session-19 preset C
     (t,) = st.size_table
     assert (t.account_size, t.mll, t.contracts, t.brake_below, t.brake_contracts) == (
         D(100000),
         D(3000),
-        3,
-        D("0.5"),
+        2,
+        D("0.3"),
         1,
     )
 

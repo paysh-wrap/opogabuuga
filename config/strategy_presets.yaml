@@ -22,32 +22,32 @@ presets:
         - {account_size: 25000, mll: 1000, contracts: 1}
       size_table_high:
         - {account_size: 25000, mll: 1000, contracts: 1}
-  pro100k_low_risk:
+  pro100k_low_risk:   # D125 (user 2026-11-12 "bust numbers wrong"): re-based on the session-19 study (docs/results/session19/refine/RESULTS.md §4)
     label: "Pro 100K low risk"
-    summary: "NOISE + afternoon fade ON, 3 micros, 1 micro while the cushion is under 50% of the loss limit"
+    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $900"
     account: "Pro 100K"
-    study: "Session 10"
-    pass_pct: 63
-    bust_pct: 22
+    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"
+    pass_pct: 83
+    bust_pct: 15
     held_out: false
     recommended: false
-    warning: "older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
+    warning: null
     overlay:
       noise: true
-      pm_fade: true
-      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null}
+      pm_fade: false
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: 100, profit_lock_pts: 10}
       size_table:
-        - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+        - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
       size_table_high:
-        - {account_size: 100000, mll: 3000, contracts: 3, brake_below: 0.5, brake_contracts: 1}
+        - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
   pro150k_low_risk:
     label: "Pro 150K low risk"
-    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), fade OFF, 3 micros, 1 micro while the cushion is under $2,250"
+    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 3 micros, 1 micro while the cushion is under $2,250"
     account: "Pro 150K"
-    study: "Session 15"
-    pass_pct: 77
-    bust_pct: 18
-    held_out: true
+    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"   # D125: was Session 15 77/18
+    pass_pct: 83
+    bust_pct: 15
+    held_out: false
     recommended: true
     warning: null
     overlay:
