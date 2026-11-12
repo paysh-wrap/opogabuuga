@@ -16,7 +16,7 @@ import itertools
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from app.engine.trade_plan import Direction, Skip, TradePlan, rebuild_after_fill, round_to_tick
 from app.execution.adapters.base import BracketRequest, BrokerAdapter, BrokerError, Fill, Side
@@ -127,7 +127,20 @@ class OrderManager:
     trades: dict[str, OpenTrade] = field(default_factory=dict)
     bars: dict[str, list[Bar]] = field(default_factory=dict)  # D122: recent heartbeat bars per symbol (finest feed)
     max_bars: int = 600
+    # B3 (session 20): the running app passes its RulesHolder, so Risk-page edits of the hold / trail / early-exit
+    # rules reach the next exit check at once (no restart). Without one (tests) the fields above apply.
+    holder: RulesHolder | None = None
     _ids: itertools.count[int] = field(default_factory=lambda: itertools.count(1))
+
+    def hold_s(self) -> Decimal | float:
+        """D8 minimum hold for app-initiated exits, read live from the rules (behavior.min_hold_seconds)."""
+        return self.holder.rules.behavior.min_hold_seconds if self.holder is not None else self.min_hold_s
+
+    def runner_trail_r(self) -> Decimal:
+        return self.holder.rules.drawdown_guard.runner_trail_r if self.holder is not None else self.trail_r
+
+    def early_until_r(self) -> Decimal:
+        return self.holder.rules.drawdown_guard.early_exits_until_r if self.holder is not None else self.early_exit_until_r
 
     # ---------- open ----------
     def legs_for(self, plan: TradePlan, n: int, guard_on: bool, tick: Decimal | None = None) -> list[Leg]:
@@ -158,7 +171,7 @@ class OrderManager:
         qty = sum(x.qty for x in open_legs)
         if not adverse_half_due(t.plan, worst, at, broken, qty, t.half_used) or len(open_legs) < 2:
             return []
-        if not exit_allowed_now("ADVERSE_HALF", t.opened_at, now, self.min_hold_s):
+        if not exit_allowed_now("ADVERSE_HALF", t.opened_at, now, self.hold_s()):
             return []
         t.half_used = True
         leg = open_legs[0]
@@ -467,7 +480,7 @@ class OrderManager:
                 out += await self._managed(t, last)
             if t.dyn_trail is not None and not t.closing:
                 out += await self._dynamic(t, last)
-            trail = t.runner_trail or (self.trail_r if t.guard_on else None)
+            trail = t.runner_trail or (self.runner_trail_r() if t.guard_on else None)
             if trail is not None and t.partial_done and t.plan.breakeven_price is not None:
                 b = next(x for x in t.legs if x.name == "B")
                 if not b.closed:
@@ -488,7 +501,7 @@ class OrderManager:
             return []
         if all(x.entry is None for x in t.legs):
             return await self.cancel_unfilled(t, reason)
-        if not exit_allowed_now("STRATEGY_EXIT", t.opened_at, now, self.min_hold_s):
+        if not exit_allowed_now("STRATEGY_EXIT", t.opened_at, now, self.hold_s()):
             return None
         await self.adapter.flatten(t.account)
         t.closing = reason
@@ -499,9 +512,9 @@ class OrderManager:
         t = self.trades.get(trade_id)
         if t is None or t.best is None:
             return []
-        if not early_exit_allowed(t.plan, t.best, t.partial_done, self.early_exit_until_r):
+        if not early_exit_allowed(t.plan, t.best, t.partial_done, self.early_until_r()):
             return []
-        if not exit_allowed_now("EARLY_EXIT", t.opened_at, now, self.min_hold_s):
+        if not exit_allowed_now("EARLY_EXIT", t.opened_at, now, self.hold_s()):
             return []
         await self.adapter.flatten(t.account)
         t.closing = reason

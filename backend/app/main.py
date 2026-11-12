@@ -556,6 +556,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
             rules.rules.drawdown_guard.runner_trail_r,
             rules.rules.behavior.min_hold_seconds,
             rules.rules.drawdown_guard.early_exits_until_r,
+            holder=app.state.rules,  # B3: hold / trail / early-exit rules read live (Risk-page edits apply at once)
         ),
     )
     app.state.controller.bus = app.state.bus

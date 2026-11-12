@@ -275,6 +275,8 @@ def test_exits():
     assert not exit_allowed_now("EARLY_EXIT", t0, t0 + timedelta(seconds=5), 6)
     assert exit_allowed_now("EARLY_EXIT", t0, t0 + timedelta(seconds=6), 6)
     assert exit_allowed_now("STOP", t0, t0 + timedelta(seconds=1), 6)  # protective never waits
+    for kind in ("CONSISTENCY_DAY_STOP", "FEED_LOST", "DLL_LIMIT"):  # I6: listed with the other protective exits
+        assert exit_allowed_now(kind, t0, t0 + timedelta(seconds=1), 7)
     assert rapid_profit_share([(D(100), 3.0), (D(300), 60.0), (D(-50), 2.0)], 5) == D(25)
     assert rapid_profit_share([(D(-1), 1.0)], 5) == 0
 

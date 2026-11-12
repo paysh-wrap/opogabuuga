@@ -84,6 +84,7 @@ def test_verify_parser_nesting():
         (("eval_mode", "pace_escalation"), True),
         (("eval_mode", "applies_to_stages"), ["EVAL", "FUNDED"]),
         (("behavior", "min_hold_seconds"), 5),
+        (("behavior", "min_hold_seconds"), 6.9),  # B4: user rule ≥ 7 s
         (("one_to_one_mode", "rr"), 2),
         (("one_to_one_mode", "max_consecutive_losses_per_day"), 4),
         (("one_to_one_mode", "extended_max_trades_per_day"), 8),  # D36: cap is 7

@@ -7,7 +7,20 @@ from decimal import Decimal
 
 from app.engine.trade_plan import TradePlan
 
-PROTECTIVE = {"STOP", "TAKE_PROFIT", "KILL_SWITCH", "MLL_BREACH", "DLL_BREACH", "NEWS_FLATTEN", "FLAT_TIME"}
+# D8: protective exits never wait for the minimum hold. I6 (session 20): the consistency day stop, the DLL flatten and
+# the feed-loss flatten were already protective in the controller; they are listed here so the rule lives in one place.
+PROTECTIVE = {
+    "STOP",
+    "TAKE_PROFIT",
+    "KILL_SWITCH",
+    "MLL_BREACH",
+    "DLL_BREACH",
+    "DLL_LIMIT",
+    "NEWS_FLATTEN",
+    "FLAT_TIME",
+    "CONSISTENCY_DAY_STOP",
+    "FEED_LOST",
+}
 
 
 def early_exit_allowed(plan: TradePlan, best_price: Decimal, partial_filled: bool, until_r: Decimal) -> bool:

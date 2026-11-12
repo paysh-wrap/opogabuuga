@@ -484,3 +484,22 @@ def test_bar_buffer_dedupes_and_caps():
     om.add_bar("MNQ", _bar(4, "11", "9"))  # same bar again: replaces
     om.add_bar("MNQ", _bar(1, "12", "9"))  # older bar: ignored
     assert [(b.open_ms // 60_000, b.h) for b in om.bars["MNQ"]] == [(2, D(10)), (3, D(10)), (4, D(11))]
+
+
+async def test_hold_and_trail_rules_are_read_live_from_the_rules_holder(env):
+    """B3 (session 20): a Risk-page edit of behavior.min_hold_seconds reaches the next exit check without a restart."""
+    from types import SimpleNamespace
+
+    sim, om, _ = env
+    rules = SimpleNamespace(
+        behavior=SimpleNamespace(min_hold_seconds=D(9)),
+        drawdown_guard=SimpleNamespace(runner_trail_r=D("1.5"), early_exits_until_r=D("0.5")),
+    )
+    om.holder = SimpleNamespace(rules=rules)
+    assert (om.hold_s(), om.runner_trail_r(), om.early_until_r()) == (D(9), D("1.5"), D("0.5"))
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, _ = await opened(sim, om, plan, 1, False)
+    assert await om.strategy_exit(t.trade_id, "NOISE_TRAIL", AT + timedelta(seconds=8)) is None  # 8 s < 9 s
+    rules.behavior = SimpleNamespace(min_hold_seconds=D("7.5"))  # the user saves 7.5 s on the Risk page
+    ev = await om.strategy_exit(t.trade_id, "NOISE_TRAIL", AT + timedelta(seconds=8))
+    assert ev is not None and [e.detail for e in ev] == ["NOISE_TRAIL"]
