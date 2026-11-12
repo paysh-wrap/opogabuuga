@@ -847,6 +847,11 @@ class StrategyCfg(_M):
     # D64: Strategy-page button "High risk" switches NOISE / PM_FADE sizing to size_table_high (same brake system)
     high_risk: bool = False
     size_table_high: list[SizeTierCfg] = []
+    # D127 (user 2026-11-12): Strategy-page toggle "NOISE size: Suggested / As configured". Suggested = the lowest-bust
+    # sizes of the session-19 study (docs/results/session19/refine/RESULTS.md §4): 25K 1 · 50K 1 · 100K 2 · 150K 3.
+    # Off (default) = the configured table (size_table or size_table_high). Only NOISE / PM_FADE size; all checks stay.
+    suggested_size: bool = False
+    size_table_suggested: list[SizeTierCfg] = []
 
     # D66: Evaluation Mode (EVAL stage only, non-negotiable 10) sizes NOISE / PM_FADE from this table when present
     size_table_eval: list[SizeTierCfg] = []
@@ -874,6 +879,8 @@ class StrategyCfg(_M):
         return self.size_table_eval_high if self.high_risk and self.size_table_eval_high else self.size_table_eval
 
     def active_size_table(self) -> list[SizeTierCfg]:
+        if self.suggested_size and self.size_table_suggested:
+            return self.size_table_suggested
         return self.size_table_high if self.high_risk and self.size_table_high else self.size_table
 
 

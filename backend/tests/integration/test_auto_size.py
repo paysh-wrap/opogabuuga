@@ -105,8 +105,23 @@ def test_high_risk_profile_switches_table(authed, clock):  # D64
         assert s.query(AuditLog).filter_by(action="trade.auto_size").one().payload["profile"] == "HIGH"
     # the Strategy page shows both profiles and saves the switch through versioned settings
     body = authed.get("/api/strategies").json()["size_profiles"]
-    assert set(body) == {"active", "setting", "regular", "high", "eval_regular", "eval_high"}
+    assert set(body) == {
+        "active",
+        "setting",
+        "regular",
+        "high",
+        "eval_regular",
+        "eval_high",
+        "suggested",
+        "suggested_on",
+        "suggested_setting",
+    }
     assert body["setting"] == "strategy.high_risk"
+    # D127: Suggested size toggle (session-19 lowest bust) overrides the configured table while on
+    assert body["suggested_setting"] == "strategy.suggested_size" and body["suggested_on"] is False
+    r = authed.put("/api/risk/settings", json={"changes": {"strategy.suggested_size": True}, "note": "suggested"})
+    assert r.status_code == 200, r.text
+    assert st.rules.rules.strategy.suggested_size is True
 
 
 def test_eval_mode_uses_eval_table_only_on_eval_accounts(authed, clock):  # D66

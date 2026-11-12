@@ -592,7 +592,13 @@ class Controller:
                     "contracts_final": fixed,
                     "tier": str(auto.tier),
                     "braked": auto.braked,
-                    "profile": "EVAL" if eval_sizing else "HIGH" if r.strategy.high_risk else "REGULAR",
+                    "profile": "EVAL"
+                    if eval_sizing
+                    else "SUGGESTED"
+                    if r.strategy.suggested_size and r.strategy.size_table_suggested
+                    else "HIGH"
+                    if r.strategy.high_risk
+                    else "REGULAR",
                 },
             )
         # D87 Fast Evaluation — EVAL stage only (pure check in risk/fast_eval); every other check below still runs

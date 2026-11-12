@@ -236,3 +236,21 @@ def test_d115_size_validators():
         type(rules).model_validate(
             {**rules.model_dump(), "strategy": {**st.model_dump(), "max_trade_risk_usd": D(10**6)}}
         )
+
+
+def test_suggested_size_table_d127():
+    """D127: Pro/Flex plans ship the session-19 lowest-bust table; the toggle switches NOISE sizing to it."""
+    for f in sorted((Path(__file__).resolve().parents[3] / "config" / "rules").glob("lucid_*.yaml")):
+        st = load_rules(f).rules.strategy
+        if not st.size_table:
+            continue
+        assert [(int(t.account_size), t.contracts) for t in st.size_table_suggested] == [
+            (25000, 1),
+            (50000, 1),
+            (100000, 2),
+            (150000, 3),
+        ]
+        assert not st.suggested_size and st.active_size_table() is st.size_table
+        on = st.model_copy(update={"suggested_size": True})
+        assert on.active_size_table() is on.size_table_suggested
+        assert on.model_copy(update={"high_risk": True}).active_size_table() is on.size_table_suggested

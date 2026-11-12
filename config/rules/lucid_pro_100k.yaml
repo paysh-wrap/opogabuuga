@@ -157,6 +157,12 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
     - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
     - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 2}
   high_risk: false   # D64: Strategy-page button "High risk" → size_table_high
+  suggested_size: false   # D127: Strategy-page toggle — on = size_table_suggested below
+  size_table_suggested:   # D127 session-19 lowest-bust sizes (7.5 yr bootstrap bust: 25K×1 28-33 %, 50K×1 6-10 %, 100K×2 15-18 %, 150K×3 15-18 %)
+    - {account_size: 25000, mll: 1000, contracts: 1}
+    - {account_size: 50000, mll: 2000, contracts: 1}
+    - {account_size: 100000, mll: 3000, contracts: 2, brake_below: 0.3, brake_contracts: 1}
+    - {account_size: 150000, mll: 4500, contracts: 3, brake_below: 0.5, brake_contracts: 2}
   size_table_high:   # D64 (user 2026-11-09): HIGH RISK — 100K 3 micros, 150K 4 micros (same brake system)
     - {account_size: 25000, mll: 1000, contracts: 1}
     - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}

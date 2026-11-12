@@ -442,6 +442,9 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "setting": "strategy.high_risk",
             "regular": [_tier(t) for t in r.strategy.size_table],
             "high": [_tier(t) for t in r.strategy.size_table_high],
+            "suggested": [_tier(t) for t in r.strategy.size_table_suggested],  # D127
+            "suggested_on": bool(r.strategy.suggested_size and r.strategy.size_table_suggested),
+            "suggested_setting": "strategy.suggested_size",
             "eval_regular": [
                 _tier(t) for t in r.strategy.size_table_eval
             ],  # D66 / D69 — EVAL accounts, Evaluation Mode on

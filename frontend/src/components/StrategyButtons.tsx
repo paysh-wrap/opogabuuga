@@ -45,7 +45,7 @@ export interface SizeTierRow {
   account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
   taper_below_remaining?: string | null; taper_contracts?: number | null; stop_usd?: string | null;
 }
-export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[] }
+export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string }
 
 // D64: research numbers for each profile (5 funded accounts, payout every 2 weeks, 5-year MNQ replay — README §24)
 const PROFILE_NOTE: Record<string, string> = {
@@ -68,6 +68,11 @@ export default function StrategyButtons() {
   const size = useMutation({
     mutationFn: (high: boolean) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.high_risk": high }, note: `Size profile: ${high ? "high risk" : "regular"}` }) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+  });
+  const suggest = useMutation({
+    mutationFn: (on: boolean) =>
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.suggested_size": on }, note: `NOISE size: ${on ? "suggested" : "as configured"}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
@@ -142,6 +147,25 @@ export default function StrategyButtons() {
       </div>
       {d.size_profiles && (
         <div className="mt-4" data-testid="size-profiles">
+          {d.size_profiles.suggested && d.size_profiles.suggested.length > 0 && (
+            <div className="mb-3 rounded-lg border border-border p-3" data-testid="noise-size-toggle">
+              <h3 className="font-semibold text-gold">NOISE contract size</h3>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {([false, true] as const).map((v) => {
+                  const on = !!d.size_profiles!.suggested_on === v;
+                  return (
+                    <button key={String(v)} type="button" aria-pressed={on} disabled={suggest.isPending || on} onClick={() => suggest.mutate(v)}
+                      data-testid={v ? "noise-size-suggested" : "noise-size-configured"}
+                      className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
+                      {on ? "ON" : "OFF"} · {v ? "Suggested (lowest bust)" : "As configured (how it is)"}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-sm">Suggested: {d.size_profiles.suggested.map((t) => <span key={t.account_size} className="mr-2">{k$(t.account_size)} <b className="text-gold">{t.contracts}</b></span>)}</p>
+              <p className="mt-1 text-xs text-blue">Suggested = the session-19 study's lowest-bust sizes (7.5 years, bootstrap: 50K×1 bust 6–10 % vs 50K×2 30–36 %). As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
+            </div>
+          )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
           <div className="mt-2 grid gap-3 lg:grid-cols-2">
             {(["regular", "high"] as const).map((p) => {

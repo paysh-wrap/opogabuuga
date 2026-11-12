@@ -108,6 +108,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
             for k in ("noise", "pm_fade", "ai_bias", "ai_duo", "order_flow", *keys)
         ),
         "strategy.high_risk",
+        "strategy.suggested_size",  # D127: NOISE size Suggested (session 19, lowest bust) / As configured
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
         # D80: gate toggles shown on the Strategy page (all default OFF / unproven; each is a pure filter that can only block)  # noqa: E501
         "strategy.structure_filters.enabled",
