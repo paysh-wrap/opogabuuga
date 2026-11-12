@@ -252,6 +252,23 @@ class Controller:
                 out.append(OpenPosition(a.broker_account_id, p.symbol, "?", "LONG" if p.qty > 0 else "SHORT"))
         return out
 
+    def inflight_positions(self, s: Session) -> list[OpenPosition]:
+        """B5 (session 20): trades the household SENT that the broker may not report yet (CrossTrade polls). The hedge
+        lock sees these too: every trade the order manager tracks (unfilled, working or open) on any account, plus
+        persisted trades opened in the last `reliability.hedge_inflight_s` seconds and not closed (covers a restart
+        before recovery). Only ever adds positions → the lock can only block more, never less."""
+        out = [
+            OpenPosition(t.account, t.symbol, t.profile or "?", t.d.value) for t in self.om.trades.values() if not t.closed
+        ]
+        since = self.clock.now() - timedelta(seconds=self.rules.rules.reliability.hedge_inflight_s)
+        rows = s.execute(
+            select(Trade.symbol, Trade.direction, Account.broker_account_id)
+            .join(Account, Account.id == Trade.account_id)
+            .where(Trade.closed_at.is_(None), Trade.opened_at >= since, Trade.mode != "BACKTEST")
+        ).all()
+        out += [OpenPosition(acct, sym, "?", d) for sym, d, acct in rows]
+        return out
+
     # ---------- mode ----------
     def set_mode(self, s: Session, requested: str, actor: str) -> str:
         if requested not in MODES:
@@ -708,7 +725,10 @@ class Controller:
             day_limits=st.day_limits(r, a.stage),
             consistency=consistency_lim,
             lim=lim,
-            hedge_conflict=hedge_conflict(r, sig.symbol, plan.direction.value, positions) is not None,
+            hedge_conflict=hedge_conflict(
+                r, sig.symbol, plan.direction.value, positions + self.inflight_positions(s)
+            )  # B5: orders in flight count too
+            is not None,
             fast=fast_pair,
         )
         audit.record(

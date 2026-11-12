@@ -1156,6 +1156,9 @@ class ReliabilityCfg(_M):
     feed_flatten_min: int = Field(default=6, ge=2, le=60)  # no bar for this long → flatten (protective, no hold)
     reprocess_window_min: int = Field(default=5, ge=1, le=30)  # unprocessed heartbeats this recent are replayed
     missed_check_alert_s: int = Field(default=90, ge=30, le=600)  # NOISE check minute without a stored bar
+    # B5 (session 20): household hedge lock also counts our own trades opened this recently and not closed yet (the
+    # broker position may lag), on top of every trade the order manager still tracks. Tighten-only.
+    hedge_inflight_s: int = Field(default=120, ge=10, le=900)
 
     @model_validator(mode="after")
     def _order(self) -> ReliabilityCfg:

@@ -427,3 +427,4 @@ reliability:                           # session 14: restart recovery, lost-sign
   feed_flatten_min: 6                  # no bar for this long -> flatten (protective exit, never waits)
   reprocess_window_min: 5              # unprocessed heartbeats this recent are replayed (exits/management only)
   missed_check_alert_s: 90             # NOISE check minute with no stored bar this long after it closed -> alert
+  hedge_inflight_s: 120                # B5: hedge lock also counts our own trades sent this recently (broker may lag)
