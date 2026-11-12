@@ -15,7 +15,11 @@ interface Settings {
   eval_mode_on: boolean;
   error: string | null;
 }
-interface Live { live: boolean; toggle_on: boolean; phrase: string; checklist: { check: string; ok: boolean; detail: string }[] }
+interface Live {
+  live: boolean; toggle_on: boolean; phrase: string;
+  checklist: { check: string; ok: boolean; detail: string; skipped?: boolean }[];
+  readiness?: { mode: "paper_sessions" | "off"; sessions: number; needed: number };
+}
 
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
 function parsed(edit: Record<string, string>): Record<string, unknown> {
@@ -118,11 +122,29 @@ export default function Risk() {
         <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
           {lv.data?.checklist.map((c) => (
             <li key={c.check} data-testid={`live-${c.check}`}>
-              <span aria-hidden style={{ color: c.ok ? "#22C55E" : "#EF4444" }}>●</span> {c.check.replace(/_/g, " ")}
+              <span aria-hidden style={{ color: c.skipped ? "#D4AF37" : c.ok ? "#22C55E" : "#EF4444" }}>●</span> {c.check.replace(/_/g, " ")}
+              {c.skipped && <span className="text-goldLight"> — SKIPPED (readiness check OFF)</span>}
               {!c.ok && <span className="opacity-75"> — {c.detail}</span>}
             </li>
           ))}
         </ul>
+        {lv.data?.readiness && (
+          <div className="mt-2 text-sm" data-testid="live-readiness">
+            <label className="flex flex-wrap items-center gap-2">
+              <span>Readiness check before live</span>
+              <select aria-label="Live readiness check" value={lv.data.readiness.mode}
+                onChange={(e) => run.mutate(() => api("/api/live/readiness", { method: "PUT", body: JSON.stringify({ mode: e.target.value }) }))}>
+                <option value="paper_sessions">{lv.data.readiness.needed} clean paper sessions (default)</option>
+                <option value="off">Off — skip this one item</option>
+              </select>
+            </label>
+            <p className="text-xs opacity-75">
+              {lv.data.readiness.mode === "off"
+                ? "OFF: only the paper-sessions item is skipped (audit-logged). Every other live gate still applies."
+                : `Progress ${Math.min(lv.data.readiness.sessions, lv.data.readiness.needed)}/${lv.data.readiness.needed}: completed sessions in which an active strategy traded on paper with no error banner (order rejections raise one).`}
+            </p>
+          </div>
+        )}
         {lv.data?.toggle_on ? (
           <button className={`${btn} mt-2 border-blue text-blue`} onClick={() => run.mutate(() => api("/api/live", { method: "PUT", body: JSON.stringify({ enabled: false }) }))}>Turn live toggle off</button>
         ) : (
