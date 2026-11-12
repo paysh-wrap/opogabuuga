@@ -133,7 +133,7 @@ export default function Risk() {
             <label className="flex flex-wrap items-center gap-2">
               <span>Readiness check before live</span>
               <select aria-label="Live readiness check" value={lv.data.readiness.mode}
-                onChange={(e) => run.mutate(() => api("/api/live/readiness", { method: "PUT", body: JSON.stringify({ mode: e.target.value }) }))}>
+                onChange={(e) => { const mode = e.target.value; run.mutate(() => api("/api/live/readiness", { method: "PUT", body: JSON.stringify({ mode }) })); }}>
                 <option value="paper_sessions">{lv.data.readiness.needed} clean paper sessions (default)</option>
                 <option value="off">Off — skip this one item</option>
               </select>

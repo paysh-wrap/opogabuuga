@@ -15,6 +15,7 @@ const impact = { kind: "standard", risk_by_tier: { "1000": { "60": "70.00", "75"
   dll_test_at_max_base: { base: "3000", loss1: "330", loss2: "186.9", total: "516.9", dll: "600" }, losses_to_pause_from_1000: 8 };
 let evalOn = false;
 let fastOn = false;
+let readiness = "paper_sessions";
 const fastView = () => ({ enabled: fastOn, has_eval_accounts: true, confirm_phrase: "ENABLE FAST EVALUATION", verify: ["fast_eval.ladder"], accounts: [],
   config: { ladder: { enabled: false, steps: [{ cushion_frac: "0.5", extra: 1 }], max_contracts: 2 }, harvest: { enabled: false, day_stop_pct_of_target: "35" },
     early: { enabled: false, first_trades: 10, until_profit_frac: "0.5", cushion_frac: "0.5", risk_pct: "0.14", extra_contracts: 1 },
@@ -33,7 +34,10 @@ function mock(calls: string[]) {
     if (u === "/api/market/openbb") return j({ status: "LOADING", source: "x" });
     if (u === "/api/signals/skips") return j({ date: "2026-11-06", counts: {}, avg_20: {}, sessions_in_avg: 0 });
     if (u === "/api/plans") return j({ current: "a", plans: [] });
-    if (u === "/api/live") return j({ live: false, toggle_on: false, phrase: "I ACCEPT LIVE RISK", checklist: [] });
+    if (u === "/api/live/readiness") { readiness = JSON.parse(String(init?.body)).mode; return j({}); }
+    if (u === "/api/live") return j({ live: false, toggle_on: false, phrase: "I ACCEPT LIVE RISK",
+      checklist: [{ check: "paper_sessions", ok: readiness === "off", skipped: readiness === "off", detail: readiness === "off" ? "skipped" : "4/20 clean paper sessions, active strategies" }],
+      readiness: { mode: readiness, sessions: 4, needed: 20 } });
     if (u === "/api/risk/low-risk") return j({ enabled: false, max_losses_per_day: 2, max_trades_per_day: 3 });
     if (u === "/api/plan") return j({ tracker: { year: 2026, ytd_net: "5000", target_net: "70000", floor_net: "50000", target_pct: "7.1", floor_pct: "10.0" },
       next_payout: { check_at: "2026-11-06T22:05:00+00:00", frequency: "weekly", total: "600", accounts: [{ account_id: 2, label: "F1", kind: "sweep", amount: "600" }] } });
@@ -185,4 +189,17 @@ test("Risk: Fast Evaluation is OFF by default, needs preview + typed phrase, sho
   await waitFor(() => expect(calls).toContain('PUT /api/risk/fast-eval {"enabled":false,"confirm":""}'));
   await userEvent.click(screen.getByLabelText("Fast Evaluation 2 · Day-cap harvesting"));
   await waitFor(() => expect(calls.some((c) => c.includes('"fast_eval.harvest.enabled":true'))).toBe(true));
+});
+
+test("Risk: live readiness check shows paper-session progress; OFF skips that single item and is labelled", async () => {
+  readiness = "paper_sessions";
+  const calls: string[] = [];
+  mock(calls);
+  wrap(<Risk />);
+  expect(await screen.findByTestId("live-readiness")).toHaveTextContent("Progress 4/20");
+  expect(screen.getByTestId("live-paper_sessions")).toHaveTextContent("4/20 clean paper sessions");
+  await userEvent.selectOptions(screen.getByLabelText("Live readiness check"), "off");
+  await waitFor(() => expect(calls).toContain('PUT /api/live/readiness {"mode":"off"}'));
+  expect(await screen.findByText(/SKIPPED \(readiness check OFF\)/)).toBeInTheDocument();
+  expect(screen.getByTestId("live-readiness")).toHaveTextContent("Every other live gate still applies");
 });
