@@ -4,6 +4,44 @@
 # trade, the hourly band/VWAP trailing exits and the 16:00 flat. Numbers: docs/results/session10/README.md (A, B) and
 # docs/results/session15/README.md (C). Changing a number here = unverified until the study is re-run.
 presets:
+  pro25k_s19:   # D134 (user 2026-11-12, I2): session-19 refine study + session-20 shipped-config check (docs/results/session19/shipped_config.md)
+    label: "Pro 25K session 19"
+    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 1 micro"
+    account: "Pro 25K"
+    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 67% / bust 33%)"
+    pass_pct: 72   # D126 rule: pass + bust = 100 (raw 72/28)
+    bust_pct: 28
+    held_out: false
+    recommended: false
+    superseded: false
+    warning: null
+    overlay:
+      noise: true
+      pm_fade: false
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: 100, profit_lock_pts: 10, skip_weekdays: [0]}
+      size_table:
+        - {account_size: 25000, mll: 1000, contracts: 1}
+      size_table_high:
+        - {account_size: 25000, mll: 1000, contracts: 1}
+  pro50k_s19:
+    label: "Pro 50K session 19"
+    summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $1,000"
+    account: "Pro 50K"
+    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 65% / bust 35%; the study did not model the brake)"
+    pass_pct: 70   # raw 70/30 (adds up to 100)
+    bust_pct: 30
+    held_out: false
+    recommended: false
+    superseded: false
+    warning: "1 micro on 50K measured far safer (pass 94% / bust 6% of finished evaluations, smaller profit) — see the NOISE size toggle"
+    overlay:
+      noise: true
+      pm_fade: false
+      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: 100, profit_lock_pts: 10, skip_weekdays: [0]}
+      size_table:
+        - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
+      size_table_high:
+        - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
   pro25k_classic:
     label: "Pro 25K classic"
     summary: "NOISE $250 stop + afternoon fade ON, 1 micro"
@@ -13,7 +51,8 @@ presets:
     bust_pct: 36
     held_out: false
     recommended: false
-    warning: "older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
+    superseded: true   # D134: superseded by "Pro 25K session 19" (still selectable)
+    warning: "SUPERSEDED by Pro 25K session 19 — older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
     overlay:
       noise: true
       pm_fade: true

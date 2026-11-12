@@ -55,7 +55,7 @@ export default function StrategyPresets() {
               onClick={() => setPick(p.key)}
               className={`rounded-lg border p-3 text-left ${on ? "border-gold" : "border-border"}`}
             >
-              <span className="block font-semibold text-gold">{p.label}{p.recommended && <span className="ml-2 rounded border border-gold px-1 text-xs">recommended</span>}{d.active === p.key && <span className="ml-2 rounded border border-blue px-1 text-xs text-blue">active</span>}</span>
+              <span className="block font-semibold text-gold">{p.label}{p.recommended && <span className="ml-2 rounded border border-gold px-1 text-xs">recommended</span>}{p.superseded && <span className="ml-2 rounded border border-blue px-1 text-xs text-blue" data-testid={`preset-superseded-${p.key}`}>superseded</span>}{d.active === p.key && <span className="ml-2 rounded border border-blue px-1 text-xs text-blue">active</span>}</span>
               <span className="mt-1 block text-sm text-blue">{p.summary}</span>
               <span className="mt-2 block text-sm" data-testid={`preset-rates-${p.key}`}>
                 Pass <b className="text-gold">{p.pass_pct}%</b> / bust <b className="text-gold">{p.bust_pct}%</b>

@@ -355,6 +355,7 @@ def _presets(r: Any) -> dict[str, Any]:
                 "bust_pct": p["bust_pct"],
                 "held_out": p["held_out"],
                 "recommended": p["recommended"],
+                "superseded": bool(p.get("superseded", False)),  # D134: kept selectable, labelled
                 "warning": p["warning"],
                 "fade": bool(ov.get("pm_fade")),
                 "stop_usd": None if nc.get("emergency_stop_usd") is None else str(nc["emergency_stop_usd"]),

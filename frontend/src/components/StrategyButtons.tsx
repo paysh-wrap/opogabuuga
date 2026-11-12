@@ -40,7 +40,7 @@ export interface TaMgcResp {
 }
 export interface PresetRow {
   key: string; label: string; summary: string; account: string; study: string; pass_pct: number; bust_pct: number;
-  held_out: boolean; recommended: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
+  held_out: boolean; recommended: boolean; superseded?: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
   profit_lock: { trigger_pts: string; lock_pts: string } | null; size: SizeTierRow[]; matches_plan: boolean;
 }
 export interface PresetsResp { active: string | null; setting: string; plan_account_size: string; rows: PresetRow[] }
