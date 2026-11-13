@@ -482,3 +482,10 @@ MES breakout confirmation, %-of-price lock, band-scaled lock, second ratchet ste
 IS-pick on 2021-10..2025-11-05, judge on 2025-11-06..2026-10-30. ALL SIX REJECTED; no app/config change. Tight locks over-fit (0.5σ: IS 84/16 → J 44/56).
 Random-direction J 25K pass spread 12–77 % (sd 18): J alone cannot resolve < ~10 pt differences.
 OPEN: unlock Databento (needed for any 2019–2021 re-check, MES/MGC refresh, real tick data for Order Flow).
+
+## Session 21 (2026-11-13) — order blocks + simulated footprint, all 9 plans (research only, nothing built)
+docs/results/session21/orderblock_footprint/RESULTS.md. Footprint volume = Databento 1m volume RECOVERED from the stored VWAP in days.pkl
+(v_k/V_k = (vwap_k − vwap_k−1)/(tp_k − vwap_k−1); 0.06 % MNQ / 0.33 % MES bars imputed); delta = app's footprint.py method.
+App OB definition, 5m + 1m, V0 plain / V1 delta / V2 absorption / V3 +CVD, R 1.5–2.5. IS pick (5m V2 R2.5): IS PF 1.18 → J PF 0.83, −$2,406;
+all 24 rows J PF < 1; MES negative. NO EDGE. 9-plan eval (session-15 engine with intraday MAE breach): OB J pass 4–16 % vs NOISE 50–70 %.
+FINDING: with intraday floor touches modelled, NOISE J Pro 25K = 55/45 (vs 68/32 closed-trade sim) → Strategy cards/presets are optimistic. OPEN: user decision on re-basing them.
