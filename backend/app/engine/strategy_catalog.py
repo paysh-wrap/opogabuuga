@@ -3,9 +3,9 @@
 B7 / D135 (session 20): the NOISE and MAIN cards are re-based on the session-19 study of the SHIPPED config
 (docs/results/session19/refine/RESULTS.md R6 + docs/results/session19/shipped_config.md): Databento MNQ 1-minute
 2019-05 → 2026-11 (7.5 yr), NOISE preset C ($250 stop, +100 pt → entry +10 profit lock) with Mondays off, the fade on
-days NOISE did not trade (Mondays off), 1 micro, costs included. Pro 25K pass / bust = block-bootstrap evaluations
-(+$1,250 target, $1,000 EOD trailing MLL), shown as shares of finished evaluations (pass + bust = 100; D126). News and
-intraday MLL touches are not modeled. The other cards keep their own (older or not back-testable) notes.
+days NOISE did not trade (Mondays off), 1 micro, costs included. Eval pass / bust (D137) are NOT stored here: they are
+read from config/eval_odds.yaml for the active plan, size table and EOD-toggle state. News and intraday MLL touches
+are not modeled. The other cards keep their own (older or not back-testable) notes.
 """
 
 from __future__ import annotations
@@ -23,12 +23,13 @@ CATALOG: list[dict[str, object]] = [
         "usd_per_trade": 18.54,
         "trades_per_week": 3.9,
         "held_out_trades": 192,
-        "pro25k_pass_pct": 68.0,
-        "pro25k_bust_pct": 32.0,
+        "pro25k_pass_pct": None,  # D137: injected from config/eval_odds.yaml by api/dashboard.py (active plan / table)
+        "pro25k_bust_pct": None,
         "period": "7.5 years 2019-05 → 2026-11 (1,535 trades, +$28,452 at 1 micro); held-out last 12 months: win "
-        "59.9%, PF 1.69, Pro 25K pass 72% / bust 28%",
+        "59.9%, PF 1.69",
         "note": "Turns NOISE + the fade on together. On EVAL accounts the fade is OFF by default (toggle below): NOISE "
-        "alone passes more evaluations (72% vs 68% over 7.5 yr); funded accounts keep the fade for the extra profit.",
+        "alone passes more evaluations (pass / bust shown above and in the toggle below); funded accounts keep the "
+        "fade for the extra profit.",
         "also": ["strategy.noise"],
     },
     {
@@ -42,10 +43,10 @@ CATALOG: list[dict[str, object]] = [
         "usd_per_trade": 24.86,
         "trades_per_week": 2.4,
         "held_out_trades": 121,
-        "pro25k_pass_pct": 72.0,
-        "pro25k_bust_pct": 28.0,
+        "pro25k_pass_pct": None,  # D137: injected from config/eval_odds.yaml by api/dashboard.py
+        "pro25k_bust_pct": None,
         "period": "7.5 years 2019-05 → 2026-11 (935 trades, +$23,242 at 1 micro); held-out last 12 months: win 59.5%, "
-        "PF 1.72, Pro 25K pass 67% / bust 33%",
+        "PF 1.72",
         "note": "Hourly checks 10:00–15:00, exit on band/VWAP, $250 emergency stop per micro, profit lock (+100 pt → "
         "stop to entry +10, then done for the day), Mondays off, flat 16:00. Warm-up: 10 sessions of TradingView "
         "1-minute bars.",

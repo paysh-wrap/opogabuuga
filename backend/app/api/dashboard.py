@@ -477,6 +477,19 @@ def _session20_toggles(r: Any) -> list[dict[str, Any]]:
             "pass 72% / bust 28%, fade on 68% / 32% (last 12 months alone favour the fade 72/28 vs 67/33).",
         }
     ]
+    out.append(
+        {
+            "key": "eod_closed_balance",
+            "setting": "strategy.eod_closed_balance",
+            "title": "EOD drawdown: open losses don't stop the account",
+            "value": st.eod_closed_balance,
+            "on_label": "EOD accounts: kill switch watches the closed balance only",
+            "off_label": "Kill switch watches balance + open P&L (default, safest)",
+            "note": "Only for accounts whose drawdown is EOD; intraday accounts are unchanged. The $250 broker stop, "
+            "daily loss limit and the pre-trade room check still apply. VERIFY with Lucid that an open loss touching "
+            "the floor does not breach an EOD account.",
+        }
+    )
     if nc.profit_lock_trigger_alt_pts is not None and nc.profit_lock_trigger_pts is not None:
         out.append(
             {

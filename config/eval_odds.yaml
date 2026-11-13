@@ -1,0 +1,197 @@
+# D137: evaluation pass / bust odds per plan x size table x EOD-toggle state, read by backend/app/eval_odds.py and shown
+# in the UI (Strategy page, Risk page). Numbers come from docs/results/session21/eod_toggle/RESULTS.md.
+# A `study` text starting with PLACEHOLDER means "not measured yet": the UI shows that instead of numbers.
+# Eras: all = whole study, is = in-sample (selection period), j = judged / held-out (last 12 months).
+version: 1
+study: "PLACEHOLDER — not measured"
+source: docs/results/session21/eod_toggle/RESULTS.md
+plans:
+  lucid_pro_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_pro_50k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_pro_100k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_pro_150k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_flex_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_flex_50k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_flex_100k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_flex_150k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+  lucid_daily_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}
+      eod_off:  {all: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, is: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}, j: {pass: 0, bust: 0, stuck: 0, open: 0, days: 0}}

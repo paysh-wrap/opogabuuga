@@ -8,9 +8,9 @@ presets:
     label: "Pro 25K session 19"
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 1 micro"
     account: "Pro 25K"
-    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 67% / bust 33%)"
-    pass_pct: 72   # D126 rule: pass + bust = 100 (raw 72/28)
-    bust_pct: 28
+    study: "Session 19, 7.5 yr"
+    odds_plan: lucid_pro_25k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
+    odds_table: regular
     held_out: false
     recommended: false
     superseded: false
@@ -27,13 +27,13 @@ presets:
     label: "Pro 50K session 19"
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $1,000"
     account: "Pro 50K"
-    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 65% / bust 35%; the study did not model the brake)"
-    pass_pct: 70   # raw 70/30 (adds up to 100)
-    bust_pct: 30
+    study: "Session 19, 7.5 yr"
+    odds_plan: lucid_pro_50k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
+    odds_table: regular
     held_out: false
     recommended: false
     superseded: false
-    warning: "1 micro on 50K measured far safer (pass 93% / bust 7% of finished evaluations, smaller profit) — see the NOISE size toggle"
+    warning: "1 micro on 50K measured far safer (smaller profit) — see the NOISE size toggle for its pass / bust"
     overlay:
       noise: true
       pm_fade: false
@@ -47,12 +47,12 @@ presets:
     summary: "NOISE $250 stop + afternoon fade ON, 1 micro"
     account: "Pro 25K"
     study: "Session 10"
-    pass_pct: 64   # D126: pass + bust = 100 (share of evaluations that finished; raw 63/36, 1% still open at the cap)
-    bust_pct: 36
+    odds_plan: lucid_pro_25k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
+    odds_table: regular_fade_on
     held_out: false
     recommended: false
     superseded: true   # D134: superseded by "Pro 25K session 19" (still selectable)
-    warning: "SUPERSEDED by Pro 25K session 19 — older, likely optimistic (fade measured with hindsight ~27% rosy; honest ~57%/42%)"
+    warning: "SUPERSEDED by Pro 25K session 19 — older, likely optimistic (the fade was measured with hindsight)"
     overlay:
       noise: true
       pm_fade: true
@@ -65,9 +65,9 @@ presets:
     label: "Pro 100K low risk"
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $900"
     account: "Pro 100K"
-    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"
-    pass_pct: 85   # D126: pass + bust = 100 (raw 83/15, 2% still open at the 400-session cap)
-    bust_pct: 15
+    study: "Session 19, 7.5 yr"
+    odds_plan: lucid_pro_100k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
+    odds_table: regular
     held_out: false
     recommended: false
     warning: null
@@ -83,9 +83,9 @@ presets:
     label: "Pro 150K low risk"
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 3 micros, 1 micro while the cushion is under $2,250"
     account: "Pro 150K"
-    study: "Session 19, 7.5 yr (held-out last 12 mo: pass 78% / bust 22%)"   # D125: was Session 15 77/18
-    pass_pct: 85   # D126: pass + bust = 100 (raw 83/15, 2% still open at the 400-session cap)
-    bust_pct: 15
+    study: "Session 19, 7.5 yr"   # D125: was Session 15 77/18
+    odds_plan: lucid_pro_150k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
+    odds_table: regular
     held_out: false
     recommended: true
     warning: null

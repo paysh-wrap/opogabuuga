@@ -49,6 +49,7 @@ from app.risk.cushion import (
     cushion_level,
     cushion_share,
 )
+from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
@@ -1262,11 +1263,12 @@ class Controller:
             update_mll(m, equity)  # trails intraday accounts only; EOD accounts move at the EOD update
             a.mll, a.mll_peak, a.mll_locked = m.mll, m.peak, m.locked
             day = st.day_state(s, a, opnl, self.clock.now())
-            if equity - m.mll <= r.internal.kill_switch_mll_distance and (opnl != 0 or equity <= m.mll):
+            w = watched_equity(bal, opnl, m.drawdown_type, r.strategy.eod_closed_balance)  # D137
+            if w - m.mll <= r.internal.kill_switch_mll_distance and (opnl != 0 or w <= m.mll):
                 if a.paused_reason in ("KILL_SWITCH", "MLL_BREACH") and not await self._exposed(a):
                     continue  # already killed and flat: the watchdog must not re-fire every tick
                 await self._flatten_account(s, a, "KILL_SWITCH")
-                self._pause(s, a.broker_account_id, "KILL_SWITCH" if equity > m.mll else "MLL_BREACH")
+                self._pause(s, a.broker_account_id, "KILL_SWITCH" if w > m.mll else "MLL_BREACH")
                 continue
             dll = st.dll_for(r, a)
             if dll is not None and dll_remaining(dll, day.today_pnl, day.today_peak_pnl) <= 0 and opnl != 0:

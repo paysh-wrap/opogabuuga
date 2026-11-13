@@ -1,0 +1,193 @@
+version: 1
+study: "Session 21 realistic account sim: NOISE shipped eval config, kill switch $50, pre-trade room check, brake rows"
+source: docs/results/session21/eod_toggle/RESULTS.md
+plans:
+  lucid_daily_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 57, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 65, open: 0, days: 53}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 56, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 64, open: 0, days: 53}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 57, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 65, open: 0, days: 53}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 56, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 64, open: 0, days: 53}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 57, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 65, open: 0, days: 53}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 58, open: 0, days: 72}, is: {pass: 43, bust: 57, stuck: 56, open: 1, days: 68}, j: {pass: 35, bust: 65, stuck: 64, open: 0, days: 53}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 40, bust: 60, stuck: 60, open: 0, days: 46}, is: {pass: 36, bust: 64, stuck: 64, open: 0, days: 48}, j: {pass: 41, bust: 59, stuck: 59, open: 0, days: 29}}
+      eod_off: {all: {pass: 40, bust: 60, stuck: 60, open: 0, days: 46}, is: {pass: 36, bust: 64, stuck: 64, open: 0, days: 48}, j: {pass: 41, bust: 59, stuck: 59, open: 0, days: 29}}
+  lucid_flex_100k:
+    regular:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 66, bust: 24, stuck: 24, open: 9, days: 198}, is: {pass: 68, bust: 21, stuck: 21, open: 12, days: 224}, j: {pass: 65, bust: 34, stuck: 34, open: 1, days: 128}}
+      eod_off: {all: {pass: 66, bust: 24, stuck: 24, open: 9, days: 198}, is: {pass: 68, bust: 21, stuck: 21, open: 12, days: 224}, j: {pass: 65, bust: 34, stuck: 33, open: 1, days: 128}}
+    suggested:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 66, bust: 24, stuck: 24, open: 9, days: 198}, is: {pass: 68, bust: 21, stuck: 21, open: 12, days: 224}, j: {pass: 65, bust: 34, stuck: 34, open: 1, days: 128}}
+      eod_off: {all: {pass: 66, bust: 24, stuck: 24, open: 9, days: 198}, is: {pass: 68, bust: 21, stuck: 21, open: 12, days: 224}, j: {pass: 65, bust: 34, stuck: 33, open: 1, days: 128}}
+    high:
+      contracts: 3
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 65, bust: 29, stuck: 29, open: 6, days: 154}, is: {pass: 63, bust: 26, stuck: 26, open: 11, days: 145}, j: {pass: 52, bust: 47, stuck: 47, open: 1, days: 98}}
+      eod_off: {all: {pass: 65, bust: 29, stuck: 28, open: 6, days: 154}, is: {pass: 63, bust: 26, stuck: 25, open: 11, days: 145}, j: {pass: 52, bust: 47, stuck: 46, open: 1, days: 98}}
+    regular_fade_on:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 66, bust: 31, stuck: 31, open: 2, days: 152}, is: {pass: 62, bust: 34, stuck: 34, open: 3, days: 180}, j: {pass: 78, bust: 22, stuck: 22, open: 0, days: 91}}
+      eod_off: {all: {pass: 66, bust: 31, stuck: 31, open: 2, days: 152}, is: {pass: 62, bust: 34, stuck: 34, open: 3, days: 180}, j: {pass: 78, bust: 22, stuck: 22, open: 0, days: 91}}
+  lucid_flex_150k:
+    regular:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 68, bust: 20, stuck: 20, open: 11, days: 206}, is: {pass: 68, bust: 15, stuck: 15, open: 17, days: 229}, j: {pass: 72, bust: 26, stuck: 26, open: 2, days: 135}}
+      eod_off: {all: {pass: 68, bust: 20, stuck: 20, open: 11, days: 206}, is: {pass: 68, bust: 15, stuck: 15, open: 17, days: 229}, j: {pass: 72, bust: 26, stuck: 26, open: 2, days: 135}}
+    suggested:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 68, bust: 20, stuck: 20, open: 11, days: 206}, is: {pass: 68, bust: 15, stuck: 15, open: 17, days: 229}, j: {pass: 72, bust: 26, stuck: 26, open: 2, days: 135}}
+      eod_off: {all: {pass: 68, bust: 20, stuck: 20, open: 11, days: 206}, is: {pass: 68, bust: 15, stuck: 15, open: 17, days: 229}, j: {pass: 72, bust: 26, stuck: 26, open: 2, days: 135}}
+    high:
+      contracts: 4
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 68, bust: 27, stuck: 27, open: 5, days: 166}, is: {pass: 68, bust: 22, stuck: 22, open: 10, days: 169}, j: {pass: 58, bust: 42, stuck: 42, open: 0, days: 100}}
+      eod_off: {all: {pass: 68, bust: 27, stuck: 27, open: 5, days: 166}, is: {pass: 68, bust: 22, stuck: 22, open: 10, days: 169}, j: {pass: 58, bust: 42, stuck: 40, open: 0, days: 100}}
+    regular_fade_on:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 69, bust: 27, stuck: 27, open: 4, days: 158}, is: {pass: 66, bust: 28, stuck: 28, open: 6, days: 188}, j: {pass: 84, bust: 16, stuck: 16, open: 0, days: 98}}
+      eod_off: {all: {pass: 69, bust: 27, stuck: 27, open: 4, days: 158}, is: {pass: 66, bust: 28, stuck: 27, open: 6, days: 188}, j: {pass: 84, bust: 16, stuck: 15, open: 0, days: 98}}
+  lucid_flex_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 69, open: 0, days: 49}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 57, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 68, open: 0, days: 49}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 69, open: 0, days: 49}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 57, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 68, open: 0, days: 49}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 42, bust: 58, stuck: 58, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 69, open: 0, days: 49}}
+      eod_off: {all: {pass: 42, bust: 58, stuck: 57, open: 1, days: 72}, is: {pass: 45, bust: 54, stuck: 54, open: 0, days: 70}, j: {pass: 31, bust: 69, stuck: 68, open: 0, days: 49}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 40, bust: 60, stuck: 60, open: 0, days: 46}, is: {pass: 36, bust: 63, stuck: 63, open: 0, days: 48}, j: {pass: 38, bust: 62, stuck: 62, open: 0, days: 29}}
+      eod_off: {all: {pass: 40, bust: 60, stuck: 60, open: 0, days: 46}, is: {pass: 36, bust: 63, stuck: 63, open: 0, days: 48}, j: {pass: 38, bust: 62, stuck: 62, open: 0, days: 29}}
+  lucid_flex_50k:
+    regular:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 59, bust: 40, stuck: 40, open: 1, days: 101}, is: {pass: 60, bust: 38, stuck: 38, open: 2, days: 99}, j: {pass: 47, bust: 53, stuck: 53, open: 0, days: 68}}
+      eod_off: {all: {pass: 59, bust: 40, stuck: 40, open: 1, days: 101}, is: {pass: 60, bust: 38, stuck: 38, open: 2, days: 99}, j: {pass: 47, bust: 53, stuck: 53, open: 0, days: 68}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 70, bust: 19, stuck: 19, open: 11, days: 206}, is: {pass: 71, bust: 15, stuck: 15, open: 14, days: 227}, j: {pass: 76, bust: 22, stuck: 22, open: 1, days: 134}}
+      eod_off: {all: {pass: 70, bust: 19, stuck: 19, open: 11, days: 206}, is: {pass: 71, bust: 15, stuck: 15, open: 14, days: 227}, j: {pass: 76, bust: 22, stuck: 22, open: 1, days: 134}}
+    high:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 59, bust: 40, stuck: 40, open: 1, days: 101}, is: {pass: 60, bust: 38, stuck: 38, open: 2, days: 99}, j: {pass: 47, bust: 53, stuck: 53, open: 0, days: 68}}
+      eod_off: {all: {pass: 59, bust: 40, stuck: 40, open: 1, days: 101}, is: {pass: 60, bust: 38, stuck: 38, open: 2, days: 99}, j: {pass: 47, bust: 53, stuck: 53, open: 0, days: 68}}
+    regular_fade_on:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 53, bust: 46, stuck: 46, open: 0, days: 63}, is: {pass: 51, bust: 49, stuck: 49, open: 0, days: 71}, j: {pass: 56, bust: 44, stuck: 44, open: 0, days: 42}}
+      eod_off: {all: {pass: 53, bust: 46, stuck: 46, open: 0, days: 63}, is: {pass: 51, bust: 49, stuck: 49, open: 0, days: 71}, j: {pass: 56, bust: 44, stuck: 44, open: 0, days: 42}}
+  lucid_pro_100k:
+    regular:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 69, bust: 23, stuck: 23, open: 8, days: 191}, is: {pass: 69, bust: 20, stuck: 20, open: 10, days: 213}, j: {pass: 67, bust: 32, stuck: 32, open: 0, days: 113}}
+      eod_off: {all: {pass: 69, bust: 23, stuck: 23, open: 8, days: 191}, is: {pass: 69, bust: 20, stuck: 20, open: 10, days: 213}, j: {pass: 67, bust: 32, stuck: 32, open: 0, days: 113}}
+    suggested:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 69, bust: 23, stuck: 23, open: 8, days: 191}, is: {pass: 69, bust: 20, stuck: 20, open: 10, days: 213}, j: {pass: 67, bust: 32, stuck: 32, open: 0, days: 113}}
+      eod_off: {all: {pass: 69, bust: 23, stuck: 23, open: 8, days: 191}, is: {pass: 69, bust: 20, stuck: 20, open: 10, days: 213}, j: {pass: 67, bust: 32, stuck: 32, open: 0, days: 113}}
+    high:
+      contracts: 3
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 68, bust: 26, stuck: 26, open: 6, days: 136}, is: {pass: 66, bust: 24, stuck: 24, open: 11, days: 137}, j: {pass: 58, bust: 41, stuck: 41, open: 0, days: 82}}
+      eod_off: {all: {pass: 68, bust: 26, stuck: 26, open: 6, days: 136}, is: {pass: 66, bust: 24, stuck: 24, open: 11, days: 137}, j: {pass: 58, bust: 41, stuck: 41, open: 0, days: 82}}
+    regular_fade_on:
+      contracts: 2
+      brake: "1 below 30% cushion"
+      eod_on: {all: {pass: 68, bust: 30, stuck: 30, open: 2, days: 141}, is: {pass: 64, bust: 33, stuck: 33, open: 3, days: 176}, j: {pass: 79, bust: 21, stuck: 21, open: 0, days: 84}}
+      eod_off: {all: {pass: 68, bust: 30, stuck: 30, open: 2, days: 141}, is: {pass: 64, bust: 33, stuck: 33, open: 3, days: 176}, j: {pass: 79, bust: 21, stuck: 21, open: 0, days: 84}}
+  lucid_pro_150k:
+    regular:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 71, bust: 19, stuck: 19, open: 10, days: 194}, is: {pass: 70, bust: 14, stuck: 14, open: 16, days: 220}, j: {pass: 73, bust: 26, stuck: 26, open: 1, days: 127}}
+      eod_off: {all: {pass: 71, bust: 19, stuck: 19, open: 10, days: 194}, is: {pass: 70, bust: 14, stuck: 14, open: 16, days: 220}, j: {pass: 73, bust: 26, stuck: 25, open: 1, days: 127}}
+    suggested:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 71, bust: 19, stuck: 19, open: 10, days: 194}, is: {pass: 70, bust: 14, stuck: 14, open: 16, days: 220}, j: {pass: 73, bust: 26, stuck: 26, open: 1, days: 127}}
+      eod_off: {all: {pass: 71, bust: 19, stuck: 19, open: 10, days: 194}, is: {pass: 70, bust: 14, stuck: 14, open: 16, days: 220}, j: {pass: 73, bust: 26, stuck: 25, open: 1, days: 127}}
+    high:
+      contracts: 4
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 70, bust: 26, stuck: 26, open: 4, days: 149}, is: {pass: 70, bust: 22, stuck: 22, open: 9, days: 160}, j: {pass: 61, bust: 39, stuck: 39, open: 0, days: 86}}
+      eod_off: {all: {pass: 70, bust: 26, stuck: 26, open: 4, days: 149}, is: {pass: 70, bust: 22, stuck: 22, open: 9, days: 160}, j: {pass: 61, bust: 39, stuck: 39, open: 0, days: 86}}
+    regular_fade_on:
+      contracts: 3
+      brake: "2 below 50% cushion"
+      eod_on: {all: {pass: 71, bust: 25, stuck: 25, open: 4, days: 146}, is: {pass: 67, bust: 27, stuck: 27, open: 6, days: 182}, j: {pass: 85, bust: 15, stuck: 15, open: 0, days: 96}}
+      eod_off: {all: {pass: 71, bust: 25, stuck: 25, open: 4, days: 146}, is: {pass: 67, bust: 27, stuck: 26, open: 6, days: 182}, j: {pass: 85, bust: 15, stuck: 14, open: 0, days: 96}}
+  lucid_pro_25k:
+    regular:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 47, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 61, open: 0, days: 26}}
+      eod_off: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 46, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 60, open: 0, days: 26}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 47, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 61, open: 0, days: 26}}
+      eod_off: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 46, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 60, open: 0, days: 26}}
+    high:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 47, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 61, open: 0, days: 26}}
+      eod_off: {all: {pass: 50, bust: 50, stuck: 50, open: 0, days: 54}, is: {pass: 53, bust: 47, stuck: 46, open: 0, days: 58}, j: {pass: 39, bust: 61, stuck: 60, open: 0, days: 26}}
+    regular_fade_on:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 46, bust: 54, stuck: 54, open: 0, days: 38}, is: {pass: 44, bust: 56, stuck: 56, open: 0, days: 42}, j: {pass: 43, bust: 57, stuck: 57, open: 0, days: 23}}
+      eod_off: {all: {pass: 46, bust: 54, stuck: 54, open: 0, days: 38}, is: {pass: 44, bust: 56, stuck: 56, open: 0, days: 42}, j: {pass: 43, bust: 57, stuck: 56, open: 0, days: 23}}
+  lucid_pro_50k:
+    regular:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 63, bust: 37, stuck: 37, open: 0, days: 82}, is: {pass: 63, bust: 36, stuck: 36, open: 1, days: 90}, j: {pass: 53, bust: 47, stuck: 47, open: 0, days: 49}}
+      eod_off: {all: {pass: 63, bust: 37, stuck: 36, open: 0, days: 82}, is: {pass: 63, bust: 36, stuck: 36, open: 1, days: 90}, j: {pass: 53, bust: 47, stuck: 46, open: 0, days: 49}}
+    suggested:
+      contracts: 1
+      brake: null
+      eod_on: {all: {pass: 74, bust: 16, stuck: 16, open: 10, days: 195}, is: {pass: 74, bust: 13, stuck: 13, open: 13, days: 222}, j: {pass: 79, bust: 20, stuck: 20, open: 1, days: 124}}
+      eod_off: {all: {pass: 74, bust: 16, stuck: 16, open: 10, days: 195}, is: {pass: 74, bust: 13, stuck: 13, open: 13, days: 222}, j: {pass: 79, bust: 20, stuck: 20, open: 1, days: 124}}
+    high:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 63, bust: 37, stuck: 37, open: 0, days: 82}, is: {pass: 63, bust: 36, stuck: 36, open: 1, days: 90}, j: {pass: 53, bust: 47, stuck: 47, open: 0, days: 49}}
+      eod_off: {all: {pass: 63, bust: 37, stuck: 36, open: 0, days: 82}, is: {pass: 63, bust: 36, stuck: 36, open: 1, days: 90}, j: {pass: 53, bust: 47, stuck: 46, open: 0, days: 49}}
+    regular_fade_on:
+      contracts: 2
+      brake: "1 below 50% cushion"
+      eod_on: {all: {pass: 56, bust: 44, stuck: 44, open: 0, days: 54}, is: {pass: 54, bust: 46, stuck: 46, open: 0, days: 64}, j: {pass: 61, bust: 39, stuck: 39, open: 0, days: 35}}
+      eod_off: {all: {pass: 56, bust: 44, stuck: 44, open: 0, days: 54}, is: {pass: 54, bust: 46, stuck: 46, open: 0, days: 64}, j: {pass: 61, bust: 39, stuck: 38, open: 0, days: 35}}

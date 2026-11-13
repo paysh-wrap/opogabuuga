@@ -340,9 +340,17 @@ def split_gates(noise: list[dict[str, Any]], duo: list[dict[str, Any]], share: A
     ]
 
 
+def _kill_mode(r: Any) -> str:
+    """D137: which equity the kill switch watches (My Settings strategy.eod_closed_balance)."""
+    if r.strategy.eod_closed_balance:
+        return "EOD accounts: closed balance only (open loss ignored), intraday accounts: balance + open P&L"
+    return "watching balance + open P&L"
+
+
 def lucid_rules(r: Any) -> list[dict[str, Any]]:
     """PURE: the shared firm/safety checks every strategy passes (not removable, never edited here)."""
     i, ev, fu, b = r.internal, r.eval, r.funded, r.behavior
+    kill_mode = _kill_mode(r)
 
     def usd(x: Any) -> str:
         return "none in this plan" if x is None else f"${x}"  # D116: null in the plan yaml = no DLL (Pro eval / Flex)
@@ -369,7 +377,7 @@ def lucid_rules(r: Any) -> list[dict[str, Any]]:
         ),
         _g("CONSISTENCY", "Consistency", cons),
         _g("HEDGE", "Hedge lock", f"Never both sides ({b.hedge_lock_scope}).", ("HEDGE_LOCK",)),
-        _g("KILL", "Kill switch", f"Freeze within ${i.kill_switch_mll_distance} of the max loss; never auto-resumes."),
+        _g("KILL", "Kill switch", f"Freeze within ${i.kill_switch_mll_distance} of the max loss; {kill_mode}; never auto-resumes."),
         _g("ONE_POSITION", "Positions", f"Max {b.max_open_positions_per_account} open position per account."),
         _g("FLAT_TIMES", "Flat times", f"Auto flatten {i.auto_flatten}, hard flat {i.hard_flat} ET."),
         _g("PREFLIGHT", "Pre-flight", f"Pre-flight at {r.schedule.preflight} ET must pass before arming."),
