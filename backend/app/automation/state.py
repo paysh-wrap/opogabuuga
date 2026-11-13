@@ -16,6 +16,7 @@ from app.phases.phase_engine import stage_rules
 from app.risk.checks import DayLimits, DayState
 from app.risk.consistency import ConsistencyLimits, eval_limits, funded_limits
 from app.risk.fast_eval import FastCtx
+from app.risk.lucid_scale import effective_dll
 from app.risk.tiers import RiskCtx
 
 
@@ -235,4 +236,8 @@ def stage_sessions(s: Session, acct: Account) -> int:
 
 
 def dll_for(rules: RulesConfig, acct: Account) -> Decimal | None:
-    return stage_rules(rules, acct.stage, acct.drawdown_type, acct.dll_enabled).dll
+    """Effective DLL: the plan's fixed DLL, or the LucidScale DLL once the MLL has locked (risk/lucid_scale)."""
+    sr = stage_rules(rules, acct.stage, acct.drawdown_type, acct.dll_enabled)
+    start = acct.starting_balance or rules.account_size
+    peak = acct.mll_peak if acct.mll_peak is not None else start
+    return effective_dll(sr.dll, sr.dll_scale_pct, bool(acct.mll_locked), peak, start)

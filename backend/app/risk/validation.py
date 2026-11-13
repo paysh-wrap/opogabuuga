@@ -39,7 +39,7 @@ def dll_two_loss_test(
 
 
 def max_base_for_stage(rules: RulesConfig, stage: str) -> Decimal:
-    """EVAL EOD: $1,000 + day stop ($437.50) = $1,437.50; FUNDED: the $3,000 cushion (§11)."""
+    """EVAL EOD: $1,000 + day stop ($475.00) = $1,475.00; FUNDED: the $3,000 cushion (§11)."""
     if stage == "EVAL" and rules.eval.consistency_max_day_pct is None:
         return money(rules.eval.max_loss_limit + rules.eval.profit_target)
     if stage == "EVAL":

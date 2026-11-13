@@ -96,11 +96,12 @@ class MaxContracts(_M):
 
 class EvalRules(_M):
     profit_target: D
-    consistency_max_day_pct: D | None  # None = no eval consistency rule (LucidPro)
+    consistency_max_day_pct: D | None  # None = no eval consistency rule (LucidPro: 40, plan card 2026-11-13)
     min_profitable_days: int
     max_loss_limit: D
     drawdown_type: DrawdownType
     daily_loss_limit: D | None  # None = no DLL
+    dll_scale_above_lock_pct: D | None = Field(default=None, gt=0, le=100)  # LucidScale DLL (LucidPro), see risk/lucid_scale
     lock_trigger: D
     lock_level: D
     news_allowed_by_firm: bool
@@ -150,6 +151,7 @@ class FundedRules(_M):
     lock_trigger: D
     lock_level: D
     daily_loss_limit: D | None
+    dll_scale_above_lock_pct: D | None = Field(default=None, gt=0, le=100)  # LucidScale DLL (LucidPro)
     consistency_max_day_pct: D | None
     news_breach_min_before: int
     news_breach_min_after: int

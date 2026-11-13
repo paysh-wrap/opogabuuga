@@ -171,7 +171,7 @@ export function Versions() {
 
 // ---------- Firm rules (read-only, VERIFY badges), day lock-in, cooldowns, kill log ----------
 interface RulesResp {
-  rules: { eval: { drawdown_type: string; daily_loss_limit: string | null; consistency_max_day_pct: string | null; profit_target: string; max_loss_limit: string };
+  rules: { eval: { drawdown_type: string; daily_loss_limit: string | null; dll_scale_above_lock_pct?: string | null; consistency_max_day_pct: string | null; profit_target: string; max_loss_limit: string };
     internal: { day_lockin_r: string; kill_switch_mll_distance: string; pause_below_risk_base: string } };
   verify_paths: string[]; verified_paths: string[]; firm_version: number | null;
 }
@@ -190,6 +190,8 @@ export function FirmAndSafety() {
         <h2 className="font-semibold text-gold">Firm rules{r.data.firm_version ? ` · v${r.data.firm_version}` : ""}</h2>
         <p className="text-sm">Purchase profile: <b className="text-gold">{e.drawdown_type.toUpperCase()} drawdown</b> · DLL <b className="text-gold">{e.daily_loss_limit ? `ON $${e.daily_loss_limit}` : "OFF"}</b>
           {" "}· consistency <b className="text-gold">{e.consistency_max_day_pct ? `${e.consistency_max_day_pct}%` : "none"}</b> · target ${e.profit_target} · max loss ${e.max_loss_limit}</p>
+        <p className="text-sm" data-testid="lucid-scale">LucidScale DLL (above initial trail): <b className="text-gold">{e.dll_scale_above_lock_pct ? `${e.dll_scale_above_lock_pct}% of peak EOD profit` : "none (fixed DLL)"}</b>
+          {unverified.some((p) => p.includes("dll_scale_above_lock_pct")) && <span className="ml-1 rounded border border-gold px-1 text-xs font-semibold text-gold">VERIFY</span>}</p>
         {unverified.length > 0 && <p className="mt-1 text-xs"><span className="rounded border border-gold px-1 font-semibold text-gold">VERIFY</span> {unverified.length} rule value(s) not yet confirmed: {unverified.slice(0, 6).join(", ")}{unverified.length > 6 ? "…" : ""}</p>}
       </section>
       <section className={card} data-testid="safety">

@@ -18,7 +18,7 @@ class ConsistencyLimits:
 
 
 def eval_limits(profit_target: Decimal, consistency_pct: Decimal, buffer_pct: Decimal) -> ConsistencyLimits:
-    """40% × $1,250 = $500 cap; (40 − 5)% × $1,250 = $437.50 day stop."""
+    """40% × $1,250 = $500 cap; (40 − 2)% × $1,250 = $475.00 day stop (D138)."""
     return ConsistencyLimits(
         money(consistency_pct / D100 * profit_target), money((consistency_pct - buffer_pct) / D100 * profit_target)
     )

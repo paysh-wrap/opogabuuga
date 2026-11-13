@@ -265,7 +265,7 @@ internal:
   kill_switch_mll_distance: 100
   cushion_target_balance: 28100
   cap_guard_total_above_buffer: 10000
-  consistency_day_stop_buffer_pct: 5
+  consistency_day_stop_buffer_pct: 2   # D138 user 2026-11-13: day stop at 38 % (40 % consistency − 2)
   consistency_on_funded: false
   funded_consistency_pct: 40
   funded_consistency_reference_min: 1250

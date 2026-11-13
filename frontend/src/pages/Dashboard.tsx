@@ -21,7 +21,7 @@ interface Acct {
   balance?: string; open_pnl?: string; mll?: string | null; to_mll?: string | null; kill_at?: string; today_pnl?: string;
   trades_today?: number; dll_left?: string | null; consistency_cap?: string | null; consistency_stop?: string | null;
   target_left?: string | null; mll_locked?: boolean; fast_profit_pct?: string; fast_warn_pct?: string; fast_limit_pct?: string; fast_hold_s?: number; idle_days?: number; idle_alert_days?: number; idle_delete_days?: number;
-  max_loss?: string; dll_limit?: string | null; payout_consistency?: PayoutConsistencyView | null;
+  max_loss?: string; dll_limit?: string | null; dll_scale_pct?: string | null; dll_scaled?: boolean; payout_consistency?: PayoutConsistencyView | null;
   guard_on?: boolean; eval_mode_on?: boolean; day_lockin?: boolean; day_net_r?: string; day_lockin_r?: string;
   cushion?: CushionView | null;
 }
@@ -91,6 +91,7 @@ export default function Dashboard() {
                   <Stat k="Open" v={<Pnl v={a.open_pnl} />} />
                   <Stat k={`To MLL ${a.mll_locked ? "(locked)" : ""}`} v={`${money(a.to_mll)} (MLL ${money(a.mll)})`} warn={nearKill} />
                   <Stat k="DLL room" v={money(a.dll_left)} warn={a.dll_left != null && Number(a.dll_left) < 200} />
+                  {a.dll_scale_pct != null && <Stat k={a.dll_scaled ? `DLL (LucidScale ${a.dll_scale_pct}%)` : "DLL (LucidScale after lock)"} v={money(a.dll_limit)} />}
                   <Stat k="Trades today" v={a.trades_today} />
                   {a.idle_days != null && <Stat k="Days since last trade" v={a.idle_days} warn={a.idle_alert_days != null && a.idle_days >= a.idle_alert_days} />}
                   {a.consistency_cap && <Stat k="Consistency cap / stop" v={`${money(a.consistency_cap)} / ${money(a.consistency_stop)}`} warn={Number(a.today_pnl) >= Number(a.consistency_stop)} />}

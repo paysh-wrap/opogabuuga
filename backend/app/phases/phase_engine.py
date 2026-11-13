@@ -19,6 +19,7 @@ class StageRules:
     lock_trigger: Decimal | None
     lock_level: Decimal | None
     dll: Decimal | None
+    dll_scale_pct: Decimal | None
     consistency_pct: Decimal | None
     news_hard_breach: bool
 
@@ -37,6 +38,7 @@ def stage_rules(
             e.lock_trigger,
             e.lock_level,
             e.daily_loss_limit if dll_enabled else None,
+            e.dll_scale_above_lock_pct if dll_enabled else None,
             e.consistency_max_day_pct,
             news_hard_breach=not e.news_allowed_by_firm,
         )
@@ -51,6 +53,7 @@ def stage_rules(
             f.lock_trigger,
             f.lock_level,
             f.daily_loss_limit if dll_enabled else None,
+            f.dll_scale_above_lock_pct if dll_enabled else None,
             cons,
             news_hard_breach=not f.news_allowed_by_firm,
         )
@@ -58,7 +61,7 @@ def stage_rules(
         lv = rules.live
         dd = drawdown_override or lv.drawdown_type  # type: ignore[assignment]
         return StageRules(
-            "LIVE", dd, lv.max_loss_limit, lv.lock_trigger, lv.lock_level, None, None, news_hard_breach=True
+            "LIVE", dd, lv.max_loss_limit, lv.lock_trigger, lv.lock_level, None, None, None, news_hard_breach=True
         )
     raise ValueError(f"unknown stage {stage!r}")
 

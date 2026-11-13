@@ -15,7 +15,7 @@ SIZES = {  # size: target, MLL, trail balance (lock trigger), lock level, minis,
     100: (6000, 3000, 103100, 100100, 6, 60),
     150: (9000, 4500, 154600, 150100, 10, 100),
 }
-PRO_EVAL_DLL = {25: None, 50: 1200, 100: 1800, 150: 2700}  # 12890029 / 12890122
+PRO_EVAL_DLL = {25: 600, 50: 1200, 100: 1800, 150: 2700}  # 12890029 / 12890122
 PRO_FUNDED_DLL = {25: 600, 50: 1200, 100: 1800, 150: 2700}  # 12890069 (25K conflicts with 12890122 → VERIFY)
 PRO_MIN_CYCLE = {25: 250, 50: 500, 100: 750, 150: 1000}  # 12890092
 PRO_CAP = {25: (1000, 1500), 50: (2000, 2500), 100: (2500, 3000), 150: (3000, 3500)}  # 12890092
@@ -59,23 +59,30 @@ def make(plan: str, k: int) -> str:
     t = line(
         t,
         "purchase",
-        f"purchase: {{drawdown_type: eod, dll_enabled: true, consistency_pct: {'null' if pro else 40}}}"
-        + ("   # Pro eval: no consistency stated" if pro else "   # Flex eval 40% (50% add-on) 12945805"),
+        f"purchase: {{drawdown_type: eod, dll_enabled: true, consistency_pct: 40}}"
+        + ("   # user 2026-11-13, lucidtrading.com plan card (Pro: 40%)" if pro else "   # Flex eval 40% (50% add-on) 12945805"),
     )
     t = line(
         t, "max_contracts", f"max_contracts: {{minis: {minis}, micros: {micros}}}                 # 12890029/12945790"
     )
     edll = PRO_EVAL_DLL[k] if pro else None
+    dscale = (
+        "\n  dll_scale_above_lock_pct: 60   # VERIFY interpretation: card says 'LucidScale DLL (above initial trail): 60% of "
+        "peak EOD balance'; implemented as 60% of the peak EOD PROFIT (peak EOD balance - starting balance) once the MLL "
+        "has locked (= above the initial trail)"
+        if pro
+        else ""
+    )
     t = block(
         t,
         "eval",
         f"""eval:
   profit_target: {tgt}
-  consistency_max_day_pct: {"null" if pro else 40}{"          # Pro: none stated" if pro else "            # 12945805"}
-  min_profitable_days: {1 if pro else 3}{"                # Pro: pass in one day 12890029" if pro else "                # 12945790"}
+  consistency_max_day_pct: 40{"            # user 2026-11-13, lucidtrading.com plan card" if pro else "            # 12945805"}
+  min_profitable_days: {1 if pro else 3}{"                # kept; 40% consistency already forces >= 3 profitable days. The card also shows 'One Day Pass Eval' (25K/100K), which conflicts with a 40% eval consistency # VERIFY" if pro else "                # 12945790"}
   max_loss_limit: {mll}
   drawdown_type: eod                   # 12890136 / 12945815
-  daily_loss_limit: {edll if edll is not None else "null"}{"                # VERIFY Flex DLL amount not stated (on/off at checkout)" if not pro else "               # 12890122 soft"}
+  daily_loss_limit: {edll if edll is not None else "null"}{"                # VERIFY Flex DLL amount not stated (on/off at checkout)" if not pro else "               # 12890122 soft; 25K 600 = lucidtrading.com plan card 2026-11-13"}{dscale}
   lock_trigger: {trail}
   lock_level: {lock}
   news_allowed_by_firm: true           # 11404728
@@ -85,8 +92,11 @@ def make(plan: str, k: int) -> str:
     fdll = PRO_FUNDED_DLL[k] if pro else None
     if pro:
         payout = (
-            f"  payout: {{split: 0.90, buffer: {trail}, min_request: 500, min_cycle_profit: {PRO_MIN_CYCLE[k]}, "
-            f"max_first: {PRO_CAP[k][0]}, max_next: {PRO_CAP[k][1]}, max_payouts: 5}}   # 12890092, 16558826"
+            f"  payout:   # 12890092, 16558826\n"
+            f"    split: 0.90\n    buffer: {trail}\n    min_request: 500\n    min_cycle_profit: {PRO_MIN_CYCLE[k]}\n"
+            f"    max_first: {PRO_CAP[k][0]}\n    max_next: {PRO_CAP[k][1]}\n    max_payouts: 5\n"
+            f"    min_profitable_days: 3   # VERIFY interpretation of 'Days to Payout 3' (lucidtrading.com plan card, "
+            f"user 2026-11-13): 3 profitable days (profit > 0) per payout cycle"
         )
         scaling = ""
         pcons = (
@@ -111,7 +121,7 @@ def make(plan: str, k: int) -> str:
   drawdown_type: eod                   # 12890136 / 12945815
   lock_trigger: {trail}
   lock_level: {lock}
-  daily_loss_limit: {fdll if fdll is not None else "null"}{"               # 12890069 fixed, then 60% LucidScale (VERIFY 25K)" if pro else "                # VERIFY Flex funded DLL amount not stated"}
+  daily_loss_limit: {fdll if fdll is not None else "null"}{"               # 12890069 fixed part (25K 600 per plan card 2026-11-13)" if pro else "                # VERIFY Flex funded DLL amount not stated"}{dscale}
   consistency_max_day_pct: {40 if pro else "null"}{"            # Pro funded 40% for payouts 12890109" if pro else "          # Flex funded: none 12945795"}
   news_allowed_by_firm: true           # 11404728
   news_breach_min_before: 1
@@ -130,6 +140,12 @@ def make(plan: str, k: int) -> str:
     # account-size dependent internal tunables (the user's own limits, not Lucid rules)
     t = re.sub(
         r"^  cushion_target_balance: .*$", f"  cushion_target_balance: {lock + int(3000 * scale)}", t, flags=re.M
+    )
+    t = re.sub(
+        r"^  consistency_day_stop_buffer_pct: .*$",
+        "  consistency_day_stop_buffer_pct: 2   # D138 user 2026-11-13: day stop at 38 % (40 % consistency − 2)",
+        t,
+        flags=re.M,
     )
     t = re.sub(r"^  funded_consistency_reference_min: .*$", f"  funded_consistency_reference_min: {tgt}", t, flags=re.M)
     t = re.sub(r"^  internal_max_micros: .*$", f"  internal_max_micros: {min(micros, int(10 * scale))}", t, flags=re.M)

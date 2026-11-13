@@ -81,6 +81,7 @@ async def dashboard(
             continue
         day = stt.day_state(db, a, opnl, now)
         dll = stt.dll_for(r, a)
+        sr_ = stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled)
         cons = stt.consistency(db, a, r)
         eq = bal + opnl
         start = a.starting_balance or Decimal(0)
@@ -93,6 +94,8 @@ async def dashboard(
             "max_loss": str(max_loss := stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
             "cushion": _cushion(r, eq, a.mll, max_loss),  # D122
             "dll_limit": _s(dll),
+            "dll_scale_pct": _s(sr_.dll_scale_pct),  # LucidScale (Pro): % of peak EOD profit once the MLL is locked
+            "dll_scaled": dll != sr_.dll,
             "today_pnl": str(day.today_pnl),
             "trades_today": day.trades_today,
             "dll_left": _s(dll_remaining(dll, day.today_pnl, day.today_peak_pnl)) if dll is not None else None,
