@@ -32,7 +32,7 @@ def test_shipped_file_is_valid_and_complete():
     assert all(set(t) == set(E.TABLES) for t in f.plans.values())
     assert E.load_odds() is not None
     v = E.odds_view("lucid_pro_25k", "regular", False)
-    assert (v["pass_pct"], v["bust_pct"], v["last12_pass_pct"], v["last12_bust_pct"]) == (60, 40, 40, 60)
+    assert (v["pass_pct"], v["bust_pct"], v["last12_pass_pct"], v["last12_bust_pct"]) == (57, 43, 40, 60)
     E.load_odds.cache_clear()
 
 

@@ -87,7 +87,7 @@ def test_strategies_endpoint(authed):
     ]
     noise = body["strategies"][1]
     assert noise["win_pct"] == 50.1 and noise["eval_odds"]["table"] == "regular"
-    assert noise["pro25k_pass_pct"] == 54  # D137: from config/eval_odds.yaml (test plan lucid_daily_25k, regular, OFF)
+    assert noise["pro25k_pass_pct"] == 52  # D138: config/eval_odds.yaml, lucid_daily_25k regular OFF
     assert noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10
     # the button saves through versioned My Settings

@@ -508,3 +508,11 @@ OPEN: ask Lucid whether an open loss touching the floor breaches an EOD account,
 Pro + Flex funded = EOD trailing; LucidDaily funded = intraday (plan files already matched). On EOD accounts an open loss touching the floor
 does not breach by itself; the session-end balance does. EOD-toggle VERIFY note replaced by that rule (toggle still default OFF; 0 pt difference
 in the sim). LUCID_RULES.md funded line corrected; Daily funded VERIFY cleared. Windows build re-run for the note text.
+
+## Session 21 — D138 Lucid Pro plan-card rules + 38 % day stop (BUILT)
+Source: user's lucidtrading.com screenshots (Pro 25K/50K/100K/150K). Pro EVAL consistency 40 % (card also shows "One Day Pass Eval" → VERIFY conflict);
+Pro 25K eval DLL $600; LucidScale DLL above initial trail = 60 % of peak EOD profit (risk/lucid_scale.py via state.dll_for; VERIFY interpretation);
+Pro funded payout 3 profitable days per cycle (VERIFY). User: consistency day stop 38 % on all plans (buffer 2; 25K $475, 50K $1,140, 100K $2,280, 150K $3,420).
+make_plans.py has a STALE template — never regenerate the YAMLs. Odds re-simulated (docs/results/session21/pro_rules/RESULTS.md; day stop modelled now),
+regular 5 yr | 12 mo: Pro 25K 57/43 | 40/60 · 50K 65/34 | 52/48 · 100K 77/18 | 68/31 · 150K 78/14 | 71/6 · Flex 25K 51/49 | 32/68 · Flex 50K 61/39 | 48/52 ·
+Flex 100K 76/20 | 67/32 · Flex 150K 78/16 | 70/8 · Daily 25K 52/48 | 37/63. config/eval_odds.yaml = that file.
