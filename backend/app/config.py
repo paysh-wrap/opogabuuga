@@ -899,7 +899,7 @@ class StrategyCfg(_M):
     # D137 (user 2026-11-13: "All my drawdown will be EOD"): Strategy-page toggle. On = for EOD-drawdown accounts the
     # kill switch / MLL-breach watchdog looks at the CLOSED balance only (open losses do not stop the account); the
     # $250 broker stop, DLL flatten and the pre-trade room check still apply. Default OFF = balance + open P&L.
-    # VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.
+    # Confirmed (user 2026-11-13): on EOD accounts an open loss touching the floor does not breach by itself.
     eod_closed_balance: bool = False
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,

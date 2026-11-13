@@ -517,8 +517,10 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
             "on_label": "EOD accounts: kill switch watches the closed balance only",
             "off_label": "Kill switch watches balance + open P&L (default, safest)",
             "note": "Only for accounts whose drawdown is EOD; intraday accounts are unchanged. The $250 broker stop, "
-            "daily loss limit and the pre-trade room check still apply. VERIFY with Lucid that an open loss touching "
-            "the floor does not breach an EOD account.",
+            "daily loss limit and the pre-trade room check still apply. Lucid rules (user, 2026-11-13): on EOD "
+            "accounts (Pro and Flex eval + funded) an open loss touching the floor does not breach by itself; "
+            "the balance measured at the session end does. LucidDaily funded is intraday, so this toggle never "
+            "applies to it.",
         }
     )
     if nc.profit_lock_trigger_alt_pts is not None and nc.profit_lock_trigger_pts is not None:

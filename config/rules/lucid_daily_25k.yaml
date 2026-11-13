@@ -20,7 +20,7 @@ eval:
 
 funded:
   max_loss_limit: 1000
-  drawdown_type: intraday              # VERIFY — Lucid help center 15998425: "LucidDaily funded accounts always use an Intraday drawdown" (D20)
+  drawdown_type: intraday              # confirmed by user 2026-11-13 (Pro/Flex funded = EOD, Daily funded = intraday); Lucid help center 15998425: "LucidDaily funded accounts always use an Intraday drawdown" (D20)
   lock_trigger: 26100
   lock_level: 25100
   daily_loss_limit: 600                # VERIFY

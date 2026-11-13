@@ -67,7 +67,7 @@ def test_toggle_listed_saved_and_versioned(authed):
     t = got["eod_closed_balance"]
     assert t["setting"] == "strategy.eod_closed_balance" and t["value"] is False
     assert t["title"] == "EOD drawdown: open losses don't stop the account"
-    assert "VERIFY" in t["note"] and "closed balance only" in t["on_label"]
+    assert "does not breach by itself" in t["note"] and "closed balance only" in t["on_label"]
     v0 = authed.get("/api/risk/settings").json()["version"]
     assert (
         authed.put(

@@ -4,7 +4,8 @@
 |---|---|---|
 | Commissions (per side) | MNQ/MES/MYM $0.50, MGC $0.80 | 11508978 |
 | DLL ($25k) | $600 fixed per session, soft breach (no new trades until next session), does not trail; MLL is a hard breach | 16085900 |
-| Funded drawdown | "always use an Intraday drawdown" (unrealized P&L counts) | 15998425 |
+| Funded drawdown | LucidDaily funded: intraday ("always use an Intraday drawdown", unrealized P&L counts). LucidPro + LucidFlex funded: EOD trailing (confirmed by user 2026-11-13) | 15998425 |
+| EOD breach | On EOD accounts an open loss touching the floor does not breach by itself; the balance measured at the session end does (user 2026-11-13). DLL can still stop trading intraday | — |
 | Eval drawdown | EOD or Intraday, chosen at checkout | 16033858 |
 | MLL ($25k) | $1,000; trails until $26,100, then locks at $25,100 | 15998425 |
 | Eval | target $1,250, 2 minis / 20 micros, consistency 40% (standard) or 50% (add-on) | 15996664, 16033858 |

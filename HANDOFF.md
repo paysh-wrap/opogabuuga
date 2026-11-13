@@ -503,3 +503,8 @@ FIX: backend/app/backtest/data/main_strategy_s19.csv (D135 income stream) had ne
 session-19 streams (1,535 trades, $28,452 = D135) and force-added; the run-30 Windows build lacked it.
 Tests: backend 1236 passed / 5 skipped, 100 % cov risk/management/phases; frontend 111; ruff/mypy/eslint/tsc clean. Windows build triggered (desktop.yml on ccr-7161a63b-boxqzd).
 OPEN: ask Lucid whether an open loss touching the floor breaches an EOD account, and whether funded accounts are EOD or intraday (LUCID_RULES 15998425 says intraday).
+
+## Session 21 end (2026-11-13) — Lucid drawdown rules confirmed by the user
+Pro + Flex funded = EOD trailing; LucidDaily funded = intraday (plan files already matched). On EOD accounts an open loss touching the floor
+does not breach by itself; the session-end balance does. EOD-toggle VERIFY note replaced by that rule (toggle still default OFF; 0 pt difference
+in the sim). LUCID_RULES.md funded line corrected; Daily funded VERIFY cleared. Windows build re-run for the note text.
