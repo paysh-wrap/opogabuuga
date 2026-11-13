@@ -336,15 +336,19 @@ def _ta_mgc(db: Session, r: Any, sess: Any) -> dict[str, Any]:
     }
 
 
-def _presets(r: Any) -> dict[str, Any]:
-    """D82: NOISE strategy presets (config/strategy_presets.yaml) — static research labels + what each one sets."""
+def _presets(r: Any, plan: str = "") -> dict[str, Any]:
+    """D82: NOISE strategy presets (config/strategy_presets.yaml) — static research labels + what each one sets.
+    D137: each preset's pass / bust is read from config/eval_odds.yaml (preset odds_plan + odds_table, current toggle);
+    raw shares of the study (pass + bust may be < 100: stuck / open evaluations are not counted as either)."""
     from app.config import SizeTierCfg, load_presets
+    from app.eval_odds import odds_view
 
     rows = []
     for key, p in load_presets().items():
         ov = p["overlay"]
         nc = ov.get("noise_cfg", {})
         trig, lock = nc.get("profit_lock_trigger_pts"), nc.get("profit_lock_pts")
+        ov_odds = odds_view(p["odds_plan"], p["odds_table"], r.strategy.eod_closed_balance)
         rows.append(
             {
                 "key": key,
@@ -352,8 +356,9 @@ def _presets(r: Any) -> dict[str, Any]:
                 "summary": p["summary"],
                 "account": p["account"],
                 "study": p["study"],
-                "pass_pct": p["pass_pct"],
-                "bust_pct": p["bust_pct"],
+                "pass_pct": ov_odds["pass_pct"],
+                "bust_pct": ov_odds["bust_pct"],
+                "odds_text": ov_odds["text"],
                 "held_out": p["held_out"],
                 "recommended": p["recommended"],
                 "superseded": bool(p.get("superseded", False)),  # D134: kept selectable, labelled
@@ -398,9 +403,17 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     from app.engine.strategy_catalog import CATALOG
     from app.signals.strategy_service import load_days
 
+    from app.eval_odds import odds_view, table_for
+
     st = request.app.state
     r, now = st.rules.rules, st.clock.now()
+    plan, eod = st.rules.plan, r.strategy.eod_closed_balance
     sess = session_date(now)
+    # D137: eval pass / bust of the NOISE card (active size table) and the MAIN card (NOISE + fade, regular table)
+    card_odds = {
+        "noise": odds_view(plan, table_for(r.strategy.high_risk, _suggested_on(r)), eod),
+        "pm_fade": odds_view(plan, "regular_fade_on", eod),
+    }
     on = {
         "noise": r.strategy.noise,
         "ai_bias": r.strategy.ai_bias,
@@ -423,6 +436,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "strategies": [
             {
                 **c,
+                **_card_odds(str(c["key"]), card_odds),
                 "enabled": on[str(c["key"])],
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
@@ -435,7 +449,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "ready": len(stored) >= nc.min_history_days,
         },
         "ai_ledger": ledgers,
-        "presets": _presets(r),
+        "presets": _presets(r, plan),
         "ta_mgc": _ta_mgc(db, r, sess),
         "ai_duo_log": duo_decisions(db, r.strategy.ai_duo_cfg.markets),
         "markets": {sym: i.enabled for sym, i in r.instruments.items()},
@@ -447,12 +461,26 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "suggested": [_tier(t) for t in r.strategy.size_table_suggested],  # D127
             "suggested_on": bool(r.strategy.suggested_size and r.strategy.size_table_suggested),
             "suggested_setting": "strategy.suggested_size",
+            # D137: pass / bust text per table for the active plan + current EOD toggle (config/eval_odds.yaml)
+            "odds": {t: odds_view(plan, t, eod) for t in ("regular", "high", "suggested", "regular_fade_on")},
             # D66 / D69 — EVAL accounts, Evaluation Mode on; D133: shown as traded (capped while eval_size_s19 is on)
             "eval_regular": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval)],
             "eval_high": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval_high)],
         },
-        "toggles": _session20_toggles(r),
+        "toggles": _session20_toggles(r, plan),
     }
+
+
+def _suggested_on(r: Any) -> bool:
+    return bool(r.strategy.suggested_size and r.strategy.size_table_suggested)
+
+
+def _card_odds(key: str, card_odds: dict[str, Any]) -> dict[str, Any]:
+    """D137: the strategy card's eval odds (None fields for cards without a measured study)."""
+    o = card_odds.get(key)
+    if o is None:
+        return {}
+    return {"pro25k_pass_pct": o["pass_pct"], "pro25k_bust_pct": o["bust_pct"], "eval_odds": o}
 
 
 def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
@@ -461,9 +489,13 @@ def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
     return capped_eval_table(table, r.strategy.eval_size_caps) if r.strategy.eval_size_s19 else table
 
 
-def _session20_toggles(r: Any) -> list[dict[str, Any]]:
+def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
     """D132 / D133: two-way Strategy-page toggles (My Settings keys; each save is validated, versioned, audited)."""
+    from app.eval_odds import odds_view
+
     st, nc = r.strategy, r.strategy.noise_cfg
+    eod = st.eod_closed_balance
+    ov = {t: odds_view(plan, t, eod)["text"] for t in ("regular", "high", "regular_fade_on")}
     caps = ", ".join(f"{int(c.account_size) // 1000}K ≤ {c.max_contracts}" for c in st.eval_size_caps)
     out: list[dict[str, Any]] = [
         {
@@ -473,8 +505,8 @@ def _session20_toggles(r: Any) -> list[dict[str, Any]]:
             "value": st.pm_fade_cfg.eval_off,
             "on_label": "Off on EVAL accounts (default — better pass/bust)",
             "off_label": "On everywhere",
-            "note": "EVAL stage only; funded accounts keep the fade. Pro 25K, NOISE + Mondays off, 7.5 yr: fade off "
-            "pass 72% / bust 28%, fade on 68% / 32% (last 12 months alone favour the fade 72/28 vs 67/33).",
+            "note": f"EVAL stage only; funded accounts keep the fade. This plan, fade off: {ov['regular']}. "
+            f"Fade on: {ov['regular_fade_on']}.",
         }
     ]
     out.append(
@@ -500,7 +532,7 @@ def _session20_toggles(r: Any) -> list[dict[str, Any]]:
                 "on_label": f"{nc.profit_lock_trigger_alt_pts.normalize():f} pt — experimental, likely chance",
                 "off_label": f"{nc.profit_lock_trigger_pts.normalize():f} pt (default, session-19 preset C)",
                 "note": f"Stop moves to entry +{(nc.profit_lock_pts or 0):f} pt once the trade is that far in profit "
-                "(same lock distance either way). 80 pt: last 12 months PF 1.89, Pro 25K pass 76% vs 66%, but no gain "
+                "(same lock distance either way). 80 pt: last 12 months PF 1.89, but no gain "
                 "in-sample — treat as chance until paper proves it.",
             }
         )
@@ -513,8 +545,8 @@ def _session20_toggles(r: Any) -> list[dict[str, Any]]:
                 "value": st.eval_size_s19,
                 "on_label": f"Session 19 lowest bust ({caps}) — default",
                 "off_label": "Previous (150K 4 micros, 100K grows to 4)",
-                "note": "EVAL accounts with Evaluation Mode on. Mondays off, 7.5 yr: 150K 3 micros pass 83% / bust 15% "
-                "vs 4 micros 75/24; 100K 2 micros 83/15 vs 3: 69/31, 4: 58/42.",
+                "note": "EVAL accounts with Evaluation Mode on. This plan, Regular table (the capped sizes): "
+                f"{ov['regular']}. High-risk table (grows larger): {ov['high']}.",
             }
         )
     return out

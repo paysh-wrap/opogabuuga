@@ -1,17 +1,118 @@
-# Session 21 - EOD toggle: realistic account simulator
+# Session 21 - EOD toggle: realistic account simulator (incl. D57 stop shrink)
 
-Scripts: `sim.py`, `run.py`, `report.py`; raw `results.json`; app schema `eval_odds.yaml`. Streams: NOISE R6 (935 tr), fade F0 (non-Monday days without an R6 trade).
-Bootstrap: 10-day business-day blocks, 600 paths x up to 400 sessions, seed 7. Kill distance / DLL margin read per plan YAML (Pro 50, Flex+Daily 100/40 as in the files).
+Scripts: `sim2.py`, `run2.py`, `report2.py` (new, with shrink); `sim.py`, `run.py`, `report.py` (previous, no shrink). Raw `results.json` (new), `results_noshrink.json`.
+Stream: session 20 `streams_BASE.csv` (2021-10-22..2026-10-30, 654 tr), entry price = MNQ open[ek] from days12.pkl. Eras ALL 2021-10-21..2026-10-30, IS ..2025-11-05, J 2025-11-06..2026-10-30. Bootstrap = session-20 protocol (`lib.eval_boot`: 10-day blocks, uniform start, 600 paths x 400 sessions, seed 7). Kill distance/margin per plan YAML.
+D57 shrink: allowed = 0.6 x room0; if q x risk > allowed, stop shrinks to per_ticks (min 0.2 % of entry, else skip); trade loses S' if mae >= S' else original pnl; then worst-case check and the mode's kill rule.
 
 ## Headline
-The two app rules cost a lot, the toggle changes almost nothing. Pro 25K regular goes from 72/28 (closed-trade study) to 50/50 pass/bust; 50K 63/37, 100K 69/23, 150K 71/19 (ALL). Nearly every bust is STUCK, not a kill: the pre-trade room check (q x $250 risk + $40 <= balance - floor - $50) blocks even 1 micro once the cushion is under about $340, and the account can then never recover (balance only moves by trading). Because that check stops entries before a loss can reach the kill line, EOD toggle ON vs OFF differs by 0-1 pt in every cell (kill rarely gets a chance to fire); the toggle matters only if the room check is also relaxed. Fade on in evals is worse than off (Pro 25K 46/54). J (last year) is worse on small accounts (25K 39/61).
+gmin (stuck test) = D57 min stop at today's level: 0.2 % x mean J-era MNQ entry = $112 per micro, used for every era; an account is STUCK when 0.6 x (balance - floor - kill) < $112, also at the end of an OPEN path. Regular, ALL pass/bust/open: Pro 25K 60/40/0, 50K 66/34/0, 100K 78/18/4, 150K 79/14/7; Daily 25K 54/46/0. J: 25K 40/60, 50K 57/43, 100K 68/30/1, 150K 71/6/23. EOD ON = OFF in every cell; all bust is STUCK.
 
-## Sanity (mode ON, room check and kill distance off, 400 paths x 500 sessions, session 19 table 2)
-- Pro 25K x1 ALL: 73/27 (target 72/28) OK
-- Pro 50K x2 ALL: 71/29 (target 70/30) OK
-- Pro 50K x1 ALL: 87/8 open 6 (session 19: 90/6) - about 3 pt off, a bit outside the +-2 tolerance (open paths/ pass-check timing differ slightly).
+## Sanity (mode ON, room/kill/shrink off): Pro 25K IS 72/28 (session 20: 72/28), J 68/32 (68/32): exact match.
+(Note: my first-run block sampler differed from session 20's and gave 79/21 on IS; adopted session 20's.)
 
-## Tables
+## Tables (with D57 shrink)
+
+**regular table (with D57 shrink)**
+
+
+EOD toggle OFF (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 76 / 20 (20) | 77 / 16 (16) | 67 / 32 (32) |
+| lucid_flex_150k | 3 | 78 / 15 (15) | 77 / 14 (14) | 70 / 7 (7) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 62 / 38 (38) | 68 / 32 (32) | 49 / 51 (51) |
+| lucid_pro_100k | 2 | 78 / 18 (18) | 79 / 15 (15) | 68 / 30 (30) |
+| lucid_pro_150k | 3 | 79 / 14 (14) | 79 / 14 (14) | 71 / 6 (6) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 66 / 34 (34) | 70 / 30 (30) | 57 / 43 (43) |
+
+EOD toggle ON (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 76 / 20 (20) | 77 / 16 (16) | 67 / 32 (32) |
+| lucid_flex_150k | 3 | 78 / 15 (15) | 77 / 14 (14) | 70 / 7 (7) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 62 / 38 (38) | 68 / 32 (32) | 49 / 51 (51) |
+| lucid_pro_100k | 2 | 78 / 18 (18) | 79 / 15 (15) | 68 / 30 (30) |
+| lucid_pro_150k | 3 | 79 / 14 (14) | 79 / 14 (14) | 71 / 6 (6) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 66 / 34 (34) | 70 / 30 (30) | 57 / 43 (43) |
+
+**suggested table (with D57 shrink)**
+
+
+EOD toggle OFF (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 76 / 20 (20) | 77 / 16 (16) | 67 / 32 (32) |
+| lucid_flex_150k | 3 | 78 / 15 (15) | 77 / 14 (14) | 70 / 7 (7) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 82 / 13 (13) | 82 / 12 (12) | 78 / 21 (21) |
+| lucid_pro_100k | 2 | 78 / 18 (18) | 79 / 15 (15) | 68 / 30 (30) |
+| lucid_pro_150k | 3 | 79 / 14 (14) | 79 / 14 (14) | 71 / 6 (6) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 85 / 11 (11) | 84 / 10 (10) | 79 / 20 (20) |
+
+EOD toggle ON (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 76 / 20 (20) | 77 / 16 (16) | 67 / 32 (32) |
+| lucid_flex_150k | 3 | 78 / 15 (15) | 77 / 14 (14) | 70 / 7 (7) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 82 / 13 (13) | 82 / 12 (12) | 78 / 21 (21) |
+| lucid_pro_100k | 2 | 78 / 18 (18) | 79 / 15 (15) | 68 / 30 (30) |
+| lucid_pro_150k | 3 | 79 / 14 (14) | 79 / 14 (14) | 71 / 6 (6) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 85 / 11 (11) | 84 / 10 (10) | 79 / 20 (20) |
+
+**high table (with D57 shrink)**
+
+
+EOD toggle OFF (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 68 / 29 (29) | 70 / 24 (24) | 54 / 46 (46) |
+| lucid_flex_150k | 3 | 70 / 27 (27) | 74 / 24 (24) | 56 / 13 (13) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 62 / 38 (38) | 68 / 32 (32) | 49 / 51 (51) |
+| lucid_pro_100k | 2 | 71 / 26 (26) | 72 / 22 (22) | 61 / 38 (38) |
+| lucid_pro_150k | 3 | 72 / 25 (25) | 76 / 22 (22) | 60 / 12 (12) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 66 / 34 (34) | 70 / 30 (30) | 57 / 43 (43) |
+
+EOD toggle ON (pass / bust %; bust incl. stuck; stuck in brackets)
+
+| plan | c | ALL | IS | J |
+|---|---|---|---|---|
+| lucid_daily_25k | 1 | 54 / 46 (46) | 53 / 47 (47) | 39 / 61 (61) |
+| lucid_flex_100k | 2 | 68 / 29 (29) | 70 / 24 (24) | 54 / 46 (46) |
+| lucid_flex_150k | 3 | 70 / 27 (27) | 74 / 24 (24) | 56 / 13 (13) |
+| lucid_flex_25k | 1 | 53 / 47 (47) | 54 / 46 (46) | 34 / 66 (66) |
+| lucid_flex_50k | 2 | 62 / 38 (38) | 68 / 32 (32) | 49 / 51 (51) |
+| lucid_pro_100k | 2 | 71 / 26 (26) | 72 / 22 (22) | 61 / 38 (38) |
+| lucid_pro_150k | 3 | 72 / 25 (25) | 76 / 22 (22) | 60 / 12 (12) |
+| lucid_pro_25k | 1 | 60 / 40 (40) | 61 / 39 (39) | 40 / 60 (60) |
+| lucid_pro_50k | 2 | 66 / 34 (34) | 70 / 30 (30) | 57 / 43 (43) |
+
+## Fade-on rows: not rebuilt with shrink
+Kept from the previous run, labelled WITHOUT D57 shrink (2019-05..2026-11 stream); see the section below. In eval_odds.yaml `regular_fade_on` carries those values.
+
+## Caveats
+Closed-trade DLL model; MAE is per trade (touch time approximate); news not modelled; J small (118 trades, +-5 pt). STUCK = shrunk stop under 0.2 % of price for every later trade (or balance within kill distance of floor).
+
+# Without D57 shrink (previous run, 2019-05..2026-11 stream)
+
 
 **regular, EOD toggle OFF** (pass / bust % ; bust includes stuck; stuck in brackets)
 

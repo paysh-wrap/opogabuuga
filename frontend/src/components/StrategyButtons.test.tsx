@@ -6,7 +6,7 @@ import StrategyButtons, { type StrategiesResp } from "./StrategyButtons";
 const resp: StrategiesResp = {
   strategies: [
     { key: "pm_fade", name: "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)", source: "s", verified: true, status: "MAIN", win_pct: 50, profit_factor: 1.33, usd_per_trade: 19.63, trades_per_week: 5.2, held_out_trades: 1291, pro25k_pass_pct: 65.7, pro25k_bust_pct: 32.2, period: "p", note: "n", enabled: false, setting: "strategy.pm_fade", also: ["strategy.noise"] },
-    { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
+    { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, eval_odds: { plan: "lucid_pro_25k", table: "regular", eod_on: false, text: "pass 56.9% / bust 42.2% · last 12 mo 55/45 · EOD toggle OFF", pass_pct: 56.9, bust_pct: 42.2, last12_pass_pct: 55, last12_bust_pct: 45 }, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
     { key: "noise_ai_split", name: "NOISE + AI Duo — 50/50 risk split", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
     { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: false, flat_at: "16:00", ar_layers: [{ key: "ENVIRONMENT", on: true, rule: "no compression" }, { key: "PATH", on: false, rule: "Asia zones" }] },
     { key: "order_flow_amt", name: "AMT+ Order Flow — context → location → order flow last — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.amt.enabled", also: ["strategy.order_flow"], amt_layers: [{ key: "CONTEXT", on: false, rule: "acceptance vs prior RTH value" }] },
@@ -28,9 +28,11 @@ const resp: StrategiesResp = {
     eval_high: [{ account_size: "25000", contracts: 3, brake_below: null, brake_contracts: null, stop_usd: "150", taper_below_remaining: "0.5", taper_contracts: 1 }],
     suggested: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }, { account_size: "50000", contracts: 1, brake_below: null, brake_contracts: null }],
     suggested_on: false, suggested_setting: "strategy.suggested_size",
+    odds: { regular: { plan: "p", table: "regular", eod_on: false, text: "pass 70% / bust 30% · last 12 mo 60/40 · EOD toggle OFF", pass_pct: 70, bust_pct: 30, last12_pass_pct: 60, last12_bust_pct: 40 }, suggested: { plan: "p", table: "suggested", eod_on: false, text: "pass 90% / bust 10% · last 12 mo 85/15 · EOD toggle OFF", pass_pct: 90, bust_pct: 10, last12_pass_pct: 85, last12_bust_pct: 15 } },
   },
   toggles: [
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
+    { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account." },
     { key: "noise_lock_alt", setting: "strategy.noise_lock_alt", title: "NOISE profit-lock trigger", value: false, on_label: "80 pt — experimental, likely chance", off_label: "100 pt (default, session-19 preset C)", note: "same lock distance" },
   ],
 };
@@ -44,6 +46,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
   expect(await screen.findByTestId("win-noise")).toHaveTextContent("45.0%");
   expect(screen.getByTestId("pass-noise")).toHaveTextContent("56.9%");
+  expect(screen.getByTestId("odds-noise")).toHaveTextContent("pass 56.9% / bust 42.2% · last 12 mo 55/45 · EOD toggle OFF"); // D137
+  expect(screen.queryByTestId("odds-ai_bias")).toBeNull();
   expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
   expect(screen.getAllByText("— (not testable)").length).toBe(5); // AI only + D92 split + D95 order flow + D110 AMT+ + D111 zones
   expect(screen.getByTestId("order-flow-badge")).toHaveTextContent("UNVERIFIED"); // D95 (D102: no paper-only label)
@@ -77,14 +81,22 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   // D64: size profiles
   expect(screen.getByTestId("size-regular")).toHaveTextContent("150K: 3 micros → 2 when cushion < 50%");
   expect(screen.getByTestId("size-high")).toHaveTextContent("150K: 4 micros");
+  expect(screen.getByTestId("size-profiles")).toHaveTextContent("Eval pass / bust (this plan): pass 70% / bust 30%"); // D137: server numbers
+  expect(screen.getByTestId("size-profiles")).toHaveTextContent("Eval pass / bust (this plan): not measured yet"); // high: no odds sent
   expect(screen.getByTestId("eval-size-high")).toHaveTextContent("25K 3 × $150 stop → 1 once < 50% of the target is left"); // D69 / D70
   await userEvent.click(screen.getByRole("button", { name: /OFF · High risk/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
   // D127: NOISE size toggle — Suggested (lowest bust) / As configured
   expect(screen.getByTestId("noise-size-toggle")).toHaveTextContent("50K 1");
+  expect(screen.getByTestId("noise-size-toggle")).toHaveTextContent("Suggested table pass 90% / bust 10%");
   expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("ON · As configured — 50K 2 micros");
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
+  // D137: EOD toggle with its VERIFY badge
+  expect(screen.getByTestId("verify-eod_closed_balance")).toHaveTextContent("VERIFY");
+  expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("ON · Kill switch watches balance + open P&L (default, safest)");
+  await userEvent.click(screen.getByTestId("toggle-eod_closed_balance-on"));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.eod_closed_balance":true'))).toBe(true));
   // D132: session-20 toggles (fade off in evals ON by default; profit-lock trigger 100 pt by default)
   expect(screen.getByTestId("toggle-fade_eval_off-on")).toHaveTextContent("ON · Off on EVAL accounts");
   expect(screen.getByTestId("toggle-noise_lock_alt-off")).toHaveTextContent("ON · 100 pt (default");

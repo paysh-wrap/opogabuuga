@@ -58,7 +58,7 @@ export default function StrategyPresets() {
               <span className="block font-semibold text-gold">{p.label}{p.recommended && <span className="ml-2 rounded border border-gold px-1 text-xs">recommended</span>}{p.superseded && <span className="ml-2 rounded border border-blue px-1 text-xs text-blue" data-testid={`preset-superseded-${p.key}`}>superseded</span>}{d.active === p.key && <span className="ml-2 rounded border border-blue px-1 text-xs text-blue">active</span>}</span>
               <span className="mt-1 block text-sm text-blue">{p.summary}</span>
               <span className="mt-2 block text-sm" data-testid={`preset-rates-${p.key}`}>
-                Pass <b className="text-gold">{p.pass_pct}%</b> / bust <b className="text-gold">{p.bust_pct}%</b>
+                Eval odds: <b className="text-gold">{p.odds_text}</b>
                 <span className="text-blue"> · {p.study}{p.held_out ? ", held-out 2024–26" : ""}</span>
               </span>
               {p.warning && (

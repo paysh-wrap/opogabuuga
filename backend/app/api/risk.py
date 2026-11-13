@@ -141,10 +141,16 @@ def _eval_accounts(db: Session) -> list[Account]:
 def get_eval_mode(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
-    on = request.app.state.rules.eval_mode_on
+    from app.eval_odds import odds_view
+
+    h = request.app.state.rules
+    on = h.eval_mode_on
     accts = _eval_accounts(db)
+    eod = h.rules.strategy.eod_closed_balance
     return {
         "enabled": on,
+        # D137: pass / bust of the active plan's Regular (capped) and High-risk size tables, current EOD toggle
+        "odds": {t: odds_view(h.plan, t, eod) for t in ("regular", "high")},
         "has_eval_accounts": bool(accts),
         "confirm_phrase": ss.EVAL_MODE_PHRASE,
         "accounts": [

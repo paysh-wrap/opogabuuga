@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { etTime } from "../lib/time";
 import { CooldownBanner } from "./DashboardExtras";
+import type { OddsView } from "./StrategyButtons";
 
 const card = "rounded-xl border border-border bg-card p-4";
 const btn = "rounded-md border px-3 py-1.5 text-sm font-semibold disabled:opacity-50";
@@ -34,7 +35,7 @@ export function ImpactTable({ p, testid }: { p: Impact; testid: string }) {
 }
 
 // ---------- Evaluation Mode: Impact Preview → typed phrase → ON; OFF in one click (§11C) ----------
-interface EvalMode { enabled: boolean; has_eval_accounts: boolean; confirm_phrase: string; accounts?: { id: number; label: string; override: string; effective: boolean }[] }
+interface EvalMode { odds?: Record<string, OddsView>; enabled: boolean; has_eval_accounts: boolean; confirm_phrase: string; accounts?: { id: number; label: string; override: string; effective: boolean }[] }
 
 export function EvalModePanel() {
   const qc = useQueryClient();
@@ -62,7 +63,8 @@ export function EvalModePanel() {
       <p className="text-xs">EVAL accounts only (funded/live never change).</p>
       <ul className="mt-1 text-xs" data-testid="eval-mode-main">
         <li><b className="text-gold">MAIN strategy (NOISE), Lucid Pro — default &quot;Session 19 lowest bust&quot; (Strategy page toggle):</b> 150K trades 3 micros
-          (pass 83% / bust 15% vs 4 micros 75/24, 7.5 yr, Mondays off); 100K stays at 2 micros (83/15 vs growing to 3–4: 69/31, 58/42) and stops for the day once
+          (Regular, capped table: {d?.odds?.regular?.text ?? "not measured yet"}; High-risk table, grows larger: {d?.odds?.high?.text ?? "not measured yet"}; this plan, current EOD toggle). 100K stays at 2 micros
+          and stops for the day once
           today&apos;s profit ≥ 33% of the remaining target. Switch the toggle to &quot;Previous&quot; for the old table (150K 4 micros, 100K grows +1 per $1,200 up to 4).
           25K / 50K unchanged.</li>
         <li>Never changes gates, stops, DLL/MLL, day stops, kill switch or flat rules. Applies to the next new trade.</li>

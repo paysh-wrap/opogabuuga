@@ -33,19 +33,23 @@ def test_preset_file_has_the_three_user_approved_presets():
         False,
         False,
     ]  # D134: classic kept, labelled
-    assert (p["pro25k_s19"]["pass_pct"], p["pro25k_s19"]["bust_pct"]) == (72, 28)  # D134: session 19 §4
-    assert (p["pro50k_s19"]["pass_pct"], p["pro50k_s19"]["bust_pct"]) == (70, 30)
-    assert (p["pro25k_classic"]["pass_pct"], p["pro25k_classic"]["bust_pct"]) == (64, 36)
-    assert (p["pro100k_low_risk"]["pass_pct"], p["pro100k_low_risk"]["bust_pct"]) == (85, 15)  # D125
-    assert (p["pro150k_low_risk"]["pass_pct"], p["pro150k_low_risk"]["bust_pct"]) == (85, 15)  # D125
-    assert all(p[k]["pass_pct"] + p[k]["bust_pct"] == 100 for k in KEYS)  # D126: user — pass + bust add up to 100
-    assert p["pro25k_s19"]["warning"] is None and "93%" in p["pro50k_s19"]["warning"]
+    # D137: pass / bust are no longer stored in the preset file: each preset maps to a plan + size table of
+    # config/eval_odds.yaml (numbers come from there, shown with the current EOD toggle)
+    assert all("pass_pct" not in p[k] and "bust_pct" not in p[k] for k in KEYS)
+    assert [(p[k]["odds_plan"], p[k]["odds_table"]) for k in KEYS] == [
+        ("lucid_pro_25k", "regular"),
+        ("lucid_pro_50k", "regular"),
+        ("lucid_pro_25k", "regular_fade_on"),
+        ("lucid_pro_100k", "regular"),
+        ("lucid_pro_150k", "regular"),
+    ]
+    assert p["pro25k_s19"]["warning"] is None and "1 micro on 50K" in p["pro50k_s19"]["warning"]
     assert (
         p["pro25k_classic"]["warning"]
         and p["pro100k_low_risk"]["warning"] is None
         and p["pro150k_low_risk"]["warning"] is None
     )
-    assert "27% rosy" in p["pro25k_classic"]["warning"] and "57%/42%" in p["pro25k_classic"]["warning"]
+    assert "hindsight" in p["pro25k_classic"]["warning"]
 
 
 @pytest.mark.parametrize("key,size,n", [("pro25k_s19", D(25000), 1), ("pro50k_s19", D(50000), 2)])

@@ -8,9 +8,9 @@ const WARN = "older, likely optimistic (fade measured with hindsight ~27% rosy; 
 const presets: PresetsResp = {
   active: null, setting: "strategy.preset", plan_account_size: "150000",
   rows: [
-    { key: "pro25k_classic", label: "Pro 25K classic", summary: "NOISE $250 stop + afternoon fade ON, 1 micro", account: "Pro 25K", study: "Session 10", pass_pct: 64, bust_pct: 36, held_out: false, recommended: false, superseded: true, warning: WARN, fade: true, stop_usd: "250", profit_lock: null, size: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }], matches_plan: false },
-    { key: "pro100k_low_risk", label: "Pro 100K low risk", summary: "NOISE + fade, 3 micros", account: "Pro 100K", study: "Session 19, 7.5 yr", pass_pct: 85, bust_pct: 15, held_out: false, recommended: false, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "100000", contracts: 2, brake_below: "0.3", brake_contracts: 1 }], matches_plan: false },
-    { key: "pro150k_low_risk", label: "Pro 150K low risk", summary: "NOISE + profit lock", account: "Pro 150K", study: "Session 19, 7.5 yr", pass_pct: 85, bust_pct: 15, held_out: false, recommended: true, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 1 }], matches_plan: true },
+    { key: "pro25k_classic", label: "Pro 25K classic", summary: "NOISE $250 stop + afternoon fade ON, 1 micro", account: "Pro 25K", study: "Session 10", pass_pct: 64, bust_pct: 36, odds_text: "pass 64% / bust 36% · last 12 mo 50/50 · EOD toggle OFF", held_out: false, recommended: false, superseded: true, warning: WARN, fade: true, stop_usd: "250", profit_lock: null, size: [{ account_size: "25000", contracts: 1, brake_below: null, brake_contracts: null }], matches_plan: false },
+    { key: "pro100k_low_risk", label: "Pro 100K low risk", summary: "NOISE + fade, 3 micros", account: "Pro 100K", study: "Session 19, 7.5 yr", pass_pct: 85, bust_pct: 15, odds_text: "pass 85% / bust 15% · last 12 mo 80/20 · EOD toggle ON", held_out: false, recommended: false, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "100000", contracts: 2, brake_below: "0.3", brake_contracts: 1 }], matches_plan: false },
+    { key: "pro150k_low_risk", label: "Pro 150K low risk", summary: "NOISE + profit lock", account: "Pro 150K", study: "Session 19, 7.5 yr", pass_pct: null, bust_pct: null, odds_text: "not measured yet", held_out: false, recommended: true, warning: null, fade: false, stop_usd: "250", profit_lock: { trigger_pts: "100", lock_pts: "10" }, size: [{ account_size: "150000", contracts: 3, brake_below: "0.5", brake_contracts: 1 }], matches_plan: true },
   ],
 };
 const resp = { strategies: [], noise_warmup: { sessions: 0, needed: 10, ready: false }, ai_ledger: [], markets: {}, presets } as StrategiesResp;
@@ -27,9 +27,9 @@ function setup(r: StrategiesResp = resp) {
 
 test("three presets with labels, warning badges, recommended default and audited apply", async () => {
   const calls = setup();
-  expect(await screen.findByTestId("preset-rates-pro25k_classic")).toHaveTextContent("Pass 64% / bust 36%");
-  expect(screen.getByTestId("preset-rates-pro100k_low_risk")).toHaveTextContent("Pass 85% / bust 15%");
-  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("Pass 85% / bust 15%");
+  expect(await screen.findByTestId("preset-rates-pro25k_classic")).toHaveTextContent("pass 64% / bust 36% · last 12 mo 50/50 · EOD toggle OFF");
+  expect(screen.getByTestId("preset-rates-pro100k_low_risk")).toHaveTextContent("EOD toggle ON");
+  expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("not measured yet");
   expect(screen.getByTestId("preset-rates-pro150k_low_risk")).toHaveTextContent("Session 19");
   expect(screen.getByTestId("preset-warning-pro25k_classic")).toHaveTextContent("likely optimistic");
   expect(screen.getByTestId("preset-superseded-pro25k_classic")).toHaveTextContent("superseded"); // D134

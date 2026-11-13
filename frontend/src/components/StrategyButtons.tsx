@@ -9,12 +9,15 @@ export interface Strat {
   win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number | null; held_out_trades: number;
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
   enabled: boolean; setting: string;
+  eval_odds?: OddsView; // D137: pass / bust from config/eval_odds.yaml for the active plan, size table and EOD toggle
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
   ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
   amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
   zone_layers?: { key: string; on: boolean; rule: string }[]; // D111: ATR-zone type (iceberg PROXY)
 }
+// D137: eval pass / bust of one (plan, size table, EOD toggle) cell — numbers null + text "not measured yet" until measured
+export interface OddsView { plan: string; table: string; eod_on: boolean; text: string; pass_pct: number | null; bust_pct: number | null; last12_pass_pct: number | null; last12_bust_pct: number | null }
 export interface Ledger {
   proxy: string; symbol: string; state: string; badge: string; required_accuracy: number; min_calls: number;
   stats: { n: number; hit_rate: number; brier: number; wilson_lb: number };
@@ -39,7 +42,7 @@ export interface TaMgcResp {
   decision: { day: string; status: string; code: string; direction: string; mode: string; below_preferred_2r: boolean } | null;
 }
 export interface PresetRow {
-  key: string; label: string; summary: string; account: string; study: string; pass_pct: number; bust_pct: number;
+  key: string; label: string; summary: string; account: string; study: string; pass_pct: number | null; bust_pct: number | null; odds_text: string;
   held_out: boolean; recommended: boolean; superseded?: boolean; warning: string | null; fade: boolean; stop_usd: string | null;
   profit_lock: { trigger_pts: string; lock_pts: string } | null; size: SizeTierRow[]; matches_plan: boolean;
 }
@@ -48,14 +51,10 @@ export interface SizeTierRow {
   account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
   taper_below_remaining?: string | null; taper_contracts?: number | null; stop_usd?: string | null;
 }
-export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string }
+export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string; odds?: Record<string, OddsView> }
 
-// B7 / D135: evaluation pass / bust per profile, session-19 study (NOISE profit lock + Mondays off, 7.5 yr, §4), shown as
-// shares of finished evaluations so pass + bust = 100 (D126)
-const PROFILE_NOTE: Record<string, string> = {
-  regular: "Eval pass / bust (session 19, 7.5 yr): 25K 72/28 · 50K 70/30 · 100K 85/15 · 150K 85/15",
-  high: "Eval pass / bust (session 19, 7.5 yr): 100K 3 micros 69/31 · 150K 4 micros 75/25 — higher bust than Regular",
-};
+// D137: eval pass / bust text per size table comes from the server (config/eval_odds.yaml: active plan + EOD toggle)
+const oddsText = (o?: OddsView) => o?.text ?? "not measured yet";
 const k$ = (v: string) => `${Math.round(Number(v) / 1000)}K`;
 
 const pct = (x: number | null) => (x == null ? "—" : `${x.toFixed(1)}%`);
@@ -90,7 +89,7 @@ export default function StrategyButtons() {
   return (
     <section className={card} data-testid="strategy-buttons">
       <h2 className="font-semibold text-gold">Strategies — tap to turn on/off</h2>
-      <p className="text-xs text-blue">Results are from the session-19 study on real MNQ data (7.5 years 2019-05 → 2026-11, NOISE with the profit lock and Mondays off, picked on 2019-05 → 2025-11 and judged on the last 12 months, 1 micro, costs included; AI / Order Flow cards: their own notes). Pro 25K = share of simulated evaluations that passed / busted. Past results do not guarantee future results.</p>
+      <p className="text-xs text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
         {d.strategies.map((s) => (
           <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
@@ -106,12 +105,13 @@ export default function StrategyButtons() {
             <p className="mt-2 text-xs"><span aria-hidden style={{ color: s.verified ? badge.ok : badge.bad }}>●</span> <b className="text-gold">{s.status}</b> <span className="text-blue">{s.period}</span></p>
             <dl className="mt-2 grid grid-cols-2 gap-x-2 text-sm">
               <dt>Win rate</dt><dd className="text-gold" data-testid={`win-${s.key}`}>{pct(s.win_pct)}</dd>
-              <dt>Pro 25K pass</dt><dd className="text-gold" data-testid={`pass-${s.key}`}>{pct(s.pro25k_pass_pct)}</dd>
-              <dt>Pro 25K bust</dt><dd className="text-gold">{pct(s.pro25k_bust_pct)}</dd>
+              <dt>Eval pass</dt><dd className="text-gold" data-testid={`pass-${s.key}`}>{pct(s.pro25k_pass_pct)}</dd>
+              <dt>Eval bust</dt><dd className="text-gold">{pct(s.pro25k_bust_pct)}</dd>
               <dt>Profit factor</dt><dd className="text-gold">{s.profit_factor == null ? "—" : s.profit_factor.toFixed(2)}</dd>
               <dt>Per trade (1 micro)</dt><dd className="text-gold">{s.usd_per_trade == null ? "— (not testable)" : `${s.usd_per_trade >= 0 ? "▲ +" : "▼ "}$${Math.abs(s.usd_per_trade).toFixed(2)}`}</dd>
               <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
             </dl>
+            {s.eval_odds && <p className="mt-1 text-xs text-blue" data-testid={`odds-${s.key}`}>Eval odds: {s.eval_odds.text}</p>}
             <p className="mt-2 text-xs text-blue">{s.note}</p>
             {s.key === "order_flow" && (
               <div className="mt-2 text-xs" data-testid="order-flow-setup">
@@ -158,7 +158,7 @@ export default function StrategyButtons() {
         <div className="mt-4 grid gap-3 lg:grid-cols-3" data-testid="strategy-toggles">
           {d.toggles.map((t) => (
             <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
-              <h3 className="font-semibold text-gold">{t.title}</h3>
+              <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
               <div className="mt-2 grid gap-2">
                 {([true, false] as const).map((v) => {
                   const on = t.value === v;
@@ -194,7 +194,7 @@ export default function StrategyButtons() {
                 })}
               </div>
               <p className="mt-2 text-sm">Suggested: {d.size_profiles.suggested.map((t) => <span key={t.account_size} className="mr-2">{k$(t.account_size)} <b className="text-gold">{t.contracts}</b></span>)}</p>
-              <p className="mt-1 text-xs text-blue">Only the 50K size differs (25K 1 · 100K 2 · 150K 3 in both). 50K NOISE, Mondays off, 7.5 yr: 1 micro pass 94 % / bust 6 %; 2 micros pass 70 % / bust 30 %. As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
+              <p className="mt-1 text-xs text-blue">Only the 50K size differs (25K 1 · 100K 2 · 150K 3 in both). Eval pass / bust (this plan): Suggested table {oddsText(d.size_profiles.odds?.suggested)}; Regular table {oddsText(d.size_profiles.odds?.regular)}. As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
             </div>
           )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
@@ -213,7 +213,7 @@ export default function StrategyButtons() {
                         {t.brake_below && <> → {t.brake_contracts} when cushion &lt; {Math.round(Number(t.brake_below) * 100)}% of loss limit</>}</li>
                     ))}
                   </ul>
-                  <p className="mt-1 text-xs text-blue">{PROFILE_NOTE[p]}</p>
+                  <p className="mt-1 text-xs text-blue">Eval pass / bust (this plan): {oddsText(d.size_profiles!.odds?.[p])}</p>
                   {(p === "high" ? d.size_profiles!.eval_high : d.size_profiles!.eval_regular)?.length ? (
                     <p className="mt-1 text-xs" data-testid={`eval-size-${p}`}>
                       <b className="text-gold">Evaluations</b> (EVAL accounts, Evaluation Mode on):{" "}
