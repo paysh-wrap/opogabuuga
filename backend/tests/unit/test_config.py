@@ -57,7 +57,6 @@ def test_verify_paths(loaded_rules):
         "purchase",
         "eval.max_loss_limit",
         "eval.lock_trigger",
-        "funded.drawdown_type",
         "funded.payout",
         "live",
         "session",
@@ -147,7 +146,7 @@ def test_one_to_one_answers_and_d9(loaded_rules):
     assert o.stages == ["EVAL", "FUNDED", "LIVE"]
     assert o.gate.min_trades >= 100 and o.gate.min_e_net_r >= Decimal("0.20")
     assert r.funded.drawdown_type == "intraday" and r.eval.drawdown_type == "eod"  # D20
-    assert "funded.drawdown_type" in loaded_rules.verify_paths
+    assert "funded.drawdown_type" not in loaded_rules.verify_paths  # confirmed by user 2026-11-13 (D137)
 
 
 def test_d16_approvals(loaded_rules):

@@ -209,9 +209,9 @@ def test_n6_live_day_stop_flattens_strategy_trades_only(authed, clock):
     tick()
     assert "CONSISTENCY_DAY_STOP" not in flat
     ctl.om.trades["t1"] = SimpleNamespace(account=ext, strategy="NOISE")
-    tick()  # open profit 100 < day stop 437.50
+    tick()  # open profit 100 < day stop 475.00
     assert "CONSISTENCY_DAY_STOP" not in flat
-    pnl["v"] = D("437.50")  # exactly the day stop
+    pnl["v"] = D("475.00")  # exactly the day stop
     tick()
     assert flat == ["CONSISTENCY_DAY_STOP"]
     assert any(n["title"] == "Consistency day stop" for n in ctl.notices)

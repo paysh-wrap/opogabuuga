@@ -21,9 +21,10 @@ def load_plans():
             row=next((r for r in (s.get(k) or []) if r['account_size']==size),None)
             tabs[nm]=row or {'contracts':1}
         nm=os.path.basename(p)[:-5]; cons=e['consistency_max_day_pct']; dll=e['daily_loss_limit']; scale=False
-        if nm.startswith('lucid_pro_'):   # NEW Pro rules (2026-11-13), hard-coded: do not read changed YAML fields
-            cons=40; scale=True; dll={25000:600,50000:1200,100000:1800,150000:2700}[size]
-        P[nm]=dict(scale=scale,size=size,target=e['profit_target'],mll=e['max_loss_limit'],lock_trig=e['lock_trigger'],
+        if nm.startswith('lucid_pro_'):   # Pro rules (2026-11-13); YAMLs final, assert they match
+            assert cons==40 and dll=={25000:600,50000:1200,100000:1800,150000:2700}[size] and e.get('dll_scale_above_lock_pct')==60,(nm,cons,dll)
+            scale=True
+        P[nm]=dict(scale=scale,buf=it.get('consistency_day_stop_buffer_pct',5),size=size,target=e['profit_target'],mll=e['max_loss_limit'],lock_trig=e['lock_trigger'],
             lock_lvl=e['lock_level'],dll=dll,cons=cons,mpd=e['min_profitable_days'],
             kill=it.get('kill_switch_mll_distance',50),margin=it.get('dll_safety_margin',40),tabs=tabs)
     return P

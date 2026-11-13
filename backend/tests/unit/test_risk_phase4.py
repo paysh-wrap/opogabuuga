@@ -293,10 +293,10 @@ def test_phase_misc():
 def test_validation_defaults_and_dll_spec():
     v = validate(R)
     assert v.ok, v.errors
-    assert v.dll_tests["funded"]["total"] == "596.90" and v.dll_tests["eval_standard"]["total"] == "327.69"
-    assert v.dll_tests["eval_mode"]["total"] == "349.75"
+    assert v.dll_tests["funded"]["total"] == "596.90" and v.dll_tests["eval_standard"]["total"] == "334.14"
+    assert v.dll_tests["eval_mode"]["total"] == "353.50"
     assert v.needs_second_confirmation  # Evaluation Mode tiers > 11%
-    assert max_base_for_stage(R, "EVAL") == D("1437.50") and max_base_for_stage(R, "FUNDED") == D(3000)
+    assert max_base_for_stage(R, "EVAL") == D("1475.00") and max_base_for_stage(R, "FUNDED") == D(3000)
     assert dll_two_loss_test(D(3000), D("0.11"), D("0.07"), None, D(40)) == (D(330), D("186.90"), D("596.90"))
 
 

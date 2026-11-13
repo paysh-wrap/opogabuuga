@@ -35,7 +35,9 @@ def test_pro_has_eval_consistency_and_25k_eval_dll():
     assert p.eval.consistency_max_day_pct == D(40) and p.eval.daily_loss_limit == D(600)
     assert p.purchase.consistency_pct == D(40)
     assert stage_rules(p, "EVAL").consistency_pct == D(40) and stage_rules(p, "EVAL").dll_scale_pct == D(60)
-    assert max_base_for_stage(p, "EVAL") == D(2250)  # MLL + target
+    assert max_base_for_stage(p, "EVAL") == D("1475.00")  # MLL + consistency day stop (38 %)
+    none = p.model_copy(update={"eval": p.eval.model_copy(update={"consistency_max_day_pct": None})})
+    assert max_base_for_stage(none, "EVAL") == D(2250)  # no consistency rule: MLL + target
     assert not funded_live_move_triggered(D(99999), p)  # no $-per-day trigger on Pro/Flex
     assert stage_rules(p, "FUNDED").news_hard_breach is False  # news allowed on Pro/Flex
 

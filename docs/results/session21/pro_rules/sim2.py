@@ -36,7 +36,7 @@ def sim_path(days,idx,pl,row,mode_on,shrink=True,room=True,kill=None,margin=None
     kd=pl['kill'] if kill is None else kill; mg=pl['margin'] if margin is None else margin
     bal=pl['size']; floor=bal-pl['mll']; peak=bal; locked=False; mll=pl['mll']
     dll0=pl['dll']; dll=dll0; pdays=0; best=0.0; s=0; peak_e=bal
-    dstop=(pl['cons']-5)/100*pl['target'] if pl['cons'] else None
+    dstop=(pl['cons']-pl['buf'])/100*pl['target'] if pl['cons'] else None
     cn=row['contracts']; bb=row.get('brake_below'); bc=row.get('brake_contracts')
     for di in idx[:maxs]:
         s+=1; today=0.0; stop=False

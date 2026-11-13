@@ -65,7 +65,7 @@ stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID
 
 ## Evaluation Mode (§11C)
 Changes ONLY tiers/floor/middle/ceiling (10/12/14), warmup 10, max_risk_usd 140. Never changes gates, score, R:R, guard, DLL/MLL, day stops, lock-in, kill switch, pause floor, bounds, hedge/news/flat rules. No martingale, no pace escalation. Enable = Impact Preview + typed "ENABLE EVALUATION MODE"; disable = one click. Applies to next NEW trade. Auto-OFF on PASSED/stage change/reclassification.
-Consistency guard (EVAL): cap 40%×1,250 = $500; day stop 35%×1,250 = $437.50; reduce contracts to fit cap else Skip("CONSISTENCY_CAP").
+Consistency guard (EVAL): cap 40%×1,250 = $500; day stop 38%×1,250 = $475 (D138; was 35%); reduce contracts to fit cap else Skip("CONSISTENCY_CAP").
 
 ## Automation (§13) & Payouts (§14)
 - Modes OFF | SEMI-AUTO | FULL-AUTO. Starts OFF. First 5 sessions of each stage: OFF/SEMI only.
@@ -129,3 +129,7 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D137 (user 2026-11-13): toggle `strategy.eod_closed_balance` (default OFF): ON = on EOD-drawdown accounts the kill switch / MLL
   watchdog uses the CLOSED balance only (risk/eod_balance.py); intraday accounts unchanged; VERIFY with Lucid. Eval pass/bust shown in the UI
   come ONLY from config/eval_odds.yaml (session-21 realistic sim: kill switch, room check, brake, D57 shrink) — never hard-code figures.
+- D138 (user 2026-11-13, lucidtrading.com Pro plan cards): Pro EVAL consistency 40% (One-Day-Pass conflict = VERIFY); Pro 25K eval DLL $600;
+  LucidScale DLL above initial trail = 60% of peak EOD profit (risk/lucid_scale.py via state.dll_for; VERIFY interpretation); Pro funded payout
+  3 profitable days per cycle (VERIFY). Consistency day stop 38% of target on ALL plans (`internal.consistency_day_stop_buffer_pct: 2`).
+  backend/scripts/make_plans.py uses a stale template: never regenerate the plan YAMLs, edit them in place.
