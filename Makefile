@@ -4,7 +4,7 @@ PY := .venv/bin/python
 TA_TAG := v0.7.1
 TA_COMMIT := 3e44faafa042daf953f6ec2422ae36bb1fd4f50f
 
-.PHONY: help start install tradingagents vibetrading tradingr1 keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
+.PHONY: server-setup server-up server-update server-logs server-backup server-down help start install tradingagents vibetrading tradingr1 keys create-admin migrate dev web test test-backend test-frontend lint typecheck e2e e2e-live build up down check
 
 help:
 	@grep -E '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | awk -F':.*?## ' '{printf "  %-16s %s\n", $$1, $$2}'
@@ -79,3 +79,24 @@ up: ## Docker: api + worker + redis
 
 down:
 	docker compose down
+
+# ---------- web server with your own domain (docs/DEPLOY.md) ----------
+PROD := docker compose -f docker-compose.prod.yml
+
+server-setup: ## Cloud server first-time setup: Docker, firewall, .env, keys, logins, HTTPS on your domain
+	sudo bash deploy/setup.sh
+
+server-up: ## Start / rebuild the web server (Caddy HTTPS + API + worker + Redis)
+	$(PROD) up -d --build
+
+server-update: ## Pull the latest code and rebuild (flatten + disarm first; restart recovery covers the rest)
+	git pull --ff-only && $(PROD) up -d --build
+
+server-logs: ## Follow the server logs
+	$(PROD) logs -f --tail 100
+
+server-backup: ## Back up the database now (also runs daily via cron)
+	bash deploy/backup.sh
+
+server-down: ## Stop the web server (data and certificates are kept)
+	$(PROD) down

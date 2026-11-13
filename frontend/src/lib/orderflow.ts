@@ -37,7 +37,7 @@ export interface TaAdvisor { enabled: boolean; setting: string; blocks: boolean;
 export function publicBaseOf(connections: Connection[]): string | undefined {
   const tunnel = connections.find((c) => c.id === "tunnel");
   const ti = connections.find((c) => c.id === "ngrok")?.tunnel;
-  const permanent = ti?.mode === "ngrok" ? ti.public_url : undefined;
+  const permanent = ti?.mode === "ngrok" || ti?.mode === "server" ? ti.public_url : undefined;
   return permanent ?? (tunnel?.status === "connected" ? tunnel.hints.public_url : undefined) ?? (ti?.mode === "cloudflare" ? ti.public_url : undefined);
 }
 

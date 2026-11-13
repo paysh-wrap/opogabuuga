@@ -83,6 +83,7 @@ Tunables only within §17.2 bounds; walk-forward + guards; challenger in SHADOW 
 ## Commands
 `make install` · `make keys` · `make create-admin` · `make migrate` · `make dev` (API+UI :8000) · `make web` (Vite :5173)
 `make test` · `make lint` · `make typecheck` · `make e2e` (scratch DB + temp admin) · `make e2e-live` (E2E_PASSWORD=…) · `make check` · `make up` (Docker)
+Web server with own domain (D140, docs/DEPLOY.md): `make server-setup` (once, on the cloud server) · `make server-up` · `make server-update` · `make server-logs` · `make server-backup`
 TradingAgents runs ONLY in `.venv-ta` via `app/bias/ta_runner.py` (subprocess JSON). Never import it in the API process.
 Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). Decisions: docs/DECISIONS.md.
 

@@ -116,11 +116,8 @@ async def _extras(request: Request) -> dict[str, dict[str, Any]]:
     latest = await conn.latest_ta_tag(st.http)
     from app import tunnel
 
-    tm = tunnel.ACTIVE
     return {
-        "ngrok": {
-            "tunnel": tm.state.as_dict() if tm else {"mode": "none", "public_url": "", "permanent": False, "error": ""}
-        },
+        "ngrok": {"tunnel": tunnel_view(tunnel.ACTIVE, st.settings.public_url)},
         "tradingagents": {
             "installed_version": ver.data.get("version") if ver and ver.ok else None,
             "install_error": None if (ver and ver.ok) else (ver.data.get("error") if ver else "not installed"),
@@ -130,6 +127,17 @@ async def _extras(request: Request) -> dict[str, dict[str, Any]]:
             "llm_key_urls": {k: v["keys_url"] for k, v in LLM_PROVIDERS.items()},
         },
     }
+
+
+def tunnel_view(tm: Any, server_url: str) -> dict[str, Any]:
+    """The public HTTPS address TradingView posts to: a running tunnel (ngrok / Cloudflare) wins; else a web server's
+    own domain (PAYTIENCE_PUBLIC_URL, docker-compose.prod.yml) as mode "server"; else none."""
+    if tm is not None:
+        return dict(tm.state.as_dict())
+    url = server_url.strip().rstrip("/")
+    if url.startswith("https://"):
+        return {"mode": "server", "public_url": url, "permanent": True, "error": ""}
+    return {"mode": "none", "public_url": "", "permanent": False, "error": ""}
 
 
 @router.get("/connections")

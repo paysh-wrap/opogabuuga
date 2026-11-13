@@ -215,7 +215,7 @@ export default function Connections() {
   const { connections, indicators, summary, master_key_set } = q.data;
   const ngrok = connections.find((c) => c.id === "ngrok");
   const ti = ngrok?.tunnel;
-  const permanent = ti?.mode === "ngrok" ? ti.public_url : undefined;
+  const permanent = ti?.mode === "ngrok" || ti?.mode === "server" ? ti.public_url : undefined;
   const base = publicBaseOf(connections);
   const required = connections.filter((c) => c.required);
 

@@ -15,7 +15,7 @@ RUN git clone -q --depth 1 --branch v0.7.1 https://github.com/TauricResearch/Tra
 
 # Stage 3: API (+ worker uses the same image)
 FROM python:3.11-slim
-RUN useradd -m paytience
+RUN useradd -m paytience && mkdir -p /data && chown paytience /data   # /data = the named volume on a server
 WORKDIR /app/backend
 COPY backend/pyproject.toml ./
 COPY backend/app ./app
@@ -27,4 +27,7 @@ COPY --from=web /web/dist /app/web
 COPY --from=ta /opt/ta /opt/ta
 USER paytience
 EXPOSE 8000
-CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000"]
+# --proxy-headers: behind the server's Caddy proxy the login / webhook rate limits must see the REAL client IP, not
+# Caddy's. Only addresses in PAYTIENCE_FORWARDED_ALLOW_IPS may set X-Forwarded-For (default: nobody but localhost;
+# docker-compose.prod.yml sets "*" because there the API is reachable ONLY from Caddy on the private Docker network).
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:create_app --factory --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips \"${PAYTIENCE_FORWARDED_ALLOW_IPS:-127.0.0.1}\""]

@@ -34,3 +34,5 @@ docs/results/session12/*.pkl
 docs/results/session13/*.pkl
 desktop/version.json
 docs/results/session18/**/*.pkl
+backups/
+.env.tmp

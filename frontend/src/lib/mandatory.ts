@@ -82,6 +82,7 @@ function publicUrl(conns?: ConnectionsResponse): CheckItem {
   const t = conns.connections.find((c) => c.id === "ngrok")?.tunnel;
   const manual = conns.connections.find((c) => c.id === "tunnel");
   if (t?.mode === "ngrok") return { id: "public_url", label, state: "ok", detail: `Permanent: ${t.public_url}` };
+  if (t?.mode === "server") return { id: "public_url", label, state: "ok", detail: `Own domain: ${t.public_url}` };
   if (manual?.status === "connected") return { id: "public_url", label, state: "ok", detail: manual.detail || "Own tunnel tested OK" };
   if (t?.mode === "cloudflare")
     return { id: "public_url", label, state: "ok", detail: "Temporary Cloudflare link — the webhook URL changes on every restart" };

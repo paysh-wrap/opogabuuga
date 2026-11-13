@@ -1,5 +1,6 @@
 import type { Connection, ConnectionsResponse, WebhookStatus } from "./api";
 import { buildChecklist, isMandatoryConnection } from "./mandatory";
+import { publicBaseOf } from "./orderflow";
 
 const c = (id: string, status: Connection["status"], extra: Partial<Connection> = {}): Connection => ({
   id, name: id, category: "x", purpose: "", required: false, testable: true, steps: [], note: "", links: [], fields: [],
@@ -60,6 +61,10 @@ test("broker and feed edge cases", () => {
   expect(state(cf, "public_url")).toBe("ok");
   const none = buildChecklist({ conns: conns([c("ngrok", "not_set", { tunnel: { mode: "none", public_url: "", permanent: false, error: "" } })]) });
   expect(state(none, "public_url")).toBe("fail");
+  // web server with its own domain (docs/DEPLOY.md): the domain is the public HTTPS URL
+  const own = buildChecklist({ conns: conns([c("ngrok", "not_set", { tunnel: { mode: "server", public_url: "https://app.example.com", permanent: true, error: "" } })]) });
+  expect(state(own, "public_url")).toBe("ok");
+  expect(publicBaseOf(conns([c("ngrok", "not_set", { tunnel: { mode: "server", public_url: "https://app.example.com", permanent: true, error: "" } })]).connections)).toBe("https://app.example.com");
 });
 
 test("a malformed payload counts as unavailable, not OK", () => {

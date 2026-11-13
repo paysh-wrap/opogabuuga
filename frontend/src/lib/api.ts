@@ -62,7 +62,7 @@ export interface Connection {
 }
 
 export interface TunnelInfo {
-  mode: "ngrok" | "cloudflare" | "none";
+  mode: "ngrok" | "cloudflare" | "server" | "none"; // server = own domain (PAYTIENCE_PUBLIC_URL, docs/DEPLOY.md)
   ngrok_domain?: string;
   public_url: string;
   permanent: boolean;

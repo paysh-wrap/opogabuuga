@@ -1,0 +1,27 @@
+# Paytience web server (docker-compose.prod.yml). Caddy obtains and renews the HTTPS certificate for the domain.
+{$PAYTIENCE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# TradingView cannot log in, so its webhook is the ONLY path open without the edge login. The app protects it:
+	# secret checked in constant time, freshness + duplicate checks, per-IP rate limit, body size limit.
+	@webhook {
+		method POST
+		path /api/webhook/tradingview
+	}
+	handle @webhook {
+		reverse_proxy api:8000
+	}
+
+	# Everything else (dashboard, API, live updates) first needs the edge login, then the Paytience login.
+	handle {
+		basic_auth {
+			{$PAYTIENCE_EDGE_USER} {$PAYTIENCE_EDGE_HASH}
+		}
+		reverse_proxy api:8000
+	}
+}

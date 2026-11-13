@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     tr1_root: Path = REPO_ROOT  # D94: Trading-R1 in <tr1_root>/.venv-tr1, TR1_HOME <tr1_root>/data/tr1
     web_dist: Path = REPO_ROOT / "frontend" / "dist"
     tools_dir: Path = REPO_ROOT / "data" / "tools"  # D79: ngrok / cloudflared binaries (own folder)
+    # Web server with its own domain (docs/DEPLOY.md, docker-compose.prod.yml): the public https:// address of this
+    # server. Shown as the TradingView webhook base and counts as the mandatory "public HTTPS URL" when no tunnel runs.
+    public_url: str = ""
     tunnel_autostart: bool = False  # desktop app sets true: run ngrok (or the Cloudflare fallback) at start
 
 

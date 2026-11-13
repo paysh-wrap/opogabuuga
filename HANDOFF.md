@@ -536,3 +536,14 @@ check_ar/check_casper/build_plan/trail_stop + footprint() on 5 yr MNQ/MES 1m (VW
 (no Asia data → OF_PATH_UNKNOWN; location gate ~1 per 150 sessions). Path OFF grid: no eligible row; best n≥150 row IS PF 1.02 → J 62 trades PF 0.69
 −$414, beats 1/30 random seeds, MES negative. 9 plans J pass/bust: pick 0/38 (25K) vs NOISE 55/45. NO EDGE → Order Flow stays default OFF.
 D139 (user, end of session 22): F2 is CORRECT by design — never hedge; a reversal waits until the old position is confirmed flat. Do not change.
+
+## Session 22 cont. — D140 web server with a domain (BUILT + tested in Docker)
+docker-compose.prod.yml (Caddy HTTPS + edge login → api/worker/Redis on the private network), docker/Caddyfile, deploy/setup.sh (Docker,
+ufw 22/80/443, .env 0600, keys, edge + Paytience logins, start, daily backup cron), deploy/backup.sh, docs/DEPLOY.md, make server-*.
+App: uvicorn --proxy-headers (trusted proxy only), PAYTIENCE_PUBLIC_URL → tunnel mode "server" (webhook URL + mandatory checklist OK).
+Tested here end to end (domain localhost, Caddy local CA; test-only Dockerfile adds the sandbox proxy CA — the real Dockerfile needs none):
+setup ran twice (second run reused .env), 401 everywhere without the edge login (dashboard, /api/health, API), edge login alone ≠ API access,
+only POST webhook open (signed alert accepted, duplicate flagged, bad secret refused), audit IP = real client (172.18.0.1, not Caddy .5),
+HTTP→HTTPS 308, port 8000 unreachable, HSTS/CSP, browser login with Secure+SameSite=Strict cookies, live WebSocket push through Caddy,
+backup integrity ok, data kept across restart. Test stack + test .env removed. USER TODO: buy domain + Ubuntu server, A record, run
+`sudo bash deploy/setup.sh`; ask Lucid if VPS trading is allowed; run only one Paytience (disarm the PC app).
