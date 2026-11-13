@@ -23,14 +23,17 @@ def _file(tmp_path, doc):
     return p
 
 
-def test_shipped_placeholder_file_is_valid_and_reads_as_not_measured():
+def test_shipped_file_is_valid_and_complete():
+    """config/eval_odds.yaml = the session-21 realistic sim (docs/results/session21/eod_toggle/RESULTS.md)."""
     E.load_odds.cache_clear()
     raw = yaml.safe_load(E.ODDS_PATH.read_text(encoding="utf-8"))
     f = E.OddsFile.model_validate(raw)
-    assert f.study.startswith("PLACEHOLDER") and len(f.plans) == 9
+    assert not f.study.startswith("PLACEHOLDER") and len(f.plans) == 9
     assert all(set(t) == set(E.TABLES) for t in f.plans.values())
-    assert E.load_odds() is None and E.odds("lucid_pro_25k", "regular", True) is None
-    assert E.odds_view("lucid_pro_25k", "regular", False)["text"] == "not measured yet"
+    assert E.load_odds() is not None
+    v = E.odds_view("lucid_pro_25k", "regular", False)
+    assert (v["pass_pct"], v["bust_pct"], v["last12_pass_pct"], v["last12_bust_pct"]) == (60, 40, 40, 60)
+    E.load_odds.cache_clear()
 
 
 def test_missing_invalid_and_placeholder_files_are_none(tmp_path):

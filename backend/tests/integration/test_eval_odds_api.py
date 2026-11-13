@@ -26,11 +26,16 @@ def real_odds(monkeypatch):
     monkeypatch.setattr(E, "load_odds", lambda: f)
 
 
+@pytest.fixture
+def placeholder_odds(monkeypatch):
+    monkeypatch.setattr(E, "load_odds", lambda: None)  # what the loader returns for a PLACEHOLDER / missing file
+
+
 def _strategies(authed):
     return authed.get("/api/strategies").json()
 
 
-def test_not_measured_yet_with_the_placeholder_file(authed):
+def test_not_measured_yet_with_the_placeholder_file(authed, placeholder_odds):
     d = _strategies(authed)
     noise = next(s for s in d["strategies"] if s["key"] == "noise")
     assert noise["eval_odds"]["text"] == "not measured yet" and noise["pro25k_pass_pct"] is None

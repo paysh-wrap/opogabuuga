@@ -489,3 +489,17 @@ docs/results/session21/orderblock_footprint/RESULTS.md. Footprint volume = Datab
 App OB definition, 5m + 1m, V0 plain / V1 delta / V2 absorption / V3 +CVD, R 1.5–2.5. IS pick (5m V2 R2.5): IS PF 1.18 → J PF 0.83, −$2,406;
 all 24 rows J PF < 1; MES negative. NO EDGE. 9-plan eval (session-15 engine with intraday MAE breach): OB J pass 4–16 % vs NOISE 50–70 %.
 FINDING: with intraday floor touches modelled, NOISE J Pro 25K = 55/45 (vs 68/32 closed-trade sim) → Strategy cards/presets are optimistic. OPEN: user decision on re-basing them.
+
+## Session 21 cont. (2026-11-13) — D137 EOD toggle BUILT + realistic eval odds
+User: "All my drawdown will be EOD. Modify everything for EOD toggle and build then give results."
+BUILT: Strategy-page toggle `strategy.eod_closed_balance` (default OFF; VERIFY badge): ON = EOD-drawdown accounts' kill switch / MLL watchdog
+uses closed balance only (risk/eod_balance.py, controller._monitor); intraday accounts unchanged; every other check unchanged.
+All UI eval pass/bust now come from config/eval_odds.yaml (backend/app/eval_odds.py) for the active plan + size table + toggle state;
+old hard-coded session-19 figures removed (cards, presets, toggle notes, size notes, Risk panel).
+Realistic sim (docs/results/session21/eod_toggle/RESULTS.md; kill $50, room check, brake, D57 stop shrink, 2021-10..2026-10): toggle = 0 pt
+everywhere (room check + shrink stop losses before the kill line); busts = accounts stuck below the trading room. Regular 5 yr | last 12 mo:
+Pro 25K 60/40 | 40/60 · 50K 66/34 | 57/43 · 100K 78/18 | 68/30 · 150K 79/14 | 71/6 · Daily 25K 54/46 | 39/61. regular_fade_on rows = old no-shrink run.
+FIX: backend/app/backtest/data/main_strategy_s19.csv (D135 income stream) had never been committed (gitignored) → rebuilt from committed
+session-19 streams (1,535 trades, $28,452 = D135) and force-added; the run-30 Windows build lacked it.
+Tests: backend 1236 passed / 5 skipped, 100 % cov risk/management/phases; frontend 111; ruff/mypy/eslint/tsc clean. Windows build triggered (desktop.yml on ccr-7161a63b-boxqzd).
+OPEN: ask Lucid whether an open loss touching the floor breaches an EOD account, and whether funded accounts are EOD or intraday (LUCID_RULES 15998425 says intraday).
