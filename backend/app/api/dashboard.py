@@ -401,9 +401,8 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
     progress and the AI calibration ledger (advisory until proven)."""
     from app.bias.ledger import duo_decisions, status
     from app.engine.strategy_catalog import CATALOG
-    from app.signals.strategy_service import load_days
-
     from app.eval_odds import odds_view, table_for
+    from app.signals.strategy_service import load_days
 
     st = request.app.state
     r, now = st.rules.rules, st.clock.now()

@@ -2,7 +2,7 @@
 
 Pure (no I/O). Default (toggle OFF) = balance + open P&L, the safest reading. With `strategy.eod_closed_balance` ON and
 an EOD-drawdown account the watchdog looks at the closed balance only (an EOD account's floor moves and is tested at the
-end of the session). Intraday-drawdown accounts always use balance + open P&L. VERIFY with Lucid before relying on it."""
+end of the session). Intraday-drawdown accounts always use balance + open P&L. VERIFY with Lucid first."""
 
 from __future__ import annotations
 

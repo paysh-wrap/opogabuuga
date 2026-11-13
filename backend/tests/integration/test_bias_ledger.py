@@ -86,7 +86,10 @@ def test_strategies_endpoint(authed):
         "order_flow_zone",
     ]
     noise = body["strategies"][1]
-    assert noise["win_pct"] == 50.1 and noise["pro25k_pass_pct"] == 72.0  # B7 / D135: session 19
+    assert noise["win_pct"] == 50.1 and noise["eval_odds"]["table"] == "regular"
+    assert (
+        noise["pro25k_pass_pct"] is None
+    )  # D137: pass / bust come from config/eval_odds.yaml (placeholder: not measured)
     assert noise["setting"] == "strategy.noise"
     assert body["noise_warmup"]["ready"] is False and body["noise_warmup"]["needed"] == 10
     # the button saves through versioned My Settings

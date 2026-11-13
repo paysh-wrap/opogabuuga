@@ -115,6 +115,7 @@ def test_high_risk_profile_switches_table(authed, clock):  # D64
         "suggested",
         "suggested_on",
         "suggested_setting",
+        "odds",  # D137: pass / bust text per table from config/eval_odds.yaml
     }
     assert body["setting"] == "strategy.high_risk"
     # D127: Suggested size toggle (session-19 lowest bust) overrides the configured table while on

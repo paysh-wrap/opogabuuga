@@ -377,7 +377,11 @@ def lucid_rules(r: Any) -> list[dict[str, Any]]:
         ),
         _g("CONSISTENCY", "Consistency", cons),
         _g("HEDGE", "Hedge lock", f"Never both sides ({b.hedge_lock_scope}).", ("HEDGE_LOCK",)),
-        _g("KILL", "Kill switch", f"Freeze within ${i.kill_switch_mll_distance} of the max loss; {kill_mode}; never auto-resumes."),
+        _g(
+            "KILL",
+            "Kill switch",
+            f"Freeze within ${i.kill_switch_mll_distance} of the max loss; {kill_mode}; never auto-resumes.",
+        ),
         _g("ONE_POSITION", "Positions", f"Max {b.max_open_positions_per_account} open position per account."),
         _g("FLAT_TIMES", "Flat times", f"Auto flatten {i.auto_flatten}, hard flat {i.hard_flat} ET."),
         _g("PREFLIGHT", "Pre-flight", f"Pre-flight at {r.schedule.preflight} ET must pass before arming."),

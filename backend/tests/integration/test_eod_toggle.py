@@ -6,7 +6,6 @@ from decimal import Decimal as D
 from app.models import Account
 from tests.integration.test_payout_consistency_api import _login
 
-
 _N = [0]
 
 
@@ -70,10 +69,17 @@ def test_toggle_listed_saved_and_versioned(authed):
     assert t["title"] == "EOD drawdown: open losses don't stop the account"
     assert "VERIFY" in t["note"] and "closed balance only" in t["on_label"]
     v0 = authed.get("/api/risk/settings").json()["version"]
-    assert authed.put("/api/risk/settings", json={"changes": {"strategy.eod_closed_balance": True}, "note": "t"}).status_code == 200
+    assert (
+        authed.put(
+            "/api/risk/settings", json={"changes": {"strategy.eod_closed_balance": True}, "note": "t"}
+        ).status_code
+        == 200
+    )
     assert authed.get("/api/risk/settings").json()["version"] == v0 + 1
     assert authed.app.state.rules.rules.strategy.eod_closed_balance is True
-    assert authed.put("/api/risk/settings", json={"changes": {"strategy.eod_closed_balance": "maybe"}, "note": "t"}).status_code in (400, 422)
+    assert authed.put(
+        "/api/risk/settings", json={"changes": {"strategy.eod_closed_balance": "maybe"}, "note": "t"}
+    ).status_code in (400, 422)
 
 
 def test_dll_flatten_still_applies_with_the_toggle_on(authed, clock):
