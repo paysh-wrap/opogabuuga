@@ -42,6 +42,8 @@ After the fixes: **20 passed / 0 failed**, including the R6 key-redaction check 
   until its exit fill arrives, so the reversal entry is skipped (POSITION_OPEN) and its signal stays OPEN as a phantom position for
   the rest of the day (no order, no money at risk; one missed trade). Paper (simulator) flattens instantly and is not affected.
   Fixing it means deciding how a live reversal should wait for the fill — not done without approval.
+  **CLOSED by D139 (user 2026-11-13): correct, by design. Never hedge — a reversal must never be entered while the old position
+  is still open or awaiting its exit fill. Do not change.**
 - F3 Brackets on the sim: a limit entry's own bar does not check stop/target (`continue` after the fill) — conservative for TP,
   optimistic for a same-bar stop. Research convention elsewhere is stop-first; documented, unchanged.
 - F4 controller line ~539: the Order Flow / AI cushion brake uses `rules.eval.max_loss_limit` also for funded accounts (equal in every

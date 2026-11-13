@@ -535,3 +535,4 @@ ORDER FLOW + FOOTPRINT (docs/results/session22/orderflow_footprint/RESULTS.md; a
 check_ar/check_casper/build_plan/trail_stop + footprint() on 5 yr MNQ/MES 1m (VWAP-recovered volume, ESTIMATED delta). Shipped config = 0 trades
 (no Asia data → OF_PATH_UNKNOWN; location gate ~1 per 150 sessions). Path OFF grid: no eligible row; best n≥150 row IS PF 1.02 → J 62 trades PF 0.69
 −$414, beats 1/30 random seeds, MES negative. 9 plans J pass/bust: pick 0/38 (25K) vs NOISE 55/45. NO EDGE → Order Flow stays default OFF.
+D139 (user, end of session 22): F2 is CORRECT by design — never hedge; a reversal waits until the old position is confirmed flat. Do not change.

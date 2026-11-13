@@ -21,7 +21,7 @@ Full spec: `docs/MASTER_PROMPT_v9.2.md` (binding; added 2026-11-06 from the user
 4. Never disguise automation as manual trading.
 5. Default PAPER. LIVE needs `PAYTIENCE_ALLOW_LIVE=true` + Settings toggle + typed "I ACCEPT LIVE RISK" + Live-Readiness Checklist.
 6. Respect script licenses; keep attribution; non-commercial → "PERSONAL USE ONLY". Never touch protected code.
-7. Never hedge. Household-wide EQUITY_INDEX direction lock across accounts/profiles/instruments → Skip("HEDGE_LOCK"). Max 1 open position per account.
+7. Never hedge. Household-wide EQUITY_INDEX direction lock across accounts/profiles/instruments → Skip("HEDGE_LOCK"). Max 1 open position per account. D139: a reversal is skipped until the old position is confirmed flat (exit fill seen) — by design, never "fix" it.
 8. No silent failures: error → block new entries + log + UI banner + notify.
 9. Lab may NEVER modify a Pillar (§17.1) — enforced by registry + tests + pillar-module hash.
 10. Evaluation Mode applies ONLY to stage EVAL — never FUNDED/LIVE. Enforced in pure risk code + tests.
