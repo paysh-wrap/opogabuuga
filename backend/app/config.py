@@ -101,7 +101,9 @@ class EvalRules(_M):
     max_loss_limit: D
     drawdown_type: DrawdownType
     daily_loss_limit: D | None  # None = no DLL
-    dll_scale_above_lock_pct: D | None = Field(default=None, gt=0, le=100)  # LucidScale DLL (LucidPro), see risk/lucid_scale
+    dll_scale_above_lock_pct: D | None = Field(
+        default=None, gt=0, le=100
+    )  # LucidScale DLL (LucidPro), see risk/lucid_scale
     lock_trigger: D
     lock_level: D
     news_allowed_by_firm: bool

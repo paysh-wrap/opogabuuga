@@ -30,9 +30,11 @@ def test_flex_funded_scaling_by_profit():
     assert firm_max_micros(r("lucid_pro_50k"), "FUNDED", D(0)) == 40  # Pro: no scaling
 
 
-def test_pro_has_no_eval_consistency_and_25k_no_eval_dll():
+def test_pro_has_eval_consistency_and_25k_eval_dll():
     p = r("lucid_pro_25k")
-    assert p.eval.consistency_max_day_pct is None and p.eval.daily_loss_limit is None
+    assert p.eval.consistency_max_day_pct == D(40) and p.eval.daily_loss_limit == D(600)
+    assert p.purchase.consistency_pct == D(40)
+    assert stage_rules(p, "EVAL").consistency_pct == D(40) and stage_rules(p, "EVAL").dll_scale_pct == D(60)
     assert max_base_for_stage(p, "EVAL") == D(2250)  # MLL + target
     assert not funded_live_move_triggered(D(99999), p)  # no $-per-day trigger on Pro/Flex
     assert stage_rules(p, "FUNDED").news_hard_breach is False  # news allowed on Pro/Flex
@@ -305,3 +307,19 @@ def test_noise_lock_alt_validation():  # D132
     assert StrategyCfg(noise_lock_alt=True).noise_profit_lock() is None  # no lock configured → none
     nc = NoiseCfg(profit_lock_trigger_pts=D(100), profit_lock_pts=D(10))
     assert StrategyCfg(noise_cfg=nc, noise_lock_alt=True).noise_profit_lock() == (D(100), D(10))  # no alt → 100
+
+
+@pytest.mark.parametrize("k", (25, 50, 100, 150))
+def test_pro_card_fields(k):
+    p = r(f"lucid_pro_{k}k")
+    assert p.eval.consistency_max_day_pct == D(40) and p.eval.dll_scale_above_lock_pct == D(60)
+    assert p.funded.dll_scale_above_lock_pct == D(60) and p.funded.payout.min_profitable_days == 3
+    assert p.internal.consistency_day_stop_buffer_pct == D(2)
+
+
+def test_flex_has_no_lucid_scale():
+    f = r("lucid_flex_50k")
+    assert f.eval.dll_scale_above_lock_pct is None and f.funded.dll_scale_above_lock_pct is None
+    assert stage_rules(f, "FUNDED").dll_scale_pct is None
+    assert stage_rules(f, "EVAL", dll_enabled=False).dll_scale_pct is None
+    assert stage_rules(f, "LIVE").dll_scale_pct is None

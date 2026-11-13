@@ -60,7 +60,11 @@ def make(plan: str, k: int) -> str:
         t,
         "purchase",
         f"purchase: {{drawdown_type: eod, dll_enabled: true, consistency_pct: 40}}"
-        + ("   # user 2026-11-13, lucidtrading.com plan card (Pro: 40%)" if pro else "   # Flex eval 40% (50% add-on) 12945805"),
+        + (
+            "   # user 2026-11-13, lucidtrading.com plan card (Pro: 40%)"
+            if pro
+            else "   # Flex eval 40% (50% add-on) 12945805"
+        ),
     )
     t = line(
         t, "max_contracts", f"max_contracts: {{minis: {minis}, micros: {micros}}}                 # 12890029/12945790"
