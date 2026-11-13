@@ -112,6 +112,32 @@ async def test_market_fill_outside_window_is_flattened(env):
     assert await sim.get_positions("A") == []
 
 
+async def test_rr_invalid_flatten_failure_pauses_and_stays_closing(env):
+    """Review fix: a failed RR_INVALID_AFTER_FILL flatten no longer escapes on_fill. The trade is marked closing
+    (the watchdog's retry_closing flattens again while the position is open) and a PAUSE is raised (§1.8)."""
+    sim, om, _ = env
+    sim.last["MNQ"] = D(20030)  # price ran away before the market order filled
+    sim.fail_next.add("flatten")
+    plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)
+    t, ev = await opened(sim, om, plan, 1, False)
+    kinds = [(e.kind, e.detail.split(":")[0]) for e in ev]
+    assert ("PAUSE", "RR_INVALID_FLATTEN_FAILED") in kinds and ("FLATTENED", "RR_INVALID_AFTER_FILL") not in kinds
+    assert t.closing == "RR_INVALID_AFTER_FILL" and t.trade_id in om.trades
+    assert len(await sim.get_positions("A")) == 1  # still open: retry_closing will flatten it
+
+
+def test_sim_pnl_stream_backlog_is_bounded():
+    """Review fix: nothing consumes the simulator's P&L stream, so its queue must not grow on every bar forever."""
+    from app.execution.adapters.sim import PNL_QUEUE_MAX
+
+    sim = SimAdapter(FixedClock(AT), {"MNQ": SimInstrument(T, TV, D("1.00"))}, slippage_ticks=0)
+    sim.add_account("A", D(25000))
+    sim.add_account("B", D(25000))
+    for _ in range(PNL_QUEUE_MAX):
+        sim.on_bar("MNQ", D(20000), D(20001), D(19999), D(20000), AT)
+    assert sim._pnl.qsize() == PNL_QUEUE_MAX
+
+
 async def test_early_exit_respects_hold_and_1r(env):
     sim, om, _clock = env
     plan = build_trade_plan(Direction.LONG, D(20000), D(19981), D(20070), T, 4, 20)

@@ -41,6 +41,23 @@ def test_semi_auto_full_paper_lifecycle(authed, clock):
     assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []
 
 
+def test_unreadable_positions_skip_with_broker_error_not_exception(authed, clock):
+    """Review fix: a failing broker position read (hedge lock needs every account) returns BROKER_ERROR for the
+    account (fail closed, reported) instead of raising out of execute."""
+    setup(authed, clock)
+    ctl = authed.app.state.controller
+    ctl.mode = "SEMI"
+    choch(authed, clock)
+    hb(authed, clock, MS - 2 * MIN, close="20005")
+    confirm(authed, clock)
+    with authed.app.state.sessionmaker() as s:
+        sig = s.query(Signal).one()
+    ctl.adapter.sim.fail_next.add("get_positions")
+    r = authed.post(f"/api/signals/{sig.id}/execute", json={}).json()["results"]
+    assert not r[0]["ok"] and r[0]["reason"].startswith("BROKER_ERROR"), r
+    assert authed.get("/api/positions").json()["accounts"][0]["positions"] == []
+
+
 def test_kill_switch_flattens_disarms_and_turns_off(authed, clock):
     aid = setup(authed, clock)
     ctl = authed.app.state.controller

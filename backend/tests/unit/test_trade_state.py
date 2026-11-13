@@ -30,6 +30,17 @@ def test_round_trip_is_lossless():
     assert trade_state.dump(back) == trade_state.dump(t)
 
 
+def test_tp_order_id_round_trips_and_old_snapshots_still_load():
+    """Review fix: legs keep the broker's TP order id (live restart recovery); older snapshots lack the key."""
+    t = make()
+    t.legs[0].tp_order_id = "O3"
+    d = trade_state.dump(t)
+    assert trade_state.load(d).legs[0].tp_order_id == "O3"
+    for leg in d["legs"]:
+        del leg["tp_order_id"]
+    assert [x.tp_order_id for x in trade_state.load(d).legs] == ["", ""]
+
+
 def test_restore_bracket_keeps_ids_and_new_ids_never_collide():
     sim = SimAdapter(FixedClock(NOW), {"MNQ": SimInstrument(D("0.25"), D("0.5"), D("1"))}, 1)
     sim.add_account("ACC", D(25000))

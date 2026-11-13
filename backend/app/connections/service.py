@@ -65,7 +65,29 @@ async def latest_ta_tag(http: httpx.AsyncClient) -> str | None:
     return None
 
 
+REDACTED = "•••"
+
+
+def redact(detail: str, p: Provider, values: dict[str, str]) -> str:
+    """D3: a key is write-only. Some services quote the key back in their error text (Alpha Vantage: "We have detected
+    your API key as …"), and that text is shown on the Connections page — so every secret field's value is removed from
+    a test result before it leaves the server (review fix, session 22: the E2E caught the key on the page)."""
+    for f in p.fields:
+        v = values.get(f.name) or ""
+        if f.kind == "secret" and len(v) >= 4:
+            detail = detail.replace(v, REDACTED)
+    return detail
+
+
 async def run_test(
+    p: Provider, values: dict[str, str], http: httpx.AsyncClient, ta: TradingAgentsAdapter
+) -> TestResult:
+    res = await _run_test(p, values, http, ta)
+    clean = redact(res.detail, p, values)
+    return res if clean == res.detail else TestResult(res.ok, clean)
+
+
+async def _run_test(
     p: Provider, values: dict[str, str], http: httpx.AsyncClient, ta: TradingAgentsAdapter
 ) -> TestResult:
     try:

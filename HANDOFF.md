@@ -516,3 +516,22 @@ Pro funded payout 3 profitable days per cycle (VERIFY). User: consistency day st
 make_plans.py has a STALE template — never regenerate the YAMLs. Odds re-simulated (docs/results/session21/pro_rules/RESULTS.md; day stop modelled now),
 regular 5 yr | 12 mo: Pro 25K 57/43 | 40/60 · 50K 65/34 | 52/48 · 100K 77/18 | 68/31 · 150K 78/14 | 71/6 · Flex 25K 51/49 | 32/68 · Flex 50K 61/39 | 48/52 ·
 Flex 100K 76/20 | 67/32 · Flex 150K 78/16 | 70/8 · Daily 25K 52/48 | 37/63. config/eval_odds.yaml = that file.
+
+## Session 22 (2026-11-13) — full code review + fixes, final build, order flow + footprint (5 yr)
+Branch ccr-49c22917-zlwvy3 (= ccr-7161a63b-boxqzd ffcf7e2 + this session). Databento still LOCKED (403 auth_account_locked, checked 2026-11-13).
+REVIEW (docs/results/session22/CODE_REVIEW.md): baseline ffcf7e2 green (1,252 passed). Read in full: controller, order manager, sim/router/CrossTrade
+adapters, pre-trade checks, state, phases, NOISE + Order Flow paths, webhook/auth, payouts, D137/D138 diffs. FIXED, each with a failing-first test:
+R1 hedge-lock position read raised out of execute (now BROKER_ERROR per account) · R2 failed RR_INVALID_AFTER_FILL flatten escaped on_fill (now
+closing + PAUSE, watchdog retries) · R3 simulator P&L queue grew forever (capped) · R4 CrossTrade non-JSON reply crashed past BrokerError handlers,
+504 now "outcome unknown" · R5 live restart: TP order id now in the snapshot + roles re-registered, so stop/TP fills after a restart are booked ·
+R6 Alpha Vantage quoted the API key in its error text and the app showed it (D3) → secrets redacted from every connection-test result.
+OPEN (user decision, not changed): F1 LucidScale DLL frozen at the profit at MLL lock (tighter than the card, VERIFY) · F2 NOISE reversal on a LIVE
+account is skipped while the old trade awaits its exit fill (phantom OPEN signal for the day; paper unaffected) · F3/F4 minor, see the file.
+E2E (`make e2e`) was stale since D93 (3/20): heading names carry the "Paytience · " ::before prefix + CSS uppercase; gradient brand scored on its
+transparent colour → fixed in frontend/e2e/full.mjs → 20/20 passed.
+FINAL: backend 1,260 passed / 3 skipped, 100 % cov risk/management/phases; frontend 111 passed; ruff/format/mypy/eslint/tsc clean; UI built;
+Windows desktop build triggered (desktop.yml on this branch).
+ORDER FLOW + FOOTPRINT (docs/results/session22/orderflow_footprint/RESULTS.md; agent study, re-run by the main session = identical): app's own
+check_ar/check_casper/build_plan/trail_stop + footprint() on 5 yr MNQ/MES 1m (VWAP-recovered volume, ESTIMATED delta). Shipped config = 0 trades
+(no Asia data → OF_PATH_UNKNOWN; location gate ~1 per 150 sessions). Path OFF grid: no eligible row; best n≥150 row IS PF 1.02 → J 62 trades PF 0.69
+−$414, beats 1/30 random seeds, MES negative. 9 plans J pass/bust: pick 0/38 (25K) vs NOISE 55/45. NO EDGE → Order Flow stays default OFF.

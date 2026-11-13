@@ -181,6 +181,11 @@ class RoutingAdapter:
         out, self._live_fills = self._live_fills, []
         return out
 
+    def register_bracket(self, acct: str, bracket_id: str, stop_order_id: str, tp_order_id: str) -> None:
+        """Restart recovery: tell a live adapter which order ids belong to a recovered bracket (no-op elsewhere)."""
+        if self.live is not None and acct in self.live_accounts and hasattr(self.live, "register_bracket"):
+            self.live.register_bracket(bracket_id, stop_order_id, tp_order_id)
+
     def add_account(self, acct: str, balance: Decimal) -> None:
         self.sim.add_account(acct, balance)
 

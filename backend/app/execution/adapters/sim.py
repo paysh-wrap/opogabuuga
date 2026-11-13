@@ -26,6 +26,8 @@ from app.execution.adapters.base import (
     Side,
 )
 
+PNL_QUEUE_MAX = 1000  # stream_pnl backlog kept (oldest dropped): the app reads balances directly, not this stream
+
 
 def _opp(side: Side) -> Side:
     return "SELL" if side == "BUY" else "BUY"
@@ -357,5 +359,7 @@ class SimAdapter:
                     self._close(acct_id, b, "TP", o if gap else b.req.take_profit)
         self.last[symbol] = c
         for acct_id, a in self.accounts.items():
+            if self._pnl.qsize() >= PNL_QUEUE_MAX:  # nothing in the app consumes this stream: never grow without bound
+                self._pnl.get_nowait()
             self._pnl.put_nowait(PnlUpdate(acct_id, a.balance, self.open_pnl(acct_id), at))
         return list(self._recent)

@@ -80,6 +80,20 @@ def test_save_test_connected_then_failed_is_write_only(authed, mock_http):
     assert authed.delete("/api/connections/databento").json()["status"] == "not_set"
 
 
+def test_key_quoted_back_by_the_service_is_redacted(authed, mock_http):
+    """Review fix (session 22 E2E): Alpha Vantage quotes the key in its error text; the app relayed it to the page."""
+    mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
+    key = "AV-SECRET-KEY-998877"
+    info = f"We have detected your API key as {key} and our standard API rate limit is 25 requests per day."
+    mock_http["https://www.alphavantage.co/"] = lambda req: httpx.Response(200, json={"Information": info})
+    v = authed.put("/api/connections/alpha_vantage", json={"values": {"api_key": key}}).json()
+    assert v["status"] == "failed" and "detected your API key as •••" in v["detail"], v
+    assert key not in authed.get("/api/connections").text
+    assert key not in authed.post("/api/connections/alpha_vantage/test").text
+    with authed.app.state.sessionmaker() as s:
+        assert key not in json.dumps([a.payload for a in s.query(AuditLog)])
+
+
 def test_validation_errors(authed, mock_http):
     mock_http["https://api.github.com/"] = lambda r: httpx.Response(404)
     assert authed.put("/api/connections/discord", json={"values": {}}).status_code == 422

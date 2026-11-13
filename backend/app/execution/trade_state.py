@@ -59,6 +59,7 @@ def dump(t: OpenTrade) -> dict[str, Any]:
                 "take_profit": _d(x.take_profit),
                 "bracket_id": x.bracket_id,
                 "stop_order_id": x.stop_order_id,
+                "tp_order_id": x.tp_order_id,
                 "stop": _d(x.stop),
                 "entry": _d(x.entry),
                 "exit": _d(x.exit),
@@ -173,6 +174,7 @@ def load(d: dict[str, Any]) -> OpenTrade:
             _ld(x["exit"]),
             Decimal(x["fee"]),
             bool(x["closed"]),
+            str(x.get("tp_order_id") or ""),  # absent in snapshots written before the session-22 review fix
         )
         for x in d["legs"]
     ]

@@ -99,8 +99,16 @@ class CrossTradeAdapter:
             raise BrokerError(f"timeout on {path}") from e
         except httpx.HTTPError as e:
             raise BrokerError(f"network error on {path}: {type(e).__name__}") from e
-        data = r.json() if r.content else {}
-        if r.status_code in (500, 502) and mutation:
+        try:
+            data = r.json() if r.content else {}
+        except ValueError:
+            data = None
+        if not isinstance(data, dict):  # review fix: an HTML / garbled reply (proxy error page) used to raise a plain
+            # ValueError that escaped every BrokerError handler (an order of unknown outcome could go untracked)
+            if mutation and (r.status_code < 400 or r.status_code >= 500):
+                raise UnconfirmedError(f"{r.status_code} unreadable reply on {path}; outcome unknown")
+            raise BrokerError(f"{r.status_code} unreadable reply on {path}")
+        if r.status_code in (500, 502, 504) and mutation:  # 504 = gateway timeout: outcome unknown too
             raise UnconfirmedError(f"{r.status_code} {data.get('error')} on {path}; outcome unknown")
         if r.status_code >= 400 or data.get("success") is False:
             raise BrokerError(f"{r.status_code} {data.get('error')}: {data.get('detail', '')}"[:300])
@@ -198,6 +206,17 @@ class CrossTradeAdapter:
         b = str(r["orderId"])
         self._roles.update({b: (b, "ENTRY"), str(r["oso2Id"]): (b, "STOP"), str(r["oso1Id"]): (b, "TP")})
         return BracketAck(b, b, str(r["oso2Id"]), str(r["oso1Id"]))
+
+    def register_bracket(self, bracket_id: str, stop_order_id: str, tp_order_id: str) -> None:
+        """Restart recovery (review fix): the order-id → role map lives in memory only, so after a restart the stop /
+        target fills of a recovered bracket came back as EXTERNAL and were never booked on their trade. The controller
+        re-registers every recovered leg from its snapshot."""
+        if bracket_id:
+            self._roles[bracket_id] = (bracket_id, "ENTRY")
+            if stop_order_id:
+                self._roles[stop_order_id] = (bracket_id, "STOP")
+            if tp_order_id:
+                self._roles[tp_order_id] = (bracket_id, "TP")
 
     async def modify_stop(self, acct: str, order_id: str, price: Decimal) -> bool:
         try:

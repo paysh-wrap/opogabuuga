@@ -491,7 +491,10 @@ class Controller:
         acct_size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
         big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
-        positions = await self.open_positions(s)
+        try:
+            positions = await self.open_positions(s)  # every account (hedge lock): one unreadable broker blocks
+        except BrokerError as e:  # review fix: was an unhandled exception that aborted the whole signal silently
+            return AccountResult(a.id, False, f"BROKER_ERROR: {e}")
         n_open = max(sum(1 for p in positions if p.account == a.broker_account_id), len(mine))
         view = AccountView(
             a.broker_account_id,
@@ -1599,6 +1602,9 @@ class Controller:
         kept = 0
         expected: dict[str, int] = {}
         for t in tracked:
+            for leg in t.legs:  # review fix: the live adapter maps stop / TP fills to the bracket again
+                if not leg.closed:
+                    self.adapter.register_bracket(ext, leg.bracket_id, leg.stop_order_id, leg.tp_order_id)
             filled = [x for x in t.legs if x.entry is not None and not x.closed]
             if not filled:  # never filled: keep only while its entry still works at the broker
                 if any(x.bracket_id in working for x in t.legs):

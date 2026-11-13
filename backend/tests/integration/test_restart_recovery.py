@@ -144,6 +144,22 @@ def test_live_restart_with_matching_position_is_rebuilt(authed, clock):
         cm.__exit__(None, None, None)
 
 
+def test_live_restart_re_registers_bracket_order_roles(authed, clock):
+    """Review fix: a live adapter keeps its order-id -> role map in memory; recovery hands it back every open leg's
+    bracket / stop / take-profit ids so the stop or target fill after a restart is booked on its trade."""
+    _, ref, qty = make_live_row(authed, clock)
+    fake = FakeLive([Position("LIVE1", "MNQ", qty, D(20000))])
+    fake.registered = []
+    fake.register_bracket = lambda b, st, tp: fake.registered.append((b, st, tp))
+    _app2, ctl, cm = recover_with(authed, clock, fake)
+    try:
+        legs = [x for x in ctl.om.trades[ref].legs if not x.closed]
+        assert fake.registered == [(x.bracket_id, x.stop_order_id, x.tp_order_id) for x in legs]
+        assert all(b and st and tp for b, st, tp in fake.registered)  # the snapshot now carries the TP order id
+    finally:
+        cm.__exit__(None, None, None)
+
+
 def test_live_restart_flat_at_broker_closes_as_unverified_after_grace(authed, clock):
     _, ref, _ = make_live_row(authed, clock)
     app2, ctl, cm = recover_with(authed, clock, FakeLive([]))

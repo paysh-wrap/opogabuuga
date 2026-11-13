@@ -97,7 +97,11 @@ const beat = async () => {
     event: "HEARTBEAT", direction: "NONE", price: { o: "20000.25", h: "20001", l: "19999.5", c: "20000.75", v: "10" } }) });
   expect(r.ok(), "heartbeat " + r.status() + " " + (await r.text()));
 };
-const goto = async (path, heading) => { await page.goto(BASE + path); await page.getByRole("heading", { name: heading, exact: true }).first().waitFor(); };
+// The page heading by its exact text. The D93 mission UI adds `h1::before { content: "Paytience · " }` (mission.css), and
+// the accessible name includes CSS generated content, so the name is "Paytience · Dashboard"; `exact: true` on
+// "Dashboard" never matched since D93. Accept that optional brand prefix (case-insensitive: headings are uppercased).
+const exactName = (t) => new RegExp(`^(Paytience · )?${t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+const goto = async (path, heading) => { await page.goto(BASE + path); await page.getByRole("heading", { name: exactName(heading) }).first().waitFor(); };
 
 await step("login page carries Paytience branding; bad password is refused", async () => {
   await page.goto(BASE + "/dashboard");
@@ -296,7 +300,9 @@ await step("backtest job: CSV import → job runs → results with payout simula
   await page.getByRole("button", { name: "Run backtest" }).click();
   const run = page.locator("[data-testid^=bt-]").filter({ hasText: /— (done|failed)/ }).first();
   await run.waitFor({ timeout: 180000 });
-  expect((await run.innerText()).includes("— done"), "backtest failed: " + (await run.innerText()).slice(0, 300));
+  // textContent, not innerText: the mission UI uppercases this line with CSS, so innerText reads "— DONE"
+  const txt = (await run.textContent()) ?? "";
+  expect(txt.includes("— done"), "backtest failed: " + txt.slice(0, 300));
 });
 
 await step("connections test alert is a dry run", async () => {
@@ -371,10 +377,16 @@ const CONTRAST = () => {
     const cs = getComputedStyle(el);
     const r = el.getBoundingClientRect();
     if (cs.visibility === "hidden" || cs.display === "none" || r.width === 0 || el.closest("[aria-hidden=true],option,svg")) continue;
-    const fg = rgb(cs.color), bg = bgOf(el);
+    const bg = bgOf(el);
+    // Gradient text (background-clip: text + color: transparent, e.g. the gold "Paytience" brand): the reader sees the
+    // gradient, not `color` → judge every gradient stop and keep the worst (was a false 1.07 on the transparent colour).
+    const fill = cs.webkitTextFillColor || cs.color;
+    const clipText = (cs.backgroundClip || cs.webkitBackgroundClip || "").includes("text");
+    const stops = clipText && rgb(fill)[3] === 0 ? [...cs.backgroundImage.matchAll(/rgba?\([^)]*\)/g)].map((m) => rgb(m[0])) : [];
+    const fgs = stops.length ? stops : [rgb(fill)];
     const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;
     const need = size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
-    const k = ratio(fg, bg);
+    const k = Math.min(...fgs.map((fg) => ratio(fg, bg)));
     if (k < need) out.push(`${el.tagName} "${n.textContent.trim().slice(0, 30)}" ${cs.color} on rgb(${bg.map(Math.round)}) = ${k.toFixed(2)}`);
   }
   return out;
@@ -398,7 +410,7 @@ await step("390 px: no horizontal scroll on any page and the nav reaches every p
   const bad = [];
   for (const [path, heading] of PAGES) {
     await p.goto(BASE + path);
-    await p.getByRole("heading", { name: heading, exact: true }).first().waitFor();
+    await p.getByRole("heading", { name: exactName(heading) }).first().waitFor();
     await p.waitForTimeout(200);
     const over = await p.evaluate(() => {
       const w = window.innerWidth, d = document.documentElement.scrollWidth - w;

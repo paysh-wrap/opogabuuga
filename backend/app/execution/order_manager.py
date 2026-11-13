@@ -43,6 +43,7 @@ class Leg:
     exit: Decimal | None = None
     fee: Decimal = Decimal(0)
     closed: bool = False
+    tp_order_id: str = ""  # restart recovery: the broker's take-profit order id (live adapters map fills by order id)
 
 
 @dataclass
@@ -241,6 +242,7 @@ class OrderManager:
                     raise OrphanedPosition(t, str(e)) from e
                 raise
             leg.bracket_id, leg.stop_order_id, leg.stop = ack.bracket_id, ack.stop_order_id, plan.stop
+            leg.tp_order_id = ack.tp_order_id
         if self.scalp_runner is not None and len(t.legs) == 2 and t.legs[0].name == "A" and plan.mode == "ONE_TO_ONE":
             t.runner_trail = self.scalp_runner[1]
         self.trades[t.trade_id] = t
@@ -301,9 +303,16 @@ class OrderManager:
             avg = sum(((x.entry or Decimal(0)) * x.qty for x in t.legs), Decimal(0)) / t.qty
             p = rebuild_after_fill(t.plan, avg, inv, t2, t.tick, buf, mst, rmin, rmax)
             if isinstance(p, Skip):
-                await self.adapter.flatten(t.account)
-                t.closing = "RR_INVALID_AFTER_FILL"  # stays tracked until the exit fill books the real P&L
-                out.append(Event("FLATTENED", t, "RR_INVALID_AFTER_FILL"))
+                # stays tracked until the exit fill books the real P&L. Marked BEFORE the broker call: a failed
+                # flatten must not escape (it used to propagate out of on_fill) - the watchdog's retry_closing sees the
+                # open position of a 'closing' trade and flattens again; the account is paused + banner (§1.8)
+                t.closing = "RR_INVALID_AFTER_FILL"
+                try:
+                    await self.adapter.flatten(t.account)
+                except BrokerError as e:
+                    out.append(Event("PAUSE", t, f"RR_INVALID_FLATTEN_FAILED: {e}"))
+                else:
+                    out.append(Event("FLATTENED", t, "RR_INVALID_AFTER_FILL"))
         out.append(Event("OPENED", t))
         return out
 
