@@ -1,26 +1,30 @@
+import { lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import Layout from "../components/Layout";
 import Login from "../pages/Login";
-import Connections from "../pages/Connections";
-import NotFound from "../pages/NotFound";
-import Automation from "../pages/Automation";
-import Risk from "../pages/Risk";
-import Dashboard from "../pages/Dashboard";
-import Today from "../pages/Today";
-import Payouts from "../pages/Payouts";
-import Strategy from "../pages/Strategy";
-import Backtest from "../pages/Backtest";
-import Replay from "../pages/Replay";
-import OrderFlow from "../pages/OrderFlow";
-import LabPage from "../pages/Lab";
-import Signals from "../pages/Signals";
-import Journal from "../pages/Journal";
-import Trade from "../pages/Trade";
-import Accounts from "../pages/Accounts";
-import Settings from "../pages/Settings";
 import { LiveProvider } from "./live";
+
+// Pages load on demand (one small file each) instead of one 650 kB bundle; Login stays in the main bundle so the
+// first screen appears at once. The Suspense fallback lives in Layout, around the page area only.
+const Connections = lazy(() => import("../pages/Connections"));
+const NotFound = lazy(() => import("../pages/NotFound"));
+const Automation = lazy(() => import("../pages/Automation"));
+const Risk = lazy(() => import("../pages/Risk"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const Today = lazy(() => import("../pages/Today"));
+const Payouts = lazy(() => import("../pages/Payouts"));
+const Strategy = lazy(() => import("../pages/Strategy"));
+const Backtest = lazy(() => import("../pages/Backtest"));
+const Replay = lazy(() => import("../pages/Replay"));
+const OrderFlow = lazy(() => import("../pages/OrderFlow"));
+const Signals = lazy(() => import("../pages/Signals"));
+const Journal = lazy(() => import("../pages/Journal"));
+const Trade = lazy(() => import("../pages/Trade"));
+const Accounts = lazy(() => import("../pages/Accounts"));
+const Settings = lazy(() => import("../pages/Settings"));
+const LabPage = lazy(() => import("../pages/Lab"));
 
 export function useMe() {
   return useQuery({

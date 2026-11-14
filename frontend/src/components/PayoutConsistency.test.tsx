@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PayoutConsistencyCard, PayoutConsistencyNote, type PayoutConsistencyView } from "./PayoutConsistency";
 
@@ -33,6 +33,6 @@ test("Payouts card lists FUNDED accounts and stays hidden when there are none", 
   unmount();
   f.mockImplementation(async () => new Response(JSON.stringify({ accounts: [] })));
   render(<QueryClientProvider client={new QueryClient()}><PayoutConsistencyCard /></QueryClientProvider>);
-  await new Promise((r) => setTimeout(r, 50));
+  await act(() => new Promise((r) => setTimeout(r, 50)));
   expect(screen.queryByTestId("payout-consistency")).toBeNull();
 });

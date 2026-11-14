@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
@@ -14,7 +14,7 @@ const full: Safety = {
 
 function wrap(body: Safety) {
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify(body)));
-  render(<QueryClientProvider client={new QueryClient()}><MemoryRouter><SafetyBanners /></MemoryRouter></QueryClientProvider>);
+  render(<QueryClientProvider client={new QueryClient()}><MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><SafetyBanners /></MemoryRouter></QueryClientProvider>);
 }
 afterEach(() => vi.restoreAllMocks());
 
@@ -36,7 +36,7 @@ test("a lost feed past the flatten limit says the position is being closed", asy
 
 test("nothing wrong shows nothing", async () => {
   wrap({ unmanaged: [], feed: [], pending_exits: [], missed_checks: [] });
-  await new Promise((r) => setTimeout(r, 50));
+  await act(() => new Promise((r) => setTimeout(r, 50)));
   expect(screen.queryByTestId("safety-banners")).toBeNull();
 });
 

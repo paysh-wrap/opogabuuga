@@ -29,7 +29,7 @@ describe("UpdateBanner install", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={qc}>
-        <MemoryRouter>
+        <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <UpdateBanner />
         </MemoryRouter>
       </QueryClientProvider>,

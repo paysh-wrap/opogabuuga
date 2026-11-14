@@ -37,6 +37,7 @@ from app.management.dynamic_trail import TrailParams
 from app.management.profit_lock import PROFIT_LOCK_REASON
 from app.management.trade_manage import ManageCfg
 from app.models import Account, AuditLog, Bar, Order, Payout, Signal, Trade, TradePlanRow
+from app.monitor.feed import FeedDelayTracker
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
@@ -142,6 +143,7 @@ class Controller:
     _pending_exits: dict[str, str] = field(default_factory=dict)  # D55 strategy exits still inside the minimum hold
     bus: Any = None  # app.events.EventBus: stored notifications + WS events (§19)
     feed_delayed: dict[str, float] = field(default_factory=dict)  # D112 symbol → lag s (CME data not real-time)
+    feed_tracker: FeedDelayTracker = field(default_factory=FeedDelayTracker)  # item 8: per chart, feeds feed_delayed
     feed_state: dict[str, str] = field(default_factory=dict)  # symbol → WARN | LOST (position open, no 1-minute bar)
     _exposure_since: dict[str, datetime] = field(default_factory=dict)  # symbol → first seen with an open position
     _exit_alerted: set[str] = field(default_factory=set)  # trade ids whose failed strategy exit already alerted

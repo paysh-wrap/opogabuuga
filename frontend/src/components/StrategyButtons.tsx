@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { badge } from "../lib/theme";
+import MoreInfo from "./MoreInfo";
 
 // D55: strategy on/off buttons with the TESTED results next to each (static research facts from the server, not live
 // data). Each click saves a new versioned My Settings entry (rollback on the Risk page).
@@ -59,6 +60,9 @@ const k$ = (v: string) => `${Math.round(Number(v) / 1000)}K`;
 
 const pct = (x: number | null) => (x == null ? "—" : `${x.toFixed(1)}%`);
 const card = "rounded-xl border border-border bg-card p-4";
+/** Order-flow cards fold their study note together with their setup guide (one "More info" button per card). */
+const noteInSetup = (s: Strat) =>
+  s.key === "order_flow" || (s.key === "order_flow_amt" && !!s.amt_layers) || (s.key === "order_flow_zone" && !!s.zone_layers);
 
 export default function StrategyButtons() {
   const qc = useQueryClient();
@@ -89,7 +93,9 @@ export default function StrategyButtons() {
   return (
     <section className={card} data-testid="strategy-buttons">
       <h2 className="font-semibold text-gold">Strategies — tap to turn on/off</h2>
-      <p className="text-xs text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
+      <MoreInfo label="How these numbers were measured" testId="strategy-method">
+        <p className="text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
+      </MoreInfo>
       <div className="mt-3 grid gap-3 lg:grid-cols-3">
         {d.strategies.map((s) => (
           <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
@@ -112,11 +118,13 @@ export default function StrategyButtons() {
               <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
             </dl>
             {s.eval_odds && <p className="mt-1 text-xs text-blue" data-testid={`odds-${s.key}`}>Eval odds: {s.eval_odds.text}</p>}
-            <p className="mt-2 text-xs text-blue">{s.note}</p>
+            {!noteInSetup(s) && <MoreInfo testId={`more-${s.key}`}><p className="text-blue">{s.note}</p></MoreInfo>}
             {s.key === "order_flow" && (
               <div className="mt-2 text-xs" data-testid="order-flow-setup">
                 <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED</span>
                 <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
+                <MoreInfo label="More info + setup" testId={`more-${s.key}`}>
+                <p className="text-blue">{s.note}</p>
                 <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
                 {s.ar_layers && (
                   <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="order-flow-layers">
@@ -129,23 +137,30 @@ export default function StrategyButtons() {
                   <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
                   <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
                 </ol>
+                </MoreInfo>
               </div>
             )}
             {s.key === "order_flow_amt" && s.amt_layers && (
               <div className="mt-2 text-xs" data-testid="amt-setup">
                 <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span>
+                <MoreInfo testId={`more-${s.key}`}>
+                <p className="text-blue">{s.note}</p>
                 <p className="mt-1 text-blue">Top-down (D110): context first, location next, the order-flow signal LAST. Turning it on also turns Order Flow on; it only removes trades (codes OF_AMT_*).</p>
                 <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="amt-layers">
                   {s.amt_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
+                </MoreInfo>
               </div>
             )}
             {s.key === "order_flow_zone" && s.zone_layers && (
               <div className="mt-2 text-xs" data-testid="zone-setup">
                 <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · iceberg PROXY (no MBO data)</span>
+                <MoreInfo testId={`more-${s.key}`}>
+                <p className="text-blue">{s.note}</p>
                 <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
                   {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
+                </MoreInfo>
               </div>
             )}
             {s.key === "noise" && !w.ready && (
@@ -171,7 +186,7 @@ export default function StrategyButtons() {
                   );
                 })}
               </div>
-              <p className="mt-2 text-xs text-blue">{t.note}</p>
+              <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
             </div>
           ))}
         </div>
@@ -194,7 +209,7 @@ export default function StrategyButtons() {
                 })}
               </div>
               <p className="mt-2 text-sm">Suggested: {d.size_profiles.suggested.map((t) => <span key={t.account_size} className="mr-2">{k$(t.account_size)} <b className="text-gold">{t.contracts}</b></span>)}</p>
-              <p className="mt-1 text-xs text-blue">Only the 50K size differs (25K 1 · 100K 2 · 150K 3 in both). Eval pass / bust (this plan): Suggested table {oddsText(d.size_profiles.odds?.suggested)}; Regular table {oddsText(d.size_profiles.odds?.regular)}. As configured = the Regular / High-risk table below. Every safety check still applies either way.</p>
+              <MoreInfo testId="more-noise-size"><p className="text-blue">Only the 50K size differs (25K 1 · 100K 2 · 150K 3 in both). Eval pass / bust (this plan): Suggested table {oddsText(d.size_profiles.odds?.suggested)}; Regular table {oddsText(d.size_profiles.odds?.regular)}. As configured = the Regular / High-risk table below. Every safety check still applies either way.</p></MoreInfo>
             </div>
           )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>

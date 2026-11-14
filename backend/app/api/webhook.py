@@ -138,13 +138,18 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
         ss0 = st.market.states.get((acc.symbol, p.profile))
         if ss0 is not None and not replay:
             ss0.data_feed, ss0.feed_lag_s = df, lag
-        if df == "delayed" and not replay:
-            if acc.symbol not in ctl.feed_delayed:
-                detail = f"{acc.symbol}: {int(lag)} s behind - new entries blocked"
+        if not replay:  # item 8: per chart, cleared only after 3 real-time bars in a row (no flip-flop)
+            change = ctl.feed_tracker.update(acc.symbol, p.profile, df, lag)
+            sym_lag = ctl.feed_tracker.symbol_lag(acc.symbol)
+            if sym_lag is None:
+                ctl.feed_delayed.pop(acc.symbol, None)
+            else:
+                ctl.feed_delayed[acc.symbol] = sym_lag
+            if change == "DELAYED":
+                detail = f"{acc.symbol} {p.profile}: {int(lag)} s behind - new entries blocked"
                 ctl.notify("error", "CME data is DELAYED", detail, "feed")
-            ctl.feed_delayed[acc.symbol] = lag
-        elif not replay and ctl.feed_delayed.pop(acc.symbol, None) is not None:
-            ctl.notify("info", "CME data is real-time again", acc.symbol, "feed")
+            elif change == "CLEARED":
+                ctl.notify("info", "CME data is real-time again", f"{acc.symbol}: 3 real-time bars in a row", "feed")
         finest = ctl.bar_feed_ok(acc.symbol, p.tf, st.clock.now())  # D37: no pre-entry ranges from slower bars
         if finest:
             await ctl.on_bar(

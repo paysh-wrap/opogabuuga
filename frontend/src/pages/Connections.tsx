@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import MoreInfo from "../components/MoreInfo";
 import AiPricing from "../components/AiPricing";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, type Connection, type ConnectionsResponse, type Indicator } from "../lib/api";
@@ -100,15 +101,17 @@ function ConnectionCard({ c }: { c: Connection }) {
         </p>
       )}
 
-      {c.steps.length > 0 && (
-        <ol className="mt-2 list-decimal space-y-0.5 pl-5 text-xs">{c.steps.map((s) => <li key={s}>{s}</li>)}</ol>
+      {(c.steps.length > 0 || c.note) && (
+        <MoreInfo label="Setup steps" testId={`more-${c.id}`}>
+          {c.steps.length > 0 && <ol className="list-decimal space-y-0.5 pl-5">{c.steps.map((s) => <li key={s}>{s}</li>)}</ol>}
+          {c.note && <p className="mt-2 text-goldLight">{c.note}</p>}
+        </MoreInfo>
       )}
 
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
         {c.links.map((l) => <ExtLink key={l.url + l.label} href={l.url}>{l.label}</ExtLink>)}
         {llmKeyUrl && !c.links.some((l) => l.url === llmKeyUrl) && <ExtLink href={llmKeyUrl}>{`Get ${selectedLlm} API key`}</ExtLink>}
       </div>
-      {c.note && <p className="mt-2 text-xs text-goldLight">{c.note}</p>}
 
       {c.fields.length > 0 && (
         <form onSubmit={submit} className={`mt-3 grid gap-2 ${c.fields.length > 1 ? "sm:grid-cols-2" : ""}`} autoComplete="off">

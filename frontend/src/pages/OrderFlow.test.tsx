@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import OrderFlow from "./OrderFlow";
@@ -114,5 +114,6 @@ test("D109: TradingAgents advisor panel + TradingView indicator guide (webhook U
   expect(g).toHaveTextContent("shown only on the Connections page");
   expect(screen.getByTestId("of-download")).toHaveAttribute("href", "/api/pine/orderflow");
   fireEvent.click(screen.getByTestId("of-ta-toggle"));
-  await vi.waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings"))).toBe(true));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings"))).toBe(true));
+  await act(() => new Promise((r) => setTimeout(r, 30))); // let the saved-toggle refresh settle inside act
 });

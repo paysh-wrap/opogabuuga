@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BuildFooter, StaleUiBanner } from "./BuildGuard";
 import { isStaleUi, short } from "../lib/build";
@@ -45,7 +45,7 @@ describe("BuildGuard", () => {
   it("shows no banner when the commits match", async () => {
     health({ app: "paytience", build: { commit: UI_COMMIT, built_at: "" } });
     mount(<StaleUiBanner />);
-    await new Promise((r) => setTimeout(r, 30));
+    await act(() => new Promise((r) => setTimeout(r, 30)));
     expect(screen.queryByTestId("banner-stale-ui")).toBeNull();
   });
 

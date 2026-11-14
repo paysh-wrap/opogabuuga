@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import Header from "./Header";
 import SafetyBanners from "./SafetyBanners";
@@ -45,7 +46,9 @@ export default function Layout() {
       <main className="mx-auto max-w-6xl px-4 py-6">
         <SafetyBanners />
         <UpdateBanner />
-        <Outlet />
+        <Suspense fallback={<p className="p-6" role="status">Loading…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
       <BuildFooter />
       <MobileDock />

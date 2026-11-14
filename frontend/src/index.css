@@ -214,3 +214,11 @@ main > * { animation: fade-up .22s var(--ease) both; }
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
   button:not(:disabled):hover, .stat-tile:hover { transform: none; }
 }
+
+/* "More info" toggle (session 22, item 11): long study text folded, never removed */
+.more-info > summary { list-style: none; }
+.more-info > summary::-webkit-details-marker { display: none; }
+.more-info > summary::after { content: "▾"; }
+.more-info[open] > summary::after { content: "▴"; }
+.more-info > summary:hover { border-color: var(--gold); color: var(--gold); }
+.more-info > summary:focus-visible { outline: 2px solid #F2D27A; outline-offset: 2px; box-shadow: var(--ring); }

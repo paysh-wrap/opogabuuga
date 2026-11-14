@@ -1,3 +1,4 @@
+import MoreInfo from "./MoreInfo";
 /** Static, cited price list (as of 2026-11-05). Claude stays the main TradingAgents source; these are alternates. */
 const ROWS: { fam: string; route: string; model: string; inp: string; out: string; run: string; url: string; works: boolean }[] = [
   { fam: "Qwen", route: "Alibaba Model Studio (official, Singapore)", model: "qwen-flash", inp: "0.05", out: "0.40", run: "≈ $0.03", url: "https://www.alibabacloud.com/help/en/model-studio/model-pricing", works: true },
@@ -12,6 +13,7 @@ export default function AiPricing() {
   return (
     <section className="rounded-xl border border-border bg-card p-4 text-sm" data-testid="ai-pricing">
       <h2 className="font-semibold text-gold">Cheapest ways to get Kimi / Qwen (alternates — Claude is the main source)</h2>
+      <MoreInfo label="Show prices" testId="more-ai-pricing">
       <p className="text-xs opacity-80">Prices per 1M tokens, as of 2026-11-05 (check the link before buying). "Per run" = one daily TradingAgents analysis, about 300k in / 30k out tokens.</p>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full text-xs"><thead><tr className="text-left text-gold"><th>Model</th><th>Route</th><th>$ in</th><th>$ out</th><th>Per run</th><th /></tr></thead>
@@ -27,6 +29,7 @@ export default function AiPricing() {
         </table>
       </div>
       <p className="mt-2 text-xs opacity-80">Notes: no free credit is offered by either official API. Kimi K2 models close to new users from Oct 31, 2026 and retire by end of Dec 2026 — use K3 after that. OpenRouter isn't supported directly by TradingAgents.</p>
+      </MoreInfo>
     </section>
   );
 }

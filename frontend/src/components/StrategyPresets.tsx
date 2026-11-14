@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MoreInfo from "./MoreInfo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { badge } from "../lib/theme";
@@ -31,9 +32,9 @@ export default function StrategyPresets() {
   return (
     <section className={card} data-testid="strategy-presets">
       <h2 className="font-semibold text-gold">Strategy preset — NOISE on MNQ</h2>
-      <p className="text-xs text-blue">
+      <MoreInfo testId="more-presets"><p className="text-blue">
         A preset sets only the NOISE settings, the afternoon-fade button and the size table. Every preset keeps a stop loss on every trade, the hourly band/VWAP exits and the 16:00 flat, and none changes the kill switch, loss limits or any risk check. It applies to the next NEW trade; the mode stays PAPER until you change it.
-      </p>
+      </p></MoreInfo>
       <p className="mt-1 text-sm" data-testid="preset-active">
         Active: <b className="text-gold">{d.active ? d.rows.find((r) => r.key === d.active)?.label ?? d.active : "Custom (the values in the plan file)"}</b>
         {d.active && (

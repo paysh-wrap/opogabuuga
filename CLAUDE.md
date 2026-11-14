@@ -111,8 +111,8 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - Data: Databento MGC must be MGC.v.0 (volume roll). MGC.c.0 follows illiquid serial months → broken backtests.
 - SAVE RULE (user, binding): nothing may ever be lost. After EVERY commit or finished backtest: write results to
   docs/results/, commit, rebuild the bundle and republish the handoff artifact
-  (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + paytience.bundle.b64.txt). Push to GitHub
-  paysh-wrap/beast once the user's GitHub account is linked. Focus: Intraday MGC (never lower its win rate).
+  (https://claude.ai/artifact/E8MC18AtXmQgXpEe4utCku: HANDOFF.md + source snapshot). Push to GitHub
+  paysh-wrap/opogabuuga (the git remote and the desktop updater use it). Focus: Intraday MGC (never lower its win rate).
 - WIN-RATE RULE (user, binding, 2026-11-06, updated by D49): MAIN STRATEGY = D49 "trend-aligned 1.5–2.5R" on MGC +
   MNQ + MES (rr 1.5–2.5, no 1R targets, UT Bot 5m + EMA200 5m must agree, full windows; config refuses rr_min < 1.5).
   Never add anything that lowers its measured win rate/profit; only add a change measured to improve it on HELD-OUT

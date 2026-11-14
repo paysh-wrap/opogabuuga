@@ -16,6 +16,7 @@ pivL      = input.int(5, "HTF pivot left", minval = 1)
 pivR      = input.int(5, "HTF pivot right", minval = 1)
 atrLen    = input.int(14, "HTF ATR length", minval = 1)
 showMarks = input.bool(true, "Show markers")
+delayLimS = input.int(90, "CME delay limit (s) — same as the app's webhook.realtime_max_lag_s", minval = 5, maxval = 900)
 
 htfMin      = profile == "TIGHT" ? 15 : 60
 htfStr      = profile == "TIGHT" ? "15" : "60"
@@ -235,7 +236,7 @@ if barstate.isconfirmed
 
     // ---------- heartbeat (D120: no mso field) ----------
     // D112: real-time check - on a live bar, timenow - time_close is the delay of the data feed (CME real-time = ~0).
-    string dataFeed = barstate.isrealtime ? ((timenow - time_close) <= 90000 ? "realtime" : "delayed") : "unknown"
+    string dataFeed = barstate.isrealtime ? ((timenow - time_close) <= delayLimS * 1000 ? "realtime" : "delayed") : "unknown"
     f_send("HEARTBEAT", "NONE", '"data_feed":"' + dataFeed + '","price":{"o":' + f_px(open) + ',"h":' + f_px(high) + ',"l":' + f_px(low) +
                                 ',"c":' + f_px(close) + ',"v":' + str.tostring(volume) + '}')
 

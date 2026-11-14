@@ -547,3 +547,17 @@ only POST webhook open (signed alert accepted, duplicate flagged, bad secret ref
 HTTP→HTTPS 308, port 8000 unreachable, HSTS/CSP, browser login with Secure+SameSite=Strict cookies, live WebSocket push through Caddy,
 backup integrity ok, data kept across restart. Test stack + test .env removed. USER TODO: buy domain + Ubuntu server, A record, run
 `sudo bash deploy/setup.sh`; ask Lucid if VPS trading is allowed; run only one Paytience (disarm the PC app).
+
+## Session 22 cont. (2026-11-14) — items 8, 10, 11, 12 (user-chosen improvements)
+8 Feed delay: monitor/feed.FeedDelayTracker keeps the CME-delayed state per chart (symbol, profile); a symbol is blocked while ANY chart is
+  delayed and clears only after 3 non-delayed bars in a row (was: cleared by any one normal bar → flip-flop + notification spam with a 1m + 5m
+  chart). One notification per change. Pine bridge: delay limit is now an input (default 90 s = webhook.realtime_max_lag_s).
+10 Speed: pytest-xdist, `make test-backend` runs `-n auto` (4 CPUs: 7 min → 3 min 23 s; coverage gate unchanged). Frontend: pages lazy-loaded
+  (main bundle 649 kB → 237 kB, no Vite size warning), all act()/React Router warnings fixed. 3 SQLite "unclosed database" ResourceWarnings
+  remain in the backend run: traced into SQLAlchemy pool cleanup during test writes, not app code — left as is.
+11 More info: components/MoreInfo.tsx (<details>, folded by default, text never removed). Strategy page: method intro, every card's study
+  note (order-flow cards: note + setup guide in one button), toggle notes, 50K size note, presets intro. Connections: each card's setup
+  steps + note ("Setup steps"), AI pricing table ("Show prices"). Phone height: Strategy 14,658 → 12,628 px, Connections 11,217 → 9,903 px
+  (the rest is buttons, numbers and the gate status list — not study text).
+12 CLAUDE.md: push target is paysh-wrap/opogabuuga (was paysh-wrap/beast).
+Tests: backend 1,266 passed (100 % cov), frontend 112, e2e 20/20, ruff/mypy/eslint/tsc clean.

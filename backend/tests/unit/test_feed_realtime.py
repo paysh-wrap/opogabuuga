@@ -47,3 +47,20 @@ def test_ingest_tolerant_and_real_delta() -> None:
     assert st.real_delta is None
     st = store.apply("MNQ", _p(up_volume="7", down_volume="3", delta="4"))
     assert st.real_delta == {"up_volume": Decimal(7), "down_volume": Decimal(3), "delta": Decimal(4)}
+
+
+def test_tracker_symbol_delayed_while_any_chart_is_and_clears_after_three_good_bars():
+    from app.monitor.feed import FeedDelayTracker
+
+    t = FeedDelayTracker()
+    assert t.update("MNQ", "TIGHT", "delayed", 120) == "DELAYED"
+    assert t.update("MNQ", "STD", "realtime", 1) is None  # the other chart being fine does not clear it (was: flip)
+    assert t.update("MNQ", "TIGHT", "realtime", 1) is None
+    assert t.update("MNQ", "TIGHT", "delayed", 95) is None  # streak reset, still one change only
+    assert t.symbol_lag("MNQ") == 95
+    assert [t.update("MNQ", "TIGHT", "unknown", 2) for _ in range(2)] == [None, None]
+    assert t.update("MNQ", "TIGHT", "realtime", 1) == "CLEARED"  # 3 non-delayed bars in a row
+    assert t.symbol_lag("MNQ") is None
+    assert t.update("MES", "TIGHT", "realtime", 1) is None  # never delayed: nothing to clear
+    t.update("MNQ", "TIGHT", "delayed", 100)
+    assert t.update("MNQ", "STD", "delayed", 300) is None and t.symbol_lag("MNQ") == 300  # worst chart's lag

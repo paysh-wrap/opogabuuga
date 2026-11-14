@@ -48,3 +48,33 @@ def data_feed_status(declared: str | None, lag_s: float | None, max_lag_s: int, 
     if declared == "realtime" and lag_s is not None:
         return "realtime"
     return "unknown"
+
+
+class FeedDelayTracker:
+    """Delayed-data state per CHART (symbol, profile) — session 22 item 8. Before, one state per symbol was set by a
+    delayed chart and cleared by the next normal bar of ANY chart, so a 1m and a 5m MNQ chart that disagreed flipped it
+    on every heartbeat (notification spam, entries switching on and off). Now:
+      * a symbol counts as delayed while ANY of its charts is delayed (tighter, never looser);
+      * a chart clears only after `clear_after` non-delayed bars IN A ROW (a single good bar no longer clears it).
+    `update` returns "DELAYED" / "CLEARED" only when the SYMBOL's state changes (one notification per change)."""
+
+    def __init__(self, clear_after: int = 3) -> None:
+        self.clear_after = clear_after
+        self._lag: dict[tuple[str, str], float] = {}  # delayed charts → last lag (s)
+        self._ok: dict[tuple[str, str], int] = {}  # delayed charts → non-delayed bars in a row since
+
+    def symbol_lag(self, symbol: str) -> float | None:
+        lags = [v for (s, _), v in self._lag.items() if s == symbol]
+        return max(lags) if lags else None
+
+    def update(self, symbol: str, profile: str, status: DataFeed, lag_s: float) -> Literal["DELAYED", "CLEARED"] | None:
+        key = (symbol, profile)
+        before = self.symbol_lag(symbol) is not None
+        if status == "delayed":
+            self._lag[key], self._ok[key] = lag_s, 0
+        elif key in self._lag:
+            self._ok[key] += 1
+            if self._ok[key] >= self.clear_after:
+                del self._lag[key], self._ok[key]
+        after = self.symbol_lag(symbol) is not None
+        return "DELAYED" if after and not before else "CLEARED" if before and not after else None
