@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
@@ -38,6 +38,9 @@ export default function Risk() {
   const st = useQuery({ queryKey: ["risk"], queryFn: () => api<Settings>("/api/risk/settings") });
   const [impact, setImpact] = useState<PreviewResp | null>(null);
   const lv = useQuery({ queryKey: ["live"], queryFn: () => api<Live>("/api/live"), refetchInterval: 30000 });
+  useEffect(() => {  // header "Live trade" pill links to /risk#live-trading: jump there once the panel has rendered
+    if (lv.data && window.location.hash === "#live-trading") document.getElementById("live-trading")?.scrollIntoView();
+  }, [lv.data]);
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
     onMutate: () => setErr(""),
@@ -117,7 +120,7 @@ export default function Risk() {
       <EvalModePanel />
       <FastEvalPanel />
 
-      <section className="rounded-xl border border-gold bg-card p-4">
+      <section id="live-trading" className="rounded-xl border border-gold bg-card p-4">
         <h2 className="font-semibold text-gold">Live trading {lv.data?.live ? "· LIVE" : "· PAPER"}</h2>
         <ul className="mt-2 grid gap-1 text-sm sm:grid-cols-2">
           {lv.data?.checklist.map((c) => (

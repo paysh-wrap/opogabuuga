@@ -71,3 +71,19 @@ def test_numbers_follow_plan_table_and_eod_toggle(authed, real_odds):
     authed.put("/api/risk/settings", json={"changes": {"strategy.high_risk": True}, "note": "t"})
     noise = next(s for s in _strategies(authed)["strategies"] if s["key"] == "noise")
     assert noise["eval_odds"]["table"] == "high"
+
+
+def test_eod_card_shows_eod_vs_intraday_from_the_shipped_file(authed):
+    """Session 22: the EOD toggle card carries the EOD-vs-intraday trailing comparison (config/eval_odds.yaml)."""
+    from app import eval_odds as E
+
+    E.load_odds.cache_clear()
+    try:
+        eod = {t["key"]: t for t in _strategies(authed)["toggles"]}["eod_closed_balance"]
+        c = eod["compare"]
+        plan = authed.app.state.rules.plan
+        assert len(c["rows"]) == 9 and c["current"]["plan"] == plan
+        assert c["current"]["intraday"]["pass"] < c["current"]["eod"]["pass"]
+        assert c["text"].startswith("EOD trailing pass ") and "intraday trailing pass" in c["text"]
+    finally:
+        E.load_odds.cache_clear()

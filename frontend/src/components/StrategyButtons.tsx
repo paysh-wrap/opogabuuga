@@ -35,7 +35,11 @@ export interface StrategiesResp {
   toggles?: ToggleRow[];
 }
 // D132 / D133: two-way toggles (My Settings keys; each save is validated, versioned and audit-logged)
-export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string }
+export interface DdOdds { pass: number; bust: number; j_pass: number; j_bust: number }
+export interface DdRow { plan: string; eod: DdOdds; intraday: DdOdds }
+/** Session 22: EOD-trailing vs intraday-trailing drawdown (config/eval_odds.yaml drawdown_types). */
+export interface DrawdownCompare { current: DdRow | null; rows: DdRow[]; source: string | null; text: string }
+export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
   enabled: boolean; connected: boolean; message: string | null;
@@ -66,6 +70,48 @@ const pickLabel = (inUse: boolean) => (inUse ? "✓ IN USE" : "USE THIS");
 /** Order-flow cards fold their study note together with their setup guide (one "More info" button per card). */
 const noteInSetup = (s: Strat) =>
   s.key === "order_flow" || (s.key === "order_flow_amt" && !!s.amt_layers) || (s.key === "order_flow_zone" && !!s.zone_layers);
+
+const planName = (stem: string) => { const [kind = "", size = ""] = stem.replace(/^lucid_/, "").split("_"); return `${kind.charAt(0).toUpperCase()}${kind.slice(1)} ${size.toUpperCase()}`; }; // lucid_pro_25k → Pro 25K
+const pb = (o: DdOdds, j = false) => `${Math.round(j ? o.j_pass : o.pass)}/${Math.round(j ? o.j_bust : o.bust)}`;
+
+/** Session 22: what the account's DRAWDOWN TYPE does to the eval odds (the toggle above only changes the kill switch). */
+function DrawdownCompareView({ c }: { c: DrawdownCompare }) {
+  return (
+    <div className="mt-2 text-xs" data-testid="dd-compare">
+      <p className="text-blue">
+        <b className="text-gold">EOD vs intraday drawdown</b> (this plan, pass / bust):{" "}
+        {c.current ? (
+          <span data-testid="dd-compare-current">
+            EOD trailing <b className="text-gold">{pb(c.current.eod)}</b> (last 12 mo {pb(c.current.eod, true)}) · intraday trailing{" "}
+            <b className="text-gold">{pb(c.current.intraday)}</b> (last 12 mo {pb(c.current.intraday, true)})
+          </span>
+        ) : (
+          <span>{c.text}</span>
+        )}
+      </p>
+      {c.rows.length > 0 && (
+        <MoreInfo label="All plans: EOD vs intraday" testId="more-dd-compare">
+          <div className="overflow-x-auto">
+          <table className="w-full" data-testid="dd-compare-table">
+            <thead>
+              <tr className="text-left text-gold"><th>Plan</th><th>EOD</th><th>Intra</th><th>EOD 1y</th><th>Intra 1y</th></tr>
+            </thead>
+            <tbody>
+              {c.rows.map((r) => (
+                <tr key={r.plan} className="border-t border-border">
+                  <td className="py-0.5">{planName(r.plan)}</td><td className="text-gold">{pb(r.eod)}</td><td>{pb(r.intraday)}</td>
+                  <td className="text-gold">{pb(r.eod, true)}</td><td>{pb(r.intraday, true)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+          <p className="mt-1 text-blue">Pass / bust %. 1y = the last 12 months. Same NOISE strategy and account simulator, regular size table, 2021-10 → 2026-10 (last 12 mo = 2025-11 → 2026-10). Intraday trailing raises the floor on open-profit highs that NOISE often gives back, so accounts run out of room. Past results do not guarantee future results. Source: {c.source}</p>
+        </MoreInfo>
+      )}
+    </div>
+  );
+}
 
 export default function StrategyButtons() {
   const qc = useQueryClient();
@@ -189,6 +235,7 @@ export default function StrategyButtons() {
                   );
                 })}
               </div>
+              {t.compare && <DrawdownCompareView c={t.compare} />}
               <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
             </div>
           ))}

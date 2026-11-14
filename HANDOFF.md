@@ -574,3 +574,4 @@ Study docs/results/session22/eod_vs_intraday/RESULTS.md (agent; EOD columns = ev
 points ALL and 13–19 in the last 12 months (Pro 25K EOD 57/43 vs intraday 39/61; J 40/60 vs 21/79). Mechanism: NOISE gives back open
 profit (mean best open $185/micro vs $29.5 closed), intraday floor ratchets on unrealised highs → accounts run out of room. Kill-switch
 setting (eod_closed_balance) still 0 pt (gaps not modelled).
+D141 (2026-11-14): EOD-vs-intraday results shown on the Strategy-page EOD card (config/eval_odds.yaml drawdown_types); header pill "Intraday" → "Live trade · ON/OFF" (truthful, from /api/live, links to Risk → Live trading). Backend 1,270 + frontend 114 tests, e2e 20/20.

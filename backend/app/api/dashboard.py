@@ -493,7 +493,7 @@ def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
 
 def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
     """D132 / D133: two-way Strategy-page toggles (My Settings keys; each save is validated, versioned, audited)."""
-    from app.eval_odds import odds_view
+    from app.eval_odds import drawdown_compare, odds_view
 
     st, nc = r.strategy, r.strategy.noise_cfg
     eod = st.eod_closed_balance
@@ -523,7 +523,8 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
             "daily loss limit and the pre-trade room check still apply. Lucid rules (user, 2026-11-13): on EOD "
             "accounts (Pro and Flex eval + funded) an open loss touching the floor does not breach by itself; "
             "the balance measured at the session end does. LucidDaily funded is intraday, so this toggle never "
-            "applies to it.",
+            "applies to it. Measured: this setting changes 0 points on every plan (session 21 + 22).",
+            "compare": drawdown_compare(plan),  # session 22: EOD vs intraday trailing drawdown (config/eval_odds.yaml)
         }
     )
     if nc.profit_lock_trigger_alt_pts is not None and nc.profit_lock_trigger_pts is not None:

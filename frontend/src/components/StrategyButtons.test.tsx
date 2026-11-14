@@ -32,7 +32,11 @@ const resp: StrategiesResp = {
   },
   toggles: [
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
-    { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account." },
+    { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
+      compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
+        current: { plan: "lucid_pro_25k", eod: { pass: 57, bust: 43, j_pass: 40, j_bust: 60 }, intraday: { pass: 39, bust: 61, j_pass: 21, j_bust: 79 } },
+        rows: [{ plan: "lucid_pro_25k", eod: { pass: 57, bust: 43, j_pass: 40, j_bust: 60 }, intraday: { pass: 39, bust: 61, j_pass: 21, j_bust: 79 } },
+          { plan: "lucid_flex_150k", eod: { pass: 78, bust: 16, j_pass: 70, j_bust: 8 }, intraday: { pass: 72, bust: 22, j_pass: 56, j_bust: 15 } }] } },
     { key: "noise_lock_alt", setting: "strategy.noise_lock_alt", title: "NOISE profit-lock trigger", value: false, on_label: "80 pt — experimental, likely chance", off_label: "100 pt (default, session-19 preset C)", note: "same lock distance" },
   ],
 };
@@ -95,6 +99,10 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   // D137: EOD toggle with its VERIFY badge
   expect(screen.getByTestId("verify-eod_closed_balance")).toHaveTextContent("VERIFY");
   expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("✓ IN USE · Kill switch watches balance + open P&L (default, safest)");
+  // session 22: EOD vs intraday trailing comparison on the EOD card (this plan visible, all plans behind a button)
+  expect(screen.getByTestId("dd-compare-current")).toHaveTextContent("EOD trailing 57/43 (last 12 mo 40/60) · intraday trailing 39/61 (last 12 mo 21/79)");
+  expect(screen.getByTestId("dd-compare-table")).toHaveTextContent("Pro 25K57/4339/6140/6021/79");
+  expect(screen.getByTestId("dd-compare-table")).toHaveTextContent("Flex 150K78/1672/2270/856/15");
   const inUse = screen.getByTestId("toggle-eod_closed_balance-off");
   expect(inUse).not.toBeDisabled(); // the chosen option is not a faded "not allowed" button (user 2026-11-14)
   await userEvent.click(inUse); // already in use: clicking it sends nothing

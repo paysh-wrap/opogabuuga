@@ -26,10 +26,11 @@ export default function Header() {
   const health = useQuery({ queryKey: ["health"], queryFn: () => api<Health>("/api/health"), refetchInterval: 15_000 });
   const conns = useQuery({ queryKey: ["connections"], queryFn: () => api<ConnectionsResponse>("/api/connections") });
   const s = conns.data?.summary;
-  const risk = useQuery({ queryKey: ["risk"], queryFn: () => api<{ settings: Record<string, unknown> }>("/api/risk/settings") });
   const low = useQuery({ queryKey: ["lowrisk"], queryFn: () => api<{ enabled: boolean }>("/api/risk/low-risk") });
-  const rs = risk.data?.settings;
-  const tradeMode = !rs ? null : "Intraday";
+  // user 2026-11-14: the header pill (was the static "Intraday" style label) is now "Live trade" and always says whether
+  // live trading is really ON (every live gate green) or OFF — never just "Live trade" next to PAPER, which would mislead
+  const live = useQuery({ queryKey: ["live"], queryFn: () => api<{ live: boolean }>("/api/live"), refetchInterval: 30000 });
+  const liveOn = live.data?.live;
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -47,10 +48,10 @@ export default function Header() {
         <span data-testid="mode" className="rounded border border-border px-2 py-0.5 text-xs font-semibold text-goldLight">
           {health.data?.mode ?? "…"}
         </span>
-        {tradeMode && (
-          <a href="/risk" data-testid="trade-mode" title="Trading mode (change on the Risk page)"
+        {liveOn !== undefined && (
+          <a href="/risk#live-trading" data-testid="live-trade-pill" title="Live trading: checklist and switch on the Risk page"
             className="rounded-full border border-gold/50 bg-gold/10 px-2.5 py-0.5 text-xs font-semibold text-gold hover:text-goldLight">
-            {tradeMode}{low.data?.enabled ? " · Lower risk" : ""}
+            Live trade · {liveOn ? "ON" : "OFF"}{low.data?.enabled ? " · Lower risk" : ""}
           </a>
         )}
         {s && (

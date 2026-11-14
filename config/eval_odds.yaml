@@ -194,3 +194,36 @@ plans:
       brake: "1 below 50% cushion"
       eod_on: {all: {pass: 61, bust: 39, stuck: 39, open: 0, days: 54}, is: {pass: 60, bust: 40, stuck: 40, open: 0, days: 57}, j: {pass: 61, bust: 39, stuck: 39, open: 0, days: 38}}
       eod_off: {all: {pass: 61, bust: 39, stuck: 39, open: 0, days: 54}, is: {pass: 60, bust: 40, stuck: 40, open: 0, days: 57}, j: {pass: 61, bust: 39, stuck: 39, open: 0, days: 38}}
+
+# Session 22: EOD-trailing vs intraday-trailing drawdown, same NOISE stream + simulator, REGULAR size table (generated from
+# docs/results/session22/eod_vs_intraday/results.json — do not edit by hand). eod = what the app's odds above use (kill switch OFF).
+drawdown_types:
+  source: docs/results/session22/eod_vs_intraday/RESULTS.md
+  plans:
+    lucid_daily_25k:
+      eod: {all: {pass: 52, bust: 48, stuck: 48, open: 0, days: 54}, is: {pass: 52, bust: 48, stuck: 48, open: 0, days: 53}, j: {pass: 37, bust: 63, stuck: 63, open: 0, days: 38}}
+      intraday: {all: {pass: 34, bust: 66, stuck: 56, open: 0, days: 48}, is: {pass: 36, bust: 64, stuck: 57, open: 0, days: 47}, j: {pass: 18, bust: 82, stuck: 63, open: 0, days: 34}}
+    lucid_flex_100k:
+      eod: {all: {pass: 76, bust: 20, stuck: 20, open: 4, days: 162}, is: {pass: 78, bust: 17, stuck: 17, open: 5, days: 175}, j: {pass: 67, bust: 32, stuck: 32, open: 1, days: 123}}
+      intraday: {all: {pass: 69, bust: 28, stuck: 25, open: 3, days: 161}, is: {pass: 72, bust: 24, stuck: 23, open: 4, days: 169}, j: {pass: 48, bust: 52, stuck: 37, open: 1, days: 119}}
+    lucid_flex_150k:
+      eod: {all: {pass: 78, bust: 16, stuck: 16, open: 7, days: 169}, is: {pass: 78, bust: 15, stuck: 15, open: 7, days: 176}, j: {pass: 70, bust: 8, stuck: 8, open: 23, days: 128}}
+      intraday: {all: {pass: 72, bust: 22, stuck: 21, open: 6, days: 168}, is: {pass: 73, bust: 20, stuck: 19, open: 7, days: 174}, j: {pass: 56, bust: 15, stuck: 10, open: 29, days: 128}}
+    lucid_flex_25k:
+      eod: {all: {pass: 51, bust: 49, stuck: 49, open: 0, days: 52}, is: {pass: 52, bust: 48, stuck: 48, open: 0, days: 53}, j: {pass: 32, bust: 68, stuck: 68, open: 0, days: 35}}
+      intraday: {all: {pass: 34, bust: 66, stuck: 57, open: 0, days: 48}, is: {pass: 36, bust: 64, stuck: 57, open: 0, days: 47}, j: {pass: 17, bust: 83, stuck: 67, open: 0, days: 32}}
+    lucid_flex_50k:
+      eod: {all: {pass: 61, bust: 39, stuck: 39, open: 0, days: 74}, is: {pass: 66, bust: 34, stuck: 34, open: 0, days: 79}, j: {pass: 48, bust: 52, stuck: 52, open: 0, days: 55}}
+      intraday: {all: {pass: 53, bust: 47, stuck: 42, open: 0, days: 76}, is: {pass: 55, bust: 45, stuck: 42, open: 0, days: 71}, j: {pass: 31, bust: 69, stuck: 55, open: 0, days: 51}}
+    lucid_pro_100k:
+      eod: {all: {pass: 77, bust: 18, stuck: 18, open: 4, days: 162}, is: {pass: 79, bust: 16, stuck: 16, open: 6, days: 175}, j: {pass: 68, bust: 31, stuck: 31, open: 1, days: 124}}
+      intraday: {all: {pass: 69, bust: 28, stuck: 24, open: 3, days: 161}, is: {pass: 73, bust: 22, stuck: 21, open: 5, days: 171}, j: {pass: 49, bust: 50, stuck: 36, open: 1, days: 121}}
+    lucid_pro_150k:
+      eod: {all: {pass: 78, bust: 14, stuck: 14, open: 7, days: 170}, is: {pass: 79, bust: 14, stuck: 14, open: 7, days: 177}, j: {pass: 71, bust: 6, stuck: 6, open: 23, days: 130}}
+      intraday: {all: {pass: 74, bust: 21, stuck: 19, open: 6, days: 173}, is: {pass: 73, bust: 20, stuck: 19, open: 7, days: 174}, j: {pass: 58, bust: 14, stuck: 9, open: 28, days: 132}}
+    lucid_pro_25k:
+      eod: {all: {pass: 57, bust: 43, stuck: 43, open: 0, days: 56}, is: {pass: 57, bust: 43, stuck: 43, open: 0, days: 56}, j: {pass: 40, bust: 60, stuck: 60, open: 0, days: 40}}
+      intraday: {all: {pass: 39, bust: 61, stuck: 53, open: 0, days: 50}, is: {pass: 42, bust: 58, stuck: 54, open: 0, days: 49}, j: {pass: 21, bust: 79, stuck: 60, open: 0, days: 35}}
+    lucid_pro_50k:
+      eod: {all: {pass: 65, bust: 34, stuck: 34, open: 0, days: 78}, is: {pass: 66, bust: 33, stuck: 33, open: 0, days: 80}, j: {pass: 52, bust: 48, stuck: 48, open: 0, days: 55}}
+      intraday: {all: {pass: 55, bust: 44, stuck: 40, open: 0, days: 78}, is: {pass: 58, bust: 41, stuck: 40, open: 0, days: 76}, j: {pass: 34, bust: 66, stuck: 50, open: 0, days: 53}}

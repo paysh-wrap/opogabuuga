@@ -46,12 +46,27 @@ class TableOdds(BaseModel):
     eod_off: EraOdds
 
 
+class DrawdownPair(BaseModel):
+    """Session 22: same strategy + simulator with an EOD-trailing vs an intraday-trailing loss floor (regular table)."""
+
+    model_config = ConfigDict(frozen=True)
+    eod: EraOdds
+    intraday: EraOdds
+
+
+class DrawdownTypes(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    source: str
+    plans: dict[str, DrawdownPair]
+
+
 class OddsFile(BaseModel):
     model_config = ConfigDict(frozen=True)
     version: int
     study: str
     source: str
     plans: dict[str, dict[str, TableOdds]]
+    drawdown_types: DrawdownTypes | None = None  # session 22 (optional: an older file without it still loads)
 
 
 @lru_cache(maxsize=1)
@@ -106,4 +121,41 @@ def odds_view(plan_stem: str, table: str, eod_on: bool) -> dict[str, Any]:
         "bust_pct": None if o is None else o.all.bust,
         "last12_pass_pct": None if o is None else o.j.pass_,
         "last12_bust_pct": None if o is None else o.j.bust,
+    }
+
+
+def drawdown_compare(plan_stem: str) -> dict[str, Any]:
+    """Session 22 UI payload: EOD vs intraday trailing drawdown for the active plan (`current`, None when not measured)
+    plus every measured plan (`rows`), all from config/eval_odds.yaml (D137: no figure is hard-coded in the UI)."""
+    f = load_odds()
+    dt = f.drawdown_types if f is not None else None
+    if dt is None:
+        return {"current": None, "rows": [], "source": None, "text": NOT_MEASURED}
+
+    def row(stem: str, d: DrawdownPair) -> dict[str, Any]:
+        return {
+            "plan": stem,
+            "eod": {"pass": d.eod.all.pass_, "bust": d.eod.all.bust, "j_pass": d.eod.j.pass_, "j_bust": d.eod.j.bust},
+            "intraday": {
+                "pass": d.intraday.all.pass_,
+                "bust": d.intraday.all.bust,
+                "j_pass": d.intraday.j.pass_,
+                "j_bust": d.intraday.j.bust,
+            },
+        }
+
+    cur = dt.plans.get(plan_stem)
+    text = (
+        NOT_MEASURED
+        if cur is None
+        else f"EOD trailing pass {_n(cur.eod.all.pass_)}% / bust {_n(cur.eod.all.bust)}% "
+        f"(last 12 mo {_n(cur.eod.j.pass_)}/{_n(cur.eod.j.bust)}) · intraday trailing pass "
+        f"{_n(cur.intraday.all.pass_)}% / bust {_n(cur.intraday.all.bust)}% "
+        f"(last 12 mo {_n(cur.intraday.j.pass_)}/{_n(cur.intraday.j.bust)})"
+    )
+    return {
+        "current": None if cur is None else row(plan_stem, cur),
+        "rows": [row(k, v) for k, v in sorted(dt.plans.items())],
+        "source": dt.source,
+        "text": text,
     }

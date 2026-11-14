@@ -64,3 +64,37 @@ def test_lookup_text_and_view(tmp_path, monkeypatch):
 def test_table_for():
     assert E.table_for(True, True) == "high" and E.table_for(False, True) == "suggested"
     assert E.table_for(False, False) == "regular"
+
+
+def test_shipped_drawdown_types_match_the_eod_odds_and_the_study():
+    """Session 22: EOD vs intraday trailing (docs/results/session22/eod_vs_intraday). The EOD side must equal the odds
+    the app already shows (same simulator), so the two parts of the file can never disagree."""
+    E.load_odds.cache_clear()
+    f = E.load_odds()
+    assert f is not None and f.drawdown_types is not None and len(f.drawdown_types.plans) == 9
+    for stem, pair in f.drawdown_types.plans.items():
+        shown = f.plans[stem]["regular"].eod_off
+        assert (pair.eod.all.pass_, pair.eod.j.pass_) == (shown.all.pass_, shown.j.pass_), stem
+        assert pair.intraday.all.pass_ <= pair.eod.all.pass_, stem  # intraday trailing never helped in the study
+    c = E.drawdown_compare("lucid_pro_25k")
+    assert c["current"]["eod"] == {"pass": 57, "bust": 43, "j_pass": 40, "j_bust": 60}
+    assert c["current"]["intraday"] == {"pass": 39, "bust": 61, "j_pass": 21, "j_bust": 79}
+    assert (
+        c["text"] == "EOD trailing pass 57% / bust 43% (last 12 mo 40/60) · "
+        "intraday trailing pass 39% / bust 61% (last 12 mo 21/79)"
+    )
+    assert len(c["rows"]) == 9 and c["source"].endswith("eod_vs_intraday/RESULTS.md")
+    assert E.drawdown_compare("lucid_unknown")["current"] is None
+    E.load_odds.cache_clear()
+
+
+def test_drawdown_compare_without_the_section_says_not_measured(tmp_path, monkeypatch):
+    f = E.load_odds(_file(tmp_path, _doc()))  # an older file without drawdown_types still loads
+    assert f is not None and f.drawdown_types is None
+    monkeypatch.setattr(E, "load_odds", lambda: f)
+    assert E.drawdown_compare("lucid_pro_25k") == {
+        "current": None,
+        "rows": [],
+        "source": None,
+        "text": "not measured yet",
+    }
