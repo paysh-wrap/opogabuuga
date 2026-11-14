@@ -85,6 +85,23 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo_cfg.windows",
         "strategy.ai_duo_cfg.accounts",
         "strategy.pm_fade",
+        "strategy.jj_fpt",  # JJ F.P.T STRAT button (docs/JJ_FPT_RULES.md)
+        *(
+            f"strategy.jj_fpt_cfg.{k}"
+            for k in (
+                "sessions",
+                "news_session",
+                "small_room_tier",
+                "adapt_fair_price",
+                "htf_filter",
+                "wick_rejection_filter",
+                "funded_bos_only",
+                "one_account_per_trade",
+                "risk_pct_of_drawdown",
+                "extend_under_trades",
+                "combine_candles",
+            )
+        ),
         *(  # D122: dynamic trailing stop + cushion level controls (Strategy page; validated by the config models)
             f"strategy.{part}.{k}"
             for part, keys in (

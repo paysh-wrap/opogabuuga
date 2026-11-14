@@ -182,4 +182,26 @@ CATALOG: list[dict[str, object]] = [
         "setting_key": "strategy.order_flow_cfg.zone_atr.enabled",
         "also": ["strategy.order_flow"],
     },
+    {
+        "key": "jj_fpt",
+        "name": "JJ F.P.T STRAT",
+        "source": "JJ's Fair Pricing Theory, built only from his four videos (docs/JJ_FPT_RULES.md): the session open "
+        "is the fair price; 5-minute opening continuation, then 85 minutes of displacement / break-of-structure "
+        "entries back toward fair; 25 pt stop / 38 pt target (1 : 1.5)",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested by us yet. JJ's own claim: 57.5% win at 1 : 1.5 over 80 trades in 8 days "
+        "(break-even is 40%).",
+        "note": "Default OFF. MNQ, New York 09:30–11:00 (plus the 08:30 news reversion on red-folder days). Every "
+        "trade goes to ONE free account (no copy trading); size = 25% of that account's drawdown, same dollars on "
+        "every stop. Funded / live accounts take break-of-structure entries only. All Lucid rules and Paytience "
+        "safety checks still apply.",
+    },
 ]

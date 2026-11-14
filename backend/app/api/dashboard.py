@@ -381,6 +381,78 @@ def _presets(r: Any, plan: str = "") -> dict[str, Any]:
     }
 
 
+def jj_rules(r: Any) -> list[dict[str, object]]:
+    """JJ F.P.T STRAT card: his rules (docs/JJ_FPT_RULES.md) with the plan's live numbers and switches."""
+    c = r.strategy.jj_fpt_cfg
+    on = [f"{x.name} {x.open}" for x in c.sessions if x.enabled]
+    off = [f"{x.name} {x.open}" for x in c.sessions if not x.enabled]
+    p = c.risk_pct_of_drawdown * 100
+    return [
+        {
+            "key": "SESSIONS",
+            "on": bool(on),
+            "rule": f"first {c.window_minutes} min of each open, ET: "
+            f"{', '.join(on) or 'none'}{' (off: ' + ', '.join(off) + ')' if off else ''}; {c.symbol}, 1-minute closes",
+        },
+        {"key": "FAIR PRICE", "on": True, "rule": "the session's opening price"},
+        {
+            "key": "NEWS",
+            "on": c.news_session,
+            "rule": f"{c.news_time} red-folder news is priced in: revert to the "
+            "pre-news price until 09:30; at 09:30 the open is fair only if it continues away from it",
+        },
+        {
+            "key": "CONTINUATION",
+            "on": True,
+            "rule": f"first {c.continuation_minutes} min: opening-candle colour, must "
+            "break the previous candle; more entries on a break of structure that way; "
+            f"{c.base_stop_pts}/{c.base_target_pts} pt, or {c.big_stop_pts}/{c.big_target_pts} when the opening body > "
+            f"{c.big_open_body_pts} pt",
+        },
+        {
+            "key": "HTF BIAS",
+            "on": c.htf_filter,
+            "rule": f"continuation must match the reverse of the last {c.htf_hours} h",
+        },
+        {"key": "WICK", "on": c.wick_rejection_filter, "rule": "no continuation into a wick rejecting that side"},
+        {
+            "key": "REVERSION",
+            "on": True,
+            "rule": f"minute {c.continuation_minutes}–{c.window_minutes}: toward fair "
+            "only, on a break of structure (close beyond the last 3-bar swing) or a displacement (body > previous "
+            "opposite-colour body, close beyond its wick)",
+        },
+        {
+            "key": "ROOM",
+            "on": True,
+            "rule": f"≥ {c.room_full_min_pts} pt to fair → {c.base_stop_pts}/"
+            f"{c.base_target_pts}; {c.room_small_min_pts}–{c.room_full_min_pts} → {c.small_stop_pts}/"
+            f"{c.small_target_pts}{'' if c.small_room_tier else ' (OFF)'}; less → no trade",
+        },
+        {
+            "key": "FAIR MOVES",
+            "on": c.adapt_fair_price,
+            "rule": f"a break of structure away from fair ≥ "
+            f"{c.adjust_min_pts} pt beyond it → fair = middle of the last {c.consolidation_bars} bars",
+        },
+        {
+            "key": "LOSSES",
+            "on": True,
+            "rule": f"after {c.bos_only_after_losses} losses in a row only breaks of "
+            f"structure; {c.stop_after_losses} in a row → done for the session",
+        },
+        {
+            "key": "SIZE",
+            "on": True,
+            "rule": f"{p:.0f}% of the account's drawdown per trade, same dollars for every "
+            "stop size (50 pt ≈ half, 12.5 pt ≈ double the contracts)",
+        },
+        {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per trade, never copy trading"},
+        {"key": "FUNDED", "on": c.funded_bos_only, "rule": "funded / live accounts take breaks of structure only"},
+        {"key": "EXIT", "on": True, "rule": "hold to target or stop (broker bracket); the app's flat times apply"},
+    ]
+
+
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
     """D96: the Order Flow card lists the markets it trades (plan file strategy.order_flow_cfg.instruments)."""
     if c["key"] not in ("order_flow", "order_flow_amt", "order_flow_zone"):
@@ -424,6 +496,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "order_flow_amt": r.strategy.order_flow and r.strategy.order_flow_cfg.amt.enabled,  # D110
         "order_flow_zone": r.strategy.order_flow and r.strategy.order_flow_cfg.zone_atr.enabled,  # D111
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
+        "jj_fpt": r.strategy.jj_fpt,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
@@ -442,6 +515,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 "enabled": on[str(c["key"])],
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
+                **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
             }
             for c in CATALOG
         ],

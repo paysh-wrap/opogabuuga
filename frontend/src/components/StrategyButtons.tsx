@@ -16,6 +16,7 @@ export interface Strat {
   ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
   amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
   zone_layers?: { key: string; on: boolean; rule: string }[]; // D111: ATR-zone type (iceberg PROXY)
+  jj_rules?: { key: string; on: boolean; rule: string }[]; // JJ F.P.T STRAT: his rules with the plan's live numbers
 }
 // D137: eval pass / bust of one (plan, size table, EOD toggle) cell — numbers null + text "not measured yet" until measured
 export interface OddsView { plan: string; table: string; eod_on: boolean; text: string; pass_pct: number | null; bust_pct: number | null; last12_pass_pct: number | null; last12_bust_pct: number | null }
@@ -209,6 +210,17 @@ export default function StrategyButtons() {
                 <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
                   {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
+                </MoreInfo>
+              </div>
+            )}
+            {s.key === "jj_fpt" && s.jj_rules && (
+              <div className="mt-2 text-xs" data-testid="jj-setup">
+                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from JJ's videos</span>
+                <MoreInfo label="JJ's rules" testId="more-jj-rules">
+                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="jj-rules">
+                  {s.jj_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+                </ol>
+                <p className="mt-1 text-blue">Full rule sheet with video times: docs/JJ_FPT_RULES.md. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
                 </MoreInfo>
               </div>
             )}

@@ -84,7 +84,11 @@ def test_strategies_endpoint(authed):
         "order_flow",
         "order_flow_amt",
         "order_flow_zone",
+        "jj_fpt",
     ]
+    jj = body["strategies"][-1]  # JJ F.P.T STRAT card: off by default, its rules listed with the plan's numbers
+    assert jj["name"] == "JJ F.P.T STRAT" and jj["enabled"] is False and jj["setting"] == "strategy.jj_fpt"
+    assert [x["key"] for x in jj["jj_rules"]][:2] == ["SESSIONS", "FAIR PRICE"]
     noise = body["strategies"][1]
     assert noise["win_pct"] == 50.1 and noise["eval_odds"]["table"] == "regular"
     assert noise["pro25k_pass_pct"] == 52  # D138: config/eval_odds.yaml, lucid_daily_25k regular OFF

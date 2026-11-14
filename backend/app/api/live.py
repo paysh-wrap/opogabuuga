@@ -40,6 +40,7 @@ def active_strategies(r: RulesConfig) -> set[str]:
     st = r.strategy
     on = {"NOISE": st.noise, "PM_FADE": st.pm_fade, "AI_BIAS": st.ai_bias, "AI_DUO": st.ai_duo}
     on["ORDER_FLOW"] = st.order_flow
+    on["JJ_FPT"] = st.jj_fpt
     return {k for k, v in on.items() if v}
 
 

@@ -654,6 +654,70 @@ class PmFadeCfg(_M):
     eval_off: bool = True
 
 
+class JjSessionCfg(_M):
+    """One JJ session open (docs/JJ_FPT_RULES.md #3–#5, #12, #13, #19). Times are ET, the opening candle's open."""
+
+    name: Literal["NY", "NY_PM", "6PM", "ASIA"]
+    open: str
+    enabled: bool = False
+
+
+class JjFptCfg(_M):
+    """JJ F.P.T STRAT (user 2026-11-14): JJ's Fair Pricing Theory exactly as his transcripts state it
+    (docs/JJ_FPT_RULES.md; engine/jj_fpt.py). Numbers are his; default OFF; UNVERIFIED until back-tested."""
+
+    symbol: str = "MNQ"  # #1 NASDAQ futures (MNQ micros, NQ points)
+    sessions: list[JjSessionCfg] = [
+        JjSessionCfg(name="NY", open="09:30", enabled=True),  # #4 the main session
+        JjSessionCfg(name="NY_PM", open="14:00", enabled=False),  # #5 / #13
+        JjSessionCfg(name="6PM", open="18:00", enabled=False),  # #5 / #19 (overnight: off — intraday-only app)
+        JjSessionCfg(name="ASIA", open="20:00", enabled=False),  # #5 / #12 (overnight: off)
+    ]
+    news_session: bool = True  # #8: 08:30 red-folder news → revert to the pre-news price until 09:30
+    news_time: str = "08:30"
+    window_minutes: int = Field(default=90, ge=10, le=240)  # #3 first 90 minutes
+    continuation_minutes: int = Field(default=5, ge=1, le=15)  # #3 / #17
+    extend_under_trades: int = Field(default=0, ge=0, le=50)  # #6 (0 = off): keep going while fewer trades
+    extend_minutes: int = Field(default=30, ge=0, le=120)
+    base_stop_pts: D = D("25")  # #18 / #25
+    base_target_pts: D = D("38")
+    big_open_body_pts: D = D("25")  # #18
+    big_stop_pts: D = D("50")
+    big_target_pts: D = D("76")
+    room_full_min_pts: D = D("30")  # #25
+    small_room_tier: bool = True  # #25 (V2; conflicts with V4 "never < 25 pt in NY" — see the rule sheet)
+    room_small_min_pts: D = D("15")
+    small_stop_pts: D = D("12.5")
+    small_target_pts: D = D("19")
+    bos_only_after_losses: int = Field(default=2, ge=1, le=10)  # #26
+    stop_after_losses: int = Field(default=3, ge=1, le=10)  # #27
+    adapt_fair_price: bool = True  # #10
+    adjust_min_pts: D = D("25")  # a break away from fair this far beyond it moves fair (one base stop)
+    consolidation_bars: int = Field(default=10, ge=3, le=60)  # "the most recent consolidation" = the bars before
+    wick_rejection_filter: bool = True  # #16
+    htf_filter: bool = True  # #15
+    htf_hours: int = Field(default=12, ge=6, le=12)  # #15 "previous 6 to 12 hours"
+    combine_candles: int = Field(default=1, ge=1, le=3)  # #22 discretion (1 = off)
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # #29 $500 of $2,000
+    funded_bos_only: bool = True  # #31
+    one_account_per_trade: bool = True  # #30 never copy trade
+    paper_only: bool = False
+
+    @model_validator(mode="after")
+    def _check(self) -> JjFptCfg:
+        for p in (self.base_stop_pts, self.big_stop_pts, self.small_stop_pts):
+            if p <= 0:
+                raise ValueError("jj_fpt_cfg: stops > 0")
+        if not (self.room_small_min_pts < self.room_full_min_pts):
+            raise ValueError("jj_fpt_cfg: room_small_min_pts < room_full_min_pts")
+        if self.continuation_minutes >= self.window_minutes:
+            raise ValueError("jj_fpt_cfg: continuation_minutes < window_minutes")
+        names = [x.name for x in self.sessions]
+        if len(names) != len(set(names)):
+            raise ValueError("jj_fpt_cfg: one entry per session")
+        return self
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -853,6 +917,7 @@ class StrategyCfg(_M):
     pm_fade: bool = False
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
+    jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
     # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
     # trades half size (rounded down, min 1) and may use half of the daily loss limit (D102: no forced paper-only).
     # Tighten-only.
@@ -870,6 +935,7 @@ class StrategyCfg(_M):
     pm_fade_cfg: PmFadeCfg = PmFadeCfg()
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
     order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
+    jj_fpt_cfg: JjFptCfg = JjFptCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

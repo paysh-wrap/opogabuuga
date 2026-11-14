@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -25,6 +25,7 @@ from app.bias.policy import Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
+from app.engine import jj_fpt as JJ
 from app.engine import noise as N
 from app.engine import order_flow as OF
 from app.engine import pm_fade as PF
@@ -1074,6 +1075,151 @@ def run_ai_duo(
     return out
 
 
+JJ_TAG = "JJ"
+
+
+def _et_at(day: date, hhmm: str) -> datetime:
+    h, m = (int(x) for x in hhmm.split(":"))
+    return datetime.combine(day, time(h, m), tzinfo=ET)
+
+
+def _jbars(s: Session, symbol: str, since: datetime, until: datetime) -> list[JJ.JBar]:
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time > since, Bar.close_time <= until)
+        .order_by(Bar.close_time)
+    ).scalars()
+    return [JJ.JBar(b.close_time, b.o, b.h, b.l, b.c) for b in rows]
+
+
+def _bar_open(bars: list[JJ.JBar], open_at: datetime) -> JJ.JBar | None:
+    return next((b for b in bars if b.close_time == open_at + timedelta(minutes=1)), None)
+
+
+def _last_close_at(s: Session, symbol: str, at: datetime) -> Decimal | None:
+    row = s.execute(
+        select(Bar.c).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time <= at).order_by(Bar.close_time.desc())
+    ).first()
+    return None if row is None else row[0]
+
+
+def jj_sessions(rules: RulesConfig, at: datetime, calendar: CalendarProvider) -> list[tuple[str, datetime, int]]:
+    """Every JJ session whose replay window contains `at`: (name, open time, window minutes)."""
+    cfg = rules.strategy.jj_fpt_cfg
+    day = at.astimezone(ET).date()
+    out: list[tuple[str, datetime, int]] = []
+    span = cfg.window_minutes + cfg.extend_minutes
+    for x in cfg.sessions:
+        if x.enabled:
+            o = _et_at(day, x.open)
+            if o < at <= o + timedelta(minutes=span):
+                out.append((x.name, o, cfg.window_minutes))
+    if cfg.news_session:
+        o = _et_at(day, cfg.news_time)
+        ny = _et_at(day, "09:30")
+        if o < at <= ny and _news_at(calendar, day, o):
+            out.append(("NEWS", o, int((ny - o).total_seconds() // 60)))
+    return out
+
+
+def _news_at(calendar: CalendarProvider, day: date, when: datetime) -> bool:
+    """#8: an EXPECTED red-folder (high-impact USD) event scheduled at `when`."""
+    cal = calendar(day) or []
+    return any(e.currency == "USD" and e.impact == "high" and e.at == when for e in cal)
+
+
+def _jj_input(
+    s: Session, rules: RulesConfig, calendar: CalendarProvider, name: str, open_at: datetime, window: int,
+    bars: list[JJ.JBar],
+) -> JJ.SessionInput:  # fmt: skip
+    cfg = rules.strategy.jj_fpt_cfg
+    day = open_at.date()
+    first = _bar_open(bars, open_at)
+    ref = _last_close_at(s, cfg.symbol, open_at - timedelta(hours=cfg.htf_hours))
+    htf = JJ.htf_bias(first.o, ref) if first is not None else None
+    if name == "NEWS":  # #8 pre-news price = the open of the news candle; #20 no continuation
+        return JJ.SessionInput(name, open_at, continuation=False, htf_bias=htf, window=window)
+    if name == "NY":
+        news = _et_at(day, cfg.news_time)
+        nb = _bar_open(bars, news) if cfg.news_session and _news_at(calendar, day, news) else None
+        return JJ.SessionInput(name, open_at, news_fair=None if nb is None else nb.o, htf_bias=htf)
+    if name == "NY_PM":  # #13: revert toward the 09:30 price
+        ny = _bar_open(_jbars(s, cfg.symbol, _et_at(day, "09:29"), _et_at(day, "09:31")), _et_at(day, "09:30"))
+        return JJ.SessionInput(name, open_at, fair=None if ny is None else ny.o, htf_bias=htf)
+    if name == "6PM":  # #19: gap vs the last close before the daily break
+        return JJ.SessionInput(
+            name, open_at, htf_bias=htf, gap_prior_close=_last_close_at(s, cfg.symbol, _et_at(day, "17:00"))
+        )
+    six = _bar_open(_jbars(s, cfg.symbol, _et_at(day, "17:59"), _et_at(day, "18:01")), _et_at(day, "18:00"))
+    return JJ.SessionInput(name, open_at, alt_fair=None if six is None else six.o, htf_bias=htf)  # ASIA #12
+
+
+def _jj_gate(rules: RulesConfig, at: datetime, calendar: CalendarProvider) -> tuple[bool, str, str]:
+    """G1 for JJ entries: MNQ on, a calendar present, no Lucid news blackout. The session window is JJ's own (#3)."""
+    cfg = rules.strategy.jj_fpt_cfg
+    inst = rules.instrument(cfg.symbol)
+    if not inst.enabled:
+        return False, "INSTRUMENT_DISABLED", ""
+    cal = calendar(at.astimezone(ET).date())
+    if cal is None:
+        return False, "CALENDAR_MISSING", "no calendar data = no trading"
+    after = inst.news_after_min if inst.news_after_min is not None else rules.eval.news_breach_min_after
+    ev = news_block(at, cal, rules.internal.no_entry_before_news_min, after)
+    if ev is not None:
+        return False, "NEWS_BLACKOUT", ev.title
+    return True, "OK", ""
+
+
+def run_jj_fpt(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """JJ F.P.T STRAT: replay each running session (engine/jj_fpt.py) and store a signal for a setup on THIS bar.
+    Exits are the broker brackets (#33: hold to target or stop); the app's flat rules still apply."""
+    cfg = rules.strategy.jj_fpt_cfg
+    out = StrategyOutput()
+    if exits_only:
+        return out
+    for name, open_at, window in jj_sessions(rules, at, calendar):
+        bars = _jbars(s, cfg.symbol, open_at - timedelta(minutes=30), at)
+        if not bars or bars[-1].close_time != at:
+            continue
+        start = next((i for i, b in enumerate(bars) if b.close_time == open_at + timedelta(minutes=1)), None)
+        if start is None:
+            continue  # no opening candle in the feed → no fair price → no trade
+        sin = _jj_input(s, rules, calendar, name, open_at, window, bars)
+        rep = JJ.replay(bars, start, sin, cfg)
+        last = len(bars) - 1
+        for x in (y for y in rep.signals if y.index == last):
+            day = open_at.date().isoformat()
+            key = f"{cfg.symbol}-{JJ_TAG}-{day}-{name}-{at.astimezone(ET).strftime('%H%M')}"
+            if s.execute(select(Signal.id).where(Signal.model_key == key)).first() is not None:
+                continue
+            new = _new_signal(
+                s,
+                clock,
+                symbol=cfg.symbol,
+                key=key,
+                direction=x.direction,
+                at=at,
+                gate=_jj_gate(rules, at, calendar),
+                features={
+                    "session": name,
+                    "entry_kind": x.kind,
+                    "tier": x.tier,
+                    "fair": str(x.fair),
+                    "room": None if x.room is None else str(x.room),
+                    "stop_pts": str(x.stop_pts),
+                    "target_pts": str(x.target_pts),
+                    "epoch": x.epoch,
+                    "fair_changes": len(rep.fair_changes),
+                    "paper_only": cfg.paper_only,
+                },
+                plan=("JJ_FPT", x.entry, x.stop, x.take_profit, x.stop_pts, x.rr),
+            )
+            out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1101,6 +1247,10 @@ def run(
         out.exits += r.exits
     if st.ai_bias and symbol == st.ai_bias_cfg.symbol:
         r = run_ai_bias(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
+        r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.ai_duo and symbol in st.ai_duo_cfg.markets:  # after NOISE: on a same-bar tie NOISE wins (D83)
