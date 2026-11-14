@@ -561,3 +561,7 @@ backup integrity ok, data kept across restart. Test stack + test .env removed. U
   (the rest is buttons, numbers and the gate status list — not study text).
 12 CLAUDE.md: push target is paysh-wrap/opogabuuga (was paysh-wrap/beast).
 Tests: backend 1,266 passed (100 % cov), frontend 112, e2e 20/20, ruff/mypy/eslint/tsc clean.
+Follow-up (user: "only change the pine bridge if it doesn't hurt order flow"): Order Flow sends no heartbeats; it relies on the bridge's
+data_feed, and the app's own lag check (> 90 s = delayed) applies regardless of the Pine value → the Pine input is capped at 90 (can only be
+stricter). Fixed a side effect of item 8: a delayed chart that went silent would block NOISE/Order Flow on that symbol until restart → it
+is forgotten after 15 min while another chart of the symbol keeps reporting (no chart reporting = block stays). 1,267 backend tests passed.

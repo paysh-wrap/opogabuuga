@@ -56,20 +56,30 @@ class FeedDelayTracker:
     on every heartbeat (notification spam, entries switching on and off). Now:
       * a symbol counts as delayed while ANY of its charts is delayed (tighter, never looser);
       * a chart clears only after `clear_after` non-delayed bars IN A ROW (a single good bar no longer clears it).
-    `update` returns "DELAYED" / "CLEARED" only when the SYMBOL's state changes (one notification per change)."""
+    `update` returns "DELAYED" / "CLEARED" only when the SYMBOL's state changes (one notification per change).
+    A delayed chart that goes SILENT (its alert deleted / chart closed) would never send its 3 good bars and would
+    block the symbol (NOISE, Order Flow) until a restart, so it is forgotten once another chart of the same symbol has
+    reported for `stale_s` without it. With no chart reporting at all, nothing changes (the block stays: safe)."""
 
-    def __init__(self, clear_after: int = 3) -> None:
-        self.clear_after = clear_after
+    def __init__(self, clear_after: int = 3, stale_s: float = 15 * 60) -> None:
+        self.clear_after, self.stale_s = clear_after, stale_s
         self._lag: dict[tuple[str, str], float] = {}  # delayed charts → last lag (s)
         self._ok: dict[tuple[str, str], int] = {}  # delayed charts → non-delayed bars in a row since
+        self._seen: dict[tuple[str, str], float] = {}  # chart → last heartbeat (epoch s)
 
     def symbol_lag(self, symbol: str) -> float | None:
         lags = [v for (s, _), v in self._lag.items() if s == symbol]
         return max(lags) if lags else None
 
-    def update(self, symbol: str, profile: str, status: DataFeed, lag_s: float) -> Literal["DELAYED", "CLEARED"] | None:
+    def update(
+        self, symbol: str, profile: str, status: DataFeed, lag_s: float, now_s: float
+    ) -> Literal["DELAYED", "CLEARED"] | None:
         key = (symbol, profile)
         before = self.symbol_lag(symbol) is not None
+        self._seen[key] = now_s
+        silent = [k for k in self._lag if k[0] == symbol and k != key and now_s - self._seen[k] > self.stale_s]
+        for k in silent:  # a silent delayed chart is forgotten (see class doc)
+            del self._lag[k], self._ok[k]
         if status == "delayed":
             self._lag[key], self._ok[key] = lag_s, 0
         elif key in self._lag:

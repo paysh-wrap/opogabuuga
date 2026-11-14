@@ -16,7 +16,7 @@ pivL      = input.int(5, "HTF pivot left", minval = 1)
 pivR      = input.int(5, "HTF pivot right", minval = 1)
 atrLen    = input.int(14, "HTF ATR length", minval = 1)
 showMarks = input.bool(true, "Show markers")
-delayLimS = input.int(90, "CME delay limit (s) — same as the app's webhook.realtime_max_lag_s", minval = 5, maxval = 900)
+delayLimS = input.int(90, "CME delay limit (s) — can only be stricter than the app's own 90 s check", minval = 5, maxval = 90)
 
 htfMin      = profile == "TIGHT" ? 15 : 60
 htfStr      = profile == "TIGHT" ? "15" : "60"

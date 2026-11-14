@@ -139,7 +139,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
         if ss0 is not None and not replay:
             ss0.data_feed, ss0.feed_lag_s = df, lag
         if not replay:  # item 8: per chart, cleared only after 3 real-time bars in a row (no flip-flop)
-            change = ctl.feed_tracker.update(acc.symbol, p.profile, df, lag)
+            change = ctl.feed_tracker.update(acc.symbol, p.profile, df, lag, st.clock.now().timestamp())
             sym_lag = ctl.feed_tracker.symbol_lag(acc.symbol)
             if sym_lag is None:
                 ctl.feed_delayed.pop(acc.symbol, None)

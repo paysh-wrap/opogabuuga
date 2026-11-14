@@ -53,14 +53,26 @@ def test_tracker_symbol_delayed_while_any_chart_is_and_clears_after_three_good_b
     from app.monitor.feed import FeedDelayTracker
 
     t = FeedDelayTracker()
-    assert t.update("MNQ", "TIGHT", "delayed", 120) == "DELAYED"
-    assert t.update("MNQ", "STD", "realtime", 1) is None  # the other chart being fine does not clear it (was: flip)
-    assert t.update("MNQ", "TIGHT", "realtime", 1) is None
-    assert t.update("MNQ", "TIGHT", "delayed", 95) is None  # streak reset, still one change only
+    assert t.update("MNQ", "TIGHT", "delayed", 120, 0) == "DELAYED"
+    assert t.update("MNQ", "STD", "realtime", 1, 60) is None  # the other chart being fine does not clear it (was: flip)
+    assert t.update("MNQ", "TIGHT", "realtime", 1, 60) is None
+    assert t.update("MNQ", "TIGHT", "delayed", 95, 120) is None  # streak reset, still one change only
     assert t.symbol_lag("MNQ") == 95
-    assert [t.update("MNQ", "TIGHT", "unknown", 2) for _ in range(2)] == [None, None]
-    assert t.update("MNQ", "TIGHT", "realtime", 1) == "CLEARED"  # 3 non-delayed bars in a row
+    assert [t.update("MNQ", "TIGHT", "unknown", 2, 180 + i) for i in range(2)] == [None, None]
+    assert t.update("MNQ", "TIGHT", "realtime", 1, 240) == "CLEARED"  # 3 non-delayed bars in a row
     assert t.symbol_lag("MNQ") is None
-    assert t.update("MES", "TIGHT", "realtime", 1) is None  # never delayed: nothing to clear
-    t.update("MNQ", "TIGHT", "delayed", 100)
-    assert t.update("MNQ", "STD", "delayed", 300) is None and t.symbol_lag("MNQ") == 300  # worst chart's lag
+    assert t.update("MES", "TIGHT", "realtime", 1, 240) is None  # never delayed: nothing to clear
+    t.update("MNQ", "TIGHT", "delayed", 100, 300)
+    assert t.update("MNQ", "STD", "delayed", 300, 300) is None and t.symbol_lag("MNQ") == 300  # worst chart's lag
+
+
+def test_silent_delayed_chart_is_forgotten_only_while_another_chart_keeps_reporting():
+    """A delayed chart whose alert was deleted must not block NOISE / Order Flow on that symbol until a restart."""
+    from app.monitor.feed import FeedDelayTracker
+
+    t = FeedDelayTracker(stale_s=900)
+    t.update("MNQ", "STD", "delayed", 200, 0)  # the 5m chart is delayed, then goes silent
+    assert t.update("MNQ", "TIGHT", "realtime", 1, 600) is None and t.symbol_lag("MNQ") == 200  # 10 min: still blocked
+    assert t.update("MNQ", "TIGHT", "realtime", 1, 901) == "CLEARED"  # silent > 15 min while TIGHT reports
+    t.update("MGC", "TIGHT", "delayed", 200, 0)
+    assert t.symbol_lag("MGC") == 200  # no other MGC chart reports: the block stays (safe)
