@@ -65,7 +65,7 @@ export default function Risk() {
         <h2 className="font-semibold text-gold">Lucid plan</h2>
         <p className="text-xs">All rules (target, drawdown, DLL, consistency, contract limits, payouts) follow this plan. Pick the one you bought.</p>
         <select aria-label="Lucid plan" className="mt-2" value={plans.data?.current ?? ""}
-          onChange={(e) => run.mutate(() => api("/api/plans", { method: "PUT", body: JSON.stringify({ plan: e.target.value }) }).then(() => qc.invalidateQueries({ queryKey: ["plans"] })))}>
+          onChange={(e) => { const plan = e.target.value; /* read NOW: the controlled select snaps back before the request runs */ run.mutate(() => api("/api/plans", { method: "PUT", body: JSON.stringify({ plan }) }).then(() => qc.invalidateQueries({ queryKey: ["plans"] }))); }}>
           {plans.data?.plans.map((p) => <option key={p.id} value={p.id}>{p.title.replace("Paytience rule profile — Lucid Trading ", "")}</option>)}
         </select>
       </section>

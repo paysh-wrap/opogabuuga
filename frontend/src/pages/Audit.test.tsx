@@ -33,7 +33,9 @@ function mock(calls: string[]) {
     if (u === "/api/markets") return j({ markets: [] });
     if (u === "/api/market/openbb") return j({ status: "LOADING", source: "x" });
     if (u === "/api/signals/skips") return j({ date: "2026-11-06", counts: {}, avg_20: {}, sessions_in_avg: 0 });
-    if (u === "/api/plans") return j({ current: "a", plans: [] });
+    if (u === "/api/plans") return j({ current: "lucid_flex_25k", plans: [
+      { id: "lucid_flex_25k", title: "Paytience rule profile — Lucid Trading LucidFlex 25K" },
+      { id: "lucid_pro_25k", title: "Paytience rule profile — Lucid Trading LucidPro 25K" }] });
     if (u === "/api/live/readiness") { readiness = JSON.parse(String(init?.body)).mode; return j({}); }
     if (u === "/api/live") return j({ live: false, toggle_on: false, phrase: "I ACCEPT LIVE RISK",
       checklist: [{ check: "paper_sessions", ok: readiness === "off", skipped: readiness === "off", detail: readiness === "off" ? "skipped" : "4/20 clean paper sessions, active strategies" }],
@@ -202,4 +204,15 @@ test("Risk: live readiness check shows paper-session progress; OFF skips that si
   await waitFor(() => expect(calls).toContain('PUT /api/live/readiness {"mode":"off"}'));
   expect(await screen.findByText(/SKIPPED \(readiness check OFF\)/)).toBeInTheDocument();
   expect(screen.getByTestId("live-readiness")).toHaveTextContent("Every other live gate still applies");
+});
+
+
+test("Risk: picking a plan sends THAT plan (user 2026-11-14: it always sent the old one and stayed on Flex 25K)", async () => {
+  const calls: string[] = [];
+  mock(calls);
+  wrap(<Risk />);
+  const sel = await screen.findByLabelText("Lucid plan");
+  await waitFor(() => expect((sel as HTMLSelectElement).value).toBe("lucid_flex_25k"));
+  await userEvent.selectOptions(sel, "lucid_pro_25k");
+  await waitFor(() => expect(calls).toContain('PUT /api/plans {"plan":"lucid_pro_25k"}'));
 });

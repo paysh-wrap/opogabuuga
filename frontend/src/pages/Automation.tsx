@@ -161,9 +161,9 @@ export default function Automation() {
                 {p?.error && <span className="text-goldLight">⚠ {p.error}</span>}
                 {p?.payout && <PayoutLine p={p.payout} />}
                 <label className="ml-auto flex items-center gap-1"><input type="checkbox" checked={a.selected}
-                  onChange={(e) => run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ selected: e.target.checked }) }))} />selected</label>
+                  onChange={(e) => { const selected = e.target.checked; run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ selected }) })); }} />selected</label>
                 <label className="flex items-center gap-1"><input type="checkbox" checked={a.armed}
-                  onChange={(e) => run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ armed: e.target.checked }) }))} />armed</label>
+                  onChange={(e) => { const armed = e.target.checked; run.mutate(() => api(`/api/accounts/${a.id}`, { method: "PATCH", body: JSON.stringify({ armed }) })); }} />armed</label>
                 <button className={`${btn} border-border text-blue`} onClick={() => run.mutate(() => api(`/api/accounts/${a.id}/flatten`, { method: "POST" }))}>Flatten</button>
               </li>
             );

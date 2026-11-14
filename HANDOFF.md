@@ -575,3 +575,8 @@ points ALL and 13–19 in the last 12 months (Pro 25K EOD 57/43 vs intraday 39/6
 profit (mean best open $185/micro vs $29.5 closed), intraday floor ratchets on unrealised highs → accounts run out of room. Kill-switch
 setting (eod_closed_balance) still 0 pt (gaps not modelled).
 D141 (2026-11-14): EOD-vs-intraday results shown on the Strategy-page EOD card (config/eval_odds.yaml drawdown_types); header pill "Intraday" → "Live trade · ON/OFF" (truthful, from /api/live, links to Risk → Live trading). Backend 1,270 + frontend 114 tests, e2e 20/20.
+Fix (2026-11-14, user: "plan dropdown stays Flex 25K"): Risk-page plan select and Automation-page selected/armed checkboxes read the
+event value inside the async mutation, after React had reset the controlled input → they always sent the OLD value (plan never changed,
+ticking armed/selected did nothing; verified on a live server before/after). Values are now captured first. Error banners showed a bare
+"HTTP 422" for structured server errors ({errors:[...]} / validation lists) → lib/api.detailText shows the reason (e.g. Fast Evaluation:
+"no EVAL accounts — Fast Evaluation applies to EVAL accounts only", which is by design). Frontend 116 tests, e2e 20/20.

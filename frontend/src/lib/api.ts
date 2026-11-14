@@ -4,6 +4,19 @@ export class ApiError extends Error {
   }
 }
 
+/** The server's reason as plain text. FastAPI sends a string, {errors: [...]} (risk settings, Eval / Fast Evaluation),
+ *  or a validation list [{msg}] — before, anything but a string showed as a bare "HTTP 422" (user, 2026-11-14). */
+export function detailText(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) return detail.map((d) => (typeof d === "string" ? d : (d as { msg?: string })?.msg ?? "")).filter(Boolean).join("; ");
+  if (detail && typeof detail === "object") {
+    const o = detail as { errors?: unknown; message?: unknown };
+    if (Array.isArray(o.errors) && o.errors.length) return o.errors.map(String).join("; ");
+    if (typeof o.message === "string") return o.message;
+  }
+  return "";
+}
+
 export function csrfToken(): string {
   const m = document.cookie.match(/(?:^|;\s*)pt_csrf=([^;]+)/);
   return m ? decodeURIComponent(m[1]!) : "";
@@ -18,8 +31,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const text = await res.text();
   const body: unknown = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    const detail = (body as { detail?: unknown } | null)?.detail;
-    throw new ApiError(res.status, typeof detail === "string" ? detail : `HTTP ${res.status}`);
+    throw new ApiError(res.status, detailText((body as { detail?: unknown } | null)?.detail) || `HTTP ${res.status}`);
   }
   return body as T;
 }
