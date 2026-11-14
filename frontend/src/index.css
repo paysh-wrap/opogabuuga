@@ -222,3 +222,8 @@ main > * { animation: fade-up .22s var(--ease) both; }
 .more-info[open] > summary::after { content: "▴"; }
 .more-info > summary:hover { border-color: var(--gold); color: var(--gold); }
 .more-info > summary:focus-visible { outline: 2px solid #F2D27A; outline-offset: 2px; box-shadow: var(--ring); }
+
+/* Pick-one cards: the option IN USE stays bright and is not a disabled button (no faded look, no "not allowed" cursor);
+   clicking it does nothing (user, 2026-11-14) */
+button.pick-in-use { cursor: default; }
+button.pick-in-use:hover { transform: none; }

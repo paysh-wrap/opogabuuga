@@ -1,0 +1,1018 @@
+{
+ "lucid_daily_25k|all|eod_off": {
+  "pass": 52.0,
+  "bust": 48.0,
+  "stuck": 48.0,
+  "open": 0.0,
+  "days": 54.0
+ },
+ "lucid_daily_25k|all|eod_on": {
+  "pass": 52.0,
+  "bust": 48.0,
+  "stuck": 48.0,
+  "open": 0.0,
+  "days": 54.0,
+  "path_identical": 600
+ },
+ "lucid_daily_25k|all|intra": {
+  "pass": 34.5,
+  "bust": 65.5,
+  "stuck": 56.166666666666664,
+  "open": 0.0,
+  "days": 48.0,
+  "mech": {
+   "n_fail": 393,
+   "n_kill": 56,
+   "n_stuck": 337,
+   "kill_only_intraday": 56,
+   "kill_raised_floor": 51,
+   "stuck_raised_floor": 325
+  },
+  "trans": {
+   "fail>fail": 288,
+   "pass>pass": 207,
+   "pass>fail": 105
+  }
+ },
+ "lucid_daily_25k|is|eod_off": {
+  "pass": 51.833333333333336,
+  "bust": 48.166666666666664,
+  "stuck": 48.166666666666664,
+  "open": 0.0,
+  "days": 53.0
+ },
+ "lucid_daily_25k|is|eod_on": {
+  "pass": 51.833333333333336,
+  "bust": 48.166666666666664,
+  "stuck": 48.166666666666664,
+  "open": 0.0,
+  "days": 53.0,
+  "path_identical": 600
+ },
+ "lucid_daily_25k|is|intra": {
+  "pass": 36.166666666666664,
+  "bust": 63.833333333333336,
+  "stuck": 56.833333333333336,
+  "open": 0.0,
+  "days": 47.0,
+  "mech": {
+   "n_fail": 383,
+   "n_kill": 42,
+   "n_stuck": 341,
+   "kill_only_intraday": 42,
+   "kill_raised_floor": 36,
+   "stuck_raised_floor": 327
+  },
+  "trans": {
+   "pass>fail": 94,
+   "pass>pass": 217,
+   "fail>fail": 289
+  }
+ },
+ "lucid_daily_25k|j|eod_off": {
+  "pass": 36.666666666666664,
+  "bust": 63.333333333333336,
+  "stuck": 63.333333333333336,
+  "open": 0.0,
+  "days": 38.0
+ },
+ "lucid_daily_25k|j|eod_on": {
+  "pass": 36.666666666666664,
+  "bust": 63.333333333333336,
+  "stuck": 63.333333333333336,
+  "open": 0.0,
+  "days": 38.0,
+  "path_identical": 600
+ },
+ "lucid_daily_25k|j|intra": {
+  "pass": 18.5,
+  "bust": 81.5,
+  "stuck": 62.833333333333336,
+  "open": 0.0,
+  "days": 34.0,
+  "mech": {
+   "n_fail": 489,
+   "n_kill": 112,
+   "n_stuck": 377,
+   "kill_only_intraday": 112,
+   "kill_raised_floor": 94,
+   "stuck_raised_floor": 362
+  },
+  "trans": {
+   "fail>fail": 380,
+   "pass>pass": 111,
+   "pass>fail": 109
+  }
+ },
+ "lucid_flex_100k|all|eod_off": {
+  "pass": 75.83333333333333,
+  "bust": 20.0,
+  "stuck": 20.0,
+  "open": 4.166666666666667,
+  "days": 162.0
+ },
+ "lucid_flex_100k|all|eod_on": {
+  "pass": 75.83333333333333,
+  "bust": 20.0,
+  "stuck": 20.0,
+  "open": 4.166666666666667,
+  "days": 162.0,
+  "path_identical": 600
+ },
+ "lucid_flex_100k|all|intra": {
+  "pass": 68.66666666666667,
+  "bust": 28.333333333333332,
+  "stuck": 24.666666666666668,
+  "open": 3.0,
+  "days": 161.0,
+  "mech": {
+   "n_fail": 170,
+   "n_kill": 22,
+   "n_stuck": 148,
+   "kill_only_intraday": 22,
+   "kill_raised_floor": 21,
+   "stuck_raised_floor": 129
+  },
+  "trans": {
+   "fail>fail": 118,
+   "pass>pass": 411,
+   "open>fail": 12,
+   "pass>fail": 40,
+   "pass>open": 4,
+   "open>open": 13,
+   "fail>open": 1,
+   "fail>pass": 1
+  }
+ },
+ "lucid_flex_100k|is|eod_off": {
+  "pass": 78.16666666666667,
+  "bust": 17.0,
+  "stuck": 17.0,
+  "open": 4.833333333333333,
+  "days": 175.0
+ },
+ "lucid_flex_100k|is|eod_on": {
+  "pass": 78.16666666666667,
+  "bust": 17.0,
+  "stuck": 17.0,
+  "open": 4.833333333333333,
+  "days": 175.0,
+  "path_identical": 600
+ },
+ "lucid_flex_100k|is|intra": {
+  "pass": 72.0,
+  "bust": 24.166666666666668,
+  "stuck": 22.666666666666668,
+  "open": 3.8333333333333335,
+  "days": 169.0,
+  "mech": {
+   "n_fail": 145,
+   "n_kill": 9,
+   "n_stuck": 136,
+   "kill_only_intraday": 9,
+   "kill_raised_floor": 8,
+   "stuck_raised_floor": 123
+  },
+  "trans": {
+   "pass>pass": 431,
+   "fail>fail": 100,
+   "open>open": 17,
+   "pass>fail": 33,
+   "pass>open": 5,
+   "fail>open": 1,
+   "open>fail": 12,
+   "fail>pass": 1
+  }
+ },
+ "lucid_flex_100k|j|eod_off": {
+  "pass": 66.83333333333333,
+  "bust": 32.166666666666664,
+  "stuck": 32.166666666666664,
+  "open": 1.0,
+  "days": 123.0
+ },
+ "lucid_flex_100k|j|eod_on": {
+  "pass": 66.83333333333333,
+  "bust": 32.166666666666664,
+  "stuck": 32.166666666666664,
+  "open": 1.0,
+  "days": 123.0,
+  "path_identical": 600
+ },
+ "lucid_flex_100k|j|intra": {
+  "pass": 47.5,
+  "bust": 51.833333333333336,
+  "stuck": 37.166666666666664,
+  "open": 0.6666666666666666,
+  "days": 119.0,
+  "mech": {
+   "n_fail": 311,
+   "n_kill": 88,
+   "n_stuck": 223,
+   "kill_only_intraday": 88,
+   "kill_raised_floor": 80,
+   "stuck_raised_floor": 189
+  },
+  "trans": {
+   "pass>pass": 283,
+   "fail>fail": 191,
+   "pass>fail": 118,
+   "open>open": 4,
+   "open>fail": 2,
+   "fail>pass": 2
+  }
+ },
+ "lucid_flex_150k|all|eod_off": {
+  "pass": 77.5,
+  "bust": 15.5,
+  "stuck": 15.5,
+  "open": 7.0,
+  "days": 169.0
+ },
+ "lucid_flex_150k|all|eod_on": {
+  "pass": 77.5,
+  "bust": 15.5,
+  "stuck": 15.5,
+  "open": 7.0,
+  "days": 169.0,
+  "path_identical": 600
+ },
+ "lucid_flex_150k|all|intra": {
+  "pass": 72.0,
+  "bust": 22.5,
+  "stuck": 20.666666666666668,
+  "open": 5.5,
+  "days": 168.0,
+  "mech": {
+   "n_fail": 135,
+   "n_kill": 11,
+   "n_stuck": 124,
+   "kill_only_intraday": 11,
+   "kill_raised_floor": 10,
+   "stuck_raised_floor": 105
+  },
+  "trans": {
+   "fail>fail": 91,
+   "pass>pass": 429,
+   "pass>fail": 33,
+   "open>open": 30,
+   "pass>open": 3,
+   "open>fail": 11,
+   "fail>pass": 2,
+   "open>pass": 1
+  }
+ },
+ "lucid_flex_150k|is|eod_off": {
+  "pass": 78.16666666666667,
+  "bust": 15.0,
+  "stuck": 15.0,
+  "open": 6.833333333333333,
+  "days": 176.0
+ },
+ "lucid_flex_150k|is|eod_on": {
+  "pass": 78.16666666666667,
+  "bust": 15.0,
+  "stuck": 15.0,
+  "open": 6.833333333333333,
+  "days": 176.0,
+  "path_identical": 600
+ },
+ "lucid_flex_150k|is|intra": {
+  "pass": 73.16666666666667,
+  "bust": 19.833333333333332,
+  "stuck": 18.833333333333332,
+  "open": 7.0,
+  "days": 174.0,
+  "mech": {
+   "n_fail": 119,
+   "n_kill": 6,
+   "n_stuck": 113,
+   "kill_only_intraday": 6,
+   "kill_raised_floor": 5,
+   "stuck_raised_floor": 104
+  },
+  "trans": {
+   "pass>fail": 27,
+   "pass>pass": 434,
+   "fail>fail": 84,
+   "open>open": 32,
+   "fail>pass": 4,
+   "open>pass": 1,
+   "pass>open": 8,
+   "open>fail": 8,
+   "fail>open": 2
+  }
+ },
+ "lucid_flex_150k|j|eod_off": {
+  "pass": 69.66666666666667,
+  "bust": 7.5,
+  "stuck": 7.5,
+  "open": 22.833333333333332,
+  "days": 128.5
+ },
+ "lucid_flex_150k|j|eod_on": {
+  "pass": 69.66666666666667,
+  "bust": 7.5,
+  "stuck": 7.5,
+  "open": 22.833333333333332,
+  "days": 128.5,
+  "path_identical": 600
+ },
+ "lucid_flex_150k|j|intra": {
+  "pass": 55.5,
+  "bust": 15.333333333333334,
+  "stuck": 9.666666666666666,
+  "open": 29.166666666666668,
+  "days": 128.0,
+  "mech": {
+   "n_fail": 92,
+   "n_kill": 34,
+   "n_stuck": 58,
+   "kill_only_intraday": 34,
+   "kill_raised_floor": 27,
+   "stuck_raised_floor": 46
+  },
+  "trans": {
+   "pass>pass": 328,
+   "open>open": 100,
+   "fail>open": 31,
+   "open>fail": 33,
+   "open>pass": 4,
+   "fail>fail": 13,
+   "pass>open": 44,
+   "pass>fail": 46,
+   "fail>pass": 1
+  }
+ },
+ "lucid_flex_25k|all|eod_off": {
+  "pass": 50.666666666666664,
+  "bust": 49.333333333333336,
+  "stuck": 49.333333333333336,
+  "open": 0.0,
+  "days": 52.0
+ },
+ "lucid_flex_25k|all|eod_on": {
+  "pass": 50.666666666666664,
+  "bust": 49.333333333333336,
+  "stuck": 49.333333333333336,
+  "open": 0.0,
+  "days": 52.0,
+  "path_identical": 600
+ },
+ "lucid_flex_25k|all|intra": {
+  "pass": 34.0,
+  "bust": 66.0,
+  "stuck": 57.166666666666664,
+  "open": 0.0,
+  "days": 48.0,
+  "mech": {
+   "n_fail": 396,
+   "n_kill": 53,
+   "n_stuck": 343,
+   "kill_only_intraday": 53,
+   "kill_raised_floor": 48,
+   "stuck_raised_floor": 331
+  },
+  "trans": {
+   "fail>fail": 296,
+   "pass>pass": 204,
+   "pass>fail": 100
+  }
+ },
+ "lucid_flex_25k|is|eod_off": {
+  "pass": 52.5,
+  "bust": 47.5,
+  "stuck": 47.5,
+  "open": 0.0,
+  "days": 53.0
+ },
+ "lucid_flex_25k|is|eod_on": {
+  "pass": 52.5,
+  "bust": 47.5,
+  "stuck": 47.5,
+  "open": 0.0,
+  "days": 53.0,
+  "path_identical": 600
+ },
+ "lucid_flex_25k|is|intra": {
+  "pass": 36.166666666666664,
+  "bust": 63.833333333333336,
+  "stuck": 56.666666666666664,
+  "open": 0.0,
+  "days": 47.0,
+  "mech": {
+   "n_fail": 383,
+   "n_kill": 43,
+   "n_stuck": 340,
+   "kill_only_intraday": 43,
+   "kill_raised_floor": 37,
+   "stuck_raised_floor": 326
+  },
+  "trans": {
+   "pass>fail": 98,
+   "pass>pass": 217,
+   "fail>fail": 285
+  }
+ },
+ "lucid_flex_25k|j|eod_off": {
+  "pass": 31.833333333333332,
+  "bust": 68.16666666666667,
+  "stuck": 68.16666666666667,
+  "open": 0.0,
+  "days": 35.0
+ },
+ "lucid_flex_25k|j|eod_on": {
+  "pass": 31.833333333333332,
+  "bust": 68.16666666666667,
+  "stuck": 68.16666666666667,
+  "open": 0.0,
+  "days": 35.0,
+  "path_identical": 600
+ },
+ "lucid_flex_25k|j|intra": {
+  "pass": 17.166666666666668,
+  "bust": 82.83333333333333,
+  "stuck": 66.66666666666667,
+  "open": 0.0,
+  "days": 32.0,
+  "mech": {
+   "n_fail": 497,
+   "n_kill": 97,
+   "n_stuck": 400,
+   "kill_only_intraday": 97,
+   "kill_raised_floor": 79,
+   "stuck_raised_floor": 383
+  },
+  "trans": {
+   "fail>fail": 409,
+   "pass>pass": 103,
+   "pass>fail": 88
+  }
+ },
+ "lucid_flex_50k|all|eod_off": {
+  "pass": 61.0,
+  "bust": 38.833333333333336,
+  "stuck": 38.833333333333336,
+  "open": 0.16666666666666666,
+  "days": 74.0
+ },
+ "lucid_flex_50k|all|eod_on": {
+  "pass": 61.0,
+  "bust": 38.833333333333336,
+  "stuck": 38.833333333333336,
+  "open": 0.16666666666666666,
+  "days": 74.0,
+  "path_identical": 600
+ },
+ "lucid_flex_50k|all|intra": {
+  "pass": 52.666666666666664,
+  "bust": 47.333333333333336,
+  "stuck": 41.666666666666664,
+  "open": 0.0,
+  "days": 76.0,
+  "mech": {
+   "n_fail": 284,
+   "n_kill": 34,
+   "n_stuck": 250,
+   "kill_only_intraday": 34,
+   "kill_raised_floor": 30,
+   "stuck_raised_floor": 217
+  },
+  "trans": {
+   "fail>fail": 226,
+   "pass>pass": 309,
+   "open>fail": 1,
+   "pass>fail": 57,
+   "fail>pass": 7
+  }
+ },
+ "lucid_flex_50k|is|eod_off": {
+  "pass": 65.66666666666667,
+  "bust": 34.0,
+  "stuck": 34.0,
+  "open": 0.3333333333333333,
+  "days": 79.0
+ },
+ "lucid_flex_50k|is|eod_on": {
+  "pass": 65.66666666666667,
+  "bust": 34.0,
+  "stuck": 34.0,
+  "open": 0.3333333333333333,
+  "days": 79.0,
+  "path_identical": 600
+ },
+ "lucid_flex_50k|is|intra": {
+  "pass": 55.333333333333336,
+  "bust": 44.666666666666664,
+  "stuck": 41.5,
+  "open": 0.0,
+  "days": 71.0,
+  "mech": {
+   "n_fail": 268,
+   "n_kill": 19,
+   "n_stuck": 249,
+   "kill_only_intraday": 19,
+   "kill_raised_floor": 17,
+   "stuck_raised_floor": 214
+  },
+  "trans": {
+   "fail>fail": 201,
+   "pass>pass": 329,
+   "pass>fail": 65,
+   "open>fail": 2,
+   "fail>pass": 3
+  }
+ },
+ "lucid_flex_50k|j|eod_off": {
+  "pass": 48.166666666666664,
+  "bust": 51.833333333333336,
+  "stuck": 51.833333333333336,
+  "open": 0.0,
+  "days": 55.0
+ },
+ "lucid_flex_50k|j|eod_on": {
+  "pass": 48.166666666666664,
+  "bust": 51.833333333333336,
+  "stuck": 51.833333333333336,
+  "open": 0.0,
+  "days": 55.0,
+  "path_identical": 600
+ },
+ "lucid_flex_50k|j|intra": {
+  "pass": 31.166666666666668,
+  "bust": 68.83333333333333,
+  "stuck": 54.833333333333336,
+  "open": 0.0,
+  "days": 51.0,
+  "mech": {
+   "n_fail": 413,
+   "n_kill": 84,
+   "n_stuck": 329,
+   "kill_only_intraday": 84,
+   "kill_raised_floor": 66,
+   "stuck_raised_floor": 301
+  },
+  "trans": {
+   "fail>fail": 305,
+   "pass>pass": 181,
+   "pass>fail": 108,
+   "fail>pass": 6
+  }
+ },
+ "lucid_pro_100k|all|eod_off": {
+  "pass": 77.0,
+  "bust": 18.5,
+  "stuck": 18.5,
+  "open": 4.5,
+  "days": 162.5
+ },
+ "lucid_pro_100k|all|eod_on": {
+  "pass": 77.0,
+  "bust": 18.5,
+  "stuck": 18.5,
+  "open": 4.5,
+  "days": 162.5,
+  "path_identical": 600
+ },
+ "lucid_pro_100k|all|intra": {
+  "pass": 69.0,
+  "bust": 27.833333333333332,
+  "stuck": 24.166666666666668,
+  "open": 3.1666666666666665,
+  "days": 161.0,
+  "mech": {
+   "n_fail": 167,
+   "n_kill": 22,
+   "n_stuck": 145,
+   "kill_only_intraday": 22,
+   "kill_raised_floor": 21,
+   "stuck_raised_floor": 126
+  },
+  "trans": {
+   "fail>fail": 109,
+   "pass>pass": 413,
+   "open>fail": 13,
+   "pass>fail": 45,
+   "pass>open": 4,
+   "open>open": 14,
+   "fail>open": 1,
+   "fail>pass": 1
+  }
+ },
+ "lucid_pro_100k|is|eod_off": {
+  "pass": 78.83333333333333,
+  "bust": 15.666666666666666,
+  "stuck": 15.666666666666666,
+  "open": 5.5,
+  "days": 175.0
+ },
+ "lucid_pro_100k|is|eod_on": {
+  "pass": 78.83333333333333,
+  "bust": 15.666666666666666,
+  "stuck": 15.666666666666666,
+  "open": 5.5,
+  "days": 175.0,
+  "path_identical": 600
+ },
+ "lucid_pro_100k|is|intra": {
+  "pass": 72.83333333333333,
+  "bust": 22.5,
+  "stuck": 21.166666666666668,
+  "open": 4.666666666666667,
+  "days": 171.0,
+  "mech": {
+   "n_fail": 135,
+   "n_kill": 8,
+   "n_stuck": 127,
+   "kill_only_intraday": 8,
+   "kill_raised_floor": 7,
+   "stuck_raised_floor": 115
+  },
+  "trans": {
+   "pass>pass": 437,
+   "fail>fail": 94,
+   "open>open": 22,
+   "pass>fail": 30,
+   "pass>open": 6,
+   "open>fail": 11
+  }
+ },
+ "lucid_pro_100k|j|eod_off": {
+  "pass": 67.83333333333333,
+  "bust": 31.166666666666668,
+  "stuck": 31.166666666666668,
+  "open": 1.0,
+  "days": 124.0
+ },
+ "lucid_pro_100k|j|eod_on": {
+  "pass": 67.83333333333333,
+  "bust": 31.166666666666668,
+  "stuck": 31.166666666666668,
+  "open": 1.0,
+  "days": 124.0,
+  "path_identical": 600
+ },
+ "lucid_pro_100k|j|intra": {
+  "pass": 49.0,
+  "bust": 50.166666666666664,
+  "stuck": 35.666666666666664,
+  "open": 0.8333333333333334,
+  "days": 121.0,
+  "mech": {
+   "n_fail": 301,
+   "n_kill": 87,
+   "n_stuck": 214,
+   "kill_only_intraday": 87,
+   "kill_raised_floor": 79,
+   "stuck_raised_floor": 181
+  },
+  "trans": {
+   "pass>pass": 292,
+   "fail>fail": 185,
+   "pass>fail": 115,
+   "open>open": 5,
+   "open>fail": 1,
+   "fail>pass": 2
+  }
+ },
+ "lucid_pro_150k|all|eod_off": {
+  "pass": 78.33333333333333,
+  "bust": 14.333333333333334,
+  "stuck": 14.333333333333334,
+  "open": 7.333333333333333,
+  "days": 169.5
+ },
+ "lucid_pro_150k|all|eod_on": {
+  "pass": 78.33333333333333,
+  "bust": 14.333333333333334,
+  "stuck": 14.333333333333334,
+  "open": 7.333333333333333,
+  "days": 169.5,
+  "path_identical": 600
+ },
+ "lucid_pro_150k|all|intra": {
+  "pass": 73.5,
+  "bust": 20.833333333333332,
+  "stuck": 19.0,
+  "open": 5.666666666666667,
+  "days": 173.0,
+  "mech": {
+   "n_fail": 125,
+   "n_kill": 11,
+   "n_stuck": 114,
+   "kill_only_intraday": 11,
+   "kill_raised_floor": 10,
+   "stuck_raised_floor": 97
+  },
+  "trans": {
+   "fail>fail": 80,
+   "pass>pass": 435,
+   "open>fail": 13,
+   "pass>fail": 32,
+   "open>open": 30,
+   "pass>open": 3,
+   "fail>pass": 5,
+   "fail>open": 1,
+   "open>pass": 1
+  }
+ },
+ "lucid_pro_150k|is|eod_off": {
+  "pass": 78.66666666666667,
+  "bust": 14.166666666666666,
+  "stuck": 14.166666666666666,
+  "open": 7.166666666666667,
+  "days": 177.0
+ },
+ "lucid_pro_150k|is|eod_on": {
+  "pass": 78.66666666666667,
+  "bust": 14.166666666666666,
+  "stuck": 14.166666666666666,
+  "open": 7.166666666666667,
+  "days": 177.0,
+  "path_identical": 600
+ },
+ "lucid_pro_150k|is|intra": {
+  "pass": 73.33333333333333,
+  "bust": 19.666666666666668,
+  "stuck": 18.666666666666668,
+  "open": 7.0,
+  "days": 174.5,
+  "mech": {
+   "n_fail": 118,
+   "n_kill": 6,
+   "n_stuck": 112,
+   "kill_only_intraday": 6,
+   "kill_raised_floor": 5,
+   "stuck_raised_floor": 102
+  },
+  "trans": {
+   "pass>fail": 27,
+   "pass>pass": 437,
+   "fail>fail": 81,
+   "open>open": 32,
+   "fail>pass": 2,
+   "open>pass": 1,
+   "pass>open": 8,
+   "open>fail": 10,
+   "fail>open": 2
+  }
+ },
+ "lucid_pro_150k|j|eod_off": {
+  "pass": 70.66666666666667,
+  "bust": 6.5,
+  "stuck": 6.5,
+  "open": 22.833333333333332,
+  "days": 130.0
+ },
+ "lucid_pro_150k|j|eod_on": {
+  "pass": 70.66666666666667,
+  "bust": 6.5,
+  "stuck": 6.5,
+  "open": 22.833333333333332,
+  "days": 130.0,
+  "path_identical": 600
+ },
+ "lucid_pro_150k|j|intra": {
+  "pass": 58.166666666666664,
+  "bust": 14.333333333333334,
+  "stuck": 9.166666666666666,
+  "open": 27.5,
+  "days": 132.0,
+  "mech": {
+   "n_fail": 86,
+   "n_kill": 31,
+   "n_stuck": 55,
+   "kill_only_intraday": 31,
+   "kill_raised_floor": 24,
+   "stuck_raised_floor": 46
+  },
+  "trans": {
+   "pass>pass": 344,
+   "open>open": 106,
+   "open>fail": 28,
+   "fail>pass": 2,
+   "pass>open": 38,
+   "fail>fail": 16,
+   "fail>open": 21,
+   "pass>fail": 42,
+   "open>pass": 3
+  }
+ },
+ "lucid_pro_25k|all|eod_off": {
+  "pass": 57.333333333333336,
+  "bust": 42.666666666666664,
+  "stuck": 42.666666666666664,
+  "open": 0.0,
+  "days": 56.5
+ },
+ "lucid_pro_25k|all|eod_on": {
+  "pass": 57.333333333333336,
+  "bust": 42.666666666666664,
+  "stuck": 42.666666666666664,
+  "open": 0.0,
+  "days": 56.5,
+  "path_identical": 600
+ },
+ "lucid_pro_25k|all|intra": {
+  "pass": 39.0,
+  "bust": 61.0,
+  "stuck": 53.333333333333336,
+  "open": 0.0,
+  "days": 50.5,
+  "mech": {
+   "n_fail": 366,
+   "n_kill": 46,
+   "n_stuck": 320,
+   "kill_only_intraday": 46,
+   "kill_raised_floor": 42,
+   "stuck_raised_floor": 308
+  },
+  "trans": {
+   "fail>fail": 256,
+   "pass>pass": 234,
+   "pass>fail": 110
+  }
+ },
+ "lucid_pro_25k|is|eod_off": {
+  "pass": 56.666666666666664,
+  "bust": 43.333333333333336,
+  "stuck": 43.333333333333336,
+  "open": 0.0,
+  "days": 56.0
+ },
+ "lucid_pro_25k|is|eod_on": {
+  "pass": 56.666666666666664,
+  "bust": 43.333333333333336,
+  "stuck": 43.333333333333336,
+  "open": 0.0,
+  "days": 56.0,
+  "path_identical": 600
+ },
+ "lucid_pro_25k|is|intra": {
+  "pass": 41.833333333333336,
+  "bust": 58.166666666666664,
+  "stuck": 54.0,
+  "open": 0.0,
+  "days": 49.0,
+  "mech": {
+   "n_fail": 349,
+   "n_kill": 25,
+   "n_stuck": 324,
+   "kill_only_intraday": 25,
+   "kill_raised_floor": 23,
+   "stuck_raised_floor": 309
+  },
+  "trans": {
+   "pass>pass": 251,
+   "fail>fail": 260,
+   "pass>fail": 89
+  }
+ },
+ "lucid_pro_25k|j|eod_off": {
+  "pass": 39.833333333333336,
+  "bust": 60.166666666666664,
+  "stuck": 60.166666666666664,
+  "open": 0.0,
+  "days": 40.0
+ },
+ "lucid_pro_25k|j|eod_on": {
+  "pass": 39.833333333333336,
+  "bust": 60.166666666666664,
+  "stuck": 60.166666666666664,
+  "open": 0.0,
+  "days": 40.0,
+  "path_identical": 600
+ },
+ "lucid_pro_25k|j|intra": {
+  "pass": 21.166666666666668,
+  "bust": 78.83333333333333,
+  "stuck": 59.666666666666664,
+  "open": 0.0,
+  "days": 35.0,
+  "mech": {
+   "n_fail": 473,
+   "n_kill": 115,
+   "n_stuck": 358,
+   "kill_only_intraday": 115,
+   "kill_raised_floor": 97,
+   "stuck_raised_floor": 343
+  },
+  "trans": {
+   "fail>fail": 361,
+   "pass>pass": 127,
+   "pass>fail": 112
+  }
+ },
+ "lucid_pro_50k|all|eod_off": {
+  "pass": 65.33333333333333,
+  "bust": 34.166666666666664,
+  "stuck": 34.166666666666664,
+  "open": 0.5,
+  "days": 77.5
+ },
+ "lucid_pro_50k|all|eod_on": {
+  "pass": 65.33333333333333,
+  "bust": 34.166666666666664,
+  "stuck": 34.166666666666664,
+  "open": 0.5,
+  "days": 77.5,
+  "path_identical": 600
+ },
+ "lucid_pro_50k|all|intra": {
+  "pass": 55.333333333333336,
+  "bust": 44.5,
+  "stuck": 39.666666666666664,
+  "open": 0.16666666666666666,
+  "days": 78.5,
+  "mech": {
+   "n_fail": 267,
+   "n_kill": 29,
+   "n_stuck": 238,
+   "kill_only_intraday": 29,
+   "kill_raised_floor": 26,
+   "stuck_raised_floor": 203
+  },
+  "trans": {
+   "fail>fail": 202,
+   "pass>pass": 329,
+   "open>fail": 2,
+   "pass>fail": 63,
+   "fail>pass": 3,
+   "open>open": 1
+  }
+ },
+ "lucid_pro_50k|is|eod_off": {
+  "pass": 66.5,
+  "bust": 33.0,
+  "stuck": 33.0,
+  "open": 0.5,
+  "days": 80.0
+ },
+ "lucid_pro_50k|is|eod_on": {
+  "pass": 66.5,
+  "bust": 33.0,
+  "stuck": 33.0,
+  "open": 0.5,
+  "days": 80.0,
+  "path_identical": 600
+ },
+ "lucid_pro_50k|is|intra": {
+  "pass": 58.5,
+  "bust": 41.333333333333336,
+  "stuck": 40.333333333333336,
+  "open": 0.16666666666666666,
+  "days": 76.0,
+  "mech": {
+   "n_fail": 248,
+   "n_kill": 6,
+   "n_stuck": 242,
+   "kill_only_intraday": 6,
+   "kill_raised_floor": 5,
+   "stuck_raised_floor": 211
+  },
+  "trans": {
+   "fail>fail": 194,
+   "pass>pass": 347,
+   "pass>fail": 52,
+   "fail>pass": 4,
+   "open>fail": 2,
+   "open>open": 1
+  }
+ },
+ "lucid_pro_50k|j|eod_off": {
+  "pass": 52.333333333333336,
+  "bust": 47.666666666666664,
+  "stuck": 47.666666666666664,
+  "open": 0.0,
+  "days": 55.0
+ },
+ "lucid_pro_50k|j|eod_on": {
+  "pass": 52.333333333333336,
+  "bust": 47.666666666666664,
+  "stuck": 47.666666666666664,
+  "open": 0.0,
+  "days": 55.0,
+  "path_identical": 600
+ },
+ "lucid_pro_50k|j|intra": {
+  "pass": 34.5,
+  "bust": 65.5,
+  "stuck": 49.833333333333336,
+  "open": 0.0,
+  "days": 53.0,
+  "mech": {
+   "n_fail": 393,
+   "n_kill": 94,
+   "n_stuck": 299,
+   "kill_only_intraday": 94,
+   "kill_raised_floor": 76,
+   "stuck_raised_floor": 275
+  },
+  "trans": {
+   "fail>fail": 283,
+   "pass>pass": 204,
+   "pass>fail": 110,
+   "fail>pass": 3
+  }
+ }
+}

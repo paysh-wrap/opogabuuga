@@ -84,23 +84,27 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("size-profiles")).toHaveTextContent("Eval pass / bust (this plan): pass 70% / bust 30%"); // D137: server numbers
   expect(screen.getByTestId("size-profiles")).toHaveTextContent("Eval pass / bust (this plan): not measured yet"); // high: no odds sent
   expect(screen.getByTestId("eval-size-high")).toHaveTextContent("25K 3 × $150 stop → 1 once < 50% of the target is left"); // D69 / D70
-  await userEvent.click(screen.getByRole("button", { name: /OFF · High risk/ }));
+  await userEvent.click(screen.getByRole("button", { name: /USE THIS · High risk/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.high_risk":true'))).toBe(true));
   // D127: NOISE size toggle — Suggested (lowest bust) / As configured
   expect(screen.getByTestId("noise-size-toggle")).toHaveTextContent("50K 1");
   expect(screen.getByTestId("noise-size-toggle")).toHaveTextContent("Suggested table pass 90% / bust 10%");
-  expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("ON · As configured — 50K 2 micros");
+  expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("✓ IN USE · As configured — 50K 2 micros");
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
   // D137: EOD toggle with its VERIFY badge
   expect(screen.getByTestId("verify-eod_closed_balance")).toHaveTextContent("VERIFY");
-  expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("ON · Kill switch watches balance + open P&L (default, safest)");
+  expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("✓ IN USE · Kill switch watches balance + open P&L (default, safest)");
+  const inUse = screen.getByTestId("toggle-eod_closed_balance-off");
+  expect(inUse).not.toBeDisabled(); // the chosen option is not a faded "not allowed" button (user 2026-11-14)
+  await userEvent.click(inUse); // already in use: clicking it sends nothing
+  expect(calls.some((c) => c.includes('"strategy.eod_closed_balance":false'))).toBe(false);
   await userEvent.click(screen.getByTestId("toggle-eod_closed_balance-on"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.eod_closed_balance":true'))).toBe(true));
   // D132: session-20 toggles (fade off in evals ON by default; profit-lock trigger 100 pt by default)
-  expect(screen.getByTestId("toggle-fade_eval_off-on")).toHaveTextContent("ON · Off on EVAL accounts");
-  expect(screen.getByTestId("toggle-noise_lock_alt-off")).toHaveTextContent("ON · 100 pt (default");
-  expect(screen.getByTestId("toggle-noise_lock_alt-on")).toHaveTextContent("OFF · 80 pt — experimental, likely chance");
+  expect(screen.getByTestId("toggle-fade_eval_off-on")).toHaveTextContent("✓ IN USE · Off on EVAL accounts");
+  expect(screen.getByTestId("toggle-noise_lock_alt-off")).toHaveTextContent("✓ IN USE · 100 pt (default");
+  expect(screen.getByTestId("toggle-noise_lock_alt-on")).toHaveTextContent("USE THIS · 80 pt — experimental, likely chance");
   await userEvent.click(screen.getByTestId("toggle-noise_lock_alt-on"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.noise_lock_alt":true'))).toBe(true));
 });

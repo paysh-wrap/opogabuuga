@@ -60,6 +60,9 @@ const k$ = (v: string) => `${Math.round(Number(v) / 1000)}K`;
 
 const pct = (x: number | null) => (x == null ? "—" : `${x.toFixed(1)}%`);
 const card = "rounded-xl border border-border bg-card p-4";
+/** Pick-one-of-two cards (toggles, size tables): "ON/OFF ·" read like "turn on / turn off" (user, 2026-11-14: the EOD
+ *  option marked OFF looked like it switched EOD off). The chosen option says IN USE, the other one says USE THIS. */
+const pickLabel = (inUse: boolean) => (inUse ? "✓ IN USE" : "USE THIS");
 /** Order-flow cards fold their study note together with their setup guide (one "More info" button per card). */
 const noteInSetup = (s: Strat) =>
   s.key === "order_flow" || (s.key === "order_flow_amt" && !!s.amt_layers) || (s.key === "order_flow_zone" && !!s.zone_layers);
@@ -178,10 +181,10 @@ export default function StrategyButtons() {
                 {([true, false] as const).map((v) => {
                   const on = t.value === v;
                   return (
-                    <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending || on} onClick={() => flip.mutate({ t, v })}
+                    <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending} onClick={() => !on && flip.mutate({ t, v })}
                       data-testid={`toggle-${t.key}-${v ? "on" : "off"}`}
-                      className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
-                      {on ? "ON" : "OFF"} · {v ? t.on_label : t.off_label}
+                      className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+                      {pickLabel(on)} · {v ? t.on_label : t.off_label}
                     </button>
                   );
                 })}
@@ -200,10 +203,10 @@ export default function StrategyButtons() {
                 {([false, true] as const).map((v) => {
                   const on = !!d.size_profiles!.suggested_on === v;
                   return (
-                    <button key={String(v)} type="button" aria-pressed={on} disabled={suggest.isPending || on} onClick={() => suggest.mutate(v)}
+                    <button key={String(v)} type="button" aria-pressed={on} disabled={suggest.isPending} onClick={() => !on && suggest.mutate(v)}
                       data-testid={v ? "noise-size-suggested" : "noise-size-configured"}
-                      className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
-                      {on ? "ON" : "OFF"} · {v ? "Suggested — 50K 1 micro (lowest bust)" : "As configured — 50K 2 micros (how it is)"}
+                      className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+                      {pickLabel(on)} · {v ? "Suggested — 50K 1 micro (lowest bust)" : "As configured — 50K 2 micros (how it is)"}
                     </button>
                   );
                 })}
@@ -218,9 +221,9 @@ export default function StrategyButtons() {
               const on = d.size_profiles!.active === p;
               return (
                 <div key={p} className="rounded-lg border border-border p-3">
-                  <button type="button" aria-pressed={on} disabled={size.isPending || on} onClick={() => size.mutate(p === "high")}
-                    className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-70`}>
-                    {on ? "ON" : "OFF"} · {p === "high" ? "High risk" : "Regular"}
+                  <button type="button" aria-pressed={on} disabled={size.isPending} onClick={() => !on && size.mutate(p === "high")}
+                    className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+                    {pickLabel(on)} · {p === "high" ? "High risk" : "Regular"}
                   </button>
                   <ul className="mt-2 text-sm" data-testid={`size-${p}`}>
                     {d.size_profiles![p].map((t) => (

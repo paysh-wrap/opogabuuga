@@ -1,0 +1,13 @@
+{
+ "n": 654,
+ "mean_mfe": 185.335626911315,
+ "mean_pnl": 29.5,
+ "mean_giveback": 155.835626911315,
+ "losers": 318,
+ "losers_with_mfe_ge100": 64,
+ "losers_with_mfe_ge250": 0,
+ "winners_giveback_mean": 132.03125,
+ "share_trades_giveback_ge100": 0.6131498470948012,
+ "sum_pnl": 19293.0,
+ "sum_mfe": 121209.5
+}

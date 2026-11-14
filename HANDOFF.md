@@ -565,3 +565,12 @@ Follow-up (user: "only change the pine bridge if it doesn't hurt order flow"): O
 data_feed, and the app's own lag check (> 90 s = delayed) applies regardless of the Pine value → the Pine input is capped at 90 (can only be
 stricter). Fixed a side effect of item 8: a delayed chart that went silent would block NOISE/Order Flow on that symbol until restart → it
 is forgotten after 15 min while another chart of the symbol keeps reporting (no chart reporting = block stays). 1,267 backend tests passed.
+
+## Session 22 cont. (2026-11-14) — EOD toggle UI + EOD vs intraday drawdown
+User: "It's not letting me turn on EOD." The toggle worked (tested on a live scratch server: PUT 200, value true); the option buttons said
+"ON/OFF ·" meaning selected / not selected, and the selected one was a disabled (faded, not-allowed cursor) button. All pick-one cards
+(choice toggles, 50K size, Regular/High risk) now say "✓ IN USE" (bright gold, click = no-op, not disabled) / "USE THIS".
+Study docs/results/session22/eod_vs_intraday/RESULTS.md (agent; EOD columns = eval_odds.yaml exactly): intraday trailing costs 5–18 pass
+points ALL and 13–19 in the last 12 months (Pro 25K EOD 57/43 vs intraday 39/61; J 40/60 vs 21/79). Mechanism: NOISE gives back open
+profit (mean best open $185/micro vs $29.5 closed), intraday floor ratchets on unrealised highs → accounts run out of room. Kill-switch
+setting (eod_closed_balance) still 0 pt (gaps not modelled).
