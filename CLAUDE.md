@@ -134,3 +134,6 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   LucidScale DLL above initial trail = 60% of peak EOD profit (risk/lucid_scale.py via state.dll_for; VERIFY interpretation); Pro funded payout
   3 profitable days per cycle (VERIFY). Consistency day stop 38% of target on ALL plans (`internal.consistency_day_stop_buffer_pct: 2`).
   backend/scripts/make_plans.py uses a stale template: never regenerate the plan YAMLs, edit them in place.
+- D142 (user 2026-11-14): Strategy button "JJ F.P.T STRAT" (`strategy.jj_fpt`, default OFF) = JJ's Fair Pricing Theory from his
+  transcripts ONLY (docs/JJ_FPT_RULES.md; engine/jj_fpt.py, strategy_service.run_jj_fpt; controller sizes 25% of drawdown, one free
+  account per trade, funded BOS only). Never mix rules from other strategies into it; change a rule only from the transcripts.
