@@ -50,7 +50,7 @@ Best entries mix several confluences: a level + a structure pattern + a magnet, 
 | D3 | **H pattern** (short continuation) | A strong move lower, a bounce up into an 80 level (a stronger up move with a long lower wick and small body, "like the fork on the other side"), then a roll over that forms a lowercase "h". It is a structure pattern, not itself the entry; the entry is the cross-section (D4). A continuation of a short-term downtrend. Mirror for longs | 21:21–25:50, 45:00–46:17 |
 | D4 | **CROSS-SECTION** entry | Where two strong candles meet (the "cross" between the two breakdown / breakout candles), price comes back, taps the cross and rejects → entry with a 10-point stop, TP1 15. Works for a trend or a reversion. Strongest when the cross coincides with an 80/20 level | 23:38–25:50, 46:37–47:53, 48:19–49:28, 57:07–57:32 |
 | D5 | **REPAIR / magnet** | A candle that STARTS with a body and no wick on its opening side (e.g. a strong down candle with no top wick). No orders above could fill, so price is pulled back to it ("a magnet"). Valid as long as price has not touched it. Use as a TARGET and as extra confluence for entries toward it; shorts at a repair above (limit just above the previous high, risk 10 to make ~28) | 35:16–39:56, 41:18–44:09, 53:00–54:04 |
-| D6 | Adding to winners | If the trade idea is playing out, add in the same direction ("step on the gas") | 1:07:45–1:08:08 |
+| D6 | Adding to winners | If the trade idea is playing out, add in the same direction ("step on the gas"). **User-approved exception (2026-11-16, D145):** OKALA 8020 may hold more than one position on an account, same direction only, with the safety limits listed under "Add-to-winners limits" below | 1:07:45–1:08:08 |
 | D7 | Confluence count | More confluences (level, cross, repair, H, fork) = a better trade; a doubled-up second entry on the same idea can be "greedy" | 1:05:14–1:05:38, 1:08:50–1:09:16 |
 
 ## E. Limits and discipline
@@ -70,9 +70,19 @@ Best entries mix several confluences: a level + a structure pattern + a magnet, 
   where candle 1 closes and candle 2 opens, within a tolerance band), **"no wick"** (default: wick ≤ a few ticks), **trading
   windows** (default 09:30–11:30 ET; lunch 11:30–13:30 excluded; no overnight), **max losses per day** (the transcript has
   none; Lucid sizing needs one: default 3).
-- **Add-to-winners (D6)** needs a second position; Paytience allows 1 open position per account, so adds go to the next free
-  account or are not built (never hedge, D139).
+- **Add-to-winners (D6)** is built as a narrow, user-approved exception (D145), see below.
 - **Phone discretion** ("how strong is the move", "my own judgment call") is not mechanical and is left out.
+
+## Add-to-winners limits (user-approved exception, D145)
+Only this strategy may add to an open position. Everything else keeps "max 1 open position per account".
+- SAME direction only. An opposite-side order is never allowed (hedge lock and D139 stay as they are).
+- Only while the open position's stop is at break-even or better (TP1 taken) — the video adds "when the idea is playing out"
+  (1:07:45–1:08:08) and keeps the same stop on both contracts when entering together (1:03:44–1:04:02). **[GAP]** exact trigger: default = TP1 hit and the stop at break-even.
+- The add carries its own 10-point stop, and the TOTAL worst-case loss of the account's open JJ-style position stays inside the same per-trade
+  risk cap as a normal trade (D143-style: DLL left, MLL room, consistency day stop, plan risk cap) — adds are sized from the remaining cap.
+- At most `max_adds` adds per position (**[GAP]**, default 2); never more than the firm / internal max micros in total.
+- Before the open: 1 contract, at most 2 (1:01:47–1:02:13).
+- Every Lucid check (news, DLL, MLL kill switch, consistency, flat times) still runs on every add and can refuse it.
 
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
