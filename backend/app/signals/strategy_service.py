@@ -25,6 +25,7 @@ from app.bias.policy import Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
+from app.engine import bruni_structure as BR
 from app.engine import conti_orb as CO
 from app.engine import conti_vwap as CV
 from app.engine import gala_pa as GP
@@ -1413,6 +1414,50 @@ def run_okala_8020(
     return out
 
 
+def run_bruni_structure(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D148 BRUNI STRUCTURE: replay the New York session on the 15-minute structure; a signal on THIS 1-minute bar
+    (price back in the triple-print zone), the time exit when the replay says so."""
+    cfg = rules.strategy.bruni_structure_cfg
+    out = StrategyOutput()
+    today = session_mbars(s, cfg.symbol, at)
+    if not today or today[-1].close_time != at:
+        return out
+    day0 = _et_at(at.astimezone(ET).date(), "00:00")
+    rows = s.execute(
+        select(Bar)
+        .where(
+            Bar.symbol == cfg.symbol,
+            Bar.tf == "1",
+            Bar.close_time > day0 - timedelta(days=cfg.history_sessions * 2 + 7),
+        )
+        .where(Bar.close_time <= day0)
+        .order_by(Bar.close_time)
+    ).scalars()
+    hist = [CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows]
+    rep = BR.replay_day(hist, today, cfg, rules.instrument(cfg.symbol).tick)
+    day = at.astimezone(ET).date().isoformat()
+    for x in rep.signals:
+        key = f"{cfg.symbol}-BRUNI-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
+        sid = _key_id(s, key)
+        if x.outcome == "TIME" and x.exit_time == at and sid is not None:
+            out.exits.append((sid, "BRUNI_TIME_EXIT"))
+        if x.time != at or exits_only or sid is not None:
+            continue
+        risk = (x.entry - x.stop) * x.direction.sign
+        rr = (x.take_profit - x.entry) * x.direction.sign / risk
+        new = _new_signal(
+            s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
+            gate=_gate(rules, cfg.symbol, at, calendar),
+            features={"context": x.context, "zone": [str(x.zone[0]), str(x.zone[1])], "regime": x.regime,
+                      "flipped": x.flipped, "paper_only": cfg.paper_only},
+            plan=("BRUNI_STRUCTURE", x.entry, x.stop, x.take_profit, risk, rr),
+        )  # fmt: skip
+        out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1444,6 +1489,10 @@ def run(
         out.exits += r.exits
     if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
         r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.bruni_structure and symbol == st.bruni_structure_cfg.symbol:
+        r = run_bruni_structure(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.okala_8020 and symbol == st.okala_8020_cfg.symbol:

@@ -826,6 +826,46 @@ class Okala8020Cfg(_M):
     paper_only: bool = False
 
 
+class BruniStructureCfg(_M):
+    """BRUNI STRUCTURE (D148): docs/BRUNI_RULES.md only (engine/bruni_structure.py). The entry trigger is not shown in
+    the video ([GAP] D); risk overlays F3 / F5 / F6 are OFF by default, tighten-only, BRUNI only. No Kelly, no VAM."""
+
+    symbol: str = "MNQ"
+    tf_minutes: int = Field(default=15, ge=15, le=15)  # A1 one time frame, 15 min (B7: zone on the same chart)
+    history_sessions: int = Field(default=5, ge=1, le=30)  # [GAP] structure history  # not from the video
+    swing_lookback: int = Field(default=2, ge=1, le=10)  # [GAP] swing size  # not from the video
+    breakout_min_ticks: int = Field(default=4, ge=1, le=100)  # A2 [GAP] "a certain level"  # not from the video
+    potential: Literal["FIB", "VALUE_AREA"] = "VALUE_AREA"  # A7 precise version (A6 = FIB)
+    potential_fib: D = D("0.75")  # A6
+    value_area_pct: D = D("0.7")  # A7 [GAP] standard 70% value area  # not from the video
+    zone_candles: int = Field(default=3, ge=3, le=3)  # B2/B6 triple print
+    zone_lookback: int = Field(default=12, ge=3, le=60)  # [GAP] how far back from the impulse  # not from the video
+    wick_gap_min_pts: D | None = None  # C5 [GAP] OFF until measured in-sample (C4)
+    stop_buffer_ticks: int = Field(default=2, ge=0, le=20)  # D [GAP]  # not from the video
+    target_r: D = Field(default=D("2"), ge=D("1"), le=D("3"))  # E1/E2 optimal target, never above 1:3
+    window_start: str = "09:30"  # D New York session only
+    last_entry: str = "15:00"  # [GAP]  # not from the video
+    time_exit: str = "15:45"  # [GAP] intraday only (Lucid)  # not from the video
+    max_losses_per_day: int = Field(default=3, ge=1, le=10)  # [GAP] Lucid sizing divisor  # not from the video
+    autocorr_sizing: bool = False  # F2/F3 overlay (tighten-only)
+    autocorr_conditional_wr: D | None = None  # F2 in-sample win rate after a loss (points)
+    autocorr_unconditional_wr: D | None = None  # F2 in-sample overall win rate (points)
+    autocorr_cut: dict[str, D] = {
+        "WEAK": D("0.75"),
+        "SOLID": D("0.5"),
+        "STRONG": D("0.25"),
+    }  # [GAP]  # not from the video
+    regime_flip: bool = False  # F6 overlay
+    regime_bars: int = Field(default=20, ge=5, le=200)  # F6 [GAP] realized-vol proxy for GARCH  # not from the video
+    regime_edges: list[D] = [D("5"), D("10"), D("20")]  # F6 [GAP] calm|middle|high|extreme  # not from the video
+    regime_table: dict[str, Literal["NORMAL", "FLIP"]] = {}  # F6 stored in-sample result (empty = never flip)
+    drawdown_shield: bool = False  # F5: one active account per week
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # F1 fixed risk / Lucid fit
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -1026,6 +1066,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    bruni_structure: bool = False  # D148 BRUNI STRUCTURE button (docs/BRUNI_RULES.md), default OFF
     okala_8020: bool = False  # D145 OKALA 8020 button (docs/OKALA_8020_RULES.md), default OFF
     conti_vwap: bool = False  # D147 CONTI VWAP button (docs/CONTI_RULES.md C), default OFF
     conti_orb: bool = False  # D146 CONTI ORB button (docs/CONTI_RULES.md B), default OFF
@@ -1052,6 +1093,7 @@ class StrategyCfg(_M):
     conti_orb_cfg: ContiOrbCfg = ContiOrbCfg()
     conti_vwap_cfg: ContiVwapCfg = ContiVwapCfg()
     okala_8020_cfg: Okala8020Cfg = Okala8020Cfg()
+    bruni_structure_cfg: BruniStructureCfg = BruniStructureCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

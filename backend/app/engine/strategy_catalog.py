@@ -280,4 +280,23 @@ CATALOG: list[dict[str, object]] = [
         "1-minute data). The ONLY strategy allowed to add to a winner (D145: same side, stop at break even, inside "
         "one trade's risk cap). All Lucid rules and Paytience safety checks still apply.",
     },
+    {
+        "key": "bruni_structure",
+        "name": "BRUNI STRUCTURE",
+        "source": "Gianluca Bruni's statistical structure model, built only from one transcript (docs/BRUNI_RULES.md): "
+        "15-minute actual / peripheral structure, directional potential, triple-print zones, fixed 2R target",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet.",
+        "note": "Default OFF. MNQ, New York session only. The video never shows the entry trigger: the built trigger "
+        "(price back in the zone) is a flagged gap. Risk overlays (autocorrelation, regime flip, drawdown shield) are "
+        "OFF and can only make trades smaller or fewer. All Lucid rules and safety checks still apply.",
+    },
 ]

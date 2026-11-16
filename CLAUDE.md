@@ -144,3 +144,4 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D146: Strategy button "CONTI ORB" (`strategy.conti_orb`, default OFF) = docs/CONTI_RULES.md B only (engine/conti_orb.py; Lucid fit divisor 1).
 - D147: Strategy button "CONTI VWAP" (`strategy.conti_vwap`, default OFF) = docs/CONTI_RULES.md C only (engine/conti_vwap.py; 25 pt emergency stop = gap).
 - D145: Strategy button "OKALA 8020" (`strategy.okala_8020`, default OFF) = docs/OKALA_8020_RULES.md only (engine/okala_8020.py; 3-min entry bars because 200 s is impossible; add-to-winners exception, see non-negotiable 7).
+- D148: Strategy button "BRUNI STRUCTURE" (`strategy.bruni_structure`, default OFF) = docs/BRUNI_RULES.md only (engine/bruni_structure.py; entry trigger = flagged gap; overlays risk/bruni_overlays.py OFF, tighten-only; no Kelly, no VAM).

@@ -95,3 +95,28 @@ as a model (no formula in the video; a flagged proxy is used).
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
 checks, live gates, EOD drawdown on Pro 25K–150K. Variable sizing from F3 can only TIGHTEN the Lucid-fit size (never above
 it). A signal that hits one of these is skipped with its reason code.
+
+## Implementation notes (D148, 2026-11-16)
+Engine `backend/app/engine/bruni_structure.py` (pure) — `replay_day(history: list[MBar], today: list[MBar], cfg, tick)
+-> BruniDay` (history = earlier sessions' 1-minute bars for the 15-minute structure). Hook
+`strategy_service.run_bruni_structure`; key `MNQ-BRUNI-<day>-<HHMM>`; plan mode `BRUNI_STRUCTURE`;
+`strategy.bruni_structure` (default OFF) + `strategy.bruni_structure_cfg`.
+**Built:** A1 (15 min, RTH only), A2 (body close ≥ 4 ticks beyond the last confirmed 2-bar swing — gaps), A3–A6, A7
+(default VALUE_AREA, 70% of the 1-minute volume profile of P's leg; FIB 75% selectable), A12, B1–B6, B7 (same 15-min
+chart), C1–C5 (wick gap: two nearest wicks of the last 20 candles; threshold OFF until measured), D (flagged trigger:
+1-minute bar back inside the zone → entry at its close, stop 2 ticks past the far edge, one use per zone), E1/E2
+(`target_r` 2, ≤ 3), F1 fixed risk via the Lucid fit (divisor 3 = gap), F2/F3 autocorrelation (tighten-only: smaller
+after a loss for positive / after a win for negative, multipliers WEAK 0.75 / SOLID 0.5 / STRONG 0.25 = gaps; EXTREME
+ignored), F5 drawdown shield (one account per ISO week), F6 regime flip (mean |Δclose| of 20 candles, edges 5/10/20 pt =
+gaps; flips only where the stored `regime_table` says FLIP; empty table = never). All overlays OFF by default, BRUNI only
+(`risk/bruni_overlays.py`, 100% covered). New York session only (09:30–15:00 entries, 15:45 time exit).
+**Not built:** A8 (implicit: only the last two breakouts count), A9 B+A zones, A10 internal structure, A11 (we only trade
+breakouts — consistent), the Asian-range schematic and 1–2 day holds (overnight), F4 Kelly (prop: fixed risk), F7 VAM, G
+(validation steps for the backtest agent), the "raise after a win" half of F3 (the Lucid-fit size is the ceiling).
+
+| Plan | EVAL $/trade | micros @20 / 40 pt | FUNDED $/trade | micros @20 / 40 pt |
+|------|------|------|------|------|
+| Pro 25K | 158.33 | 3 / 1 | 180.00 | 4 / 2 |
+| Pro 50K | 360.00 | 8 / 4 | 360.00 | 8 / 4 |
+| Pro 100K | 540.00 | 12 / 6 | 540.00 | 12 / 6 |
+| Pro 150K | 810.00 | 19 / 9 | 810.00 | 19 / 9 |

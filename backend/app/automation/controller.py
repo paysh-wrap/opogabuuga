@@ -45,6 +45,7 @@ from app.monitor.feed import FeedDelayTracker
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
 from app.risk.add_to_winners import ADD_MODE, OpenLeg, add_allowed
+from app.risk.bruni_overlays import autocorr_multiplier, shield_account
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
 from app.risk.consistency import live_day_stop_hit
 from app.risk.cushion import (
@@ -78,15 +79,24 @@ STRATEGY_MODES = (
     "CONTI_ORB",
     "CONTI_VWAP",
     "OKALA_8020",
+    "BRUNI_STRUCTURE",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
-FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB", "CONTI_VWAP": "CVWAP", "OKALA_8020": "OKALA"}
+FIT_TAGS = {
+    "GALA_PA": "GALA",
+    "CONTI_ORB": "CORB",
+    "CONTI_VWAP": "CVWAP",
+    "OKALA_8020": "OKALA",
+    "BRUNI_STRUCTURE": "BRUNI",
+}
 
 
 def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
     if mode == "GALA_PA":
         return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "BRUNI_STRUCTURE":
+        return FIT_TAGS[mode], st.bruni_structure_cfg, st.bruni_structure_cfg.max_losses_per_day
     if mode == "OKALA_8020":
         return FIT_TAGS[mode], st.okala_8020_cfg, st.okala_8020_cfg.max_losses_per_day
     if mode == "CONTI_VWAP":
@@ -437,6 +447,13 @@ class Controller:
                 else:
                     cands = [c for c in cands if bid.get(c.id) not in busy]
                 n_accts = 1
+            if plan0.mode == "BRUNI_STRUCTURE" and r.strategy.bruni_structure_cfg.drawdown_shield:
+                # BRUNI F5 drawdown shield: ONE active account per week (tighten-only)
+                used = self._bruni_week_account(s)
+                pick = shield_account([c.id for c in cands], self.clock.now().isocalendar()[1], used)
+                cands = [c for c in cands if c.id == pick]
+                if not cands:
+                    return [*out, AccountResult(used or 0, False, "BRUNI_SHIELD_ACCOUNT_BUSY")]
             chosen = select_accounts(cands, n_accts, any_live)
             inst = r.instrument(sig.symbol)
             std, evm = RiskCfg.standard(r.internal), RiskCfg.evaluation(r.eval_mode)
@@ -663,6 +680,17 @@ class Controller:
                 if not dec.ok:
                     return AccountResult(a.id, False, dec.reason)
                 fixed = min(fixed, dec.max_contracts)
+            bc = r.strategy.bruni_structure_cfg
+            if strategy == "BRUNI_STRUCTURE" and bc.autocorr_sizing:  # BRUNI F3 overlay: only ever smaller
+                mult = autocorr_multiplier(
+                    bc.autocorr_conditional_wr,
+                    bc.autocorr_unconditional_wr,
+                    self._bruni_last_won(s, a),
+                    bc.autocorr_cut,
+                )
+                fixed = int(fixed * mult)
+                if fixed < 1:
+                    return AccountResult(a.id, False, "BRUNI_AUTOCORR_SKIP")
             if strategy == ADD_MODE and fixed >= 1:  # C2–C5: TP1 leg + break-even runner (2+ micros), else TP1 only
                 feat = sig.features or {}
                 tp1 = Decimal(str(feat.get("tp1", plan.take_profit)))
@@ -1080,6 +1108,29 @@ class Controller:
                                 await self._flatten_account(s, a, reason)
                 await self._retry_strategy_exits(s)
                 self._commit(s)
+
+    def _bruni_week_account(self, s: Session) -> int | None:
+        """F5: the account that took a BRUNI trade this ISO week (None = none yet)."""
+        now = self.clock.now()
+        monday = datetime.combine((now - timedelta(days=now.weekday())).date(), datetime.min.time(), tzinfo=now.tzinfo)
+        row = s.execute(
+            select(Trade.account_id)
+            .join(Signal, Signal.id == Trade.signal_id)
+            .where(Signal.model_key.like("%-BRUNI-%"), Trade.opened_at >= monday)
+            .order_by(Trade.opened_at)
+        ).first()
+        return None if row is None else int(row[0])
+
+    @staticmethod
+    def _bruni_last_won(s: Session, a: Account) -> bool | None:
+        """F3: did this account's last closed BRUNI trade win (None = no history)."""
+        row = s.execute(
+            select(Trade.pnl_usd)
+            .join(Signal, Signal.id == Trade.signal_id)
+            .where(Trade.account_id == a.id, Signal.model_key.like("%-BRUNI-%"), Trade.pnl_usd.is_not(None))
+            .order_by(Trade.closed_at.desc())
+        ).first()
+        return None if row is None or row[0] is None else bool(row[0] > 0)
 
     @staticmethod
     def _at_breakeven(t: OpenTrade) -> bool:

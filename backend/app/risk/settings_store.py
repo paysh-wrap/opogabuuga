@@ -86,6 +86,11 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo_cfg.accounts",
         "strategy.pm_fade",
         "strategy.jj_fpt",  # JJ F.P.T STRAT button (docs/JJ_FPT_RULES.md)
+        "strategy.bruni_structure",  # D148 BRUNI STRUCTURE button
+        *(
+            f"strategy.bruni_structure_cfg.{k}"
+            for k in ("potential", "target_r", "autocorr_sizing", "regime_flip", "drawdown_shield")
+        ),
         "strategy.okala_8020",  # D145 OKALA 8020 button
         "strategy.okala_8020_cfg.add_after_tp1",
         "strategy.okala_8020_cfg.max_adds",

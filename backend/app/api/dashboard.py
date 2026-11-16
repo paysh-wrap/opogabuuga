@@ -668,7 +668,58 @@ def okala_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
-RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules, "conti_vwap": conti_vwap_rules, "okala_8020": okala_rules}
+def bruni_rules(r: Any) -> list[dict[str, object]]:
+    """BRUNI STRUCTURE card (docs/BRUNI_RULES.md; * = not from the video)."""
+    c = r.strategy.bruni_structure_cfg
+    gap = "OFF until measured in-sample" if c.wick_gap_min_pts is None else f"skip below {c.wick_gap_min_pts} pt"
+    return [
+        {
+            "key": "STRUCTURE",
+            "on": True,
+            "rule": f"{c.tf_minutes}-min only (A1); breakout = body close beyond the last "
+            f"swing by ≥ {c.breakout_min_ticks}* ticks (A2); last two breakouts = actual + peripheral (A3–A5)",
+        },
+        {"key": "POTENTIAL", "on": True, "rule": f"{c.potential}: 75% of the leg (A6) or the value-area limit (A7)"},
+        {
+            "key": "ZONE",
+            "on": True,
+            "rule": "triple print: the latest 3 valid opposite candles before the impulse (B1–B5)",
+        },
+        {
+            "key": "ENTRY",
+            "on": True,
+            "rule": f"[GAP]* price back in the zone → entry, stop {c.stop_buffer_ticks}* ticks "
+            "past it (the video never shows the trigger); New York session only (no Asian range, no overnight)",
+        },
+        {"key": "WICK GAP", "on": c.wick_gap_min_pts is not None, "rule": f"two wicks nearest the stop (C1–C5): {gap}"},
+        {"key": "TARGET", "on": True, "rule": f"fixed {c.target_r}R (E1/E2, never above 3R)"},
+        {
+            "key": "AUTOCORRELATION",
+            "on": c.autocorr_sizing,
+            "rule": "F2/F3: smaller after a loss (positive) or a win "
+            "(negative), from stored in-sample win rates; never larger",
+        },
+        {
+            "key": "REGIME FLIP",
+            "on": c.regime_flip,
+            "rule": "F6: flip the side only in a bucket the in-sample table marks FLIP",
+        },
+        {"key": "DRAWDOWN SHIELD", "on": c.drawdown_shield, "rule": "F5: one active account per week"},
+        {
+            "key": "SIZE",
+            "on": True,
+            "rule": "fixed risk, no Kelly on prop accounts (F4), no VAM (F7); "
+            + fit_size_row(r, c, c.max_losses_per_day, ("20", "40")),
+        },
+    ]
+
+
+RULE_CARDS: dict[str, Any] = {
+    "bruni_structure": bruni_rules,
+    "conti_orb": conti_orb_rules,
+    "conti_vwap": conti_vwap_rules,
+    "okala_8020": okala_rules,
+}
 
 
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
@@ -719,6 +770,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "conti_orb": r.strategy.conti_orb,
         "conti_vwap": r.strategy.conti_vwap,
         "okala_8020": r.strategy.okala_8020,
+        "bruni_structure": r.strategy.bruni_structure,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
