@@ -21,7 +21,7 @@ Full spec: `docs/MASTER_PROMPT_v9.2.md` (binding; added 2026-11-06 from the user
 4. Never disguise automation as manual trading.
 5. Default PAPER. LIVE needs `PAYTIENCE_ALLOW_LIVE=true` + Settings toggle + typed "I ACCEPT LIVE RISK" + Live-Readiness Checklist.
 6. Respect script licenses; keep attribution; non-commercial → "PERSONAL USE ONLY". Never touch protected code.
-7. Never hedge. Household-wide EQUITY_INDEX direction lock across accounts/profiles/instruments → Skip("HEDGE_LOCK"). Max 1 open position per account. D139: a reversal is skipped until the old position is confirmed flat (exit fill seen) — by design, never "fix" it.
+7. Never hedge. Household-wide EQUITY_INDEX direction lock across accounts/profiles/instruments → Skip("HEDGE_LOCK"). Max 1 open position per account — single exception D145: OKALA 8020 may add same-direction contracts to its own position once the stop is at break even, inside one trade's risk cap, ≤ max_adds (risk/add_to_winners.py). D139: a reversal is skipped until the old position is confirmed flat (exit fill seen) — by design, never "fix" it.
 8. No silent failures: error → block new entries + log + UI banner + notify.
 9. Lab may NEVER modify a Pillar (§17.1) — enforced by registry + tests + pillar-module hash.
 10. Evaluation Mode applies ONLY to stage EVAL — never FUNDED/LIVE. Enforced in pure risk code + tests.
@@ -143,3 +143,4 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   strategy_service.run_gala_pa; D143-style Lucid fit via engine/lucid_fit.py, divisor 3 = E2; single 2R bracket, trim/stop-move not built).
 - D146: Strategy button "CONTI ORB" (`strategy.conti_orb`, default OFF) = docs/CONTI_RULES.md B only (engine/conti_orb.py; Lucid fit divisor 1).
 - D147: Strategy button "CONTI VWAP" (`strategy.conti_vwap`, default OFF) = docs/CONTI_RULES.md C only (engine/conti_vwap.py; 25 pt emergency stop = gap).
+- D145: Strategy button "OKALA 8020" (`strategy.okala_8020`, default OFF) = docs/OKALA_8020_RULES.md only (engine/okala_8020.py; 3-min entry bars because 200 s is impossible; add-to-winners exception, see non-negotiable 7).

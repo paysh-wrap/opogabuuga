@@ -88,7 +88,10 @@ def test_strategies_endpoint(authed):
         "gala_pa",
         "conti_orb",
         "conti_vwap",
+        "okala_8020",
     ]
+    assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["LEVELS", "CHARTS"]
+    body["strategies"] = body["strategies"][:-1]
     assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["VWAP", "ENTRY"]
     assert [x["key"] for x in body["strategies"][-2]["strategy_rules"]][:2] == ["RANGE", "ENTRY"]
     gala = body["strategies"][-3]  # D144 GALA PRICE ACTION card: off by default, rule sheet listed

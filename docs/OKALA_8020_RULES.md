@@ -87,3 +87,30 @@ Only this strategy may add to an open position. Everything else keeps "max 1 ope
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
 checks, live gates, EOD drawdown on Pro 25K–150K. A signal that hits one of these is skipped with its reason code.
+
+## Implementation notes (D145, 2026-11-16)
+Engine `backend/app/engine/okala_8020.py` (pure) — `replay_day(today: list[MBar], cfg, tick) -> OkalaDay` (`.signals`:
+entries and adds with outcome STOP / BE / RUNNER / TIME). Hook `strategy_service.run_okala_8020`; key
+`MNQ-OKALA-<day>-<HHMM>`; plan mode `OKALA_8020`; `strategy.okala_8020` (default OFF) + `strategy.okala_8020_cfg`.
+**Built:** A1–A4 (A4 tap tolerance 0.25 / through 3 pt), A2, B1 (10-min exact; entries on **3-minute** bars — FLAG:
+200 s impossible from 1-minute data), B3 (09:30–11:30, lunch out, no pre-open: B4 not needed), C1 10 pt, C2 TP1 15,
+C3 break even + 1 pt, C4 runner to the nearest untouched repair magnet or 30 pt (gap), D1 fork, D2 reverse fork, D3 H
+pattern (confluence of a cross), D4 cross-section, D5 repair magnets (target + confluence), D6 adds (D145), D7
+confluences stored on the signal (not used for size), E1/E3 no trade cap, max_losses_per_day 3 (gap).
+**C5 scaling:** 1 micro → single bracket at TP1; 2+ micros → the existing Drawdown-Guard two-leg bracket (leg A =
+ceil(n/2) at TP1 15 pt, leg B to the runner target; leg B stop to entry + 1 pt on the leg-A fill). This matches the 2- and
+3-contract rows; the 4-contract "1 at 30, last at 60" ladder is NOT built (leg B goes to one runner target).
+**Not built:** A5/A6 limit orders resting at the level (entries are market at the 3-minute close), phone discretion,
+B2 chop-vs-trend regime, the "subpar without a level" judgment (confluences recorded, not filtered).
+**Add-to-winners (D145):** `risk/add_to_winners.add_allowed` (pure, 100% covered) + controller: only plan mode
+OKALA_8020; same direction (else `OKALA_ADD_OPPOSITE`), every open leg's stop at entry or better (else
+`OKALA_ADD_NOT_AT_BE`), ≤ max_adds (else `OKALA_MAX_ADDS`), contracts from (per-trade cap − worst case still open)
+(else `OKALA_ADD_CAP`); every pre-trade check (news, DLL, MLL kill switch, consistency, hedge lock, flat times) runs on
+the add. Every other strategy still gets `POSITION_OPEN`.
+
+| Plan | EVAL $/trade | micros @10 pt | FUNDED $/trade | micros @10 pt |
+|------|------|------|------|------|
+| Pro 25K | 158.33 | 7 | 180.00 | 8 |
+| Pro 50K | 360.00 | 16 | 360.00 | 16 |
+| Pro 100K | 540.00 | 24 | 540.00 | 24 |
+| Pro 150K | 810.00 | 36 | 810.00 | 36 |
