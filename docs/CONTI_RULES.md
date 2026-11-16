@@ -69,3 +69,19 @@ other side is a new signal; a reversal waits until the old position is confirmed
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
 checks, live gates, EOD drawdown on Pro 25K–150K. A signal that hits one of these is skipped with its reason code.
+
+## Implementation notes — CONTI ORB (D146, 2026-11-16)
+Engine `backend/app/engine/conti_orb.py` (pure) — `replay_day(today: list[MBar], cfg, tick) -> OrbDay` (this session's
+1-minute bars up to now). Hook `strategy_service.run_conti_orb`; key `MNQ-CORB-<day>-<HHMM>`; plan mode `CONTI_ORB`;
+`strategy.conti_orb` (default OFF) + `strategy.conti_orb_cfg`. Built: B1–B7 (B5 rr 1 or 2, validator; B6 `CORB_TIME_EXIT`
+at 15:30). [GAP] defaults (`# not from the video`): 1-minute close, 1 trade a day, last entry 15:00. A5/A6 are
+validation steps for the backtest agent, not runtime rules. Sizing (B7 / A4) = Lucid fit, divisor 1 (one trade a day):
+risk = min(25% MLL, DLL left × 0.9, MLL room − kill distance, max_trade_risk_usd, consistency day stop); skip
+`CORB_SIZE_BELOW_1`.
+
+| Plan | $/trade (EVAL = FUNDED) | micros @30 pt / 60 pt range |
+|------|------|------|
+| Pro 25K | 250.00 | 4 / 2 |
+| Pro 50K | 500.00 | 8 / 4 |
+| Pro 100K | 750.00 | 12 / 6 |
+| Pro 150K | 1125.00 | 18 / 9 |

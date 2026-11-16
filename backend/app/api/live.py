@@ -42,6 +42,7 @@ def active_strategies(r: RulesConfig) -> set[str]:
     on["ORDER_FLOW"] = st.order_flow
     on["JJ_FPT"] = st.jj_fpt
     on["GALA_PA"] = st.gala_pa
+    on["CONTI_ORB"] = st.conti_orb
     return {k for k, v in on.items() if v}
 
 

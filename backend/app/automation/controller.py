@@ -74,7 +74,21 @@ STRATEGY_MODES = (
     "ORDER_FLOW",
     "JJ_FPT",
     "GALA_PA",
+    "CONTI_ORB",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
+# D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
+FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB"}
+
+
+def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
+    """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
+    if mode == "GALA_PA":
+        return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "CONTI_ORB":
+        return FIT_TAGS[mode], st.conti_orb_cfg, st.conti_orb_cfg.max_trades_per_day
+    return None
+
+
 RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
@@ -401,8 +415,9 @@ class Controller:
                 if (only is None or a.id in only) and a.id not in done
             ]
             n_accts = r.automation.accounts_to_trade
+            fit0 = fit_cfg(r.strategy, plan0.mode)
             one_acct = (plan0.mode == "JJ_FPT" and r.strategy.jj_fpt_cfg.one_account_per_trade) or (
-                plan0.mode == "GALA_PA" and r.strategy.gala_pa_cfg.one_account_per_trade
+                fit0 is not None and fit0[1].one_account_per_trade
             )
             if one_acct:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
@@ -457,8 +472,10 @@ class Controller:
             "AI_DUO": r.strategy.ai_duo_cfg.paper_only,
             "ORDER_FLOW": r.strategy.order_flow_cfg.paper_only,
             "JJ_FPT": r.strategy.jj_fpt_cfg.paper_only,
-            "GALA_PA": r.strategy.gala_pa_cfg.paper_only,
         }
+        fit = fit_cfg(r.strategy, strategy)
+        if fit is not None:
+            paper_only[strategy] = fit[1].paper_only
         if paper_only.get(strategy) and not a.is_sim:
             return AccountResult(a.id, False, "PAPER_ONLY_STRATEGY")  # opted in by the plan file
         if strategy == "PM_FADE" and a.stage == "EVAL" and r.strategy.pm_fade_cfg.eval_off:
@@ -555,8 +572,7 @@ class Controller:
                     "AI_DUO": (r.strategy.ai_duo_cfg.max_qty if big else r.strategy.ai_duo_cfg.contracts),
                     "ORDER_FLOW": r.strategy.order_flow_cfg.contracts,
                     "JJ_FPT": 1,  # replaced below by JJ's same-dollars size (#28 / #29)
-                    "GALA_PA": 1,  # replaced below by the D144 Lucid-fit size
-                }[strategy],
+                }.get(strategy, 1),  # D144+: the Lucid-fit strategies are sized below
                 r.account_size,
                 acct_size,
             )
@@ -594,8 +610,8 @@ class Controller:
             )  # fmt: skip
             if fixed < 1:
                 return AccountResult(a.id, False, "JJ_SIZE_BELOW_1")
-        gala = r.strategy.gala_pa_cfg if strategy == "GALA_PA" else None
-        if gala is not None:  # D144: same Lucid fit as D143; divisor = the rule sheet's E2 trades a day
+        if fit is not None:  # D144: same Lucid fit as D143; divisor = the rule sheet's max losses a day
+            tag, gala, losses = fit
             slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
             gday = st.day_state(s, a, opnl, now)
             gdll = st.dll_for(r, a)
@@ -603,7 +619,7 @@ class Controller:
             risk_usd = fit_trade_risk(
                 mll.max_loss,
                 gala.risk_pct_of_drawdown,
-                gala.max_trades_per_day,
+                losses,
                 dll_remaining(gdll, gday.today_pnl, gday.today_peak_pnl) if gdll is not None else None,
                 gala.dll_use_pct,
                 equity - mll.mll - r.internal.kill_switch_mll_distance,
@@ -612,12 +628,12 @@ class Controller:
             )
             fixed = fit_contracts(risk_usd, plan.risk_pts, inst.tick, inst.tick_value, inst.fee_rt, slip)
             audit.record(
-                s, self.clock, actor, "trade.gala_size", a.broker_account_id,
+                s, self.clock, actor, f"trade.{tag.lower()}_size", a.broker_account_id,
                 {"signal": sig.id, "risk_usd": str(risk_usd), "stop_pts": str(plan.risk_pts), "contracts": fixed,
                  "drawdown_type": mll.drawdown_type, "mll": str(mll.mll)},
             )  # fmt: skip
             if fixed < 1:
-                return AccountResult(a.id, False, "GALA_SIZE_BELOW_1")
+                return AccountResult(a.id, False, f"{tag}_SIZE_BELOW_1")
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
         eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on

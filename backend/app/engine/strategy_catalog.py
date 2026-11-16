@@ -225,4 +225,22 @@ CATALOG: list[dict[str, object]] = [
         "Lucid's DLL, MLL and consistency for 3 losses a day. Single 2R bracket: the video's trim-half-at-2R and "
         "stop-to-entry are NOT built yet. All Lucid rules and Paytience safety checks still apply.",
     },
+    {
+        "key": "conti_orb",
+        "name": "CONTI ORB",
+        "source": "Matteo Conti's opening range breakout, built only from one transcript (docs/CONTI_RULES.md B): "
+        "LONG on a close above the 09:30–10:00 high, stop at the range low, 1R or 2R, flat 15:30",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet.",
+        "note": "Default OFF. MNQ, one trade a day. Same dollars at risk every trade (fewer micros on a wide range), "
+        "fitted to Lucid's DLL, MLL and consistency. All Lucid rules and Paytience safety checks still apply.",
+    },
 ]

@@ -25,6 +25,7 @@ from app.bias.policy import Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
+from app.engine import conti_orb as CO
 from app.engine import gala_pa as GP
 from app.engine import jj_fpt as JJ
 from app.engine import noise as N
@@ -1304,6 +1305,50 @@ def run_gala_pa(
     return out
 
 
+def session_mbars(s: Session, symbol: str, at: datetime) -> list[CO.MBar]:
+    """This ET session's RTH 1-minute bars (09:30, `at`] with volume — input of the CONTI / OKALA engines."""
+    o = _et_at(at.astimezone(ET).date(), "09:30")
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time > o, Bar.close_time <= at)
+        .order_by(Bar.close_time)
+    ).scalars()
+    return [CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows]
+
+
+def _key_id(s: Session, key: str) -> int | None:
+    row = s.execute(select(Signal.id).where(Signal.model_key == key)).first()
+    return None if row is None else int(row[0])
+
+
+def run_conti_orb(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D146 CONTI ORB: replay today's range breakout; a signal on THIS bar, the 15:30 time exit (B6)."""
+    cfg = rules.strategy.conti_orb_cfg
+    out = StrategyOutput()
+    today = session_mbars(s, cfg.symbol, at)
+    if not today or today[-1].close_time != at:
+        return out
+    rep = CO.replay_day(today, cfg, rules.instrument(cfg.symbol).tick)
+    day = at.astimezone(ET).date().isoformat()
+    for x in rep.signals:
+        key = f"{cfg.symbol}-CORB-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
+        sid = _key_id(s, key)
+        if x.outcome == "TIME" and x.exit_time == at and sid is not None:
+            out.exits.append((sid, "CORB_TIME_EXIT"))
+        if x.time != at or exits_only or sid is not None:
+            continue
+        new = _new_signal(
+            s, clock, symbol=cfg.symbol, key=key, direction=Direction.LONG, at=at,
+            gate=_gate(rules, cfg.symbol, at, calendar),
+            features={"range_high": str(x.range_high), "range_low": str(x.range_low), "paper_only": cfg.paper_only},
+            plan=("CONTI_ORB", x.entry, x.stop, x.take_profit, x.risk_pts, x.rr),
+        )  # fmt: skip
+        out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1335,6 +1380,10 @@ def run(
         out.exits += r.exits
     if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
         r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.conti_orb and symbol == st.conti_orb_cfg.symbol:
+        r = run_conti_orb(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.gala_pa and symbol == st.gala_pa_cfg.symbol:

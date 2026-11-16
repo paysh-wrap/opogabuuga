@@ -18,6 +18,7 @@ export interface Strat {
   zone_layers?: { key: string; on: boolean; rule: string }[]; // D111: ATR-zone type (iceberg PROXY)
   jj_rules?: { key: string; on: boolean; rule: string }[]; // JJ F.P.T STRAT: his rules with the plan's live numbers
   gala_rules?: { key: string; on: boolean; rule: string }[]; // D144 GALA PRICE ACTION: rule sheet + plan numbers
+  strategy_rules?: { key: string; on: boolean; rule: string }[]; // D146+: rule-sheet strategies (CONTI, OKALA)
 }
 // D137: eval pass / bust of one (plan, size table, EOD toggle) cell — numbers null + text "not measured yet" until measured
 export interface OddsView { plan: string; table: string; eod_on: boolean; text: string; pass_pct: number | null; bust_pct: number | null; last12_pass_pct: number | null; last12_bust_pct: number | null }
@@ -211,6 +212,17 @@ export default function StrategyButtons() {
                 <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
                   {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
+                </MoreInfo>
+              </div>
+            )}
+            {s.strategy_rules && (
+              <div className="mt-2 text-xs" data-testid={`${s.key}-setup`}>
+                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one transcript</span>
+                <MoreInfo label="Rules" testId={`more-${s.key}-rules`}>
+                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid={`${s.key}-rules`}>
+                  {s.strategy_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+                </ol>
+                <p className="mt-1 text-blue">* = not from the video. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, flat times, never hedge).</p>
                 </MoreInfo>
               </div>
             )}

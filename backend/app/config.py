@@ -756,6 +756,29 @@ class GalaPaCfg(_M):
         return self
 
 
+class ContiOrbCfg(_M):
+    """CONTI ORB (D146): opening range breakout from docs/CONTI_RULES.md part B only (engine/conti_orb.py)."""
+
+    symbol: str = "MNQ"
+    range_end: str = "10:00"  # B1 09:30–10:00
+    last_entry: str = "15:00"  # [GAP]  # not from the video
+    time_exit: str = "15:30"  # B6
+    rr: D = D("1")  # B5 1 or 2 ([GAP] which: default 1, his worked example)
+    max_trades_per_day: int = Field(default=1, ge=1, le=3)  # [GAP] the first breakout  # not from the video
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+    @model_validator(mode="after")
+    def _check(self) -> ContiOrbCfg:
+        if self.rr not in (D(1), D(2)):
+            raise ValueError("conti_orb_cfg: rr must be 1 or 2 (B5)")
+        if not (self.range_end < self.last_entry < self.time_exit <= "16:00"):
+            raise ValueError("conti_orb_cfg: range_end < last_entry < time_exit <= 16:00")
+        return self
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -956,6 +979,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    conti_orb: bool = False  # D146 CONTI ORB button (docs/CONTI_RULES.md B), default OFF
     gala_pa: bool = False  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
     # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
     # trades half size (rounded down, min 1) and may use half of the daily loss limit (D102: no forced paper-only).
@@ -976,6 +1000,7 @@ class StrategyCfg(_M):
     order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
     jj_fpt_cfg: JjFptCfg = JjFptCfg()
     gala_pa_cfg: GalaPaCfg = GalaPaCfg()
+    conti_orb_cfg: ContiOrbCfg = ContiOrbCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

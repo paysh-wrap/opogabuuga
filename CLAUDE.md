@@ -141,3 +141,4 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
   max_trade_risk_usd, consistency day stop/3) via engine/jj_fpt.trade_risk_usd; numbers in lucid_pro_*.yaml `jj_fpt_cfg`; table in docs/JJ_FPT_RULES.md.
 - D144 (user 2026-11-16): Strategy button "GALA PRICE ACTION" (`strategy.gala_pa`, default OFF) = docs/GALA_RULES.md ONLY (engine/gala_pa.py,
   strategy_service.run_gala_pa; D143-style Lucid fit via engine/lucid_fit.py, divisor 3 = E2; single 2R bracket, trim/stop-move not built).
+- D146: Strategy button "CONTI ORB" (`strategy.conti_orb`, default OFF) = docs/CONTI_RULES.md B only (engine/conti_orb.py; Lucid fit divisor 1).

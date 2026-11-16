@@ -486,31 +486,59 @@ def jj_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
-def _gala_fit(r: Any) -> str:
-    """D144: the Lucid fit on the ACTIVE plan for a fresh EVAL account (same math as the controller)."""
+def fit_size_row(r: Any, c: Any, losses: int, stops: tuple[str, str]) -> str:
+    """D144+: the Lucid fit on the ACTIVE plan for a fresh EVAL account (same math as the controller)."""
     from decimal import Decimal
 
     from app.engine.lucid_fit import contracts_for, trade_risk_usd
     from app.phases.phase_engine import firm_max_micros, stage_rules
     from app.risk.consistency import eval_limits
 
-    c, i = r.strategy.gala_pa_cfg, r.internal
+    i = r.internal
     sr = stage_rules(r, "EVAL")
     pct = r.eval.consistency_max_day_pct
     cons = eval_limits(r.eval.profit_target, pct, i.consistency_day_stop_buffer_pct) if pct is not None else None
     risk = trade_risk_usd(
-        sr.max_loss, c.risk_pct_of_drawdown, c.max_trades_per_day, sr.dll, c.dll_use_pct,
+        sr.max_loss, c.risk_pct_of_drawdown, losses, sr.dll, c.dll_use_pct,
         sr.max_loss - i.kill_switch_mll_distance, r.strategy.max_trade_risk_usd,
         cons.day_stop if cons is not None else None,
     )  # fmt: skip
     m = r.instrument(c.symbol)
     slip = m.slippage_ticks or r.trade_plan.slippage_ticks
     cap = min(firm_max_micros(r, "EVAL", Decimal(0)), i.internal_max_micros)
-    n = [min(contracts_for(risk, Decimal(x), m.tick, m.tick_value, m.fee_rt, slip), cap) for x in ("10", "20")]
+    n = [min(contracts_for(risk, Decimal(x), m.tick, m.tick_value, m.fee_rt, slip), cap) for x in stops]
     return (
         f"Lucid fit on this plan (EVAL, {sr.drawdown_type.upper()} drawdown): ${risk} per trade, {n[0]} micros at "
-        f"10 pt / {n[1]} at 20 pt stop, sized for {c.max_trades_per_day} losses a day"
+        f"{stops[0]} pt / {n[1]} at {stops[1]} pt stop, sized for {losses} losses a day"
     )
+
+
+def _gala_fit(r: Any) -> str:
+    c = r.strategy.gala_pa_cfg
+    return fit_size_row(r, c, c.max_trades_per_day, ("10", "20"))
+
+
+def conti_orb_rules(r: Any) -> list[dict[str, object]]:
+    """CONTI ORB card (docs/CONTI_RULES.md part B; * = not from the video)."""
+    c = r.strategy.conti_orb_cfg
+    return [
+        {"key": "RANGE", "on": True, "rule": f"high / low of 09:30–{c.range_end} ET (B1)"},
+        {
+            "key": "ENTRY",
+            "on": True,
+            "rule": f"LONG only on a 1-minute* close above the range high (B2/B3); "
+            f"{c.max_trades_per_day}* trade a day, last entry {c.last_entry}*",
+        },
+        {"key": "STOP / TARGET", "on": True, "rule": f"stop = range low (B4); target {c.rr}R (B5)"},
+        {"key": "TIME EXIT", "on": True, "rule": f"flat at {c.time_exit} ET if neither hit (B6)"},
+        {
+            "key": "SIZE",
+            "on": True,
+            "rule": "same dollars at risk, fewer micros on a wide range (B7); "
+            + fit_size_row(r, c, c.max_trades_per_day, ("30", "60")),
+        },
+        {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per trade, never copy trading"},
+    ]
 
 
 def gala_rules(r: Any) -> list[dict[str, object]]:
@@ -581,6 +609,9 @@ def gala_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
+RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules}
+
+
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
     """D96: the Order Flow card lists the markets it trades (plan file strategy.order_flow_cfg.instruments)."""
     if c["key"] not in ("order_flow", "order_flow_amt", "order_flow_zone"):
@@ -626,6 +657,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
         "jj_fpt": r.strategy.jj_fpt,
         "gala_pa": r.strategy.gala_pa,
+        "conti_orb": r.strategy.conti_orb,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
@@ -646,6 +678,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 **_order_flow_markets(c, r),
                 **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
                 **({"gala_rules": gala_rules(r)} if c["key"] == "gala_pa" else {}),
+                **({"strategy_rules": RULE_CARDS[str(c["key"])](r)} if c["key"] in RULE_CARDS else {}),
             }
             for c in CATALOG
         ],
