@@ -19,7 +19,7 @@ from app.risk.lucid_scale import effective_dll
 from app.risk.consistency import eval_limits
 
 ET = ZoneInfo("America/New_York")
-PKL = sys.argv[1] if len(sys.argv) > 1 else "/tmp/claude-0/s/days.pkl"
+PKL = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("--") else "/tmp/claude-0/s/days.pkl"
 CACHE = PKL + ".json"
 SPLIT = "2025-11-01"
 PV = D(2)
@@ -64,7 +64,28 @@ def run_signals(built, cfg):
             else: pts, res, ri = (bars[-1].c - s.entry) * sign, "MTM", len(bars) - 1
             trades.append(dict(day=ds, idx=s.index, time=s.at.strftime("%H:%M"), kind=s.kind, tier=s.tier, dir=s.direction.name,
                                entry=float(s.entry), stop_pts=float(s.stop_pts), target_pts=float(s.target_pts), fair=float(s.fair),
-                               room=None if s.room is None else float(s.room), outcome=res, exit_idx=ri, pts=float(pts)))
+                               room=None if s.room is None else float(s.room), outcome=res, exit_idx=ri, pts=float(pts), session="NY"))
+    return trades
+
+PM_WINDOW = 90   # minutes, 14:00-15:30
+PM_START = 271   # bars[0] = synthetic 09:29 bar; bar k+1 = minute k after 09:30 -> 14:00 candle (k=270) is index 271
+
+def run_signals_pm(built, cfg):
+    """NY_PM session: open 14:00 ET, fair = the 09:30 session open of the same day, window 90 min, htf_bias None, continuation on.
+    Bars run to 16:00 so signals still open at 15:30 keep being followed; open ones are marked to market at the 16:00 close."""
+    trades = []
+    for ds, bars, t0 in built:
+        open_at = t0 + timedelta(minutes=270)
+        assert bars[PM_START].close_time - timedelta(minutes=1) == open_at
+        r = replay(bars, PM_START, SessionInput("NY_PM", open_at, fair=bars[1].o, htf_bias=None, window=PM_WINDOW), cfg)
+        for s in r.signals:
+            sign = 1 if s.direction.name == "LONG" else -1
+            if s.outcome == "WIN": pts, res, ri = s.target_pts, "WIN", s.resolved_index
+            elif s.outcome == "LOSS": pts, res, ri = -s.stop_pts, "LOSS", s.resolved_index
+            else: pts, res, ri = (bars[-1].c - s.entry) * sign, "MTM", len(bars) - 1
+            trades.append(dict(day=ds, idx=s.index, time=s.at.strftime("%H:%M"), kind=s.kind, tier=s.tier, dir=s.direction.name,
+                               entry=float(s.entry), stop_pts=float(s.stop_pts), target_pts=float(s.target_pts), fair=float(s.fair),
+                               room=None if s.room is None else float(s.room), outcome=res, exit_idx=ri, pts=float(pts), session="NY_PM"))
     return trades
 
 def usd1(t, cost):  # $ at 1 micro incl. fee + slippage both ways
@@ -229,9 +250,49 @@ def main():
     open(HERE + "/tables.md", "w").write("".join(md))
     print("".join(md))
 
+def main_pm():
+    """NY_PM alone, NY + NY_PM combined (max 1 open position across both), Lucid Pro evals for the combined case.
+    Writes trades_jj.csv (both sessions, column `session`) and pm_tables.md.  Run: backtest_jj.py days.pkl --pm"""
+    days = load_days(); built, nan_n = build(days); daylist = [b[0] for b in built]
+    base = JjFptCfg(); plans = {k: plan(k) for k in (25, 50, 100, 150)}; cost = cost_per_micro(plans[25])
+    ny = run_signals(built, base); pm = run_signals_pm(built, base)
+    comb = sorted(ny + pm, key=lambda t: (t["day"], t["idx"]))
+    seq = sequential(comb); seqset = {(t["day"], t["idx"]) for t in seq}
+    pm_seq = sequential(pm)
+    for t in comb: t["taken_sequential_combined"] = int((t["day"], t["idx"]) in seqset); t["usd_1micro"] = round(usd1(t, cost), 2)
+    with open(HERE + "/trades_jj.csv", "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(comb[0].keys())); w.writeheader(); w.writerows(comb)
+    md = []
+    for pname, lo in (("Full (2021-10..2026-10)", daylist[0]), ("Last 12 months (2025-11..2026-10)", SPLIT)):
+        nd = sum(1 for d in daylist if d >= lo)
+        f_ = lambda L: [t for t in L if t["day"] >= lo]
+        md.append(f"\n#### {pname} ({nd} days)\n\n(1) NY_PM alone, 1 micro, after costs\n\n")
+        md.append(md_stats([stats(f_(pm), cost) | {"name": "NY_PM ALL signals"}, stats(f_(pm_seq), cost) | {"name": "NY_PM sequential (max 1 open)"}], nd))
+        md.append("\nNY_PM by entry kind (all signals):\n\n" + md_stats(table_rows(f_(pm), "kind", cost, ["CONTINUATION", "BREAK_OF_STRUCTURE", "DISPLACEMENT"]), nd))
+        md.append("\nNY_PM by tier (all signals):\n\n" + md_stats(table_rows(f_(pm), "tier", cost, ["BASE", "BIG_OPEN", "SMALL_ROOM"]), nd))
+        md.append("\n(2) NY + NY_PM combined\n\n")
+        md.append(md_stats([stats(f_(ny), cost) | {"name": "NY alone, ALL signals"}, stats(f_(pm), cost) | {"name": "NY_PM alone, ALL signals"},
+                            stats(f_(comb), cost) | {"name": "Combined, ALL signals"},
+                            stats(f_(seq), cost) | {"name": "Combined, sequential, max 1 open across both"},
+                            stats([t for t in f_(seq) if t["session"] == "NY_PM"], cost) | {"name": "  of which NY_PM trades taken"}], nd))
+    taken_pm = sum(1 for t in seq if t["session"] == "NY_PM")
+    md.append(f"\nNY_PM signals total {len(pm)}; taken in the combined sequential run {taken_pm} (rest blocked by a still-open NY position at 14:00+). "
+              f"NY signals still open at 16:00 are marked to market at the 16:00 close, i.e. they hold the single position through the PM window.\n")
+    byday = defaultdict(list)
+    for t in comb: byday[t["day"]].append(t)
+    md.append("\n(3) Lucid Pro evaluation, NY + NY_PM combined (same sim and D143 sizing as above; max 1 open position across both sessions)\n\n")
+    md.append("| Plan | period | starts | pass % | bust % | running at data end % | of which stalled % | median P&L of running $ | median days to pass | NY-only pass/bust for reference |\n|---|---|---|---|---|---|---|---|---|---|\n")
+    byday_ny = defaultdict(list)
+    for t in ny: byday_ny[t["day"]].append(t)
+    for k, p in plans.items():
+        for pname, lo in (("Full", daylist[0]), ("Last 12m", SPLIT)):
+            e = eval_stats(p, byday, daylist, lo); r = eval_stats(p, byday_ny, daylist, lo)
+            md.append(f"| Pro {k}K | {pname} | {e['starts']} | {e['pass_pct']:.1f} | {e['bust_pct']:.1f} | {e['run_pct']:.1f} | {e['stalled_pct']:.1f} | {fmt(e['med_final'], '{:.0f}')} | {fmt(e['med_days'], '{:.0f}')} | {r['pass_pct']:.1f}/{r['bust_pct']:.1f} |\n")
+    open(HERE + "/pm_tables.md", "w").write("".join(md)); print("".join(md))
+
 def seq_all_for_eval(trades):
     """Eval sim sees every engine signal (it applies the 1-position rule itself with the sizes it actually takes)."""
     return sorted(trades, key=lambda t: (t["day"], t["idx"]))
 
 if __name__ == "__main__":
-    main()
+    main_pm() if "--pm" in sys.argv else main()
