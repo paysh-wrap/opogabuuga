@@ -205,4 +205,24 @@ CATALOG: list[dict[str, object]] = [
         "every stop. Funded / live accounts take break-of-structure entries only. All Lucid rules and Paytience "
         "safety checks still apply.",
     },
+    {
+        "key": "gala_pa",
+        "name": "GALA PRICE ACTION",
+        "source": "Gala Trades price action, built only from one transcript (docs/GALA_RULES.md): hourly trend from "
+        "highs and lows, hourly body-pivot levels, then a 5-minute break-and-retest, bounce or rejection at the level; "
+        "stop past the wick, target 2R",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet.",
+        "note": "Default OFF. MNQ, entries 09:35–10:35 ET. One free account per trade (no copy trading); size fits "
+        "Lucid's DLL, MLL and consistency for 3 losses a day. Single 2R bracket: the video's trim-half-at-2R and "
+        "stop-to-entry are NOT built yet. All Lucid rules and Paytience safety checks still apply.",
+    },
 ]

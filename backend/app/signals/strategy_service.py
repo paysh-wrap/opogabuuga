@@ -25,6 +25,7 @@ from app.bias.policy import Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
+from app.engine import gala_pa as GP
 from app.engine import jj_fpt as JJ
 from app.engine import noise as N
 from app.engine import order_flow as OF
@@ -1230,6 +1231,79 @@ def run_jj_fpt(
     return out
 
 
+GALA_TAG = "GALA"
+
+
+def gala_input(s: Session, symbol: str, at: datetime, sessions: int) -> tuple[list[GP.GBar], list[GP.GBar]]:
+    """D144: (earlier sessions, this session up to `at`) as 1-minute bars for engine/gala_pa.replay_day."""
+    day0 = datetime.combine(at.astimezone(ET).date(), time(0), tzinfo=ET)
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time > day0 - timedelta(days=sessions * 2 + 7))
+        .where(Bar.close_time <= at)
+        .order_by(Bar.close_time)
+    ).scalars()
+    hist: list[GP.GBar] = []
+    today: list[GP.GBar] = []
+    for b in rows:
+        (today if b.close_time > day0 else hist).append(GP.GBar(b.close_time, b.o, b.h, b.l, b.c))
+    return hist, today
+
+
+def _gala_news_first_hour(calendar: CalendarProvider, day: date) -> bool:
+    """A9: a high-impact USD event scheduled in the first hour (09:30–10:30 ET)."""
+    lo, hi = _et_at(day, "09:30"), _et_at(day, "10:30")
+    return any(e.currency == "USD" and e.impact == "high" and lo <= e.at <= hi for e in calendar(day) or [])
+
+
+def run_gala_pa(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D144 GALA PRICE ACTION: replay today's session (engine/gala_pa.py) on every 1-minute close; store a signal for
+    an entry on THIS bar, and close a running trade at the rule sheet's time limit (B2). Brackets do stop / 2R."""
+    cfg = rules.strategy.gala_pa_cfg
+    out = StrategyOutput()
+    t = at.astimezone(ET)
+    if not (_et_at(t.date(), "09:30") < at <= _et_at(t.date(), "16:00")):
+        return out
+    hist, today = gala_input(s, cfg.symbol, at, cfg.history_sessions)
+    if not today or today[-1].close_time != at:
+        return out
+    inst = rules.instrument(cfg.symbol)
+    rep = GP.replay_day(hist, today, cfg, inst.tick, _gala_news_first_hour(calendar, t.date()))
+    day = t.date().isoformat()
+    for x in rep.signals:
+        key = f"{cfg.symbol}-{GALA_TAG}-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
+        if x.outcome == "TIME" and x.exit_time == at:
+            row = s.execute(select(Signal.id).where(Signal.model_key == key)).first()
+            if row is not None:
+                out.exits.append((row[0], "GALA_TIME_EXIT"))
+        if x.time != at or exits_only:
+            continue
+        if s.execute(select(Signal.id).where(Signal.model_key == key)).first() is not None:
+            continue
+        new = _new_signal(
+            s,
+            clock,
+            symbol=cfg.symbol,
+            key=key,
+            direction=x.direction,
+            at=at,
+            gate=_gate(rules, cfg.symbol, at, calendar),
+            features={
+                "setup": x.setup,
+                "level": str(x.level),
+                "attempt": x.attempt,
+                "trend": rep.trend,
+                "stop_pts": str(x.stop_pts),
+                "paper_only": cfg.paper_only,
+            },
+            plan=("GALA_PA", x.entry, x.stop, x.take_profit, x.stop_pts, x.rr),
+        )
+        out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1261,6 +1335,10 @@ def run(
         out.exits += r.exits
     if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
         r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.gala_pa and symbol == st.gala_pa_cfg.symbol:
+        r = run_gala_pa(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.ai_duo and symbol in st.ai_duo_cfg.markets:  # after NOISE: on a same-bar tie NOISE wins (D83)

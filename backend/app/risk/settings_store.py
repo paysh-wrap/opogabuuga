@@ -86,6 +86,11 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo_cfg.accounts",
         "strategy.pm_fade",
         "strategy.jj_fpt",  # JJ F.P.T STRAT button (docs/JJ_FPT_RULES.md)
+        "strategy.gala_pa",  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md)
+        *(
+            f"strategy.gala_pa_cfg.{k}"
+            for k in ("use_open_level", "skip_news_first_hour", "stop_after_win", "one_account_per_trade")
+        ),
         *(
             f"strategy.jj_fpt_cfg.{k}"
             for k in (

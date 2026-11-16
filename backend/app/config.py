@@ -719,6 +719,43 @@ class JjFptCfg(_M):
         return self
 
 
+class GalaPaCfg(_M):
+    """GALA PRICE ACTION (D144, user 2026-11-16): built ONLY from docs/GALA_RULES.md (engine/gala_pa.py).
+    Fields marked `# not from the video` are the sheet's [GAP] defaults — never tune them to flatter a backtest."""
+
+    symbol: str = "MNQ"
+    pivot_lookback: int = Field(default=3, ge=1, le=10)  # A4 [GAP] 3-bar body pivot  # not from the video
+    trend_swing_lookback: int = Field(default=2, ge=1, le=10)  # A2 swing size  # not from the video
+    history_sessions: int = Field(default=5, ge=1, le=30)  # A1 hourly chart span  # not from the video
+    use_open_level: bool = False  # A5 day's open as a level (lower confidence)  # not from the video (default)
+    skip_first_minutes: int = Field(default=5, ge=0, le=30)  # B1
+    window_start: str = "09:35"  # B2 [GAP]  # not from the video
+    window_end: str = "10:35"  # B2 [GAP] about one hour  # not from the video
+    max_wick_through_pts: D = Field(default=D("10"), gt=D(0))  # C2 [GAP] "slightly"  # not from the video
+    hammer_wick_body_mult: D = Field(default=D("2"), gt=D(0))  # C4 "big wick"  # not from the video
+    max_retest_bars: int = Field(default=6, ge=1, le=24)  # C5 [GAP]  # not from the video
+    bounce_candles: int = Field(default=2, ge=2, le=3)  # C7 / C8 "2–3 candles"
+    stop_buffer_ticks: int = Field(default=1, ge=0, le=20)  # D1 "a pixel past"  # not from the video
+    target_r: D = Field(default=D("2"), ge=D("1.5"), le=D("3"))  # D3 2R
+    max_hold_minutes: int = Field(default=60, ge=5, le=390)  # B2 / D6 about an hour
+    max_attempts_per_setup: int = Field(default=2, ge=1, le=2)  # E1
+    max_trades_per_day: int = Field(default=3, ge=1, le=3)  # E2 [GAP] 2–3
+    stop_after_win: bool = True  # E3
+    skip_news_first_hour: bool = True  # A9
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit (D144)  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))  # Lucid fit: share of the DLL left 3 losses may use
+    one_account_per_trade: bool = True  # D144: one free account per trade, no copy trading
+    paper_only: bool = False
+
+    @model_validator(mode="after")
+    def _check(self) -> GalaPaCfg:
+        h0, m0 = (int(x) for x in self.window_start.split(":"))
+        h1, m1 = (int(x) for x in self.window_end.split(":"))
+        if not (9 * 60 + 30 <= h0 * 60 + m0 < h1 * 60 + m1 <= 16 * 60):
+            raise ValueError("gala_pa_cfg: 09:30 <= window_start < window_end <= 16:00")
+        return self
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -919,6 +956,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    gala_pa: bool = False  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
     # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
     # trades half size (rounded down, min 1) and may use half of the daily loss limit (D102: no forced paper-only).
     # Tighten-only.
@@ -937,6 +975,7 @@ class StrategyCfg(_M):
     ai_duo_cfg: AiDuoCfg = AiDuoCfg()
     order_flow_cfg: OrderFlowCfg = OrderFlowCfg()
     jj_fpt_cfg: JjFptCfg = JjFptCfg()
+    gala_pa_cfg: GalaPaCfg = GalaPaCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

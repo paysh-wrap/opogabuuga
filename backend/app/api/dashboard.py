@@ -486,6 +486,101 @@ def jj_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def _gala_fit(r: Any) -> str:
+    """D144: the Lucid fit on the ACTIVE plan for a fresh EVAL account (same math as the controller)."""
+    from decimal import Decimal
+
+    from app.engine.lucid_fit import contracts_for, trade_risk_usd
+    from app.phases.phase_engine import firm_max_micros, stage_rules
+    from app.risk.consistency import eval_limits
+
+    c, i = r.strategy.gala_pa_cfg, r.internal
+    sr = stage_rules(r, "EVAL")
+    pct = r.eval.consistency_max_day_pct
+    cons = eval_limits(r.eval.profit_target, pct, i.consistency_day_stop_buffer_pct) if pct is not None else None
+    risk = trade_risk_usd(
+        sr.max_loss, c.risk_pct_of_drawdown, c.max_trades_per_day, sr.dll, c.dll_use_pct,
+        sr.max_loss - i.kill_switch_mll_distance, r.strategy.max_trade_risk_usd,
+        cons.day_stop if cons is not None else None,
+    )  # fmt: skip
+    m = r.instrument(c.symbol)
+    slip = m.slippage_ticks or r.trade_plan.slippage_ticks
+    cap = min(firm_max_micros(r, "EVAL", Decimal(0)), i.internal_max_micros)
+    n = [min(contracts_for(risk, Decimal(x), m.tick, m.tick_value, m.fee_rt, slip), cap) for x in ("10", "20")]
+    return (
+        f"Lucid fit on this plan (EVAL, {sr.drawdown_type.upper()} drawdown): ${risk} per trade, {n[0]} micros at "
+        f"10 pt / {n[1]} at 20 pt stop, sized for {c.max_trades_per_day} losses a day"
+    )
+
+
+def gala_rules(r: Any) -> list[dict[str, object]]:
+    """GALA PRICE ACTION card: the rule sheet (docs/GALA_RULES.md) (* = not from the video)."""
+    c = r.strategy.gala_pa_cfg
+    return [
+        {
+            "key": "TREND",
+            "on": True,
+            "rule": f"hourly highs and lows (A2): HH+HL long, LH+LL short, else no trade (A3); "
+            f"{c.history_sessions} sessions*, swing {c.trend_swing_lookback}*",
+        },
+        {
+            "key": "LEVELS",
+            "on": True,
+            "rule": f"open of the colour-change hourly candle at a body pivot ({c.pivot_lookback}"
+            "* each side, A4); a body through a level deletes it (A6); overnight = one candle (A7)",
+        },
+        {"key": "OPEN LEVEL", "on": c.use_open_level, "rule": "the day's opening price as a level (A5)*"},
+        {
+            "key": "SETUP",
+            "on": True,
+            "rule": "closer to the level in the trend's way → break-and-retest, else bounce "
+            "(long) / rejection (short) (A8)",
+        },
+        {
+            "key": "NEWS",
+            "on": c.skip_news_first_hour,
+            "rule": "no trade when high-impact news is in the first hour (A9)",
+        },
+        {
+            "key": "WINDOW",
+            "on": True,
+            "rule": f"skip the first {c.skip_first_minutes} min (B1); entries "
+            f"{c.window_start}–{c.window_end} ET* (B2); time exit after {c.max_hold_minutes} min",
+        },
+        {
+            "key": "ENTRY CANDLE",
+            "on": True,
+            "rule": f"5-min wick ≤ {c.max_wick_through_pts}* pt through the level, body "
+            f"on the right side (C2); skip hammers, wick ≥ {c.hammer_wick_body_mult}*× body (C4)",
+        },
+        {
+            "key": "BREAK & RETEST",
+            "on": True,
+            "rule": f"5-min close beyond the level, retest within {c.max_retest_bars}* "
+            "candles, a close back through cancels (C5/C6)",
+        },
+        {
+            "key": "BOUNCE / REJECTION",
+            "on": True,
+            "rule": f"{c.bounce_candles} candles, bodies holding, wicks through (C7/C8)",
+        },
+        {
+            "key": "STOP / TARGET",
+            "on": True,
+            "rule": f"{c.stop_buffer_ticks}* tick past the lowest / highest wick (D1); "
+            f"target {c.target_r}R (D3); trim / stop-move (D4/D5) NOT built — single bracket",
+        },
+        {
+            "key": "LIMITS",
+            "on": True,
+            "rule": f"{c.max_attempts_per_setup} attempts per setup (E1), {c.max_trades_per_day} "
+            f"trades a day (E2){', a winner ends the day (E3)' if c.stop_after_win else ''}",
+        },
+        {"key": "SIZE", "on": True, "rule": _gala_fit(r)},
+        {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per trade, never copy trading"},
+    ]
+
+
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
     """D96: the Order Flow card lists the markets it trades (plan file strategy.order_flow_cfg.instruments)."""
     if c["key"] not in ("order_flow", "order_flow_amt", "order_flow_zone"):
@@ -530,6 +625,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "order_flow_zone": r.strategy.order_flow and r.strategy.order_flow_cfg.zone_atr.enabled,  # D111
         "pm_fade": r.strategy.noise and r.strategy.pm_fade,  # D58 MAIN card = NOISE + fade both on
         "jj_fpt": r.strategy.jj_fpt,
+        "gala_pa": r.strategy.gala_pa,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
@@ -549,6 +645,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
                 **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
+                **({"gala_rules": gala_rules(r)} if c["key"] == "gala_pa" else {}),
             }
             for c in CATALOG
         ],

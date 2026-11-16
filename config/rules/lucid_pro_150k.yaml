@@ -98,6 +98,11 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
     risk_pct_of_drawdown: 0.25 #   DLL left x dll_use_pct / 3, (MLL room - kill distance) / 3, max_trade_risk_usd, consistency day stop / 3)
     dll_use_pct: 0.9           #   3 losses in a row (stop_after_losses) never use more than 90% of the DLL left
     stop_after_losses: 3
+  gala_pa: false               # D144: GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
+  gala_pa_cfg:                 # D144 Lucid Pro fit (sizing only): per-trade risk = min(25% of MLL, DLL left x dll_use_pct / 3,
+    risk_pct_of_drawdown: 0.25 #   (MLL room - kill distance) / 3, max_trade_risk_usd, consistency day stop / 3); 3 = E2 trades a day
+    dll_use_pct: 0.9
+    max_trades_per_day: 3
   noise_cfg: {contracts: 3, skip_weekdays: [0], profit_lock_trigger_pts: 100, profit_lock_pts: 10, profit_lock_trigger_alt_pts: 80}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
   pm_fade_cfg: {contracts: 3, eval_off: true}       # fallback only — PM_FADE uses size_table below (same as NOISE)
   # D132 (session 20, B2): NOISE preset C profit lock ON in every plan (+100 pt -> stop to entry +10, as the session-19
