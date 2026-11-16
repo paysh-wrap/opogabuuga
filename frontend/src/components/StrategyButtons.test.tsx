@@ -134,3 +134,20 @@ test("JJ F.P.T STRAT card lists JJ's rules and turns on through its own setting"
   await userEvent.click(screen.getByRole("button", { name: /JJ F.P.T STRAT/ }));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.jj_fpt":true'))).toBe(true));
 });
+
+test("GALA PRICE ACTION card lists the rule sheet and turns on through its own setting", async () => {
+  const g = { key: "gala_pa", name: "GALA PRICE ACTION", source: "Gala", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "Not back-tested yet.", note: "n", enabled: false, setting: "strategy.gala_pa",
+    gala_rules: [{ key: "TREND", on: true, rule: "hourly highs and lows" }, { key: "OPEN LEVEL", on: false, rule: "the day's opening price" }] };
+  const calls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, g] } : {}));
+  });
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  const card = await screen.findByTestId("strategy-gala_pa");
+  expect(card).toHaveTextContent("OFF · GALA PRICE ACTION");
+  expect(screen.getByTestId("gala-rules")).toHaveTextContent("TREND — hourly highs and lows");
+  expect(screen.getByTestId("gala-rules")).toHaveTextContent("OPEN LEVEL (OFF) — the day's opening price");
+  await userEvent.click(screen.getByRole("button", { name: /GALA PRICE ACTION/ }));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.gala_pa":true'))).toBe(true));
+});

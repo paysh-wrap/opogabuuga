@@ -93,3 +93,30 @@ mid-day, tiny "adventurous" size trades, size by position dollars ($10K / $40–
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139),
 feed checks, live gates, EOD drawdown on Pro 25K–150K. A signal that hits one of these is skipped with its reason code.
+
+## Implementation notes (D144, 2026-11-16)
+Engine `backend/app/engine/gala_pa.py` (pure, Decimal) — `replay_day(history, today, cfg, tick, news_first_hour=False)
+-> DayReplay` replays one session from the stored 1-minute bars (live = backtest). Service hook
+`strategy_service.run_gala_pa`; signal key `MNQ-GALA-<day>-<HHMM>`; plan mode `GALA_PA` (fixed-size strategy: no TP fit,
+N6 consistency day-stop flatten, all flat rules). Config `strategy.gala_pa` (default OFF) + `strategy.gala_pa_cfg`.
+
+**Built:** A1, A2, A3 (trend only; "looks weird" not mechanical), A4, A5 (switch, default OFF), A6, A7, A8 (re-picked
+from the exit price after each closed trade), A9, B1, B2 (window + 60-min time exit `GALA_TIME_EXIT`), B3 (MNQ is the
+index: its own hourly trend is the side; no separate index check), B4 (implicit: no valid setup → no trade), C1 (5-min
+decides; 2-min not used), C2, C3, C4, C5, C6, C7, C8 (lower-high detail not built), D1, D2 (via sizing: fewer micros,
+`GALA_SIZE_BELOW_1` when < 1), D3, E1, E2, E3, E4 (broker bracket, never moved away).
+**Not built:** D4/D5 trim-half-at-2R and candle-by-candle stop move (a single 2R bracket ships — follow-up), D6 runner,
+D7, B5, C9 extra entry-distance filter, E5–E7 confidence / post-loss sizing.
+**Config defaults (`# not from the video`):** pivot_lookback 3, trend_swing_lookback 2, history_sessions 5,
+use_open_level off, window 09:35–10:35, max_wick_through_pts 10, hammer_wick_body_mult 2, max_retest_bars 6,
+stop_buffer_ticks 1. From the video: skip_first_minutes 5, bounce_candles 2, target_r 2, max_hold 60, E1 2, E2 3, E3 on.
+**Lucid Pro fit (sizing only):** per-trade risk = min(25% × MLL, DLL left × 0.9 / 3, (MLL room − kill distance) / 3,
+max_trade_risk_usd, consistency day stop / 3) — `engine/lucid_fit.trade_risk_usd` (moved from jj_fpt, unchanged);
+contracts = floor(risk / (stop $ + fee + 2 × slippage)). One free account per trade.
+
+| Plan | EVAL $/trade | micros @10 pt / 20 pt | FUNDED $/trade | micros @10 / 20 |
+|------|------|------|------|------|
+| Pro 25K | 158.33 | 7 / 3 | 180.00 | 8 / 4 |
+| Pro 50K | 360.00 | 16 / 8 | 360.00 | 16 / 8 |
+| Pro 100K | 540.00 | 24 / 12 | 540.00 | 24 / 12 |
+| Pro 150K | 810.00 | 36 / 19 | 810.00 | 36 / 19 |

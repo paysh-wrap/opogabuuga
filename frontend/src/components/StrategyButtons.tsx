@@ -17,6 +17,7 @@ export interface Strat {
   amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
   zone_layers?: { key: string; on: boolean; rule: string }[]; // D111: ATR-zone type (iceberg PROXY)
   jj_rules?: { key: string; on: boolean; rule: string }[]; // JJ F.P.T STRAT: his rules with the plan's live numbers
+  gala_rules?: { key: string; on: boolean; rule: string }[]; // D144 GALA PRICE ACTION: rule sheet + plan numbers
 }
 // D137: eval pass / bust of one (plan, size table, EOD toggle) cell — numbers null + text "not measured yet" until measured
 export interface OddsView { plan: string; table: string; eod_on: boolean; text: string; pass_pct: number | null; bust_pct: number | null; last12_pass_pct: number | null; last12_bust_pct: number | null }
@@ -210,6 +211,17 @@ export default function StrategyButtons() {
                 <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
                   {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
                 </ol>
+                </MoreInfo>
+              </div>
+            )}
+            {s.key === "gala_pa" && s.gala_rules && (
+              <div className="mt-2 text-xs" data-testid="gala-setup">
+                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one Gala Trades transcript</span>
+                <MoreInfo label="Gala's rules" testId="more-gala-rules">
+                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="gala-rules">
+                  {s.gala_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+                </ol>
+                <p className="mt-1 text-blue">Full rule sheet with video times: docs/GALA_RULES.md (* = not from the video). Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
                 </MoreInfo>
               </div>
             )}
