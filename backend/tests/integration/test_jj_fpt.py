@@ -116,8 +116,10 @@ def test_controller_one_account_per_trade_and_same_dollar_size(authed, clock):
     assert len(res) == 1  # JJ #30: one account, never copy trading
     with st.sessionmaker() as s:
         rows = [x.payload for x in s.query(AuditLog).filter_by(action="trade.jj_size")]
-    # Pro 25K: 25% of the $1,000 drawdown = $250; 25 pt MNQ = $50 + fee + slippage → 4 micros
-    assert rows and rows[0]["risk_usd"] == "250.00" and rows[0]["contracts"] == 4
+    # D143 (changed assertion, was $250 / 4 micros): 25% of the $1,000 drawdown = $250, but JJ's 3-loss session must
+    # fit the $475 consistency day stop → $158.33; 25 pt MNQ = $50 + fee + slippage ($52) → 3 micros
+    assert rows and rows[0]["risk_usd"] == "158.33" and rows[0]["contracts"] == 3
+    assert rows[0]["drawdown_type"] == "eod"  # EOD account: sized on room above the EOD-trailed MLL
 
 
 def test_controller_funded_takes_breaks_of_structure_only(authed, clock):
@@ -126,3 +128,33 @@ def test_controller_funded_takes_breaks_of_structure_only(authed, clock):
     assert [r.reason for r in res] == ["JJ_FUNDED_BOS_ONLY"]
     res = asyncio.run(st.controller.execute(_signal(st, "BREAK_OF_STRUCTURE"), "automation", only=ids))
     assert all(r.reason != "JJ_FUNDED_BOS_ONLY" for r in res)
+
+
+@pytest.mark.parametrize("k", [25, 50, 100, 150])
+def test_news_gate_blocks_the_lucid_news_window_on_pro_plans(k):
+    from app.config import load_rules
+    from app.settings import REPO_ROOT
+
+    r = load_rules(REPO_ROOT / "config" / "rules" / f"lucid_pro_{k}k.yaml").rules
+    r = r.model_copy(
+        update={"instruments": {**r.instruments, "MNQ": r.instruments["MNQ"].model_copy(update={"enabled": True})}}
+    )
+    news = NY - timedelta(hours=1)  # 08:30 ET red folder
+    cal = lambda _d: [NewsEvent(news, "CPI")]  # noqa: E731
+    before = max(r.internal.no_entry_before_news_min, r.funded.news_breach_min_before)
+    after = max(r.eval.news_breach_min_after, r.funded.news_breach_min_after)  # funded news = hard breach window
+    for at in (news - timedelta(minutes=before), news, news + timedelta(minutes=after)):
+        assert SS._jj_gate(r, at, cal)[:2] == (False, "NEWS_BLACKOUT")
+    assert SS._jj_gate(r, news + timedelta(minutes=after + 1), cal)[:2] == (True, "OK")
+    assert SS._jj_gate(r, news - timedelta(minutes=before + 1), cal)[:2] == (True, "OK")
+
+
+def test_card_size_row_shows_the_lucid_fit_for_the_active_plan():
+    from app.api.dashboard import jj_rules
+    from app.config import load_rules
+    from app.settings import REPO_ROOT
+
+    r = load_rules(REPO_ROOT / "config" / "rules" / "lucid_pro_50k.yaml").rules
+    size = next(x for x in jj_rules(r) if x["key"] == "SIZE")["rule"]
+    assert "$360.00 per trade" in size and "6 micros at 25 pt / 13 at 12.5 pt" in size and "max 3 losses" in size
+    assert "EOD drawdown" in size

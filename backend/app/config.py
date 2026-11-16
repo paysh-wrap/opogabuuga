@@ -699,6 +699,7 @@ class JjFptCfg(_M):
     htf_hours: int = Field(default=12, ge=6, le=12)  # #15 "previous 6 to 12 hours"
     combine_candles: int = Field(default=1, ge=1, le=3)  # #22 discretion (1 = off)
     risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # #29 $500 of $2,000
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))  # D143: share of the DLL left that 3 losses may use
     funded_bos_only: bool = True  # #31
     one_account_per_trade: bool = True  # #30 never copy trade
     paper_only: bool = False

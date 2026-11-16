@@ -381,6 +381,39 @@ def _presets(r: Any, plan: str = "") -> dict[str, Any]:
     }
 
 
+def _jj_fit(r: Any) -> str:
+    """D143: the Lucid fit on the ACTIVE plan for a fresh EVAL account (same math as the controller)."""
+    from decimal import Decimal
+
+    from app.engine.jj_fpt import contracts_for, trade_risk_usd
+    from app.phases.phase_engine import firm_max_micros, stage_rules
+    from app.risk.consistency import eval_limits
+
+    c, i = r.strategy.jj_fpt_cfg, r.internal
+    sr = stage_rules(r, "EVAL")
+    pct = r.eval.consistency_max_day_pct
+    cons = eval_limits(r.eval.profit_target, pct, i.consistency_day_stop_buffer_pct) if pct is not None else None
+    risk = trade_risk_usd(
+        sr.max_loss,
+        c.risk_pct_of_drawdown,
+        c.stop_after_losses,
+        sr.dll,
+        c.dll_use_pct,
+        sr.max_loss - i.kill_switch_mll_distance,
+        r.strategy.max_trade_risk_usd,
+        cons.day_stop if cons is not None else None,
+    )
+    m = r.instrument(c.symbol)
+    slip = m.slippage_ticks or r.trade_plan.slippage_ticks
+    cap = min(firm_max_micros(r, "EVAL", Decimal(0)), i.internal_max_micros)
+    n = [min(contracts_for(risk, Decimal(x), m.tick, m.tick_value, m.fee_rt, slip), cap) for x in ("25", "12.5")]
+    return (
+        f"; Lucid fit on this plan (EVAL, {sr.drawdown_type.upper()} drawdown): ${risk} per trade, "
+        f"{n[0]} micros at 25 pt / {n[1]} at 12.5 pt, max {c.stop_after_losses} losses per session "
+        f"(≤ {c.dll_use_pct * 100:.0f}% of the DLL, consistency day stop and MLL room)"
+    )
+
+
 def jj_rules(r: Any) -> list[dict[str, object]]:
     """JJ F.P.T STRAT card: his rules (docs/JJ_FPT_RULES.md) with the plan's live numbers and switches."""
     c = r.strategy.jj_fpt_cfg
@@ -445,7 +478,7 @@ def jj_rules(r: Any) -> list[dict[str, object]]:
             "key": "SIZE",
             "on": True,
             "rule": f"{p:.0f}% of the account's drawdown per trade, same dollars for every "
-            "stop size (50 pt ≈ half, 12.5 pt ≈ double the contracts)",
+            "stop size (50 pt ≈ half, 12.5 pt ≈ double the contracts)" + _jj_fit(r),
         },
         {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per trade, never copy trading"},
         {"key": "FUNDED", "on": c.funded_bos_only, "rule": "funded / live accounts take breaks of structure only"},

@@ -81,3 +81,23 @@ London (he does not trade it: V2 20:44).
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge
 (D139), feed checks, live gates. A JJ signal that hits one of these is skipped with its reason code.
+
+## Lucid Pro fit (D143, sizing only — the entry rules above are unchanged)
+Per-trade risk = min(`risk_pct_of_drawdown` × MLL, DLL left today × `dll_use_pct` / `stop_after_losses`,
+(equity − EOD-trailed MLL − kill distance) / `stop_after_losses`, `strategy.max_trade_risk_usd`, consistency day stop /
+`stop_after_losses`) — `engine/jj_fpt.trade_risk_usd`, numbers from the plan yaml (`jj_fpt_cfg`, DLL via `dll_for`
+incl. LucidScale). So JJ's worst session (3 losses in a row) fits the DLL, the day stop and never reaches the kill
+switch. Contracts = risk ÷ (stop $ + fee + 2 × slippage), then firm max micros and `internal_max_micros`; < 1 →
+`JJ_SIZE_BELOW_1`. Fixed-size handling as NOISE: no TP-reward fit, flattened live at the consistency day stop (N6);
+flat 16:40 / 16:44, news flatten and the news blackout (wider of the EVAL / FUNDED windows) apply. Fresh account, MNQ
+($52 / $27 / $102 per micro at 25 / 12.5 / 50 pt), EVAL and FUNDED (same numbers):
+
+| Plan | MLL (EOD) | DLL | Consistency cap / day stop | Per-trade risk | 25 pt | 50 pt | 12.5 pt |
+|---|---|---|---|---|---|---|---|
+| Pro 25K | $1,000 | $600 | $500 / $475 | $158.33 (day stop / 3) | 3 | 1 | 5 |
+| Pro 50K | $2,000 | $1,200 | $1,200 / $1,140 | $360 (DLL × 0.9 / 3) | 6 | 3 | 13 |
+| Pro 100K | $3,000 | $1,800 | $2,400 / $2,280 | $540 (DLL × 0.9 / 3) | 10 | 5 | 20 |
+| Pro 150K | $4,500 | $2,700 | $3,600 / $3,420 | $810 (DLL × 0.9 / 3) | 15 | 7 | 30 |
+
+Asserted in `backend/tests/unit/test_jj_lucid_fit.py` from the real plan yamls. VERIFY: Lucid fees/slippage, LucidScale
+DLL interpretation (D138), funded consistency reference (= eval target until the cycle profit is larger).

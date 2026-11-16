@@ -392,6 +392,31 @@ def contracts_for(
     return int(risk_usd // per)
 
 
+def trade_risk_usd(
+    max_loss: Decimal,
+    risk_pct: Decimal,
+    losses_per_session: int,
+    dll_left: Decimal | None,
+    dll_use_pct: Decimal,
+    mll_room: Decimal,
+    plan_cap: Decimal | None,
+    day_stop: Decimal | None,
+) -> Decimal:
+    """D143 Lucid fit (sizing only — never JJ's entry rules): the per-trade $ risk is JJ's #29 share of the drawdown,
+    cut so that his worst session (`losses_per_session` losses in a row, #27) fits inside the DLL left today
+    (x dll_use_pct), the room above the MLL less the kill-switch distance, and the consistency day stop; the plan's
+    per-trade cap applies too. Rounded down to cents; never below 0."""
+    n = Decimal(max(losses_per_session, 1))
+    parts = [risk_pct * max_loss, max(mll_room, Decimal(0)) / n]
+    if dll_left is not None:
+        parts.append(max(dll_left, Decimal(0)) * dll_use_pct / n)
+    if plan_cap is not None:
+        parts.append(plan_cap)
+    if day_stop is not None:
+        parts.append(max(day_stop, Decimal(0)) / n)
+    return min(parts).quantize(Decimal("0.01"), rounding="ROUND_DOWN")
+
+
 def htf_bias(session_open: Decimal, price_hours_ago: Decimal | None) -> int | None:
     """#15: the higher-time-frame bias is the REVERSE of the previous 6–12 hours' move."""
     if price_hours_ago is None or session_open == price_hours_ago:

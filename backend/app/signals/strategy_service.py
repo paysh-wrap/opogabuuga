@@ -93,8 +93,13 @@ def _gate(
     cal = calendar(at.astimezone(ET).date())
     if cal is None:
         return False, "CALENDAR_MISSING", "no calendar data = no trading"
-    after = inst.news_after_min if inst.news_after_min is not None else rules.eval.news_breach_min_after
-    ev = news_block(at, cal, rules.internal.no_entry_before_news_min, after)
+    # D143: tighten-only — the wider of the EVAL and FUNDED news windows (funded news = hard breach), one gate for both
+    firm_after = max(rules.eval.news_breach_min_after, rules.funded.news_breach_min_after)
+    after = inst.news_after_min if inst.news_after_min is not None else firm_after
+    before = max(
+        rules.internal.no_entry_before_news_min, rules.eval.news_breach_min_before, rules.funded.news_breach_min_before
+    )
+    ev = news_block(at, cal, before, after)
     if ev is not None:
         return False, "NEWS_BLACKOUT", ev.title
     return True, "OK", ""
@@ -1163,8 +1168,13 @@ def _jj_gate(rules: RulesConfig, at: datetime, calendar: CalendarProvider) -> tu
     cal = calendar(at.astimezone(ET).date())
     if cal is None:
         return False, "CALENDAR_MISSING", "no calendar data = no trading"
-    after = inst.news_after_min if inst.news_after_min is not None else rules.eval.news_breach_min_after
-    ev = news_block(at, cal, rules.internal.no_entry_before_news_min, after)
+    # D143: tighten-only — the wider of the EVAL and FUNDED news windows (funded news = hard breach), one gate for both
+    firm_after = max(rules.eval.news_breach_min_after, rules.funded.news_breach_min_after)
+    after = inst.news_after_min if inst.news_after_min is not None else firm_after
+    before = max(
+        rules.internal.no_entry_before_news_min, rules.eval.news_breach_min_before, rules.funded.news_breach_min_before
+    )
+    ev = news_block(at, cal, before, after)
     if ev is not None:
         return False, "NEWS_BLACKOUT", ev.title
     return True, "OK", ""

@@ -25,6 +25,7 @@ from app.bias import ledger as bias_ledger
 from app.clock import Clock, parse_hhmm, session_date, to_et
 from app.engine.filters import news_flatten_due
 from app.engine.jj_fpt import contracts_for as jj_contracts
+from app.engine.jj_fpt import trade_risk_usd as jj_trade_risk
 from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
 from app.execution import trade_state
@@ -562,13 +563,26 @@ class Controller:
         if brake is not None and fixed is not None and fixed > 1:  # D85/D115 cushion brake (size-table brake reused)
             tier = SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)
             fixed = auto_contracts(acct_size, base, [tier]).contracts
-        if jj is not None:  # JJ #28 + #29: risk = 25% of this account's drawdown, same dollars on every stop size
+        if jj is not None:  # JJ #28 + #29 same dollars on every stop size; D143: his 3-loss session fits Lucid's limits
             slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
-            risk_usd = jj.risk_pct_of_drawdown * mll.max_loss
+            jday = st.day_state(s, a, opnl, now)
+            jdll = st.dll_for(r, a)  # includes LucidScale
+            jcons = st.consistency(s, a, r)
+            risk_usd = jj_trade_risk(
+                mll.max_loss,
+                jj.risk_pct_of_drawdown,
+                jj.stop_after_losses,
+                dll_remaining(jdll, jday.today_pnl, jday.today_peak_pnl) if jdll is not None else None,
+                jj.dll_use_pct,
+                equity - mll.mll - r.internal.kill_switch_mll_distance,  # room above the (EOD-trailed) MLL
+                r.strategy.max_trade_risk_usd,
+                jcons.day_stop if jcons is not None else None,
+            )
             fixed = jj_contracts(risk_usd, plan.risk_pts, inst.tick, inst.tick_value, inst.fee_rt, slip)
             audit.record(
                 s, self.clock, actor, "trade.jj_size", a.broker_account_id,
-                {"signal": sig.id, "risk_usd": str(risk_usd), "stop_pts": str(plan.risk_pts), "contracts": fixed},
+                {"signal": sig.id, "risk_usd": str(risk_usd), "stop_pts": str(plan.risk_pts), "contracts": fixed,
+                 "drawdown_type": mll.drawdown_type, "mll": str(mll.mll)},
             )  # fmt: skip
             if fixed < 1:
                 return AccountResult(a.id, False, "JJ_SIZE_BELOW_1")

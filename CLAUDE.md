@@ -137,3 +137,5 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D142 (user 2026-11-14): Strategy button "JJ F.P.T STRAT" (`strategy.jj_fpt`, default OFF) = JJ's Fair Pricing Theory from his
   transcripts ONLY (docs/JJ_FPT_RULES.md; engine/jj_fpt.py, strategy_service.run_jj_fpt; controller sizes 25% of drawdown, one free
   account per trade, funded BOS only). Never mix rules from other strategies into it; change a rule only from the transcripts.
+- D143 (user 2026-11-16): JJ F.P.T STRAT Lucid Pro fit (sizing only): per-trade risk = min(25% MLL, DLL left×0.9/3, MLL room/3,
+  max_trade_risk_usd, consistency day stop/3) via engine/jj_fpt.trade_risk_usd; numbers in lucid_pro_*.yaml `jj_fpt_cfg`; table in docs/JJ_FPT_RULES.md.
