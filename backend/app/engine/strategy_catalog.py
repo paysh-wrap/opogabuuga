@@ -197,8 +197,9 @@ CATALOG: list[dict[str, object]] = [
         "held_out_trades": 0,
         "pro25k_pass_pct": None,
         "pro25k_bust_pct": None,
-        "period": "Not back-tested by us yet. JJ's own claim: 57.5% win at 1 : 1.5 over 80 trades in 8 days "
-        "(break-even is 40%).",
+        "period": "Our 5-year MNQ test (docs/results/jj_fpt/RESULTS.md, 1 micro, costs in): win 37.7%, PF 0.86, "
+        "negative every year; Pro evals almost never pass. JJ claims 57.5% win over 80 trades in 8 days "
+        "(break-even is about 41%).",
         "note": "Default OFF. MNQ, New York 09:30–11:00 (plus the 08:30 news reversion on red-folder days). Every "
         "trade goes to ONE free account (no copy trading); size = 25% of that account's drawdown, same dollars on "
         "every stop. Funded / live accounts take break-of-structure entries only. All Lucid rules and Paytience "
