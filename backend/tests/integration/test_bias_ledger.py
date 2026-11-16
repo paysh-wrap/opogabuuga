@@ -85,8 +85,12 @@ def test_strategies_endpoint(authed):
         "order_flow_amt",
         "order_flow_zone",
         "jj_fpt",
+        "gala_pa",
     ]
-    jj = body["strategies"][-1]  # JJ F.P.T STRAT card: off by default, its rules listed with the plan's numbers
+    gala = body["strategies"][-1]  # D144 GALA PRICE ACTION card: off by default, rule sheet listed
+    assert gala["name"] == "GALA PRICE ACTION" and gala["enabled"] is False and gala["setting"] == "strategy.gala_pa"
+    assert [x["key"] for x in gala["gala_rules"]][:2] == ["TREND", "LEVELS"]
+    jj = body["strategies"][-2]  # JJ F.P.T STRAT card: off by default, its rules listed with the plan's numbers
     assert jj["name"] == "JJ F.P.T STRAT" and jj["enabled"] is False and jj["setting"] == "strategy.jj_fpt"
     assert [x["key"] for x in jj["jj_rules"]][:2] == ["SESSIONS", "FAIR PRICE"]
     noise = body["strategies"][1]
