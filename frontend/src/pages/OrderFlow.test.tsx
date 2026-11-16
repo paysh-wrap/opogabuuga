@@ -110,7 +110,7 @@ test("D109: TradingAgents advisor panel + TradingView indicator guide (webhook U
   expect(screen.getByTestId("of-ta-advisor")).toHaveTextContent("02:00 ET");
   expect(await screen.findByText("https://me.ngrok.app/api/webhook/tradingview")).toBeInTheDocument();
   const g = screen.getByTestId("of-guide");
-  for (const t of ["Pine Editor", "Add to chart", "MNQ1!", "Premium or Ultimate", "delta_source=est", "CME real-time data", "Any alert() function call", "{{alert message}}", "Open-ended", "per symbol"]) expect(g).toHaveTextContent(t);
+  for (const t of ["Pine Editor", "Add to chart", "MNQ1!", "Volume footprint", "Plus", "delta_source=est", "CME real-time data", "Any alert() function call", "{{alert message}}", "Open-ended", "per symbol"]) expect(g).toHaveTextContent(t);
   expect(g).toHaveTextContent("shown only on the Connections page");
   expect(screen.getByTestId("of-download")).toHaveAttribute("href", "/api/pine/orderflow");
   fireEvent.click(screen.getByTestId("of-ta-toggle"));

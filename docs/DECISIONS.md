@@ -1040,7 +1040,7 @@ strategy.ai_duo_cfg.windows = MGC 09:36–11:30, MNQ 09:36–11:30 (still editab
   when `ta_advisor_blocks` is true AND the AI-accuracy ledger is proven (bias/ledger.proven at
   strategy.ai_gate_min_accuracy — advisory until proven). Failure / no key / unknown rating = no advice, never a block
   (warn notice). Also: Order Flow page step-by-step TradingView guide (download /api/pine/orderflow, Pine Editor → Save
-  → Add to chart on MNQ1!/MGC1! 1m, Premium/Ultimate for request.footprint else delta_source=est, CME real-time data,
+  → Add to chart on MNQ1!/MGC1! 1m, Volume footprint listed on TradingView Plus+ (request.footprint real delta on Plus NOT verified: check delta_source real vs est) else delta_source=est, CME real-time data,
   alert "Any alert() function call", Webhook URL from the Connections tunnel, message {{alert message}}, open-ended
   expiry note, one alert per symbol); the webhook secret is never printed there (Connections page only).
 - D110 (user 2026-11-11, "AMT+ Order flow button"; docs/results/session18/order_flow/AMT_PLUS_RULES.md — a prop-firm
