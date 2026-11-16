@@ -261,4 +261,23 @@ CATALOG: list[dict[str, object]] = [
         "note": "Default OFF. MNQ 09:30–15:30. 25 pt emergency stop (not from the video). Max 3 losses a day for "
         "Lucid sizing. A reversal waits until the old position is flat. All Lucid rules and safety checks apply.",
     },
+    {
+        "key": "okala_8020",
+        "name": "OKALA 8020",
+        "source": "Okala's NASDAQ 80/20 levels, built only from one transcript (docs/OKALA_8020_RULES.md): level "
+        "reactions, fork / reverse fork, cross-section entries; 10 pt stop, TP1 15 pt, then break even and a runner",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet. Okala claims a 70%+ win rate.",
+        "note": "Default OFF. MNQ 09:30–11:30. Entries on 3-minute bars (his 200-second chart cannot be built from "
+        "1-minute data). The ONLY strategy allowed to add to a winner (D145: same side, stop at break even, inside "
+        "one trade's risk cap). All Lucid rules and Paytience safety checks still apply.",
+    },
 ]

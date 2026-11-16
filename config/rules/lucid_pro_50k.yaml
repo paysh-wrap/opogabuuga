@@ -115,6 +115,12 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     dll_use_pct: 0.9
     max_losses_per_day: 3
     emergency_stop_pts: 25       # not from the video (Lucid needs a broker stop)
+  okala_8020: false            # D145: OKALA 8020 button (docs/OKALA_8020_RULES.md), default OFF
+  okala_8020_cfg:              # Lucid fit as D143: risk = min(25% MLL, DLL left x 0.9 / 3, MLL room / 3, max_trade_risk_usd, day stop / 3)
+    risk_pct_of_drawdown: 0.25 #   adds (D145) are sized from what is left of that cap for the whole position
+    dll_use_pct: 0.9
+    max_losses_per_day: 3
+    max_adds: 2
   noise_cfg: {contracts: 2, skip_weekdays: [0], profit_lock_trigger_pts: 100, profit_lock_pts: 10, profit_lock_trigger_alt_pts: 80}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
   pm_fade_cfg: {contracts: 2, eval_off: true}       # fallback only — PM_FADE uses size_table below (same as NOISE)
   # D132 (session 20, B2): NOISE preset C profit lock ON in every plan (+100 pt -> stop to entry +10, as the session-19

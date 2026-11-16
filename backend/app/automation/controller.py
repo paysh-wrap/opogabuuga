@@ -44,6 +44,7 @@ from app.models import Account, AuditLog, Bar, Order, Payout, Signal, Trade, Tra
 from app.monitor.feed import FeedDelayTracker
 from app.phases.mll_tracker import MllState, update_mll
 from app.phases.phase_engine import firm_max_micros, new_mll, stage_rules
+from app.risk.add_to_winners import ADD_MODE, OpenLeg, add_allowed
 from app.risk.checks import AccountView, TradeLimits, dll_remaining, pretrade
 from app.risk.consistency import live_day_stop_hit
 from app.risk.cushion import (
@@ -76,15 +77,18 @@ STRATEGY_MODES = (
     "GALA_PA",
     "CONTI_ORB",
     "CONTI_VWAP",
+    "OKALA_8020",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
-FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB", "CONTI_VWAP": "CVWAP"}
+FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB", "CONTI_VWAP": "CVWAP", "OKALA_8020": "OKALA"}
 
 
 def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
     if mode == "GALA_PA":
         return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "OKALA_8020":
+        return FIT_TAGS[mode], st.okala_8020_cfg, st.okala_8020_cfg.max_losses_per_day
     if mode == "CONTI_VWAP":
         return FIT_TAGS[mode], st.conti_vwap_cfg, st.conti_vwap_cfg.max_losses_per_day
     if mode == "CONTI_ORB":
@@ -426,7 +430,12 @@ class Controller:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
                 busy = {t.account for t in self.om.trades.values()}
                 bid = {a.id: a.broker_account_id for a in accts}
-                cands = [c for c in cands if bid.get(c.id) not in busy]
+                if plan0.mode == ADD_MODE and int((sig.features or {}).get("add_no") or 0) > 0:
+                    # D145: an add goes to the account that holds this strategy's position (never a new account)
+                    mine = {t.account for t in self.om.trades.values() if t.strategy == ADD_MODE}
+                    cands = [c for c in cands if bid.get(c.id) in mine]
+                else:
+                    cands = [c for c in cands if bid.get(c.id) not in busy]
                 n_accts = 1
             chosen = select_accounts(cands, n_accts, any_live)
             inst = r.instrument(sig.symbol)
@@ -544,6 +553,16 @@ class Controller:
         except BrokerError as e:  # review fix: was an unhandled exception that aborted the whole signal silently
             return AccountResult(a.id, False, f"BROKER_ERROR: {e}")
         n_open = max(sum(1 for p in positions if p.account == a.broker_account_id), len(mine))
+        add_legs: list[OpenLeg] | None = None
+        if strategy == ADD_MODE and n_open > 0:  # D145: the single add-to-winners exception (OKALA 8020 only)
+            if len(mine) < n_open:
+                return AccountResult(a.id, False, "POSITION_OPEN")  # a position nothing here manages
+            okc = r.strategy.okala_8020_cfg
+            add_legs = [OpenLeg(t.strategy, t.d.sign, self._at_breakeven(t), self._open_risk(t)) for t in mine]
+            pre = add_allowed(strategy, plan.direction.sign, add_legs, Decimal(10**9), Decimal(1), okc.max_adds,
+                              okc.add_after_tp1)  # fmt: skip
+            if not pre.ok:
+                return AccountResult(a.id, False, pre.reason)
         view = AccountView(
             a.broker_account_id,
             a.stage,
@@ -559,9 +578,15 @@ class Controller:
             mll.mll,
             st.dll_for(r, a),
             base,
-            max_open_positions=duo.max_open_positions if duo is not None and big else 1,
+            max_open_positions=(
+                n_open + 1 if add_legs is not None else duo.max_open_positions if duo is not None and big else 1
+            ),
             open_positions=n_open,
-            open_risk_usd=sum((self._open_risk(t) for t in mine), Decimal(0)) if duo is not None else Decimal(0),
+            open_risk_usd=(
+                sum((self._open_risk(t) for t in mine), Decimal(0))
+                if duo is not None or add_legs is not None
+                else Decimal(0)
+            ),
         )
         # D115 (user 2026-11-11): each strategy's OWN per-plan size (config/rules/*.yaml), scaled down for an account
         # smaller than the plan; NOISE / PM_FADE use the size table below. Caps applied later: firm + internal max,
@@ -630,6 +655,23 @@ class Controller:
                 gcons.day_stop if gcons is not None else None,
             )
             fixed = fit_contracts(risk_usd, plan.risk_pts, inst.tick, inst.tick_value, inst.fee_rt, slip)
+            if add_legs is not None:  # D145: the whole position's worst case stays inside the same per-trade cap
+                okc = r.strategy.okala_8020_cfg
+                per = plan.risk_pts / inst.tick * inst.tick_value + inst.fee_rt + 2 * slip * inst.tick_value
+                dec = add_allowed(strategy, plan.direction.sign, add_legs, risk_usd, per, okc.max_adds,
+                                  okc.add_after_tp1)  # fmt: skip
+                if not dec.ok:
+                    return AccountResult(a.id, False, dec.reason)
+                fixed = min(fixed, dec.max_contracts)
+            if strategy == ADD_MODE and fixed >= 1:  # C2–C5: TP1 leg + break-even runner (2+ micros), else TP1 only
+                feat = sig.features or {}
+                tp1 = Decimal(str(feat.get("tp1", plan.take_profit)))
+                if fixed >= 2:
+                    guard_on = True
+                    cover = Decimal(str(feat.get("be_cover_pts", "1")))
+                    plan = replace(plan, partial_price=tp1, breakeven_price=plan.entry + plan.direction.sign * cover)
+                else:
+                    plan = replace(plan, take_profit=tp1, rr=(tp1 - plan.entry) * plan.direction.sign / plan.risk_pts)
             audit.record(
                 s, self.clock, actor, f"trade.{tag.lower()}_size", a.broker_account_id,
                 {"signal": sig.id, "risk_usd": str(risk_usd), "stop_pts": str(plan.risk_pts), "contracts": fixed,
@@ -1038,6 +1080,12 @@ class Controller:
                                 await self._flatten_account(s, a, reason)
                 await self._retry_strategy_exits(s)
                 self._commit(s)
+
+    @staticmethod
+    def _at_breakeven(t: OpenTrade) -> bool:
+        """D145: every open leg's stop is at its entry or better (TP1 taken, stop moved)."""
+        legs = [x for x in t.legs if not x.closed]
+        return bool(legs) and all(x.entry is not None and (x.stop - x.entry) * t.d.sign >= 0 for x in legs)
 
     def _open_risk(self, t: OpenTrade) -> Decimal:
         """$ still at risk on an open position: per open leg (entry − current stop, never below 0) × qty at the tick

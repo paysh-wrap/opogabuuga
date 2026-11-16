@@ -795,6 +795,37 @@ class ContiVwapCfg(_M):
     paper_only: bool = False
 
 
+class Okala8020Cfg(_M):
+    """OKALA 8020 (D145): NASDAQ 80/20 levels + structure from docs/OKALA_8020_RULES.md only (engine/okala_8020.py)."""
+
+    symbol: str = "MNQ"
+    entry_minutes: int = Field(default=3, ge=1, le=5)  # B1 [GAP] 200 s impossible from 1-min bars  # not from the video
+    structure_minutes: int = Field(default=10, ge=10, le=10)  # B1 10-minute chart
+    windows: list[str] = ["09:30-11:30"]  # B3 [GAP] NY open, lunch 11:30–13:30 out  # not from the video
+    stop_pts: D = D("10")  # C1 always 10
+    tp1_pts: D = Field(default=D("15"), ge=D("12"), le=D("15"))  # C2 15 (12–15)
+    be_cover_pts: D = D("1")  # C3 a point beyond entry
+    runner_target_pts: D = Field(default=D("30"), gt=D("15"))  # C4/C5 [GAP] no fixed TP2  # not from the video
+    level_tap_tol_pts: D = D("0.25")  # A4 "19.75 counts"
+    level_through_pts: D = D("3")  # A4 "23 for the 20 level"
+    reaction_pts: D = Field(default=D("5"), gt=D(0))  # A3 [GAP] instant reaction size  # not from the video
+    strong_move_pts: D = Field(default=D("100"), gt=D(0))  # D1 [GAP] low end of 100–150  # not from the video
+    strong_body_pts: D = Field(default=D("10"), gt=D(0))  # D3/D4 [GAP] "strong candle"  # not from the video
+    wick_body_mult: D = Field(default=D("2"), gt=D(0))  # D1 [GAP] long wick / short body  # not from the video
+    cross_tol_pts: D = Field(default=D("2"), ge=D(0))  # D4 [GAP] cross band  # not from the video
+    cross_max_bars: int = Field(default=10, ge=2, le=40)  # D4 [GAP]  # not from the video
+    no_wick_ticks: int = Field(default=2, ge=0, le=8)  # D5 [GAP] "no wick"  # not from the video
+    setups: list[Literal["FORK", "CROSS", "LEVEL"]] = ["FORK", "CROSS", "LEVEL"]
+    max_losses_per_day: int = Field(default=3, ge=1, le=10)  # [GAP] Lucid sizing divisor  # not from the video
+    max_hold_minutes: int = Field(default=90, ge=10, le=390)  # [GAP]  # not from the video
+    add_after_tp1: bool = True  # D145 [GAP] add only once the stop is at break even
+    max_adds: int = Field(default=2, ge=0, le=4)  # D145 [GAP]  # not from the video
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -995,6 +1026,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    okala_8020: bool = False  # D145 OKALA 8020 button (docs/OKALA_8020_RULES.md), default OFF
     conti_vwap: bool = False  # D147 CONTI VWAP button (docs/CONTI_RULES.md C), default OFF
     conti_orb: bool = False  # D146 CONTI ORB button (docs/CONTI_RULES.md B), default OFF
     gala_pa: bool = False  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
@@ -1019,6 +1051,7 @@ class StrategyCfg(_M):
     gala_pa_cfg: GalaPaCfg = GalaPaCfg()
     conti_orb_cfg: ContiOrbCfg = ContiOrbCfg()
     conti_vwap_cfg: ContiVwapCfg = ContiVwapCfg()
+    okala_8020_cfg: Okala8020Cfg = Okala8020Cfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

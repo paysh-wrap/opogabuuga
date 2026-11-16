@@ -30,6 +30,7 @@ from app.engine import conti_vwap as CV
 from app.engine import gala_pa as GP
 from app.engine import jj_fpt as JJ
 from app.engine import noise as N
+from app.engine import okala_8020 as OK
 from app.engine import order_flow as OF
 from app.engine import pm_fade as PF
 from app.engine import structure_filter as SF
@@ -1380,6 +1381,38 @@ def run_conti_vwap(
     return out
 
 
+def run_okala_8020(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D145 OKALA 8020: replay the session; a signal (or a same-direction ADD after TP1) on THIS 3-minute close,
+    the time exit when the replay says so. TP1 / break even / runner are the broker legs (controller)."""
+    cfg = rules.strategy.okala_8020_cfg
+    out = StrategyOutput()
+    today = session_mbars(s, cfg.symbol, at)
+    if not today or today[-1].close_time != at:
+        return out
+    day = at.astimezone(ET).date().isoformat()
+    for x in OK.replay_day(today, cfg, rules.instrument(cfg.symbol).tick).signals:
+        key = f"{cfg.symbol}-OKALA-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
+        sid = _key_id(s, key)
+        if x.outcome == "TIME" and x.exit_time == at and sid is not None:
+            out.exits.append((sid, "OKALA_TIME_EXIT"))
+        if x.time != at or exits_only or sid is not None:
+            continue
+        risk = (x.entry - x.stop) * x.direction.sign
+        rr = (x.runner_target - x.entry) * x.direction.sign / risk
+        new = _new_signal(
+            s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
+            gate=_gate(rules, cfg.symbol, at, calendar),
+            features={"setup": x.setup, "confluences": x.confluences, "tp1": str(x.tp1), "add_no": x.add_no,
+                      "be_cover_pts": str(cfg.be_cover_pts), "paper_only": cfg.paper_only,
+                      "entry_bars": f"{cfg.entry_minutes}m (200 s not possible from 1-minute bars)"},
+            plan=("OKALA_8020", x.entry, x.stop, x.runner_target, risk, rr),
+        )  # fmt: skip
+        out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1411,6 +1444,10 @@ def run(
         out.exits += r.exits
     if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
         r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.okala_8020 and symbol == st.okala_8020_cfg.symbol:
+        r = run_okala_8020(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.conti_vwap and symbol == st.conti_vwap_cfg.symbol:

@@ -631,7 +631,44 @@ def conti_vwap_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
-RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules, "conti_vwap": conti_vwap_rules}
+def okala_rules(r: Any) -> list[dict[str, object]]:
+    """OKALA 8020 card (docs/OKALA_8020_RULES.md; * = not from the video)."""
+    c = r.strategy.okala_8020_cfg
+    return [
+        {"key": "LEVELS", "on": True, "rule": "NASDAQ prices ending in 20 / 80; either way, on the reaction (A1–A4)"},
+        {
+            "key": "CHARTS",
+            "on": True,
+            "rule": f"{c.structure_minutes}-min structure; entries on {c.entry_minutes}-min "
+            "bars* (the video's 200-second chart cannot be built from 1-minute data)",
+        },
+        {
+            "key": "SETUPS",
+            "on": True,
+            "rule": f"{', '.join(c.setups)}: fork / reverse fork (D1/D2), cross-section with "
+            "H-pattern confluence (D3/D4), level reaction (A3); repair candles = magnets / runner target (D5)",
+        },
+        {"key": "WINDOW", "on": True, "rule": f"{', '.join(c.windows)} ET*, lunch excluded (B3)"},
+        {
+            "key": "STOP / TP",
+            "on": True,
+            "rule": f"stop {c.stop_pts} pt always (C1); TP1 {c.tp1_pts} pt (C2), then "
+            f"stop to break even +{c.be_cover_pts} pt (C3); runner to the magnet or {c.runner_target_pts} pt* (C4); "
+            "1 micro → TP1 only, 2+ → about half at TP1 (C5 approximated)",
+        },
+        {
+            "key": "ADDS",
+            "on": c.add_after_tp1 and c.max_adds > 0,
+            "rule": f"D145: up to {c.max_adds}* same-direction "
+            "adds once the stop is at break even; the whole position stays inside one trade's risk cap",
+        },
+        {"key": "LOSSES", "on": True, "rule": f"no trade cap; {c.max_losses_per_day} losses a day* (Lucid sizing)"},
+        {"key": "SIZE", "on": True, "rule": fit_size_row(r, c, c.max_losses_per_day, ("10", "10"))},
+        {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per new trade; adds stay on it"},
+    ]
+
+
+RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules, "conti_vwap": conti_vwap_rules, "okala_8020": okala_rules}
 
 
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
@@ -681,6 +718,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "gala_pa": r.strategy.gala_pa,
         "conti_orb": r.strategy.conti_orb,
         "conti_vwap": r.strategy.conti_vwap,
+        "okala_8020": r.strategy.okala_8020,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
