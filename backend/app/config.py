@@ -779,6 +779,22 @@ class ContiOrbCfg(_M):
         return self
 
 
+class ContiVwapCfg(_M):
+    """CONTI VWAP (D147): price vs the 09:30 VWAP, docs/CONTI_RULES.md part C only (engine/conti_vwap.py)."""
+
+    symbol: str = "MNQ"
+    window_end: str = "15:30"  # [GAP] 09:30–15:30, flat at 15:30  # not from the video
+    emergency_stop_pts: D = Field(default=D("25"), gt=D(0))  # [GAP] Lucid needs a broker stop  # not from the video
+    far_target_pts: D = Field(
+        default=D("200"), gt=D(0)
+    )  # safety bracket only; C5 VWAP cross exits  # not from the video
+    max_losses_per_day: int = Field(default=3, ge=1, le=10)  # [GAP] Lucid sizing divisor  # not from the video
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -979,6 +995,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    conti_vwap: bool = False  # D147 CONTI VWAP button (docs/CONTI_RULES.md C), default OFF
     conti_orb: bool = False  # D146 CONTI ORB button (docs/CONTI_RULES.md B), default OFF
     gala_pa: bool = False  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
     # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
@@ -1001,6 +1018,7 @@ class StrategyCfg(_M):
     jj_fpt_cfg: JjFptCfg = JjFptCfg()
     gala_pa_cfg: GalaPaCfg = GalaPaCfg()
     conti_orb_cfg: ContiOrbCfg = ContiOrbCfg()
+    conti_vwap_cfg: ContiVwapCfg = ContiVwapCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

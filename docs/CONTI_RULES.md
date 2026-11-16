@@ -85,3 +85,21 @@ risk = min(25% MLL, DLL left × 0.9, MLL room − kill distance, max_trade_risk_
 | Pro 50K | 500.00 | 8 / 4 |
 | Pro 100K | 750.00 | 12 / 6 |
 | Pro 150K | 1125.00 | 18 / 9 |
+
+## Implementation notes — CONTI VWAP (D147, 2026-11-16)
+Engine `backend/app/engine/conti_vwap.py` (pure) — `replay_day(today: list[MBar], cfg, tick) -> list[VwapSignal]`
+(entries + exits so far; `vwap_series(bars)` for the line). Hook `strategy_service.run_conti_vwap`; key
+`MNQ-CVWAP-<day>-<HHMM>`; plan mode `CONTI_VWAP`; `strategy.conti_vwap` (default OFF) + `strategy.conti_vwap_cfg`.
+Built: C1 (09:30 anchor; the previous-day VWAP variation is not built), C2–C5 (exit `CVWAP_CROSS`), C6 (MNQ).
+C7 is a backtest parameter (not a runtime rule); C8 = Lucid fit. [GAP] defaults (`# not from the video`):
+emergency_stop_pts 25, far safety target 200 pt (the VWAP cross does the exiting), window to 15:30 (`CVWAP_TIME`),
+re-entry only on the other side after an exit, max_losses_per_day 3 (also the sizing divisor). A reversal on the exit
+bar is stored as its own signal; the controller skips it while the old position is open (D139, unchanged).
+**Left out on purpose:** overnight anomaly and post-earnings drift are NOT built (they break Lucid / Paytience rules).
+
+| Plan | EVAL $/trade | micros @25 pt | FUNDED $/trade | micros @25 pt |
+|------|------|------|------|------|
+| Pro 25K | 158.33 | 3 | 180.00 | 3 |
+| Pro 50K | 360.00 | 6 | 360.00 | 6 |
+| Pro 100K | 540.00 | 10 | 540.00 | 10 |
+| Pro 150K | 810.00 | 15 | 810.00 | 15 |

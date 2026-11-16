@@ -86,6 +86,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.ai_duo_cfg.accounts",
         "strategy.pm_fade",
         "strategy.jj_fpt",  # JJ F.P.T STRAT button (docs/JJ_FPT_RULES.md)
+        "strategy.conti_vwap",  # D147 CONTI VWAP button
         "strategy.conti_orb",  # D146 CONTI ORB button
         "strategy.conti_orb_cfg.rr",  # B5: 1 or 2 (validated)
         "strategy.gala_pa",  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md)

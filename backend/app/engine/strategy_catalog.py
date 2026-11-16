@@ -243,4 +243,22 @@ CATALOG: list[dict[str, object]] = [
         "note": "Default OFF. MNQ, one trade a day. Same dollars at risk every trade (fewer micros on a wide range), "
         "fitted to Lucid's DLL, MLL and consistency. All Lucid rules and Paytience safety checks still apply.",
     },
+    {
+        "key": "conti_vwap",
+        "name": "CONTI VWAP",
+        "source": "Matteo Conti's VWAP idea, built only from one transcript (docs/CONTI_RULES.md C): 1-minute close "
+        "above the 09:30 VWAP = long, below = short, out when price closes back through VWAP",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet.",
+        "note": "Default OFF. MNQ 09:30–15:30. 25 pt emergency stop (not from the video). Max 3 losses a day for "
+        "Lucid sizing. A reversal waits until the old position is flat. All Lucid rules and safety checks apply.",
+    },
 ]

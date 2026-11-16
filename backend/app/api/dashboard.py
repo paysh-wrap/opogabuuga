@@ -609,7 +609,29 @@ def gala_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
-RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules}
+def conti_vwap_rules(r: Any) -> list[dict[str, object]]:
+    """CONTI VWAP card (docs/CONTI_RULES.md part C; * = not from the video)."""
+    c = r.strategy.conti_vwap_cfg
+    return [
+        {
+            "key": "VWAP",
+            "on": True,
+            "rule": "anchored at 09:30 ET, volume-weighted (high + low + close) / 3 (C1), 1-minute bars (C2)",
+        },
+        {
+            "key": "ENTRY",
+            "on": True,
+            "rule": "1-minute close above VWAP → LONG, below → SHORT (C3/C4); "
+            "after an exit the next close on the other side (a reversal waits until flat)*",
+        },
+        {"key": "EXIT", "on": True, "rule": f"a 1-minute close back through VWAP (C5); flat at {c.window_end}*"},
+        {"key": "EMERGENCY STOP", "on": True, "rule": f"{c.emergency_stop_pts} pt broker stop* (the video has none)"},
+        {"key": "SIZE", "on": True, "rule": fit_size_row(r, c, c.max_losses_per_day, ("25", "25"))},
+        {"key": "ACCOUNTS", "on": c.one_account_per_trade, "rule": "one free account per trade, never copy trading"},
+    ]
+
+
+RULE_CARDS: dict[str, Any] = {"conti_orb": conti_orb_rules, "conti_vwap": conti_vwap_rules}
 
 
 def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
@@ -658,6 +680,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "jj_fpt": r.strategy.jj_fpt,
         "gala_pa": r.strategy.gala_pa,
         "conti_orb": r.strategy.conti_orb,
+        "conti_vwap": r.strategy.conti_vwap,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg

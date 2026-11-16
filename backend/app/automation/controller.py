@@ -75,15 +75,18 @@ STRATEGY_MODES = (
     "JJ_FPT",
     "GALA_PA",
     "CONTI_ORB",
+    "CONTI_VWAP",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
-FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB"}
+FIT_TAGS = {"GALA_PA": "GALA", "CONTI_ORB": "CORB", "CONTI_VWAP": "CVWAP"}
 
 
 def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
     if mode == "GALA_PA":
         return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "CONTI_VWAP":
+        return FIT_TAGS[mode], st.conti_vwap_cfg, st.conti_vwap_cfg.max_losses_per_day
     if mode == "CONTI_ORB":
         return FIT_TAGS[mode], st.conti_orb_cfg, st.conti_orb_cfg.max_trades_per_day
     return None

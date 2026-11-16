@@ -152,7 +152,7 @@ test("GALA PRICE ACTION card lists the rule sheet and turns on through its own s
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.gala_pa":true'))).toBe(true));
 });
 
-test.each([["conti_orb", "CONTI ORB"]])("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
+test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"]])("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
   const g = { key, name, source: "transcript", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "Not back-tested yet.", note: "n", enabled: false, setting: `strategy.${key}`,
     strategy_rules: [{ key: "ENTRY", on: true, rule: "the entry rule" }, { key: "EXTRA", on: false, rule: "an optional rule" }] };
   const calls: string[] = [];

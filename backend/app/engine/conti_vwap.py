@@ -78,10 +78,10 @@ def replay_day(today: Sequence[MBar], cfg: VwapCfg, tick: Decimal) -> list[VwapS
         if pos is not None:
             s = pos.direction.sign
             hit = (b.l <= pos.stop) if s > 0 else (b.h >= pos.stop)
-            tp = (b.h >= pos.take_profit) if s > 0 else (b.l <= pos.take_profit)
+            won = (b.h >= pos.take_profit) if s > 0 else (b.l <= pos.take_profit)
             if hit:
                 pos.outcome, pos.exit_price = "STOP", pos.stop
-            elif tp:
+            elif won:
                 pos.outcome, pos.exit_price = "TP", pos.take_profit
             elif b.close_time >= end:
                 pos.outcome, pos.exit_price = "TIME", b.c

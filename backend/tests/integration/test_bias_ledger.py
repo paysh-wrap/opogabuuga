@@ -87,12 +87,14 @@ def test_strategies_endpoint(authed):
         "jj_fpt",
         "gala_pa",
         "conti_orb",
+        "conti_vwap",
     ]
-    assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["RANGE", "ENTRY"]
-    gala = body["strategies"][-2]  # D144 GALA PRICE ACTION card: off by default, rule sheet listed
+    assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["VWAP", "ENTRY"]
+    assert [x["key"] for x in body["strategies"][-2]["strategy_rules"]][:2] == ["RANGE", "ENTRY"]
+    gala = body["strategies"][-3]  # D144 GALA PRICE ACTION card: off by default, rule sheet listed
     assert gala["name"] == "GALA PRICE ACTION" and gala["enabled"] is False and gala["setting"] == "strategy.gala_pa"
     assert [x["key"] for x in gala["gala_rules"]][:2] == ["TREND", "LEVELS"]
-    jj = body["strategies"][-3]  # JJ F.P.T STRAT card: off by default, its rules listed with the plan's numbers
+    jj = body["strategies"][-4]  # JJ F.P.T STRAT card: off by default, its rules listed with the plan's numbers
     assert jj["name"] == "JJ F.P.T STRAT" and jj["enabled"] is False and jj["setting"] == "strategy.jj_fpt"
     assert [x["key"] for x in jj["jj_rules"]][:2] == ["SESSIONS", "FAIR PRICE"]
     noise = body["strategies"][1]
