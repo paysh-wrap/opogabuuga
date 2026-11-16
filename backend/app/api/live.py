@@ -46,6 +46,7 @@ def active_strategies(r: RulesConfig) -> set[str]:
     on["CONTI_VWAP"] = st.conti_vwap
     on["OKALA_8020"] = st.okala_8020
     on["BRUNI_STRUCTURE"] = st.bruni_structure
+    on["CANDACE_ICT"] = st.candace_ict
     return {k for k, v in on.items() if v}
 
 

@@ -42,3 +42,9 @@ def trade_risk_usd(
     if day_stop is not None:
         parts.append(max(day_stop, Decimal(0)) / n)
     return min(parts).quantize(Decimal("0.01"), rounding="ROUND_DOWN")
+
+
+def grade_contracts(contracts: int, mult: Decimal, top: Decimal = Decimal(2)) -> int:
+    """D149 tighten-only grade size: contracts × mult / top (the top grade gets the Lucid-fit size), rounded down,
+    never above the input."""
+    return min(contracts, int(Decimal(contracts) * min(mult, top) / top))

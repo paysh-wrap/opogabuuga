@@ -866,6 +866,38 @@ class BruniStructureCfg(_M):
     paper_only: bool = False
 
 
+class CandaceIctCfg(_M):
+    """CANDACE ICT SCALP (D149): docs/CANDACE_ICT_RULES.md only (engine/candace_ict.py). 1-minute bars only: the
+    15 / 30-second charts, Asia range, midnight price and London cannot be tested with RTH-only history."""
+
+    symbol: str = "MNQ"
+    ny_window: str = "09:00-10:00"  # B2/B4 [GAP]  # not from the video
+    london_window: str = "02:00-05:00"  # B1
+    london: bool = False  # B1 London kill zone — OFF (untestable here)
+    ny_max_stop_pts: D = D("40")  # D2 New York 30–40
+    london_max_stop_pts: D = D("25")  # D2 London 20–25
+    ny_max_hold_minutes: int = Field(default=15, ge=1, le=120)  # B2 "within about 15 minutes"
+    london_max_hold_minutes: int = Field(default=30, ge=1, le=180)  # [GAP]  # not from the video
+    eq_tol_ticks: int = Field(default=2, ge=0, le=20)  # A3 [GAP] "relative equal"  # not from the video
+    swing_lookback: int = Field(default=2, ge=1, le=10)  # A3 [GAP]  # not from the video
+    displacement_mult: D = Field(default=D("1.5"), gt=D(0))  # C5 [GAP]  # not from the video
+    displacement_bars: int = Field(default=10, ge=3, le=60)  # C5 [GAP]  # not from the video
+    fvg_lookback: int = Field(default=10, ge=2, le=60)  # C1 [GAP] run into the sweep  # not from the video
+    ifvg_max_bars: int = Field(default=10, ge=1, le=60)  # [GAP]  # not from the video
+    premium_pct: D = Field(default=D("0.5"), gt=D(0), lt=D(1))  # A2 [GAP] 50%  # not from the video
+    range_bars: int = Field(default=60, ge=5, le=600)  # A2 [GAP] dealing range  # not from the video
+    stop_buffer_ticks: int = Field(default=2, ge=0, le=20)  # D1 [GAP]  # not from the video
+    min_rr: D = Field(default=D("2"), ge=D("2"), le=D("4"))  # D3 at least 1:2
+    gap_level_tol_pts: D = Field(default=D("5"), ge=D(0))  # C8 [GAP]  # not from the video
+    grade_a_min: int = Field(default=4, ge=2, le=6)  # E3 [GAP]  # not from the video
+    grade_b_min: int = Field(default=3, ge=1, le=5)  # E3 [GAP]  # not from the video
+    max_losses_per_day: int = Field(default=3, ge=1, le=10)  # F1 [GAP] Lucid sizing divisor  # not from the video
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -1066,6 +1098,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    candace_ict: bool = False  # D149 CANDACE ICT SCALP button (docs/CANDACE_ICT_RULES.md), default OFF
     bruni_structure: bool = False  # D148 BRUNI STRUCTURE button (docs/BRUNI_RULES.md), default OFF
     okala_8020: bool = False  # D145 OKALA 8020 button (docs/OKALA_8020_RULES.md), default OFF
     conti_vwap: bool = False  # D147 CONTI VWAP button (docs/CONTI_RULES.md C), default OFF
@@ -1094,6 +1127,7 @@ class StrategyCfg(_M):
     conti_vwap_cfg: ContiVwapCfg = ContiVwapCfg()
     okala_8020_cfg: Okala8020Cfg = Okala8020Cfg()
     bruni_structure_cfg: BruniStructureCfg = BruniStructureCfg()
+    candace_ict_cfg: CandaceIctCfg = CandaceIctCfg()
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

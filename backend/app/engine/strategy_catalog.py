@@ -259,7 +259,7 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_bust_pct": None,
         "period": "Not back-tested yet.",
         "note": "Default OFF. MNQ 09:30–15:30. 25 pt emergency stop (not from the video). Max 3 losses a day for "
-        "Lucid sizing. A reversal waits until the old position is flat. All Lucid rules and safety checks apply.",
+        "Lucid sizing. A reversal waits until the old position is flat. All Lucid rules and checks apply.",
     },
     {
         "key": "okala_8020",
@@ -298,5 +298,23 @@ CATALOG: list[dict[str, object]] = [
         "note": "Default OFF. MNQ, New York session only. The video never shows the entry trigger: the built trigger "
         "(price back in the zone) is a flagged gap. Risk overlays (autocorrelation, regime flip, drawdown shield) are "
         "OFF and can only make trades smaller or fewer. All Lucid rules and safety checks still apply.",
+    },
+    {
+        "key": "candace_ict",
+        "name": "CANDACE ICT SCALP",
+        "source": "Candace Lau's ICT scalp, built only from one transcript (docs/CANDACE_ICT_RULES.md): liquidity "
+        "sweep, inverted FVG with displacement, retrace entry, stop past the sweep, ≥ 1:2 to the nearest pool",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet. London, the seconds charts and the Asia range cannot be tested here.",
+        "note": "Default OFF. MNQ, New York 09:00–10:00 (London OFF). Grades A+ / B / C only shrink the Lucid-fit "
+        "size. Single bracket (her partial and break-even move are not built). All Lucid rules and checks apply.",
     },
 ]

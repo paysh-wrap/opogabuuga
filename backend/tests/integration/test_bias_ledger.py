@@ -90,7 +90,10 @@ def test_strategies_endpoint(authed):
         "conti_vwap",
         "okala_8020",
         "bruni_structure",
+        "candace_ict",
     ]
+    assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["SESSIONS", "POOLS"]
+    body["strategies"] = body["strategies"][:-1]
     assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["STRUCTURE", "POTENTIAL"]
     body["strategies"] = body["strategies"][:-1]
     assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["LEVELS", "CHARTS"]

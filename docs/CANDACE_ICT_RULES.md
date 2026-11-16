@@ -79,3 +79,23 @@ account per trade, no copy trading), swing / overnight holds (not allowed by Luc
 ## Lucid / Paytience safety that still applies (never weakened)
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
 checks, live gates, EOD drawdown on Pro 25K–150K. Variable size from grades can only TIGHTEN the Lucid-fit size.
+
+## Implementation notes (D149, 2026-11-16)
+Engine `backend/app/engine/candace_ict.py` (pure, 1-minute bars) — `replay_day(history: list[MBar], today: list[MBar],
+cfg, tick) -> CandaceDay` (history = earlier days for the previous-day pools and the RTH gap; today = this ET day's bars,
+any hour). Hook `strategy_service.run_candace_ict`; key `MNQ-CAND-<day>-<HHMM>`; plan mode `CANDACE_ICT`;
+`strategy.candace_ict` (default OFF) + `strategy.candace_ict_cfg`.
+**Built:** A1 (1-hour FVG from 1-minute bars; weekly / daily candles not used), A2 (50% of the last 60 bars' range = gap),
+A3 (equal highs / lows within 2 ticks, 2-bar swings, previous-day and session high / low, 1-hour FVG edges), A4, B1
+(London 02:00–05:00, OFF), B2/B4 (NY 09:00–10:00, 15-min max hold, `CAND_TIME_EXIT`), C1, C2, C3 (entry at the close of
+the retrace bar), C5 (body ≥ 1.5 × 10-bar average), C7 (HTF FVG confluence), C8 (RTH gap 0/25/50/75/100% levels as a
+confluence), C10/E3 grades (confluences: displacement, equal pool, HTF FVG, RTH gap, previous day; A+ ≥ 4, B 3, C ≤ 2),
+D1 (2 ticks past the sweep extreme), D2 (NY 40 / London 25 pt → skip, never widen), D3 (≥ 1:2, extended to the nearest
+pool beyond), F1 = Lucid DLL + max 3 losses a day (sizing divisor). **E1/E2 size:** multipliers 2.0 / 1.0 / 0.5 applied
+TIGHTEN-ONLY as multiplier ÷ 2.0 of the Lucid-fit size (A+ = full fit size, B half, C a quarter; `CAND_GRADE_SIZE_BELOW_1`).
+**Not built:** C4 aggressive entry, C6 volume imbalance / order block, C9 SMT with ES, D4 partial at the first internal
+pool and D5 break-even after 25% of the move (the existing management only moves to break even on a leg fill — single
+bracket ships; follow-up), D6 templates, A5/A6 Asia range, midnight price, new-week gap.
+**Cannot be tested here:** London, the Asia range, the midnight price, the 15 / 30-second speed (1-minute, RTH-only
+history). Fit table = BRUNI's (same divisor): 25K $158.33 (3 micros @20 pt), 50K $360 (8), 100K $540 (12), 150K $810 (19);
+FUNDED 25K $180 (4).

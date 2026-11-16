@@ -27,6 +27,7 @@ from app.engine.filters import news_flatten_due
 from app.engine.jj_fpt import contracts_for as jj_contracts
 from app.engine.jj_fpt import trade_risk_usd as jj_trade_risk
 from app.engine.lucid_fit import contracts_for as fit_contracts
+from app.engine.lucid_fit import grade_contracts
 from app.engine.lucid_fit import trade_risk_usd as fit_trade_risk
 from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction, TradePlan, fee_cover_ticks
@@ -80,6 +81,7 @@ STRATEGY_MODES = (
     "CONTI_VWAP",
     "OKALA_8020",
     "BRUNI_STRUCTURE",
+    "CANDACE_ICT",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
 FIT_TAGS = {
@@ -88,6 +90,7 @@ FIT_TAGS = {
     "CONTI_VWAP": "CVWAP",
     "OKALA_8020": "OKALA",
     "BRUNI_STRUCTURE": "BRUNI",
+    "CANDACE_ICT": "CAND",
 }
 
 
@@ -95,6 +98,8 @@ def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
     if mode == "GALA_PA":
         return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "CANDACE_ICT":
+        return FIT_TAGS[mode], st.candace_ict_cfg, st.candace_ict_cfg.max_losses_per_day
     if mode == "BRUNI_STRUCTURE":
         return FIT_TAGS[mode], st.bruni_structure_cfg, st.bruni_structure_cfg.max_losses_per_day
     if mode == "OKALA_8020":
@@ -691,6 +696,11 @@ class Controller:
                 fixed = int(fixed * mult)
                 if fixed < 1:
                     return AccountResult(a.id, False, "BRUNI_AUTOCORR_SKIP")
+            if strategy == "CANDACE_ICT":  # E3 grade size, tighten-only: A+ = the Lucid-fit size, B half, C a quarter
+                gm = Decimal(str((sig.features or {}).get("size_mult", "0.5")))
+                fixed = grade_contracts(fixed, gm)
+                if fixed < 1:
+                    return AccountResult(a.id, False, "CAND_GRADE_SIZE_BELOW_1")
             if strategy == ADD_MODE and fixed >= 1:  # C2–C5: TP1 leg + break-even runner (2+ micros), else TP1 only
                 feat = sig.features or {}
                 tp1 = Decimal(str(feat.get("tp1", plan.take_profit)))

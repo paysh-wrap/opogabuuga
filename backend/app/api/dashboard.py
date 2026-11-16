@@ -714,7 +714,58 @@ def bruni_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def candace_rules(r: Any) -> list[dict[str, object]]:
+    """CANDACE ICT SCALP card (docs/CANDACE_ICT_RULES.md; * = not from the video)."""
+    c = r.strategy.candace_ict_cfg
+    return [
+        {
+            "key": "SESSIONS",
+            "on": True,
+            "rule": f"New York {c.ny_window}* ET (B2); London {c.london_window} "
+            f"{'on' if c.london else 'OFF — cannot be tested here (RTH-only history)'} (B1)",
+        },
+        {
+            "key": "POOLS",
+            "on": True,
+            "rule": "equal highs / lows, swings, previous day and session high / low, "
+            "1-hour FVG (A1/A3); a sweep = beyond a pool and a close back inside (A4)",
+        },
+        {
+            "key": "IFVG",
+            "on": True,
+            "rule": f"a body closes through the run's FVG with displacement ≥ "
+            f"{c.displacement_mult}* × the {c.displacement_bars}-bar avg body (C1/C2/C5); entry on the retrace (C3)",
+        },
+        {
+            "key": "PREMIUM / DISCOUNT",
+            "on": True,
+            "rule": f"shorts above, longs below {c.premium_pct * 100:.0f}%* (A2)",
+        },
+        {
+            "key": "STOP",
+            "on": True,
+            "rule": f"beyond the swept extreme; max NY {c.ny_max_stop_pts} / London "
+            f"{c.london_max_stop_pts} pt, else skip (D1/D2)",
+        },
+        {
+            "key": "TARGET",
+            "on": True,
+            "rule": f"≥ 1:{c.min_rr}, moved to the nearest pool beyond (D3); max hold "
+            f"{c.ny_max_hold_minutes} min NY. Partial + break even (D4/D5) NOT built — single bracket",
+        },
+        {
+            "key": "GRADE",
+            "on": True,
+            "rule": f"A+ ≥ {c.grade_a_min}* confluences, B {c.grade_b_min}*, else C → "
+            "full / half / quarter of the Lucid-fit size (E3, tighten-only)",
+        },
+        {"key": "NOT TESTABLE", "on": False, "rule": "15 / 30-second charts, Asia range, midnight price, SMT with ES"},
+        {"key": "SIZE", "on": True, "rule": fit_size_row(r, c, c.max_losses_per_day, ("20", "40"))},
+    ]
+
+
 RULE_CARDS: dict[str, Any] = {
+    "candace_ict": candace_rules,
     "bruni_structure": bruni_rules,
     "conti_orb": conti_orb_rules,
     "conti_vwap": conti_vwap_rules,
@@ -771,6 +822,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "conti_vwap": r.strategy.conti_vwap,
         "okala_8020": r.strategy.okala_8020,
         "bruni_structure": r.strategy.bruni_structure,
+        "candace_ict": r.strategy.candace_ict,
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
