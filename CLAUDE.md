@@ -147,3 +147,4 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D148: Strategy button "BRUNI STRUCTURE" (`strategy.bruni_structure`, default OFF) = docs/BRUNI_RULES.md only (engine/bruni_structure.py; entry trigger = flagged gap; overlays risk/bruni_overlays.py OFF, tighten-only; no Kelly, no VAM).
 - D149: Strategy button "CANDACE ICT SCALP" (`strategy.candace_ict`, default OFF) = docs/CANDACE_ICT_RULES.md only (engine/candace_ict.py; grades shrink size only; London off).
 - D150: Order Flow option "ORDER FLOW · AUCTION (IMRE)" (`strategy.order_flow_cfg.auction.enabled`, default OFF) = docs/IMRE_AMT_RULES.md only (engine/auction_imre.py; estimated delta, no DOM).
+- D151: TradingAgents ADVISOR before the D142-D150 strategies (`strategy.advisor.mode` OFF | ADVISORY default | GATE; bias/advisor.py + strategy_service.advise; GATE skips ADVISOR_DISAGREE only on a PROVEN ledger; NO_CALL never blocks; tighten-only).
