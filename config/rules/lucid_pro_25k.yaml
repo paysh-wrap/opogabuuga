@@ -149,6 +149,11 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
   pm_fade: true
   order_flow: false   # D95: Order Flow button (UNVERIFIED, paper accounts only, default OFF)
   order_flow_cfg:   # D96 (user 2026-11-11): MGC on for ORDER FLOW only; instruments.MGC.enabled stays false (every other strategy keeps MGC off). Data: Databento MGC.v.0 (volume roll), never MGC.c.0
+    auction:                    # D150 ORDER FLOW · AUCTION (IMRE) option, default OFF. Lucid fit as D143 (divisor 3 = max trades a day):
+      enabled: false            #   risk = min(25% MLL, DLL left x 0.9 / 3, MLL room / 3, max_trade_risk_usd, day stop / 3); plans A/B split it
+      risk_pct_of_drawdown: 0.25
+      dll_use_pct: 0.9
+      max_trades_per_day: 3
     contracts: 1                # D115 risk-based cap: min(contracts, floor(max_risk_usd / per-contract risk at the ATR/absorption stop)); UNVERIFIED → 25K 1 micro
     max_risk_usd: null          # D115 30% of the MLL (25K: none = unchanged; the plan cap above still applies)
     brake_below: 0.5          # D115 1 micro while (equity - MLL) < 50% of the MLL (the size-table brake)

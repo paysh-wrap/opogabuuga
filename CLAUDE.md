@@ -146,3 +146,4 @@ Pending proposals: docs/IMPROVEMENTS.md (build nothing there without approval). 
 - D145: Strategy button "OKALA 8020" (`strategy.okala_8020`, default OFF) = docs/OKALA_8020_RULES.md only (engine/okala_8020.py; 3-min entry bars because 200 s is impossible; add-to-winners exception, see non-negotiable 7).
 - D148: Strategy button "BRUNI STRUCTURE" (`strategy.bruni_structure`, default OFF) = docs/BRUNI_RULES.md only (engine/bruni_structure.py; entry trigger = flagged gap; overlays risk/bruni_overlays.py OFF, tighten-only; no Kelly, no VAM).
 - D149: Strategy button "CANDACE ICT SCALP" (`strategy.candace_ict`, default OFF) = docs/CANDACE_ICT_RULES.md only (engine/candace_ict.py; grades shrink size only; London off).
+- D150: Order Flow option "ORDER FLOW · AUCTION (IMRE)" (`strategy.order_flow_cfg.auction.enabled`, default OFF) = docs/IMRE_AMT_RULES.md only (engine/auction_imre.py; estimated delta, no DOM).

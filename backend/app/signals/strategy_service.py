@@ -25,6 +25,7 @@ from app.bias.policy import Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import RulesConfig
 from app.engine import ai_duo as DU
+from app.engine import auction_imre as AU
 from app.engine import bruni_structure as BR
 from app.engine import candace_ict as CI
 from app.engine import conti_orb as CO
@@ -1499,6 +1500,48 @@ def run_candace_ict(
     return out
 
 
+def run_order_flow_auction(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D150 ORDER FLOW · AUCTION (IMRE): replay the cash session from stored 1-minute bars (estimated delta); a
+    signal on THIS bar. Exits are the broker legs (first target + stop to entry, then the second target)."""
+    cfg = rules.strategy.order_flow_cfg.auction
+    out = StrategyOutput()
+    if exits_only:
+        return out
+    today = session_mbars(s, cfg.symbol, at)
+    if not today or today[-1].close_time != at:
+        return out
+    day0 = _et_at(at.astimezone(ET).date(), "00:00")
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == cfg.symbol, Bar.tf == "1")
+        .where(Bar.close_time > day0 - timedelta(days=cfg.history_sessions * 2 + 7), Bar.close_time <= day0)
+        .order_by(Bar.close_time)
+    ).scalars()
+    hist = [CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows]
+    rep = AU.replay_day(hist, today, cfg, rules.instrument(cfg.symbol).tick)
+    day = at.astimezone(ET).date().isoformat()
+    for x in rep.signals:
+        if x.time != at:
+            continue
+        key = f"{cfg.symbol}-OFA-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
+        if _key_id(s, key) is not None:
+            continue
+        risk = (x.entry - x.stop) * x.direction.sign
+        rr = (x.tp2 - x.entry) * x.direction.sign / risk
+        new = _new_signal(
+            s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
+            gate=_gate(rules, cfg.symbol, at, calendar),
+            features={"setup": x.setup, "regime": rep.regime, "weekly": rep.weekly, "open_vs_value": rep.open_vs_value,
+                      "tp1": str(x.tp1), "be_cover_pts": "0", "risk_share": str(x.risk_share),
+                      "delta": "ESTIMATED", "paper_only": cfg.paper_only},
+            plan=("ORDER_FLOW_AUCTION", x.entry, x.stop, x.tp2, risk, rr),
+        )  # fmt: skip
+        out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run(
     s: Session,
     *,
@@ -1532,6 +1575,9 @@ def run(
         r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
+    if st.order_flow and st.order_flow_cfg.auction.enabled and symbol == st.order_flow_cfg.auction.symbol:
+        r = run_order_flow_auction(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
     if st.candace_ict and symbol == st.candace_ict_cfg.symbol:
         r = run_candace_ict(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates

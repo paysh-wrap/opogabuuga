@@ -764,7 +764,59 @@ def candace_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def auction_rules(r: Any) -> list[dict[str, object]]:
+    """ORDER FLOW · AUCTION (IMRE) card (docs/IMRE_AMT_RULES.md; * = not from the video)."""
+    c = r.strategy.order_flow_cfg.auction
+    return [
+        {
+            "key": "REGIME",
+            "on": True,
+            "rule": "daily one-time-framing (strict HH + HL + HC up, LH + LL + LC down) = "
+            "IMBALANCE, else BALANCE (A2/A3); weekly shown as context",
+        },
+        {
+            "key": "VALUE",
+            "on": True,
+            "rule": f"prior cash-session profile: POC, {c.value_area_pct * 100:.0f}% value "
+            "area, low-volume nodes (B1/B5); where today opened vs that value (B7)",
+        },
+        {
+            "key": "DELTA",
+            "on": True,
+            "rule": f"ESTIMATED from 1-minute bars (no footprint delta stored); big bubble = "
+            f"|delta| ≥ {c.bubble_mult}* × the {c.bubble_bars}*-bar average (C5). DOM / heatmap NOT available (C4)",
+        },
+        {
+            "key": "FAILED AUCTION",
+            "on": True,
+            "rule": "BALANCE only: V-shape reclaim of VAL / VAH + big bubble, or "
+            "the slower micro-range flavour plan A / B (D1–D8); target POC, then the opposite value extreme",
+        },
+        {
+            "key": "BREAKOUT",
+            "on": True,
+            "rule": f"IMBALANCE only, with the trend: never the first break; micro range "
+            f"({c.micro_bars}* bars ≤ {c.micro_max_pts}* pt) beyond value, plan A reclaim / plan B break of its VAH "
+            f"(E1–E5), risk split {c.risk_share_a}/{1 - c.risk_share_a}, target {c.breakout_target_r}R*",
+        },
+        {
+            "key": "STOP / TARGET",
+            "on": True,
+            "rule": f"{c.stop_buffer_ticks}* ticks beyond the absorbing side; ≥ 1:"
+            f"{c.min_rr}* to the first target; 2+ micros: about half off there and the stop to entry (F1)",
+        },
+        {
+            "key": "WINDOW",
+            "on": True,
+            "rule": f"{c.window}* ET, never before 09:30 (F4); max {c.max_trades_per_day}* "
+            "trades a day; news = the Lucid blackout (F5)",
+        },
+        {"key": "SIZE", "on": True, "rule": fit_size_row(r, c, c.max_trades_per_day, ("8", "16"))},
+    ]
+
+
 RULE_CARDS: dict[str, Any] = {
+    "order_flow_auction": auction_rules,
     "candace_ict": candace_rules,
     "bruni_structure": bruni_rules,
     "conti_orb": conti_orb_rules,
@@ -823,6 +875,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "okala_8020": r.strategy.okala_8020,
         "bruni_structure": r.strategy.bruni_structure,
         "candace_ict": r.strategy.candace_ict,
+        "order_flow_auction": r.strategy.order_flow and r.strategy.order_flow_cfg.auction.enabled,  # D150
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg

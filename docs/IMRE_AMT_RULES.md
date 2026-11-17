@@ -86,3 +86,32 @@ F5 is kept), the exit-liquidity story (qualitative), DOM / heatmap and pulled-or
 News blackout and flat rules, DLL, MLL kill switch, consistency, max 1 open position per account, never hedge (D139), feed
 checks, live gates, EOD drawdown on Pro 25K–150K. Sizing uses the Lucid-fit helper; splitting risk across plans A and B only
 divides the same budget. Order-flow data is estimated unless the TradingView plan provides real footprint delta.
+
+## Implementation notes (D150, 2026-11-16)
+An Order Flow option: card key `order_flow_auction`, setting `strategy.order_flow_cfg.auction.enabled` (default OFF,
+`also: strategy.order_flow`), its own plan mode `ORDER_FLOW_AUCTION` (Lucid-fit sized, one free account per trade).
+Engine `backend/app/engine/auction_imre.py` (pure) — `replay_day(history: list[MBar], today: list[MBar], cfg, tick) ->
+AuctionDay` (history = earlier sessions' 1-minute bars). Hook `strategy_service.run_order_flow_auction`; key
+`MNQ-OFA-<day>-<HHMM>`. The logic uses NOTHING from the other Order Flow types.
+**Built:** A1–A4 (daily one-time-framing from RTH 1-minute bars; weekly OTF reported as context), B1 (tick-bin profile,
+70% VA, POC, LVNs below 30% of the mean bin — gap), B5 (prior cash-session profile only), B7 (open vs prior value,
+recorded), C1/C2/C5 big bubble (|delta| ≥ 2 × 20-bar average, closing its way), D1–D5 + D8 V-shape failed auction
+(BALANCE only; market entry on the reclaim; stop 2 ticks past the reversal extreme; POC then the opposite VA extreme),
+D6/D7 slower flavour (close beyond, back inside, 5-bar ≤ 15 pt micro range — gaps; plan A at its outer edge / plan B out
+of its inner side), E1–E5 breakout (IMBALANCE only, with the regime's side; never the first break; micro range beyond
+value; plan A absorbed reclaim, plan B close beyond the micro VAH; target 2R — gap), E5 risk split 0.5 / 0.5 of the SAME
+Lucid-fit budget (controller), F1 (2+ micros: leg A at the first target, the rest's stop to ENTRY on that fill, leg B to
+the second target — the existing two-leg bracket; 1 micro → single bracket at the first target), F4 (no trade before
+09:30), F5 (= the Lucid news blackout gate), F7 (2-tick buffer, ≥ 1 : 1.5 — gaps), F8 (09:30–11:30, 3 trades — gaps).
+**Delta:** ESTIMATED from each 1-minute bar (volume × (close − open) / range). Stored bars carry no footprint delta, so
+real delta from the Pine script is NOT used by this option. **Not built:** DOM / heatmap (C4, no data), A5/A6 value
+migration and OTF participants (qualitative), B3/B4 acceptance-by-time and volume-by-time reads, B5 developing weekly /
+composite / Globex profiles, B6 congruent zones, E6 trampoline re-test, E7 LVN defence, E8 front-running, F2/F6 trail.
+
+| Plan | EVAL $/trade | micros @8 / 16 pt | FUNDED $/trade | micros @8 / 16 pt |
+|------|------|------|------|------|
+| Pro 25K | 158.33 | 8 / 4 | 180.00 | 10 / 5 |
+| Pro 50K | 360.00 | 20 / 10 | 360.00 | 20 / 10 |
+| Pro 100K | 540.00 | 30 / 15 | 540.00 | 30 / 15 |
+| Pro 150K | 810.00 | 45 / 23 | 810.00 | 45 / 23 |
+(plans A / B each get half: 25K EVAL $79.16 → 4 micros at 8 pt.)

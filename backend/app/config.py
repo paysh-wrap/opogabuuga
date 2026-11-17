@@ -412,6 +412,31 @@ class AmtCfg(_M):
         return self
 
 
+class AuctionImreCfg(_M):
+    """ORDER FLOW · AUCTION (IMRE) (D150): an Order Flow option built ONLY from docs/IMRE_AMT_RULES.md
+    (engine/auction_imre.py). Delta is ESTIMATED from 1-minute bars (no stored footprint delta); no DOM / heatmap."""
+
+    enabled: bool = False  # setting strategy.order_flow_cfg.auction.enabled (turns Order Flow on with it)
+    symbol: str = "MNQ"
+    history_sessions: int = Field(default=10, ge=2, le=40)  # A2 daily / weekly context  # not from the video
+    value_area_pct: D = D("0.7")  # B1 about 70%
+    lvn_pct: D = Field(default=D("0.3"), gt=D(0), lt=D(1))  # E7 [GAP] low-volume node  # not from the video
+    bubble_mult: D = Field(default=D("2"), gt=D(0))  # C5 [GAP]  # not from the video
+    bubble_bars: int = Field(default=20, ge=3, le=200)  # C5 [GAP]  # not from the video
+    micro_bars: int = Field(default=5, ge=2, le=60)  # D6/E2 [GAP] micro range length  # not from the video
+    micro_max_pts: D = Field(default=D("15"), gt=D(0))  # D6/E2 [GAP] micro range height  # not from the video
+    stop_buffer_ticks: int = Field(default=2, ge=0, le=20)  # F7 [GAP]  # not from the video
+    min_rr: D = Field(default=D("1.5"), ge=D(1))  # F7 [GAP] to the first target  # not from the video
+    breakout_target_r: D = Field(default=D("2"), ge=D("1.5"))  # E4 [GAP] "further expansion"  # not from the video
+    risk_share_a: D = Field(default=D("0.5"), gt=D(0), lt=D(1))  # E5 split A / B (same total budget)
+    window: str = "09:30-11:30"  # F4/F8 [GAP]  # not from the video
+    max_trades_per_day: int = Field(default=3, ge=1, le=10)  # F8 [GAP] also the sizing divisor  # not from the video
+    risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
+    dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
+    one_account_per_trade: bool = True
+    paper_only: bool = False
+
+
 class ZoneAtrCfg(_M):
     """D111 (user 2026-11-11 "use all info in the transcript to finalize order flow trading"): the Scott / Chart
     Fanatics ATR-zone framework (docs/results/session18/order_flow/ICEBERG_ATR_RULES.md) as a SEPARATE Order Flow type
@@ -492,6 +517,7 @@ class OrderFlowCfg(_M):
     # ta_advisor_blocks is true AND the AI-accuracy ledger has proven the call (ai_gate_min_accuracy).
     zone_atr: ZoneAtrCfg = ZoneAtrCfg()  # D111: ATR-zone type (iceberg PROXY), separate toggle
     amt: AmtCfg = AmtCfg()  # D110: AMT+ context / location gates + level target (Strategy-page button)
+    auction: AuctionImreCfg = AuctionImreCfg()  # D150: Imre auction / order-flow option (separate toggle)
     ta_advisor: bool = False
     ta_advisor_blocks: bool = False
     ta_advisor_lead_min: int = Field(default=60, ge=15, le=240)

@@ -73,7 +73,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.order_flow_cfg.ta_advisor",  # D109: TradingAgents advisor toggle (Order Flow page)
         "strategy.order_flow_cfg.amt.enabled",  # D110: AMT+ Order Flow button (Strategy page)
         "strategy.order_flow_cfg.amt.balance_mode",  # D110: BALANCE context: skip | edges
-        "strategy.order_flow_cfg.zone_atr.enabled",  # D111: ATR-zone Order Flow type (toggle)
+        "strategy.order_flow_cfg.zone_atr.enabled",
+        "strategy.order_flow_cfg.auction.enabled",  # D150: Imre auction Order Flow option (toggle)
         "strategy.order_flow_cfg.zone_atr.modes",  # D111: POSITION / REVERSION selector
         "strategy.order_flow_cfg.zone_atr.a_plus_only",
         "strategy.order_flow_cfg.zone_atr.dead_zone_filter",

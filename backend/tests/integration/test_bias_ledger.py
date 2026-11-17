@@ -91,7 +91,12 @@ def test_strategies_endpoint(authed):
         "okala_8020",
         "bruni_structure",
         "candace_ict",
+        "order_flow_auction",
     ]
+    ofa = body["strategies"][-1]
+    assert ofa["setting"] == "strategy.order_flow_cfg.auction.enabled" and ofa["enabled"] is False
+    assert [x["key"] for x in ofa["strategy_rules"]][:3] == ["REGIME", "VALUE", "DELTA"]
+    body["strategies"] = body["strategies"][:-1]
     assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["SESSIONS", "POOLS"]
     body["strategies"] = body["strategies"][:-1]
     assert [x["key"] for x in body["strategies"][-1]["strategy_rules"]][:2] == ["STRUCTURE", "POTENTIAL"]

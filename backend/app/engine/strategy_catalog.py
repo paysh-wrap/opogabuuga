@@ -317,4 +317,25 @@ CATALOG: list[dict[str, object]] = [
         "note": "Default OFF. MNQ, New York 09:00–10:00 (London OFF). Grades A+ / B / C only shrink the Lucid-fit "
         "size. Single bracket (her partial and break-even move are not built). All Lucid rules and checks apply.",
     },
+    {
+        "key": "order_flow_auction",
+        "name": "ORDER FLOW · AUCTION (IMRE)",
+        "source": "Imre Gans' auction-market theory, built only from one transcript (docs/IMRE_AMT_RULES.md): daily "
+        "one-time-framing regime, prior-session value area, failed auctions in balance, micro-range breakouts in "
+        "imbalance, big delta bubbles",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "Not back-tested yet. Delta is ESTIMATED from 1-minute bars; no DOM / heatmap data.",
+        "note": "Default OFF. An Order Flow option (turns Order Flow on with it). MNQ 09:30–11:30, max 3 trades a day. "
+        "All Lucid rules and Paytience safety checks still apply.",
+        "setting_key": "strategy.order_flow_cfg.auction.enabled",
+        "also": ["strategy.order_flow"],
+    },
 ]

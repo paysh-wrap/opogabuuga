@@ -168,3 +168,18 @@ test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"], ["okala_802
   await userEvent.click(screen.getByRole("button", { name: new RegExp(name) }));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes(`"strategy.${key}":true`))).toBe(true));
 });
+
+test("ORDER FLOW · AUCTION (IMRE) card lists its rules, says delta is estimated and turns on via its own setting", async () => {
+  const g = { key: "order_flow_auction", name: "ORDER FLOW · AUCTION (IMRE)", source: "Imre", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "Not back-tested yet.", note: "n", enabled: false, setting: "strategy.order_flow_cfg.auction.enabled", also: ["strategy.order_flow"],
+    strategy_rules: [{ key: "DELTA", on: true, rule: "ESTIMATED from 1-minute bars; DOM / heatmap NOT available" }] };
+  const calls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, g] } : {}));
+  });
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  await screen.findByTestId("strategy-order_flow_auction");
+  expect(screen.getByTestId("order_flow_auction-rules")).toHaveTextContent("DELTA — ESTIMATED from 1-minute bars; DOM / heatmap NOT available");
+  await userEvent.click(screen.getByRole("button", { name: /ORDER FLOW · AUCTION/ }));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.order_flow_cfg.auction.enabled":true'))).toBe(true));
+});

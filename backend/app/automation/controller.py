@@ -82,6 +82,7 @@ STRATEGY_MODES = (
     "OKALA_8020",
     "BRUNI_STRUCTURE",
     "CANDACE_ICT",
+    "ORDER_FLOW_AUCTION",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
 FIT_TAGS = {
@@ -91,6 +92,7 @@ FIT_TAGS = {
     "OKALA_8020": "OKALA",
     "BRUNI_STRUCTURE": "BRUNI",
     "CANDACE_ICT": "CAND",
+    "ORDER_FLOW_AUCTION": "OFA",
 }
 
 
@@ -98,6 +100,9 @@ def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     """The Lucid-fit settings of a fit-sized strategy mode (None for every other mode)."""
     if mode == "GALA_PA":
         return FIT_TAGS[mode], st.gala_pa_cfg, st.gala_pa_cfg.max_trades_per_day
+    if mode == "ORDER_FLOW_AUCTION":
+        c = st.order_flow_cfg.auction
+        return FIT_TAGS[mode], c, c.max_trades_per_day
     if mode == "CANDACE_ICT":
         return FIT_TAGS[mode], st.candace_ict_cfg, st.candace_ict_cfg.max_losses_per_day
     if mode == "BRUNI_STRUCTURE":
@@ -111,6 +116,7 @@ def fit_cfg(st: Any, mode: str) -> tuple[str, Any, int] | None:
     return None
 
 
+TWO_LEG_MODES = ("OKALA_8020", "ORDER_FLOW_AUCTION")  # first target leg + stop-to-entry runner (2+ micros)
 RESTART_UNMANAGED = "RESTART_UNMANAGED"  # paused_reason: a restart found a position nothing manages
 CLOSE_GRACE_S = 60  # flat at the broker but no exit fill seen this long → close with a loud "P&L unverified" alert
 
@@ -676,6 +682,9 @@ class Controller:
                 r.strategy.max_trade_risk_usd,
                 gcons.day_stop if gcons is not None else None,
             )
+            if strategy == "ORDER_FLOW_AUCTION":  # IMRE E5: plans A and B split the same budget (never more)
+                share = min(Decimal(str((sig.features or {}).get("risk_share", "1"))), Decimal(1))
+                risk_usd = (risk_usd * share).quantize(Decimal("0.01"), rounding="ROUND_DOWN")
             fixed = fit_contracts(risk_usd, plan.risk_pts, inst.tick, inst.tick_value, inst.fee_rt, slip)
             if add_legs is not None:  # D145: the whole position's worst case stays inside the same per-trade cap
                 okc = r.strategy.okala_8020_cfg
@@ -701,7 +710,7 @@ class Controller:
                 fixed = grade_contracts(fixed, gm)
                 if fixed < 1:
                     return AccountResult(a.id, False, "CAND_GRADE_SIZE_BELOW_1")
-            if strategy == ADD_MODE and fixed >= 1:  # C2–C5: TP1 leg + break-even runner (2+ micros), else TP1 only
+            if strategy in TWO_LEG_MODES and fixed >= 1:  # OKALA C2–C5 / IMRE F1: TP1 leg + runner, else TP1 only
                 feat = sig.features or {}
                 tp1 = Decimal(str(feat.get("tp1", plan.take_profit)))
                 if fixed >= 2:
