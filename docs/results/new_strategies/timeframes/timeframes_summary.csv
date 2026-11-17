@@ -1,0 +1,50 @@
+strategy,bar_min,status,note,trades,win_pct,pf,avg_usd,total_usd,max_dd_usd,l12_trades,l12_pf,l12_usd,is_trades,is_pf,is_usd,oos_trades,oos_pf,oos_usd
+GALA,1,"ran, 0 trades",,,,,,,,,,,,,,,,
+GALA,2,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,3,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,5,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,10,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,15,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,30,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,1,ran,,3,33.33,0.5,-17.83,-53.5,107.0,0,0,0,3,0.5,-53.5,0,0,0
+ORB,2,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,3,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,5,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,10,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,15,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,30,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+VWAP,1,ran,,14,35.71,2.28,15.5,217.0,73.0,0,0,0,14,2.28,217.0,0,0,0
+VWAP,2,ran,,14,35.71,1.286,5.64,79.0,188.5,0,0,0,14,1.286,79.0,0,0,0
+VWAP,3,ran,,14,35.71,2.811,20.5,287.0,73.0,0,0,0,14,2.811,287.0,0,0,0
+VWAP,5,ran,,10,30.0,0.827,-5.3,-53.0,267.0,0,0,0,10,0.827,-53.0,0,0,0
+VWAP,10,ran,,10,20.0,0.485,-20.5,-205.0,398.0,0,0,0,10,0.485,-205.0,0,0,0
+VWAP,15,ran,,8,25.0,1.193,6.44,51.5,267.5,0,0,0,8,1.193,51.5,0,0,0
+VWAP,30,ran,,9,11.11,0.15,-39.28,-353.5,416.0,0,0,0,9,0.15,-353.5,0,0,0
+OKALA,1,ran,,15,40.0,0.848,-2.0,-30.0,66.0,0,0,0,15,0.848,-30.0,0,0,0
+OKALA,2,ran,,16,56.25,1.636,6.12,98.0,22.0,0,0,0,16,1.636,98.0,0,0,0
+OKALA,3,ran,,14,35.71,0.707,-4.14,-58.0,114.0,0,0,0,14,0.707,-58.0,0,0,0
+OKALA,5,ran,,15,60.0,1.909,8.0,120.0,66.0,0,0,0,15,1.909,120.0,0,0,0
+OKALA,10,ran (outside validated bound),,10,40.0,0.848,-2.0,-20.0,66.0,0,0,0,10,0.848,-20.0,0,0,0
+OKALA,15,ran (outside validated bound),,6,33.33,0.636,-5.33,-32.0,66.0,0,0,0,6,0.636,-32.0,0,0,0
+OKALA,30,ran (outside validated bound),,1,0.0,0.0,-22.0,-22.0,22.0,0,0,0,1,0.0,-22.0,0,0,0
+BRUNI,1,ran (outside validated bound),,8,12.5,0.002,-55.44,-443.5,443.5,0,0,0,8,0.002,-443.5,0,0,0
+BRUNI,2,ran (outside validated bound),,8,25.0,0.279,-42.25,-338.0,405.0,0,0,0,8,0.279,-338.0,0,0,0
+BRUNI,3,ran (outside validated bound),,7,0.0,0.0,-45.07,-315.5,315.5,0,0,0,7,0.0,-315.5,0,0,0
+BRUNI,5,ran (outside validated bound),,6,33.33,0.615,-37.33,-224.0,562.5,0,0,0,6,0.615,-224.0,0,0,0
+BRUNI,10,ran (outside validated bound),,3,33.33,0.476,-51.83,-155.5,296.5,0,0,0,3,0.476,-155.5,0,0,0
+BRUNI,15,ran,,3,66.67,1.364,4.67,14.0,38.5,0,0,0,3,1.364,14.0,0,0,0
+BRUNI,30,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,1,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,2,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,3,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,5,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,10,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,15,"ran, 0 trades",,,,,,,,,,,,,,,,
+CANDACE,30,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,1,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,2,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,3,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,5,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,10,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,15,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,30,"ran, 0 trades",,,,,,,,,,,,,,,,
