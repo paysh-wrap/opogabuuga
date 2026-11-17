@@ -1111,6 +1111,41 @@ def capped_eval_table(table: list[SizeTierCfg], caps: list[EvalCapCfg]) -> list[
     return out
 
 
+# D151: strategies the TradingAgents advisor runs in front of (their TradePlanRow modes)
+ADVISED_MODES = (
+    "JJ_FPT",
+    "GALA_PA",
+    "CONTI_ORB",
+    "CONTI_VWAP",
+    "OKALA_8020",
+    "BRUNI_STRUCTURE",
+    "CANDACE_ICT",
+    "ORDER_FLOW_AUCTION",
+)
+
+
+class AdvisorCfg(_M):
+    """D151: TradingAgents advisor before the D142-D150 strategies. OFF | ADVISORY (record + show, default) | GATE
+    (a DISAGREE skips the signal ADVISOR_DISAGREE, only while the AI ledger is proven). Tighten-only."""
+
+    mode: Literal["OFF", "ADVISORY", "GATE"] = "ADVISORY"
+    skip_strategies: list[str] = []
+
+    @model_validator(mode="before")
+    @classmethod
+    def _upper(cls, v: Any) -> Any:
+        if isinstance(v, dict) and isinstance(v.get("mode"), str):
+            v = {**v, "mode": v["mode"].strip().upper()}
+        return v
+
+    @model_validator(mode="after")
+    def _known(self) -> AdvisorCfg:
+        bad = [x for x in self.skip_strategies if x not in ADVISED_MODES]
+        if bad:
+            raise ValueError(f"advisor.skip_strategies: unknown {bad} (allowed {list(ADVISED_MODES)})")
+        return self
+
+
 class StrategyCfg(_M):
     """D55: which strategies may trade (buttons on the Strategy page). D105: the LunqFX button/keys were removed;
     old plan files / stored settings that still carry them are tolerated and ignored (see _apply_preset)."""
@@ -1154,6 +1189,7 @@ class StrategyCfg(_M):
     okala_8020_cfg: Okala8020Cfg = Okala8020Cfg()
     bruni_structure_cfg: BruniStructureCfg = BruniStructureCfg()
     candace_ict_cfg: CandaceIctCfg = CandaceIctCfg()
+    advisor: AdvisorCfg = AdvisorCfg()  # D151
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122
     cushion: CushionCfg = CushionCfg()  # D122

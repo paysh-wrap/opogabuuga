@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { badge } from "../lib/theme";
 import MoreInfo from "./MoreInfo";
+import { AdvisorCardLine, type AdvisorResp } from "./AdvisorCard";
 
 // D55: strategy on/off buttons with the TESTED results next to each (static research facts from the server, not live
 // data). Each click saves a new versioned My Settings entry (rollback on the Risk page).
@@ -36,6 +37,7 @@ export interface StrategiesResp {
   ai_duo_log?: DuoRow[];
   ta_mgc?: TaMgcResp;
   toggles?: ToggleRow[];
+  advisor?: AdvisorResp; // D151
 }
 // D132 / D133: two-way toggles (My Settings keys; each save is validated, versioned and audit-logged)
 export interface DdOdds { pass: number; bust: number; j_pass: number; j_bust: number }
@@ -170,6 +172,7 @@ export default function StrategyButtons() {
               <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
             </dl>
             {s.eval_odds && <p className="mt-1 text-xs text-blue" data-testid={`odds-${s.key}`}>Eval odds: {s.eval_odds.text}</p>}
+            {d.advisor && <AdvisorCardLine adv={d.advisor} cardKey={s.key} />}
             {!noteInSetup(s) && <MoreInfo testId={`more-${s.key}`}><p className="text-blue">{s.note}</p></MoreInfo>}
             {s.key === "order_flow" && (
               <div className="mt-2 text-xs" data-testid="order-flow-setup">

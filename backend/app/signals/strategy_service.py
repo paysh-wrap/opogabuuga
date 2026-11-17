@@ -18,12 +18,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import audit
+from app.bias import advisor as ADV
 from app.bias import ledger
 from app.bias import of_advisor as OFA
 from app.bias import ta_mgc_research as TR
-from app.bias.policy import Policy, combine
+from app.bias.policy import LedgerStats, Policy, combine
 from app.clock import ET, Clock, session_date
-from app.config import RulesConfig
+from app.config import ADVISED_MODES, RulesConfig
 from app.engine import ai_duo as DU
 from app.engine import auction_imre as AU
 from app.engine import bruni_structure as BR
@@ -112,6 +113,43 @@ def _gate(
     return True, "OK", ""
 
 
+def advise(
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    *,
+    mode: str,
+    symbol: str,
+    key: str,
+    direction: Direction,
+    at: datetime,
+    gate: tuple[bool, str, str],
+) -> tuple[tuple[bool, str, str], dict[str, object] | None]:
+    """D151 hook: the TradingAgents advisor in front of the D142-D150 strategies. Reads today's STORED BiasDecision
+    and the ledger (DB only, never a network call). Tighten-only: may turn a PASS into SKIP ADVISOR_DISAGREE (GATE
+    mode + proven ledger + DISAGREE), never the reverse. OFF / opted-out strategy → no field, nothing changes."""
+    cfg = rules.strategy.advisor
+    if cfg.mode == "OFF" or mode not in ADVISED_MODES or mode in cfg.skip_strategies:
+        return gate, None
+    proxy = rules.instrument(symbol).bias_proxy
+    today = at.astimezone(ET).date()
+    pol = Policy(bias_matters=True)
+    rows = ledger._calls(s, proxy, today, today)
+    call, label, st = None, None, None
+    if rows:
+        label = rows[-1].raw_rating
+        call = combine(*ledger.parse_label(label), pol)
+        st = LedgerStats(**ledger.ledger(s, proxy, symbol, today, pol)["stats"])
+    params = ADV.AdvisorParams(cfg.mode, float(rules.strategy.ai_gate_min_accuracy), pol.min_calls)
+    v = ADV.advisor_verdict(call, direction.sign, st, params)
+    blocked = v.blocks and gate[0]
+    if blocked:
+        gate = (False, "ADVISOR_DISAGREE", f"proven TradingAgents call ({label}) is against this side")
+    feat = {**v.as_features(label, cfg.mode), "blocks": blocked}
+    audit.record(s, clock, "engine", "signal.advisor", key, {"strategy": mode, **feat})
+    return gate, feat
+
+
 def _new_signal(
     s: Session,
     clock: Clock,
@@ -123,7 +161,12 @@ def _new_signal(
     gate: tuple[bool, str, str],
     features: dict[str, object],
     plan: tuple[str, Decimal, Decimal, Decimal, Decimal, Decimal],
+    rules: RulesConfig | None = None,
 ) -> Signal:
+    if rules is not None:  # D151: TradingAgents advisor (only the ADVISED_MODES strategies pass `rules`)
+        gate, adv = advise(s, rules, clock, mode=plan[0], symbol=symbol, key=key, direction=direction, at=at, gate=gate)
+        if adv is not None:
+            features = {**features, "advisor": adv}
     ok, code, detail = gate
     mode, entry, stop, tp, risk, rr = plan
     sig = Signal(
@@ -1232,6 +1275,7 @@ def run_jj_fpt(
                     "paper_only": cfg.paper_only,
                 },
                 plan=("JJ_FPT", x.entry, x.stop, x.take_profit, x.stop_pts, x.rr),
+                rules=rules,
             )
             out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1305,6 +1349,7 @@ def run_gala_pa(
                 "paper_only": cfg.paper_only,
             },
             plan=("GALA_PA", x.entry, x.stop, x.take_profit, x.stop_pts, x.rr),
+            rules=rules,
         )
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1348,7 +1393,7 @@ def run_conti_orb(
             s, clock, symbol=cfg.symbol, key=key, direction=Direction.LONG, at=at,
             gate=_gate(rules, cfg.symbol, at, calendar),
             features={"range_high": str(x.range_high), "range_low": str(x.range_low), "paper_only": cfg.paper_only},
-            plan=("CONTI_ORB", x.entry, x.stop, x.take_profit, x.risk_pts, x.rr),
+            plan=("CONTI_ORB", x.entry, x.stop, x.take_profit, x.risk_pts, x.rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1378,7 +1423,7 @@ def run_conti_vwap(
             s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
             gate=_gate(rules, cfg.symbol, at, calendar),
             features={"vwap": str(x.vwap), "paper_only": cfg.paper_only},
-            plan=("CONTI_VWAP", x.entry, x.stop, x.take_profit, risk, rr),
+            plan=("CONTI_VWAP", x.entry, x.stop, x.take_profit, risk, rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1410,7 +1455,7 @@ def run_okala_8020(
             features={"setup": x.setup, "confluences": x.confluences, "tp1": str(x.tp1), "add_no": x.add_no,
                       "be_cover_pts": str(cfg.be_cover_pts), "paper_only": cfg.paper_only,
                       "entry_bars": f"{cfg.entry_minutes}m (200 s not possible from 1-minute bars)"},
-            plan=("OKALA_8020", x.entry, x.stop, x.runner_target, risk, rr),
+            plan=("OKALA_8020", x.entry, x.stop, x.runner_target, risk, rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1454,7 +1499,7 @@ def run_bruni_structure(
             gate=_gate(rules, cfg.symbol, at, calendar),
             features={"context": x.context, "zone": [str(x.zone[0]), str(x.zone[1])], "regime": x.regime,
                       "flipped": x.flipped, "paper_only": cfg.paper_only},
-            plan=("BRUNI_STRUCTURE", x.entry, x.stop, x.take_profit, risk, rr),
+            plan=("BRUNI_STRUCTURE", x.entry, x.stop, x.take_profit, risk, rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1494,7 +1539,7 @@ def run_candace_ict(
             gate=_gate(rules, cfg.symbol, at, calendar),
             features={"session": x.session, "swept": x.swept.kind, "confluences": x.confluences, "grade": x.grade,
                       "size_mult": str(x.size_mult), "paper_only": cfg.paper_only},
-            plan=("CANDACE_ICT", x.entry, x.stop, x.take_profit, risk, rr),
+            plan=("CANDACE_ICT", x.entry, x.stop, x.take_profit, risk, rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1536,7 +1581,7 @@ def run_order_flow_auction(
             features={"setup": x.setup, "regime": rep.regime, "weekly": rep.weekly, "open_vs_value": rep.open_vs_value,
                       "tp1": str(x.tp1), "be_cover_pts": "0", "risk_share": str(x.risk_share),
                       "delta": "ESTIMATED", "paper_only": cfg.paper_only},
-            plan=("ORDER_FLOW_AUCTION", x.entry, x.stop, x.tp2, risk, rr),
+            plan=("ORDER_FLOW_AUCTION", x.entry, x.stop, x.tp2, risk, rr), rules=rules,
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out

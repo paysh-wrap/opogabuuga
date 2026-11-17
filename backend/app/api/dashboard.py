@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import Principal, current_user, get_db
 from app.automation import state as stt
-from app.clock import session_date
+from app.clock import ET, session_date
 from app.execution.adapters.base import BrokerError
 from app.management.drawdown_guard import GuardCfgView, guard_active
 from app.models import Account, BiasDecision, Signal, Trade
@@ -925,7 +925,80 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             "eval_high": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval_high)],
         },
         "toggles": _session20_toggles(r, plan),
+        "advisor": advisor_view(db, r, sess),
     }
+
+
+ADVISOR_CARDS = {
+    "jj_fpt": "JJ_FPT",
+    "gala_pa": "GALA_PA",
+    "conti_orb": "CONTI_ORB",
+    "conti_vwap": "CONTI_VWAP",
+    "okala_8020": "OKALA_8020",
+    "bruni_structure": "BRUNI_STRUCTURE",
+    "candace_ict": "CANDACE_ICT",
+    "order_flow_auction": "ORDER_FLOW_AUCTION",
+}
+
+
+def advisor_view(db: Session, r: Any, sess: Any) -> dict[str, Any]:
+    """D151: advisor mode + today's stored TradingAgents call per strategy market + each card's latest verdict today.
+    DB reads only (no network). `connected` = a TradingAgents key is stored (same check as /api/strategy)."""
+    from app.bias import ledger as L
+    from app.bias.policy import Policy, combine
+    from app.models import ApiCredential, TradePlanRow
+
+    cfg = r.strategy.advisor
+    connected = (
+        db.execute(select(ApiCredential).where(ApiCredential.provider == "tradingagents")).scalar_one_or_none()
+        is not None
+    )
+    cards: dict[str, Any] = {}
+    day0 = datetime.combine(sess, datetime.min.time(), tzinfo=ET)
+    for key, mode in ADVISOR_CARDS.items():
+        sym = _advised_symbol(r, key)
+        proxy = r.instrument(sym).bias_proxy
+        rows = list(
+            db.execute(
+                select(BiasDecision).where(BiasDecision.proxy == proxy, BiasDecision.session_date == sess)
+            ).scalars()
+        )
+        label = rows[-1].raw_rating if rows else None
+        call = combine(*L.parse_label(label), Policy(bias_matters=True)) if label else None
+        last = db.execute(
+            select(Signal.features)
+            .join(TradePlanRow, TradePlanRow.signal_id == Signal.id)
+            .where(TradePlanRow.mode == mode, Signal.bar_time >= day0)
+            .order_by(Signal.id.desc())
+            .limit(1)
+        ).first()
+        adv = (last[0] or {}).get("advisor") if last else None
+        cards[key] = {
+            "mode": mode,
+            "symbol": sym,
+            "skipped": mode in cfg.skip_strategies,
+            "call_label": label,
+            "call_direction": None if call is None else call.direction,
+            "prob_up": None if call is None else call.prob_up,
+            "last_verdict": None if adv is None else adv.get("verdict"),
+        }
+    st = L.status(db, r.instrument(r.strategy.gala_pa_cfg.symbol).bias_proxy, r.strategy.gala_pa_cfg.symbol, sess,
+                  float(r.strategy.ai_gate_min_accuracy))  # fmt: skip
+    return {
+        "mode": cfg.mode,
+        "setting": "strategy.advisor.mode",
+        "skip_strategies": list(cfg.skip_strategies),
+        "connected": connected,
+        "ledger_proven": st["state"] == "PROVEN",
+        "required_accuracy": float(r.strategy.ai_gate_min_accuracy),
+        "cards": cards,
+    }
+
+
+def _advised_symbol(r: Any, key: str) -> str:
+    if key == "order_flow_auction":
+        return str(r.strategy.order_flow_cfg.auction.symbol)
+    return str(getattr(r.strategy, f"{key}_cfg").symbol)
 
 
 def _suggested_on(r: Any) -> bool:

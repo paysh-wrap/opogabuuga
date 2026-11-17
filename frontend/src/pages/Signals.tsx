@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import { etDateTime } from "../lib/time";
+import { AdvisorBadge, type AdvisorFeat } from "../components/AdvisorCard";
 
 interface Gate { gate: string; passed: boolean; code?: string; hard?: boolean; detail?: unknown }
 interface AcctResult { account_id: number; account: string; qty: number; risk_profile: string; guard_on: boolean; gross_r: string | null; net_r: string | null; pnl: string | null; exit_reason: string | null; open: boolean }
@@ -10,6 +11,7 @@ interface Plan { mode: string; entry: string; stop: string; take_profit: string;
 export interface Sig {
   id: number; symbol: string; profile: string; direction: string; status: string; skip_reason: string | null;
   score: string | null; c1_range_atr: string | null; confirmed_at: string; gates: Gate[]; plans: Plan[]; results?: AcctResult[];
+  advisor?: AdvisorFeat | null; // D151
 }
 const usd = (v: string | null) => {
   if (v == null) return "–";
@@ -60,7 +62,7 @@ export default function Signals() {
                     <td className="font-semibold text-gold">{s.score ?? "–"}</td>
                     <td>{s.c1_range_atr ?? "–"}</td>
                     <GateCell gates={s.gates} />
-                    <td>{s.skip_reason ?? ""}</td>
+                    <td>{s.skip_reason ?? ""}{s.advisor && <> <AdvisorBadge verdict={s.advisor.verdict} testId={`advisor-sig-${s.id}`} /></>}</td>
                     <td><button className="text-blue hover:text-blueLight" aria-expanded={open === s.id}
                       onClick={() => setOpen(open === s.id ? null : s.id)}>{open === s.id ? "Hide" : "Plan"}</button></td>
                   </tr>

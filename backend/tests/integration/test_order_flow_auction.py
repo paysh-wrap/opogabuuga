@@ -38,6 +38,7 @@ def test_signal_from_stored_bars(client, loaded_rules):
         sig = s.get(Signal, out.updates[0].signal_id)
         assert sig.model_key == "MNQ-OFA-2026-10-13-0952" and sig.features["setup"] == "FAILED_AUCTION_V"
         assert sig.features["delta"] == "ESTIMATED" and sig.features["regime"] == "BALANCE"
+        assert sig.features["advisor"]["verdict"] == "NO_CALL" and sig.status == "PASS"  # D151 end to end
         plan = s.query(TradePlanRow).filter_by(signal_id=sig.id).one()
         assert plan.mode == "ORDER_FLOW_AUCTION" and plan.take_profit == D(104)
         off = rules.model_copy(update={"strategy": rules.strategy.model_copy(update={"order_flow": False})})

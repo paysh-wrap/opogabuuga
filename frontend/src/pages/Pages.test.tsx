@@ -13,6 +13,7 @@ function mock(calls: string[]) {
     const j = (o: unknown) => new Response(JSON.stringify(o));
     if (u.startsWith("/api/signals")) return j({ signals: [{ id: 7, symbol: "MNQ", profile: "TIGHT", direction: "LONG", status: "SKIP",
       skip_reason: "RR_BELOW_MIN", score: "72", c1_range_atr: "1.2", confirmed_at: "2026-11-05T15:00:00+00:00",
+      advisor: { verdict: "AGREE", prob_up: 0.56, label: "BUY", ledger_proven: false },
       gates: [{ gate: "G1", passed: true }, { gate: "G7", passed: false, code: "RR_BELOW_MIN" }],
       plans: [{ mode: "OFF", entry: "20000", stop: "19981", take_profit: "20040", rr: "2.1" }],
       results: [{ account_id: 1, account: "E1", qty: 2, risk_profile: "standard", guard_on: true, gross_r: "2.05", net_r: "1.98", pnl: "-12.5", exit_reason: "TP", open: false }] }] });
@@ -36,6 +37,7 @@ test("Signals shows gates, reason and plan prices", async () => {
   wrap(<Signals />);
   expect(await screen.findByTestId("signal-7")).toHaveTextContent("RR_BELOW_MIN");
   expect(screen.getByTestId("signal-7")).toHaveTextContent("▲ LONG");
+  expect(screen.getByTestId("advisor-sig-7")).toHaveTextContent("ADVISOR · AGREE"); // D151
   await userEvent.click(screen.getByRole("button", { name: "Plan" }));
   expect(screen.getByTestId("plan-7")).toHaveTextContent("19981");
   expect(screen.getByTestId("results-7")).toHaveTextContent("E1 · 2 ct · standard risk · guard ON · gross 2.05R · net 1.98R · ▼ −$12.50 · TP");

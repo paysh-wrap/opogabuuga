@@ -72,6 +72,7 @@ def _signal_json(s: Session, sig: Signal, full: bool = False) -> dict[str, Any]:
         }
         for tr, label in trades
     ]
+    out["advisor"] = (sig.features or {}).get("advisor")  # D151 TradingAgents advisor verdict (or None)
     if full:
         out["features"] = sig.features
     return out

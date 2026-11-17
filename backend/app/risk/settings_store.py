@@ -157,6 +157,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.structure_filters.mso_div_filter",
         "strategy.structure_filters.shadow_log",
         "strategy.ai_gate_min_accuracy",
+        "strategy.advisor.mode",  # D151: TradingAgents advisor OFF | ADVISORY | GATE
+        "strategy.advisor.skip_strategies",
         "trade_plan.min_stop_ticks",
         "behavior.min_hold_seconds",
         "reliability.feed_guard_enabled",
