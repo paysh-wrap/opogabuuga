@@ -192,7 +192,7 @@ def main():
         md.append(f"\n**Verdict {TITLE[s]}:** {v}. {bestline}. (Choosing a timeframe after seeing these results is over-fitting; the in-sample-best line is the only honest pick.)\n")
         verdicts.append((s, v, bestline))
     md.append("\n## One-line verdicts\n\n" + "".join(f"- {TITLE[s]}: {v}. {b}.\n" for s, v, b in verdicts))
-    open(HERE + "/RESULTS_timeframes_tables.md", "w").write("".join(md))
+    open(HERE + "/RESULTS_timeframes_body.md", "w").write("".join(md))
     with open(HERE + "/timeframes_summary.csv", "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(["strategy", "bar_min", "status", "note", "trades", "win_pct", "pf", "avg_usd", "total_usd", "max_dd_usd", "l12_trades", "l12_pf", "l12_usd", "is_trades", "is_pf", "is_usd", "oos_trades", "oos_pf", "oos_usd"])
         for r in csvrows: w.writerow(r[:19])

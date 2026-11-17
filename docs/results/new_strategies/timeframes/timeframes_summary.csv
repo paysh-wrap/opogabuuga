@@ -1,49 +1,49 @@
 strategy,bar_min,status,note,trades,win_pct,pf,avg_usd,total_usd,max_dd_usd,l12_trades,l12_pf,l12_usd,is_trades,is_pf,is_usd,oos_trades,oos_pf,oos_usd
-GALA,1,"ran, 0 trades",,,,,,,,,,,,,,,,
-GALA,2,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-GALA,3,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-GALA,5,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-GALA,10,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-GALA,15,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-GALA,30,not runnable,engine returns GALA_NO_OPEN on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,1,ran,,3,33.33,0.5,-17.83,-53.5,107.0,0,0,0,3,0.5,-53.5,0,0,0
-ORB,2,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,3,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,5,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,10,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,15,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-ORB,30,not runnable,engine returns CORB_NO_RANGE on 3/3 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
-VWAP,1,ran,,14,35.71,2.28,15.5,217.0,73.0,0,0,0,14,2.28,217.0,0,0,0
-VWAP,2,ran,,14,35.71,1.286,5.64,79.0,188.5,0,0,0,14,1.286,79.0,0,0,0
-VWAP,3,ran,,14,35.71,2.811,20.5,287.0,73.0,0,0,0,14,2.811,287.0,0,0,0
-VWAP,5,ran,,10,30.0,0.827,-5.3,-53.0,267.0,0,0,0,10,0.827,-53.0,0,0,0
-VWAP,10,ran,,10,20.0,0.485,-20.5,-205.0,398.0,0,0,0,10,0.485,-205.0,0,0,0
-VWAP,15,ran,,8,25.0,1.193,6.44,51.5,267.5,0,0,0,8,1.193,51.5,0,0,0
-VWAP,30,ran,,9,11.11,0.15,-39.28,-353.5,416.0,0,0,0,9,0.15,-353.5,0,0,0
-OKALA,1,ran,,15,40.0,0.848,-2.0,-30.0,66.0,0,0,0,15,0.848,-30.0,0,0,0
-OKALA,2,ran,,16,56.25,1.636,6.12,98.0,22.0,0,0,0,16,1.636,98.0,0,0,0
-OKALA,3,ran,,14,35.71,0.707,-4.14,-58.0,114.0,0,0,0,14,0.707,-58.0,0,0,0
-OKALA,5,ran,,15,60.0,1.909,8.0,120.0,66.0,0,0,0,15,1.909,120.0,0,0,0
-OKALA,10,ran (outside validated bound),,10,40.0,0.848,-2.0,-20.0,66.0,0,0,0,10,0.848,-20.0,0,0,0
-OKALA,15,ran (outside validated bound),,6,33.33,0.636,-5.33,-32.0,66.0,0,0,0,6,0.636,-32.0,0,0,0
-OKALA,30,ran (outside validated bound),,1,0.0,0.0,-22.0,-22.0,22.0,0,0,0,1,0.0,-22.0,0,0,0
-BRUNI,1,ran (outside validated bound),,8,12.5,0.002,-55.44,-443.5,443.5,0,0,0,8,0.002,-443.5,0,0,0
-BRUNI,2,ran (outside validated bound),,8,25.0,0.279,-42.25,-338.0,405.0,0,0,0,8,0.279,-338.0,0,0,0
-BRUNI,3,ran (outside validated bound),,7,0.0,0.0,-45.07,-315.5,315.5,0,0,0,7,0.0,-315.5,0,0,0
-BRUNI,5,ran (outside validated bound),,6,33.33,0.615,-37.33,-224.0,562.5,0,0,0,6,0.615,-224.0,0,0,0
-BRUNI,10,ran (outside validated bound),,3,33.33,0.476,-51.83,-155.5,296.5,0,0,0,3,0.476,-155.5,0,0,0
-BRUNI,15,ran,,3,66.67,1.364,4.67,14.0,38.5,0,0,0,3,1.364,14.0,0,0,0
-BRUNI,30,"ran, 0 trades",,,,,,,,,,,,,,,,
-CANDACE,1,"ran, 0 trades",,,,,,,,,,,,,,,,
-CANDACE,2,"ran, 0 trades",,,,,,,,,,,,,,,,
-CANDACE,3,"ran, 0 trades",,,,,,,,,,,,,,,,
+GALA,1,ran,,6,66.67,2.101,32.58,195.5,157.0,2,2.878,38.5,6,2.101,195.5,0,0,0
+GALA,2,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,3,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,5,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,10,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,15,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+GALA,30,not runnable,engine returns GALA_NO_OPEN on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,1,ran,,330,58.18,1.22,20.87,6888.0,4637.0,162,1.005,95.5,264,1.368,8200.0,66,0.853,-1312.0
+ORB,2,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,3,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,5,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,10,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,15,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+ORB,30,not runnable,engine returns CORB_NO_RANGE on 495/495 days: it requires the first bar to close at 09:31 (1-minute bars),,,,,,,,,,,,,,,
+VWAP,1,ran,,1855,23.02,1.062,1.67,3092.5,3126.5,913,1.06,1674.5,1488,1.042,1604.0,367,1.128,1488.5
+VWAP,2,ran,,1779,22.88,1.021,0.65,1153.0,3053.5,892,1.023,700.5,1422,1.026,1133.0,357,1.002,20.0
+VWAP,3,ran,,1711,21.98,1.062,2.04,3484.5,3173.5,850,0.974,-819.0,1373,1.099,4264.0,338,0.939,-779.5
+VWAP,5,ran,,1612,19.85,0.983,-0.62,-1001.0,7158.5,796,0.864,-4143.0,1292,1.063,2827.5,320,0.701,-3828.5
+VWAP,10,ran,,1475,20.0,0.994,-0.24,-355.5,4372.0,730,0.974,-775.0,1183,1.03,1329.5,292,0.862,-1685.0
+VWAP,15,ran,,1385,19.35,1.012,0.47,651.0,3227.5,695,1.004,103.0,1100,1.057,2429.5,285,0.854,-1778.5
+VWAP,30,ran,,1182,18.19,0.917,-3.41,-4033.5,4511.5,590,0.904,-2427.5,932,0.951,-1846.5,250,0.798,-2187.0
+OKALA,1,ran,,2209,34.22,0.662,-4.89,-10798.0,10962.0,1097,0.614,-6284.0,1786,0.692,-7842.0,423,0.546,-2956.0
+OKALA,2,ran,,2169,35.22,0.692,-4.39,-9518.0,9684.0,1089,0.647,-5608.0,1747,0.723,-6784.0,422,0.573,-2734.0
+OKALA,3,ran,,2135,36.16,0.721,-3.92,-8370.0,8426.0,1099,0.7,-4678.0,1715,0.758,-5730.0,420,0.583,-2640.0
+OKALA,5,ran,,1927,35.91,0.713,-4.04,-7794.0,7960.0,1015,0.697,-4380.0,1535,0.741,-5520.0,392,0.61,-2274.0
+OKALA,10,ran (outside validated bound),,1251,36.21,0.722,-3.89,-4872.0,5068.0,645,0.744,-2290.0,993,0.74,-3596.0,258,0.659,-1276.0
+OKALA,15,ran (outside validated bound),,754,35.54,0.702,-4.23,-3188.0,3264.0,370,0.74,-1340.0,601,0.709,-2472.0,153,0.675,-716.0
+OKALA,30,ran (outside validated bound),,321,33.64,0.645,-5.18,-1662.0,1964.0,174,0.636,-928.0,245,0.664,-1190.0,76,0.587,-472.0
+BRUNI,1,ran (outside validated bound),,1717,32.09,0.876,-7.99,-13717.5,20381.0,843,0.759,-15378.5,1392,0.882,-10113.5,325,0.857,-3604.0
+BRUNI,2,ran (outside validated bound),,1293,36.89,0.949,-3.63,-4692.0,10519.0,636,0.888,-5830.0,1030,1.041,2770.0,263,0.696,-7462.0
+BRUNI,3,ran (outside validated bound),,1096,37.68,0.998,-0.15,-164.5,4500.0,543,1.021,849.0,883,1.047,2676.5,213,0.838,-2841.0
+BRUNI,5,ran (outside validated bound),,821,40.8,1.029,2.18,1791.0,7541.5,417,1.17,5514.0,656,1.065,3133.5,165,0.909,-1342.5
+BRUNI,10,ran (outside validated bound),,514,38.91,1.035,2.79,1434.5,4023.5,255,1.069,1419.5,423,0.98,-680.0,91,1.312,2114.5
+BRUNI,15,ran,,404,39.11,0.891,-9.54,-3854.5,7222.0,195,0.976,-429.5,336,0.885,-3211.0,68,0.914,-643.5
+BRUNI,30,ran (outside validated bound),,281,38.79,0.722,-32.96,-9262.0,12050.5,119,0.813,-3086.5,238,0.697,-8504.5,43,0.856,-757.5
+CANDACE,1,ran,,32,46.88,2.474,38.75,1240.0,452.0,19,4.061,1102.0,26,2.539,1016.0,6,2.238,224.0
+CANDACE,2,ran,,11,54.55,2.102,30.41,334.5,174.5,5,3.51,374.0,9,1.753,178.0,2,3.336,156.5
+CANDACE,3,ran,,1,0.0,0.0,-52.0,-52.0,52.0,1,0.0,-52.0,1,0.0,-52.0,0,0,0
 CANDACE,5,"ran, 0 trades",,,,,,,,,,,,,,,,
 CANDACE,10,"ran, 0 trades",,,,,,,,,,,,,,,,
 CANDACE,15,"ran, 0 trades",,,,,,,,,,,,,,,,
 CANDACE,30,"ran, 0 trades",,,,,,,,,,,,,,,,
-IMRE,1,"ran, 0 trades",,,,,,,,,,,,,,,,
-IMRE,2,"ran, 0 trades",,,,,,,,,,,,,,,,
-IMRE,3,"ran, 0 trades",,,,,,,,,,,,,,,,
+IMRE,1,ran,,43,18.6,0.302,-20.03,-861.5,861.5,9,0.102,-316.0,42,0.307,-839.0,1,0.0,-22.5
+IMRE,2,ran,,4,25.0,0.157,-52.38,-209.5,209.5,0,0,0,4,0.157,-209.5,0,0,0
+IMRE,3,ran,,1,0.0,0.0,-146.5,-146.5,146.5,0,0,0,1,0.0,-146.5,0,0,0
 IMRE,5,"ran, 0 trades",,,,,,,,,,,,,,,,
 IMRE,10,"ran, 0 trades",,,,,,,,,,,,,,,,
 IMRE,15,"ran, 0 trades",,,,,,,,,,,,,,,,
