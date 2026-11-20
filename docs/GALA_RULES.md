@@ -79,7 +79,8 @@ shown on the card as "not from the video", and must never be tuned to make a bac
   stop, set in the config) but the body must close on the right side.
 - **[GAP] "retest candle" count and the break distance:** default minimum 1 retest candle within `max_retest_bars` 5-minute bars.
 - **[GAP] "two to three trades a day":** default 3 trades a day max (E2) and 2 attempts per setup (E1).
-- **[GAP] "within about one hour":** window default 09:35–10:35 ET (after B1, one hour). Configurable; not tuned.
+- **[GAP] "within about one hour":** window default 09:35–12:30 ET since D153 (user 2026-11-20; was 09:35–10:35, one hour after
+  B1). 12:30 was the only later end that raised profit in both test periods (docs/results/new_strategies/gala_trade_more). Configurable.
 - **Trim at 2R vs. "level to level":** the video does both (levels as targets on the live trade). Default: trim half at 2R.
 - **E3 vs E2:** one winner ends the day (E3), up to 3 trades otherwise (E2).
 - **Opening-price level:** only the day's own open is available from 1-minute RTH bars; the hourly pivots need prior sessions.
@@ -121,7 +122,7 @@ big space to the next level" and ~10% runner size, D7, B5, C9 extra entry-distan
 post-loss sizing. **Not back-tested:** GALA fires about 6 times in 2 years at the defaults (see
 docs/results/new_strategies/gala_funnel/RESULTS.md), far too few to measure the trim.
 **Config defaults (`# not from the video`):** pivot_lookback 3, trend_swing_lookback 2, history_sessions 5,
-use_open_level off, window 09:35–10:35, max_wick_through_pts 10, hammer_wick_body_mult 2, max_retest_bars 6,
+use_open_level off, window 09:35–12:30 (D153; was 10:35), max_wick_through_pts 10, hammer_wick_body_mult 2, max_retest_bars 6,
 stop_buffer_ticks 1. From the video: skip_first_minutes 5, bounce_candles 2, target_r 2, max_hold 60, E1 2, E2 3, E3 on.
 **Lucid Pro fit (sizing only):** per-trade risk = min(25% × MLL, DLL left × 0.9 / 3, (MLL room − kill distance) / 3,
 max_trade_risk_usd, consistency day stop / 3) — `engine/lucid_fit.trade_risk_usd` (moved from jj_fpt, unchanged);

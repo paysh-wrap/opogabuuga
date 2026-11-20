@@ -221,9 +221,9 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_pass_pct": None,
         "pro25k_bust_pct": None,
         "period": "Not back-tested yet.",
-        "note": "Default OFF. MNQ, entries 09:35–10:35 ET. One free account per trade (no copy trading); size fits "
-        "Lucid's DLL, MLL and consistency for 3 losses a day. With 2+ micros about half comes off at 2R and the "
-        "rest runs with its stop moved to each closed 5-minute candle's open until it is above entry (D4/D5, "
+        "note": "Default OFF. MNQ, entries 09:35–12:30 ET (D153). One free account per trade (no copy trading); "
+        "size fits Lucid's DLL, MLL and consistency for 3 losses a day. With 2+ micros about half comes off at 2R "
+        "and the rest runs with its stop moved to each closed 5-minute candle's open until it is above entry (D4/D5, "
         "D152); 1 micro exits all at 2R. All Lucid rules and Paytience safety checks still apply.",
     },
     {

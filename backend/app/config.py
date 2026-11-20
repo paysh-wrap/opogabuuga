@@ -756,7 +756,7 @@ class GalaPaCfg(_M):
     use_open_level: bool = False  # A5 day's open as a level (lower confidence)  # not from the video (default)
     skip_first_minutes: int = Field(default=5, ge=0, le=30)  # B1
     window_start: str = "09:35"  # B2 [GAP]  # not from the video
-    window_end: str = "10:35"  # B2 [GAP] about one hour  # not from the video
+    window_end: str = "12:30"  # B2 [GAP] D153 (user): was 10:35 "about one hour"  # not from the video
     max_wick_through_pts: D = Field(default=D("10"), gt=D(0))  # C2 [GAP] "slightly"  # not from the video
     hammer_wick_body_mult: D = Field(default=D("2"), gt=D(0))  # C4 "big wick"  # not from the video
     max_retest_bars: int = Field(default=6, ge=1, le=24)  # C5 [GAP]  # not from the video
