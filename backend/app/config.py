@@ -923,6 +923,7 @@ class CandaceIctCfg(_M):
     grade_a_min: int = Field(default=4, ge=2, le=6)  # E3 [GAP]  # not from the video
     grade_b_min: int = Field(default=3, ge=1, le=5)  # E3 [GAP]  # not from the video
     max_losses_per_day: int = Field(default=3, ge=1, le=10)  # F1 [GAP] Lucid sizing divisor  # not from the video
+    keep_all_sweeps: bool = True  # D154 (user): every sweep followed on its own; False = D149 one-at-a-time
     risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit  # not from the video
     dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))
     one_account_per_trade: bool = True

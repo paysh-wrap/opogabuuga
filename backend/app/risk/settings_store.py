@@ -89,6 +89,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.jj_fpt",  # JJ F.P.T STRAT button (docs/JJ_FPT_RULES.md)
         "strategy.candace_ict",  # D149 CANDACE ICT SCALP button
         "strategy.candace_ict_cfg.london",
+        "strategy.candace_ict_cfg.keep_all_sweeps",  # D154
         "strategy.bruni_structure",  # D148 BRUNI STRUCTURE button
         *(
             f"strategy.bruni_structure_cfg.{k}"

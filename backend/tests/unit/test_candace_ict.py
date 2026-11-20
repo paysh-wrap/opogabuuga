@@ -102,3 +102,15 @@ def test_b1_london_off_by_default_b4_max_hold_and_outcomes():
     [s] = K.replay_day([], bars([*SETUP, (101.5, 102, 80, 82)]), CFG, TICK).signals
     assert s.outcome == "TP"
     assert K.replay_day([], [], CFG, TICK).signals == []
+
+
+def test_d154_a_later_sweep_no_longer_replaces_the_pending_setup():
+    # after the displacing close a bar sweeps the 99 session LOW (close back inside) before the retrace
+    rows = [*SETUP[:12], (100.5, 101, 98.5, 100.25), SETUP[12]]
+    [s] = K.replay_day([], bars(rows), CFG, TICK).signals  # ON (default): the short setup is still followed
+    assert s.direction == Direction.SHORT and s.entry == D("101.5") and s.time == T9 + timedelta(minutes=14)
+    assert s.stop == D("109.5") and s.swept.kind == "SESSION"
+    off = CFG.model_copy(update={"keep_all_sweeps": False})  # D149: the new sweep replaced it → no entry
+    assert K.replay_day([], bars(rows), off, TICK).signals == []
+    assert K.replay_day([], bars(), off, TICK).signals[0].entry == D("101.5")  # no second sweep: same as before
+    assert CandaceIctCfg().keep_all_sweeps is True

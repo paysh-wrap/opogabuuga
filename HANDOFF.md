@@ -611,3 +611,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
   sweep (160 IS / 150 J trades, IS PF 1.27 +$1,030 — turns IS positive) but J profit falls at 1 micro ($814 vs $1,211), 25K fit (−$396 vs
   −$287) and 50K fit ($40 vs $876) → REJECT by the user's no-profit-cut rule. V2 same-side (IS PF 1.00) and V3 protect-formed (0.89) fail
   IS; V1 + window 10:30 fails IS. Evals 0/0 for every row (too few trades to reach a target). Nothing changed in the engine.
+- D154 BUILT (user "Do it", 5-year view over the held-out rule for this change only): CANDACE keep_all_sweeps ON (engine/candace_ict
+  _Episode/_advance; toggle strategy.candace_ict_cfg.keep_all_sweeps). Checked on all 1,266 days: OFF = D149 engine exactly (100 trades),
+  ON = study V1 exactly (310 trades) — docs/results/new_strategies/candace_keep_sweeps/verify_d154.py. Backend 1,521 passed, 100 % cov.

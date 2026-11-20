@@ -13,6 +13,7 @@
   E3 grade by confluence count (A+ ≥ 4, B 3, C ≤ 2) → size multiplier 2.0 / 1.0 / 0.5, applied TIGHTEN-ONLY by the
      controller (multiplier / 2.0 of the Lucid-fit size).
   B1/B4 sessions NY 09:00–10:00 (on), LONDON 02:00–05:00 (off; cannot be tested: RTH-only history); max hold.
+  D154 keep_all_sweeps: every sweep is followed on its own (a later sweep no longer replaces a pending one).
 `replay_day(history, today, cfg, tick)` is deterministic on the stored bars (live = backtest).
 """
 
@@ -75,6 +76,8 @@ class CandaceCfg(Protocol):
     def grade_b_min(self) -> int: ...
     @property
     def max_losses_per_day(self) -> int: ...
+    @property
+    def keep_all_sweeps(self) -> bool: ...
 
 
 GRADE_MULT = {"A+": D("2.0"), "B": D("1.0"), "C": D("0.5")}
@@ -200,11 +203,30 @@ def _session(t: datetime, cfg: CandaceCfg) -> str | None:
     return None
 
 
+@dataclass
+class _Episode:
+    """One sweep being followed toward an entry (A4 → C1/C2/C5 → C3)."""
+
+    si: int  # bar index of the sweep
+    pool: Pool
+    ext: Decimal  # the sweep extreme (D1 stop anchor)
+    ifvg: tuple[int, Fvg] | None = None  # (bar index of the displacing close, the FVG) once valid
+
+
+_RANK = {"A+": 2, "B": 1, "C": 0}
+
+
 def replay_day(history: Sequence[MBar], today: Sequence[MBar], cfg: CandaceCfg, tick: Decimal) -> CandaceDay:
-    """Every CANDACE ICT entry of this ET day so far (today = this day's 1-minute bars, any hour)."""
+    """Every CANDACE ICT entry of this ET day so far (today = this day's 1-minute bars, any hour).
+
+    D154 `keep_all_sweeps` (default ON): every sweep is its own episode, followed in parallel until it trades, times
+    out or fails, and episodes keep being followed while a trade is open; an entry on a bar that started with a trade
+    open is not taken (max 1 position); two entries on one bar → the higher grade, then the earlier sweep. OFF = the
+    D149 behaviour: one episode at a time, a new sweep replaces it, nothing is followed during a trade."""
     out = CandaceDay()
     if not today:
         return out
+    keep_all = cfg.keep_all_sweeps
     d = today[-1].close_time.astimezone(ET).date()
     bars = sorted((b for b in today if b.close_time.astimezone(ET).date() == d), key=lambda b: b.close_time)
     prior = [b for b in history if b.close_time.astimezone(ET).date() < d]
@@ -217,91 +239,115 @@ def replay_day(history: Sequence[MBar], today: Sequence[MBar], cfg: CandaceCfg, 
     pos: CandaceSignal | None = None
     losses = 0
     swept_used: set[tuple[Decimal, int]] = set()
-    sweep: tuple[int, Pool, Decimal] | None = None  # (bar index, pool, extreme)
-    ifvg: tuple[int, Fvg] | None = None
+    eps: list[_Episode] = []
     for i, b in enumerate(bars):
+        busy = pos is not None  # a trade was open when this bar started
         if pos is not None:
             _step(pos, b)
             if pos.outcome != "OPEN":
                 losses += pos.exit_price is not None and (pos.exit_price - pos.entry) * pos.direction.sign < 0
-                pos, sweep, ifvg = None, None, None
-            continue
+                pos = None
+                if not keep_all:
+                    eps = []
+            if not keep_all:
+                continue
         sess = _session(b.close_time, cfg)
         if sess is None or losses >= cfg.max_losses_per_day:
-            sweep = ifvg = None
+            eps = []
             continue
         before = bars[:i]
         h1_known = [x for x in h1 if x.close_time <= b.close_time]
         pl = pools(prev, before, h1_known, cfg, tick)
-        # A4 sweep: beyond a pool, close back inside
-        for p in pl:
+        new: _Episode | None = None
+        for p in pl:  # A4 sweep: beyond a pool, close back inside (one new sweep a bar)
             if (p.price, p.side) in swept_used:
                 continue
             if (p.side > 0 and b.h > p.price > b.c) or (p.side < 0 and b.l < p.price < b.c):
                 swept_used.add((p.price, p.side))
-                sweep, ifvg = (i, p, b.h if p.side > 0 else b.l), None
+                new = _Episode(i, p, b.h if p.side > 0 else b.l)
+                eps = [*eps, new] if keep_all else [new]
                 break
-        if sweep is None:
-            continue
-        si, sp, ext = sweep
-        sign = -sp.side  # high swept → SHORT
-        if ifvg is None:
-            run = [f for f in fvgs(bars[max(0, si - cfg.fvg_lookback) : si + 1]) if f.color == -sign]
-            if not run or i == si:
+        keep: list[_Episode] = []
+        cands: list[tuple[int, int, CandaceSignal]] = []
+        for e in eps:
+            if e is new:
+                keep.append(e)
                 continue
-            f = run[-1]
-            body = abs(b.c - b.o)
-            ref = bars[max(0, i - cfg.displacement_bars) : i]
-            avg = sum((abs(x.c - x.o) for x in ref), D(0)) / max(len(ref), 1)
-            through = (b.c < f.lo and b.o > f.lo) if sign < 0 else (b.c > f.hi and b.o < f.hi)  # C2 body through
-            if through and body >= cfg.displacement_mult * avg:  # C5 displacement
-                ifvg = (i, f)
-            elif i - si > cfg.ifvg_max_bars:
-                sweep = None
-            continue
-        fi, f = ifvg
-        if i - fi > cfg.ifvg_max_bars:
-            sweep = ifvg = None
-            continue
-        into = (b.h >= f.lo and b.c <= f.hi) if sign < 0 else (b.l <= f.hi and b.c >= f.lo)  # C3 retrace
-        if not into:
-            continue
-        rng = bars[max(0, i - cfg.range_bars) : i + 1]
-        lo, hi = min(x.l for x in rng), max(x.h for x in rng)
-        mid = lo + cfg.premium_pct * (hi - lo)
-        entry = b.c
-        if (sign < 0 and entry < mid) or (sign > 0 and entry > mid):
-            sweep = ifvg = None
-            continue  # A2: shorts in premium, longs in discount
-        stop = round_to_tick(ext - sign * cfg.stop_buffer_ticks * tick, tick, away_from=entry)  # D1
-        risk = (entry - stop) * sign
-        cap = cfg.ny_max_stop_pts if sess == "NY" else cfg.london_max_stop_pts
-        if risk <= 0 or risk > cap:
-            sweep = ifvg = None
-            continue  # D2: never widen — not the entry
-        min_tp = entry + sign * cfg.min_rr * risk
-        ahead = [p.price for p in pl if p.side == sign and (p.price - min_tp) * sign >= 0]
-        tp_raw = min(ahead, key=lambda x: abs(x - entry)) if ahead else min_tp  # D3
-        tp = round_to_tick(tp_raw, tick, toward=entry)
-        if (tp - entry) * sign < cfg.min_rr * risk:
-            tp = round_to_tick(min_tp, tick, away_from=entry)
-        conf = ["DISPLACEMENT"]
-        if sp.kind == "EQUAL":
-            conf.append("EQUAL_POOL")
-        if sp.kind == "FVG1H" or any(p.kind == "FVG1H" and abs(p.price - ext) <= cfg.gap_level_tol_pts for p in pl):
-            conf.append("HTF_FVG")
-        if any(
-            abs(g - ext) <= cfg.gap_level_tol_pts or abs(g - entry) <= cfg.gap_level_tol_pts for g in out.gap_levels
-        ):
-            conf.append("RTH_GAP")
-        if sp.kind in ("PDH", "PDL"):
-            conf.append("PREV_DAY")
-        dr = Direction.LONG if sign > 0 else Direction.SHORT
-        hold = cfg.ny_max_hold_minutes if sess == "NY" else cfg.london_max_hold_minutes
-        until = b.close_time + timedelta(minutes=hold)
-        pos = CandaceSignal(b.close_time, sess, dr, entry, stop, tp, sp, conf, grade(len(conf), cfg), until, "OPEN")
-        out.signals.append(pos)
+            r = _advance(e, i, b, bars, pl, sess, out.gap_levels, cfg, tick)
+            if r is None:
+                keep.append(e)
+            elif isinstance(r, CandaceSignal):
+                cands.append((-_RANK[r.grade], e.si, r))
+        eps = keep
+        if cands and not busy:
+            pos = min(cands, key=lambda c: (c[0], c[1]))[2]
+            out.signals.append(pos)
     return out
+
+
+def _advance(
+    e: _Episode,
+    i: int,
+    b: MBar,
+    bars: Sequence[MBar],
+    pl: Sequence[Pool],
+    sess: str,
+    gap_levels: Sequence[Decimal],
+    cfg: CandaceCfg,
+    tick: Decimal,
+) -> CandaceSignal | bool | None:
+    """Move one episode on by bar i: None = still pending, False = dropped, a CandaceSignal = an entry on this bar."""
+    sign = -e.pool.side  # high swept → SHORT
+    if e.ifvg is None:
+        run = [f for f in fvgs(bars[max(0, e.si - cfg.fvg_lookback) : e.si + 1]) if f.color == -sign]
+        if not run or i == e.si:
+            return None
+        f = run[-1]
+        body = abs(b.c - b.o)
+        ref = bars[max(0, i - cfg.displacement_bars) : i]
+        avg = sum((abs(x.c - x.o) for x in ref), D(0)) / max(len(ref), 1)
+        through = (b.c < f.lo and b.o > f.lo) if sign < 0 else (b.c > f.hi and b.o < f.hi)  # C2 body through
+        if through and body >= cfg.displacement_mult * avg:  # C5 displacement
+            e.ifvg = (i, f)
+            return None
+        return False if i - e.si > cfg.ifvg_max_bars else None
+    fi, f = e.ifvg
+    if i - fi > cfg.ifvg_max_bars:
+        return False
+    into = (b.h >= f.lo and b.c <= f.hi) if sign < 0 else (b.l <= f.hi and b.c >= f.lo)  # C3 retrace
+    if not into:
+        return None
+    rng = bars[max(0, i - cfg.range_bars) : i + 1]
+    lo, hi = min(x.l for x in rng), max(x.h for x in rng)
+    mid = lo + cfg.premium_pct * (hi - lo)
+    entry = b.c
+    if (sign < 0 and entry < mid) or (sign > 0 and entry > mid):
+        return False  # A2: shorts in premium, longs in discount
+    stop = round_to_tick(e.ext - sign * cfg.stop_buffer_ticks * tick, tick, away_from=entry)  # D1
+    risk = (entry - stop) * sign
+    cap = cfg.ny_max_stop_pts if sess == "NY" else cfg.london_max_stop_pts
+    if risk <= 0 or risk > cap:
+        return False  # D2: never widen — not the entry
+    min_tp = entry + sign * cfg.min_rr * risk
+    ahead = [p.price for p in pl if p.side == sign and (p.price - min_tp) * sign >= 0]
+    tp_raw = min(ahead, key=lambda x: abs(x - entry)) if ahead else min_tp  # D3
+    tp = round_to_tick(tp_raw, tick, toward=entry)
+    if (tp - entry) * sign < cfg.min_rr * risk:
+        tp = round_to_tick(min_tp, tick, away_from=entry)
+    sp = e.pool
+    conf = ["DISPLACEMENT"]
+    if sp.kind == "EQUAL":
+        conf.append("EQUAL_POOL")
+    if sp.kind == "FVG1H" or any(p.kind == "FVG1H" and abs(p.price - e.ext) <= cfg.gap_level_tol_pts for p in pl):
+        conf.append("HTF_FVG")
+    if any(abs(g - e.ext) <= cfg.gap_level_tol_pts or abs(g - entry) <= cfg.gap_level_tol_pts for g in gap_levels):
+        conf.append("RTH_GAP")
+    if sp.kind in ("PDH", "PDL"):
+        conf.append("PREV_DAY")
+    dr = Direction.LONG if sign > 0 else Direction.SHORT
+    hold = cfg.ny_max_hold_minutes if sess == "NY" else cfg.london_max_hold_minutes
+    until = b.close_time + timedelta(minutes=hold)
+    return CandaceSignal(b.close_time, sess, dr, entry, stop, tp, sp, conf, grade(len(conf), cfg), until, "OPEN")
 
 
 def _step(p: CandaceSignal, b: MBar) -> None:

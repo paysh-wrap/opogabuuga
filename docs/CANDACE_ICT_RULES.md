@@ -93,6 +93,14 @@ confluence), C10/E3 grades (confluences: displacement, equal pool, HTF FVG, RTH 
 D1 (2 ticks past the sweep extreme), D2 (NY 40 / London 25 pt → skip, never widen), D3 (≥ 1:2, extended to the nearest
 pool beyond), F1 = Lucid DLL + max 3 losses a day (sizing divisor). **E1/E2 size:** multipliers 2.0 / 1.0 / 0.5 applied
 TIGHTEN-ONLY as multiplier ÷ 2.0 of the Lucid-fit size (A+ = full fit size, B half, C a quarter; `CAND_GRADE_SIZE_BELOW_1`).
+**Built later (D154, user 2026-11-20):** `keep_all_sweeps` (default ON). The D149 engine kept ONE pending setup and a
+later sweep — even a 1-minute swing — replaced it, which dropped 8,289 of 9,814 sweeps in 2021-10..2026-10. Now every
+sweep is followed on its own through C1/C2/C5/C3/A2/D2 until it trades, times out or fails; setups keep being followed
+while a trade is open, but an entry on a bar that started with a trade open is not taken (max 1 position), and two
+entries on one bar → the higher grade, then the earlier sweep. Nothing in the rule sheet says a new sweep cancels an
+earlier one. Study docs/results/new_strategies/candace_keep_sweeps (1 micro, 5 years): 310 trades vs 100, +$1,844 vs
++$755; 2021-23 PF 1.27 +$1,030 (was 0.69 −$456), 2024-26 PF 1.18 +$814 (was 2.05 +$1,211). OFF = the D149 engine exactly
+(checked on all 1,266 days).
 **Not built:** C4 aggressive entry, C6 volume imbalance / order block, C9 SMT with ES, D4 partial at the first internal
 pool and D5 break-even after 25% of the move (the existing management only moves to break even on a leg fill — single
 bracket ships; follow-up), D6 templates, A5/A6 Asia range, midnight price, new-week gap.

@@ -315,8 +315,9 @@ CATALOG: list[dict[str, object]] = [
         "pro25k_pass_pct": None,
         "pro25k_bust_pct": None,
         "period": "Not back-tested yet. London, the seconds charts and the Asia range cannot be tested here.",
-        "note": "Default OFF. MNQ, New York 09:00–10:00 (London OFF). Grades A+ / B / C only shrink the Lucid-fit "
-        "size. Single bracket (her partial and break-even move are not built). All Lucid rules and checks apply.",
+        "note": "Default OFF. MNQ, New York 09:00–10:00 (London OFF). Every sweep is followed on its own (D154: a "
+        "later sweep no longer replaces a pending setup). Grades A+ / B / C only shrink the Lucid-fit size. Single "
+        "bracket (her partial and break-even move are not built). All Lucid rules and checks apply.",
     },
     {
         "key": "order_flow_auction",
