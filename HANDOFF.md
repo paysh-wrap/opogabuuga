@@ -598,3 +598,12 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - Tests: backend 1,520 passed / 5 skipped, 100 % cov risk/management/phases; ruff, ruff format, mypy clean; frontend 128 passed. Windows build NOT triggered.
 - OPEN: user decisions on GALA window_end (any loosening must be picked on 2021-10..2023-12, judged 2024-01..2026-10), the use_open_level
   dead switch, and which refinement study to run next.
+- Session 24 cont. User rules (binding): never implement a change that cuts measured profit; Lucid rules always on.
+  GALA trade-more (docs/results/new_strategies/gala_trade_more): levels near price are deleted by A6 (48 % of levels; 35 % of those by
+  the A7 overnight gap candle) → nearest survivor a median 233 pt from the open. D153 BUILT: window_end 10:35 → 12:30, the only later end
+  with more profit in IS AND J (J 31 trades, 25K fit $1,146 vs $976). D152 trim over both periods ≈ even (−4 %, 10 trades each).
+  CANDACE trade-more (docs/results/new_strategies/candace_trade_more): 5-yr baseline 100 trades, IS PF 0.69 −$456, J PF 2.05 +$1,211
+  (the 2-yr PF 2.47 was the good stretch). 0 of 22 candidates pass IS (window 10:30/11:00/11:30, displacement, D4, D5, C4, grade floor…).
+  Main blocker = engine: a new sweep replaces the pending sweep/IFVG (candace_ict.py ~237-243; 8,289 of 9,814 episodes dropped);
+  A+ grade unreachable (DISPLACEMENT always counted, ~288); A2 range uses today's bars only (~269). Nothing changed. NOISE gap-day
+  skip NOT built (−19 % profit). OPEN: test "keep each CANDACE sweep alive" on IS/J (engine change) if the user wants.
