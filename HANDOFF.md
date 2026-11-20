@@ -580,3 +580,21 @@ event value inside the async mutation, after React had reset the controlled inpu
 ticking armed/selected did nothing; verified on a live server before/after). Values are now captured first. Error banners showed a bare
 "HTTP 422" for structured server errors ({errors:[...]} / validation lists) → lib/api.detailText shows the reason (e.g. Fast Evaluation:
 "no EVAL accounts — Fast Evaluation applies to EVAL accounts only", which is by design). Frontend 116 tests, e2e 20/20.
+
+## Session 24 (2026-11-20) — GALA: what blocks it + D152 trim/trail BUILT
+Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Session 23's record is in the artifact index page only.
+- Strategy-refinement review (chat, nothing built): only NOISE has a proven edge; candidates offered: re-run the D142-D150 strategies on all
+  5 cached years (pick 2021-23, judge 2024-26), CONTI VWAP window (C7) / emergency stop / vol sizing (C8), NOISE eval-only "skip the day
+  after a >1 % gap" (session-19 item 8b: better PF + pass IS and J, −19 % profit), GALA (below), CANDACE grade sizing (30 of 32 trades grade C).
+- GALA funnel (docs/results/new_strategies/gala_funnel/RESULTS.md, Sonnet agent, counts only): the chosen level is a median 262 pt from the
+  09:30 open and is reached by 10:35 on 25 % of the 296 setup days (31 % by 16:00); only 27 of 296 days ever give a valid entry candle and 21
+  of those close after the 10:35 window end (`window_end` is the open setting that blocks most). One-at-a-time: window_end 15:00 → 25 days
+  (27 entries) in 2 yr; all open settings loose → 36 days / 46 entries. `use_open_level` has no effect on the day-open choice (strict >/<
+  in choose_setup vs a level at exactly the open) — NOT changed, user decision. The published "306 setup days" = 306 trend days (296 setups).
+- D152 BUILT (user request): GALA D4/D5 — 2+ micros: leg A ceil(n/2) at 2R, leg B runner to 4R ([GAP]); runner stop → each closed 5-min
+  candle's open, ratchet, ≥1 tick behind price, until above entry (`runner_trail_after_entry` [GAP] OFF). engine/gala_pa._follow_runner →
+  StrategyOutput.stop_moves (re-sent each minute) → webhook → Controller.strategy_stop_move → OrderManager.runner_stop (after leg A filled
+  only). 1 micro = single 2R bracket. Not back-tested (6 trades / 2 yr).
+- Tests: backend 1,520 passed / 5 skipped, 100 % cov risk/management/phases; ruff, ruff format, mypy clean; frontend 128 passed. Windows build NOT triggered.
+- OPEN: user decisions on GALA window_end (any loosening must be picked on 2021-10..2023-12, judged 2024-01..2026-10), the use_open_level
+  dead switch, and which refinement study to run next.
