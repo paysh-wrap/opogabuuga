@@ -607,3 +607,7 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
   Main blocker = engine: a new sweep replaces the pending sweep/IFVG (candace_ict.py ~237-243; 8,289 of 9,814 episodes dropped);
   A+ grade unreachable (DISPLACEMENT always counted, ~288); A2 range uses today's bars only (~269). Nothing changed. NOISE gap-day
   skip NOT built (−19 % profit). OPEN: test "keep each CANDACE sweep alive" on IS/J (engine change) if the user wants.
+- CANDACE keep-sweeps test (docs/results/new_strategies/candace_keep_sweeps, user-approved, 25K + 50K in the verdict): V1 keep every
+  sweep (160 IS / 150 J trades, IS PF 1.27 +$1,030 — turns IS positive) but J profit falls at 1 micro ($814 vs $1,211), 25K fit (−$396 vs
+  −$287) and 50K fit ($40 vs $876) → REJECT by the user's no-profit-cut rule. V2 same-side (IS PF 1.00) and V3 protect-formed (0.89) fail
+  IS; V1 + window 10:30 fails IS. Evals 0/0 for every row (too few trades to reach a target). Nothing changed in the engine.
