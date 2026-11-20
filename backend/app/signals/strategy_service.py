@@ -53,6 +53,7 @@ HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing
 class StrategyOutput:
     updates: list[SignalUpdate] = field(default_factory=list)
     exits: list[tuple[int, str]] = field(default_factory=list)  # (signal_id, reason)
+    stop_moves: list[tuple[int, Decimal, str]] = field(default_factory=list)  # (signal_id, runner stop, reason)
 
 
 @dataclass(frozen=True)
@@ -1310,7 +1311,9 @@ def run_gala_pa(
     s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
 ) -> StrategyOutput:
     """D144 GALA PRICE ACTION: replay today's session (engine/gala_pa.py) on every 1-minute close; store a signal for
-    an entry on THIS bar, and close a running trade at the rule sheet's time limit (B2). Brackets do stop / 2R."""
+    an entry on THIS bar, and close a running trade at the rule sheet's time limit (B2). Brackets do stop / 2R.
+    D152 (D4/D5): after the trim, every minute the runner's stop the replay chose so far is sent on (the order
+    manager moves leg B only after the 2R leg really filled, ratchet only), so a missed move is retried."""
     cfg = rules.strategy.gala_pa_cfg
     out = StrategyOutput()
     t = at.astimezone(ET)
@@ -1324,10 +1327,17 @@ def run_gala_pa(
     day = t.date().isoformat()
     for x in rep.signals:
         key = f"{cfg.symbol}-{GALA_TAG}-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
-        if x.outcome == "TIME" and x.exit_time == at:
+        rn = x.runner
+        timed = (x.outcome == "TIME" and x.exit_time == at) or (
+            rn is not None and rn.outcome == "TIME" and rn.exit_time == at
+        )
+        runner_stop = rn.stop_at(at) if rn is not None and (rn.exit_time is None or rn.exit_time > at) else None
+        if timed or runner_stop is not None:
             row = s.execute(select(Signal.id).where(Signal.model_key == key)).first()
-            if row is not None:
+            if row is not None and timed:
                 out.exits.append((row[0], "GALA_TIME_EXIT"))
+            if row is not None and runner_stop is not None:
+                out.stop_moves.append((row[0], runner_stop, "GALA_CANDLE_TRAIL"))
         if x.time != at or exits_only:
             continue
         if s.execute(select(Signal.id).where(Signal.model_key == key)).first() is not None:
@@ -1347,6 +1357,7 @@ def run_gala_pa(
                 "trend": rep.trend,
                 "stop_pts": str(x.stop_pts),
                 "paper_only": cfg.paper_only,
+                **({} if x.runner_target is None else {"runner_target": str(x.runner_target)}),  # D152 D4/D5
             },
             plan=("GALA_PA", x.entry, x.stop, x.take_profit, x.stop_pts, x.rr),
             rules=rules,
@@ -1647,6 +1658,7 @@ def run(
         r = run_gala_pa(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
+        out.stop_moves += r.stop_moves
     if st.ai_duo and symbol in st.ai_duo_cfg.markets:  # after NOISE: on a same-bar tie NOISE wins (D83)
         r = run_ai_duo(s, rules, clock, calendar, at, symbol, exits_only)
         out.updates += r.updates

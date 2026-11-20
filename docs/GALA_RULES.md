@@ -105,8 +105,21 @@ from the exit price after each closed trade), A9, B1, B2 (window + 60-min time e
 index: its own hourly trend is the side; no separate index check), B4 (implicit: no valid setup → no trade), C1 (5-min
 decides; 2-min not used), C2, C3, C4, C5, C6, C7, C8 (lower-high detail not built), D1, D2 (via sizing: fewer micros,
 `GALA_SIZE_BELOW_1` when < 1), D3, E1, E2, E3, E4 (broker bracket, never moved away).
-**Not built:** D4/D5 trim-half-at-2R and candle-by-candle stop move (a single 2R bracket ships — follow-up), D6 runner,
-D7, B5, C9 extra entry-distance filter, E5–E7 confidence / post-loss sizing.
+**Built later (D152, 2026-11-20):** D4/D5 trim + stop move. With 2+ micros leg A = ceil(n/2) at the 2R target ("about
+half"); leg B (the runner) moves its stop at the trim and at every later 5-minute close to the OPEN of the last closed
+5-minute candle — ratchet only (E4), at least one tick behind the price (a candle whose open is at or above the price,
+e.g. a red candle on a long, is not used), and only while the stop is not yet above entry ("until the stop is above
+entry"). The runner ends on that stop, its far broker target or the same 60-minute time exit (B2 / D6). 1 micro → the
+whole position exits at 2R (cannot trim half). `engine/gala_pa._follow_runner` decides the moves from the stored bars
+(live = backtest); `strategy_service.run_gala_pa` re-sends the chosen stop every minute (`GALA_CANDLE_TRAIL`); the
+order manager (`runner_stop`) moves leg B only after leg A really filled; no automatic break-even. Settings:
+`trim_at_target` (on, from the video), `runner_trail_after_entry` (off — **[GAP]** whether the stop keeps moving
+after it is above entry; on = every candle), `runner_target_r` 4 (**[GAP]** the bracket needs a target; the video
+gives none for the runner). When `stop_after_win` is off, a new entry waits until the runner is flat (max 1 position).
+**Not built:** D4 variants (20–30% trim on strong momentum, 80–100% after a losing first trade), D6 "runner only with
+big space to the next level" and ~10% runner size, D7, B5, C9 extra entry-distance filter, E5–E7 confidence /
+post-loss sizing. **Not back-tested:** GALA fires about 6 times in 2 years at the defaults (see
+docs/results/new_strategies/gala_funnel/RESULTS.md), far too few to measure the trim.
 **Config defaults (`# not from the video`):** pivot_lookback 3, trend_swing_lookback 2, history_sessions 5,
 use_open_level off, window 09:35–10:35, max_wick_through_pts 10, hammer_wick_body_mult 2, max_retest_bars 6,
 stop_buffer_ticks 1. From the video: skip_first_minutes 5, bounce_candles 2, target_r 2, max_hold 60, E1 2, E2 3, E3 on.

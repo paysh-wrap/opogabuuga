@@ -198,3 +198,30 @@ def test_processing_error_is_loud_not_silent(ready, clock, monkeypatch):
 
 def test_timedelta_sanity():
     assert int((AT - timedelta(minutes=2)).timestamp() * 1000) == MS - 2 * MIN
+
+
+def test_heartbeat_sends_strategy_stop_moves_with_the_bar_close(ready, clock, monkeypatch):
+    """D152: a GALA runner stop chosen by the replay reaches the controller with the heartbeat's close; a failure
+    is loud (notify) and the next minute sends it again."""
+    from app.signals import strategy_service
+
+    calls: list[tuple] = []
+    notes: list[tuple] = []
+    ctl = ready.app.state.controller
+
+    def run(*a, **k):
+        return strategy_service.StrategyOutput(stop_moves=[(7, D("19990"), "GALA_CANDLE_TRAIL")])
+
+    async def move(sid, px, why, last):
+        calls.append((sid, px, why, last))
+        if len(calls) > 1:
+            raise RuntimeError("broker down")
+        return 1
+
+    monkeypatch.setattr(strategy_service, "run", run)
+    monkeypatch.setattr(ctl, "strategy_stop_move", move)
+    monkeypatch.setattr(ctl, "notify", lambda *a, **k: notes.append(a))
+    hb(ready, clock, MS - 2 * MIN)
+    assert calls and calls[0][:3] == (7, D("19990"), "GALA_CANDLE_TRAIL") and calls[0][3] is not None
+    hb(ready, clock, MS - MIN)
+    assert len(calls) == 2 and any(n[1] == "Runner stop move failed - retrying" for n in notes)

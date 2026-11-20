@@ -416,6 +416,20 @@ class OrderManager:
         leg.stop = new
         return [Event("STOP_MOVED", t, f"{why} {new}")]
 
+    async def runner_stop(self, trade_id: str, price: Decimal, why: str, last: Decimal | None) -> list[Event]:
+        """D152 (GALA D5): after the first target leg (A) FILLED, move the runner's (leg B) stop to `price`.
+        Ratchet only (never further away, E4); skipped when `price` is not at least one tick behind the last price
+        (a stop is never placed at or through the market). Nothing happens before the trim or once closing."""
+        t = self.trades.get(trade_id)
+        if t is None or t.closing or not t.partial_done:
+            return []
+        b = next((x for x in t.legs if x.name == "B" and x.entry is not None and not x.closed), None)
+        if b is None:
+            return []
+        if last is not None and (last - price) * t.d.sign < t.tick:
+            return []
+        return await self._move_stop(t, b, price, why)
+
     async def _managed(self, t: OpenTrade, last: Decimal | None) -> list[Event]:
         """D85: break-even, profit lock and trailing stop for each open leg on its own (ratchet only)."""
         assert t.manage is not None and t.best is not None

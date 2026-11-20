@@ -719,6 +719,14 @@ class Controller:
                     plan = replace(plan, partial_price=tp1, breakeven_price=plan.entry + plan.direction.sign * cover)
                 else:
                     plan = replace(plan, take_profit=tp1, rr=(tp1 - plan.entry) * plan.direction.sign / plan.risk_pts)
+            gala_runner = (sig.features or {}).get("runner_target")
+            if strategy == "GALA_PA" and fixed >= 2 and gala_runner and r.strategy.gala_pa_cfg.trim_at_target:
+                # D152 (GALA D4/D5): leg A = ceil(n/2) at the 2R target, leg B runs to the far target; no automatic
+                # break-even (breakeven_price None): the engine's candle-by-candle stop moves leg B (strategy_stop_move)
+                guard_on = True
+                rt = Decimal(str(gala_runner))
+                plan = replace(plan, partial_price=plan.take_profit, take_profit=rt, breakeven_price=None,
+                               rr=(rt - plan.entry) * plan.direction.sign / plan.risk_pts)  # fmt: skip
             audit.record(
                 s, self.clock, actor, f"trade.{tag.lower()}_size", a.broker_account_id,
                 {"signal": sig.id, "risk_usd": str(risk_usd), "stop_pts": str(plan.risk_pts), "contracts": fixed,
@@ -1067,6 +1075,22 @@ class Controller:
                     await self._handle_events(s, await self.om.on_fill(f))
                 self._commit(s)
         return done
+
+    async def strategy_stop_move(self, signal_id: int, price: Decimal, reason: str, last: Decimal | None) -> int:
+        """D152 (GALA D5): move the runner's stop (leg B) of this signal's trades to the price the engine replay chose.
+        The order manager only acts after the first target leg really filled, ratchet only, never at or through the
+        last price; a failed broker modify flattens + pauses (§8). Returns how many stops moved."""
+        moved = 0
+        async with self.lock:
+            with self.sessionmaker() as s:
+                for t in [t for t in self.om.trades.values() if t.signal_id == signal_id and not t.closing]:
+                    ev = await self.om.runner_stop(t.trade_id, price, reason, last)
+                    moved += sum(1 for e in ev if e.kind == "STOP_MOVED")
+                    await self._handle_events(s, ev)
+                for f in self.adapter.drain_fills():
+                    await self._handle_events(s, await self.om.on_fill(f))
+                self._commit(s)
+        return moved
 
     def _exit_failed(self, s: Session, t: OpenTrade, reason: str, e: Exception) -> None:
         if t.trade_id in self._exit_alerted:

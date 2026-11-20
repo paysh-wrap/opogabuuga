@@ -18,6 +18,10 @@ it on every 1-minute close and get the same answer.
       break. Stop below the lowest wick of the retest candles (C6/D1).
       bounce (C7) / rejection (C8): `bounce_candles` consecutive candles, bodies on the right side, wicks through.
   exits (D1/D3): stop `stop_buffer_ticks` beyond the wick, target `target_r` R; time exit after max_hold_minutes (B2).
+  trim + trail (D4/D5, `trim_at_target`): with 2+ micros about half (ceil n/2) comes off at the 2R target; the rest
+      (the runner) moves its stop to the OPEN of each closed 5-minute candle (ratchet only, never at or through the
+      price) until the stop is above entry (`runner_trail_after_entry` keeps it moving after that); it ends on that
+      stop, the far `runner_target_r` broker target or the same time exit. 1 micro → the whole position exits at 2R.
   limits: E1 max attempts per setup (same level + side), E2 max trades a day, E3 a winner ends the day.
 
 Each signal's outcome is followed on later 1-minute bars (stop first when one bar touches both).
@@ -97,6 +101,15 @@ class GalaCfg(Protocol):
     @property
     def skip_news_first_hour(self) -> bool: ...
 
+    @property
+    def trim_at_target(self) -> bool: ...
+
+    @property
+    def runner_trail_after_entry(self) -> bool: ...
+
+    @property
+    def runner_target_r(self) -> Decimal: ...
+
 
 @dataclass(frozen=True)
 class GBar:
@@ -138,6 +151,23 @@ class Level:
 
 
 @dataclass
+class RunnerPath:
+    """D4/D5: what is left after the trim at the 2R target (accounts with 2+ micros)."""
+
+    trim_time: datetime  # the 1-minute close where the 2R target was reached
+    target: Decimal  # the runner's far broker take-profit (`runner_target_r`)
+    stops: list[tuple[datetime, Decimal]] = field(default_factory=list)  # (1-minute close of the move, new stop)
+    outcome: str | None = None  # STOP | TP | TIME | OPEN
+    exit_time: datetime | None = None
+    exit_price: Decimal | None = None
+
+    def stop_at(self, t: datetime) -> Decimal | None:
+        """The runner stop chosen at or before `t` (None while no move has happened yet)."""
+        done = [p for at, p in self.stops if at <= t]
+        return done[-1] if done else None
+
+
+@dataclass
 class GalaSignal:
     time: datetime  # entry candle close (a 1-minute close too)
     direction: Direction
@@ -149,13 +179,22 @@ class GalaSignal:
     stop_pts: Decimal
     rr: Decimal
     attempt: int
-    outcome: str | None = None  # TP | STOP | TIME | OPEN
+    outcome: str | None = None  # TP | STOP | TIME | OPEN — the first leg (the whole position with 1 micro)
     exit_time: datetime | None = None
     exit_price: Decimal | None = None
+    runner_target: Decimal | None = None  # D4/D5 on: the runner's far target (known at entry, for the order)
+    runner: RunnerPath | None = None  # D4/D5 on and the 2R target reached: the runner's path
 
     @property
     def won(self) -> bool:
         return self.exit_price is not None and (self.exit_price - self.entry) * self.direction.sign > 0
+
+    @property
+    def done_at(self) -> datetime | None:
+        """When the whole position is flat (the runner's exit when there is one); None while still running."""
+        if self.runner is not None:
+            return None if self.runner.outcome == "OPEN" else self.runner.exit_time
+        return None if self.outcome == "OPEN" else self.exit_time
 
 
 @dataclass
@@ -379,6 +418,55 @@ def _follow(sig: GalaSignal, bars: Sequence[GBar], hold_until: datetime, flat_at
             return
 
 
+def _follow_runner(
+    sig: GalaSignal,
+    bars: Sequence[GBar],
+    candles: Sequence[Candle],
+    hold_until: datetime,
+    flat_at: datetime,
+    tick: Decimal,
+    keep_trailing: bool,
+) -> RunnerPath:
+    """D4/D5 after the trim at the 2R target (sig.exit_time): at the trim and at every later 5-minute close the stop
+    moves to the OPEN of the last closed 5-minute candle — only if that is better (ratchet, E4), at least one tick
+    behind the 1-minute close (never at or through the price), and while the stop is not yet above entry (D5 "until
+    the stop is above entry"; `keep_trailing` keeps moving it). The runner exits on later bars only (stop first,
+    then its far target, then the B2 time limit)."""
+    assert sig.exit_time is not None and sig.runner_target is not None
+    s = sig.direction.sign
+    path = RunnerPath(sig.exit_time, sig.runner_target)
+    stop = sig.stop
+    opens = {c.end: c.o for c in candles}
+    last_open: Decimal | None = None
+    for b in bars:
+        if b.close_time < sig.exit_time:
+            if b.close_time in opens:
+                last_open = opens[b.close_time]
+            continue
+        if b.close_time > sig.exit_time:
+            if (b.l <= stop) if s > 0 else (b.h >= stop):
+                path.outcome, path.exit_time, path.exit_price = "STOP", b.close_time, stop
+                return path
+            if (b.h >= path.target) if s > 0 else (b.l <= path.target):
+                path.outcome, path.exit_time, path.exit_price = "TP", b.close_time, path.target
+                return path
+            if b.close_time >= min(hold_until, flat_at):
+                path.outcome, path.exit_time, path.exit_price = "TIME", b.close_time, b.c
+                return path
+        new_candle = b.close_time in opens
+        if new_candle:
+            last_open = opens[b.close_time]
+        if last_open is None or not (new_candle or b.close_time == sig.exit_time):
+            continue  # moves happen at the trim and at each 5-minute close only
+        if not keep_trailing and (stop - sig.entry) * s > 0:
+            continue  # D5: the stop is above entry — it stays there
+        if (last_open - stop) * s > 0 and (b.c - last_open) * s >= tick:
+            stop = last_open
+            path.stops.append((b.close_time, stop))
+    path.outcome = "OPEN"
+    return path
+
+
 def replay_day(
     history: Sequence[GBar], today: Sequence[GBar], cfg: GalaCfg, tick: Decimal, news_first_hour: bool = False
 ) -> DayReplay:
@@ -412,7 +500,8 @@ def replay_day(
     w0, w1 = _at(day, cfg.window_start), _at(day, cfg.window_end)  # B2
     flat = datetime.combine(day, RTH_CLOSE, tzinfo=ET)
     last = bars[-1].close_time
-    five = [c for c in aggregate(bars, 5, last) if c.end > skip_until]
+    closed5 = aggregate(bars, 5, last)
+    five = [c for c in closed5 if c.end > skip_until]
     free_after = skip_until
     attempts: dict[tuple[Decimal, int], int] = {}
     while len(out.signals) < cfg.max_trades_per_day:  # E2
@@ -435,14 +524,21 @@ def replay_day(
         sig = GalaSignal(
             c.end, direction, setup, level, entry, stop, tp, risk, (tp - entry) * sign / risk, attempts[(level, sign)]
         )
-        _follow(sig, bars, c.end + timedelta(minutes=cfg.max_hold_minutes), flat)
+        if cfg.trim_at_target:  # D4/D5: the runner's far broker target, known at entry
+            sig.runner_target = round_to_tick(entry + sign * cfg.runner_target_r * risk, tick, toward=entry)
+        hold_until = c.end + timedelta(minutes=cfg.max_hold_minutes)
+        _follow(sig, bars, hold_until, flat)
+        if sig.runner_target is not None and sig.outcome == "TP":
+            sig.runner = _follow_runner(sig, bars, closed5, hold_until, flat, tick, cfg.runner_trail_after_entry)
         out.signals.append(sig)
-        if sig.outcome == "OPEN" or sig.exit_time is None or sig.exit_price is None:
+        done = sig.done_at
+        if done is None or sig.exit_price is None:
             break  # still running at `now`
         if sig.won and cfg.stop_after_win:
             break  # E3 one and done
-        free_after = _et(sig.exit_time)
-        again = choose_setup(sign, sig.exit_price, levels)  # A8 again from where price is now
+        free_after = _et(done)
+        px = sig.runner.exit_price if sig.runner is not None and sig.runner.exit_price is not None else sig.exit_price
+        again = choose_setup(sign, px, levels)  # A8 again from where price is now
         if again is None:
             break
         setup, level = again

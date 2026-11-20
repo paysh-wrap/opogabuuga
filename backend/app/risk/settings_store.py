@@ -103,7 +103,14 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.gala_pa",  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md)
         *(
             f"strategy.gala_pa_cfg.{k}"
-            for k in ("use_open_level", "skip_news_first_hour", "stop_after_win", "one_account_per_trade")
+            for k in (
+                "use_open_level",
+                "skip_news_first_hour",
+                "stop_after_win",
+                "one_account_per_trade",
+                "trim_at_target",  # D152 D4/D5 half off at 2R + candle-by-candle runner stop
+                "runner_trail_after_entry",  # D152 D5 [GAP]
+            )
         ),
         *(
             f"strategy.jj_fpt_cfg.{k}"

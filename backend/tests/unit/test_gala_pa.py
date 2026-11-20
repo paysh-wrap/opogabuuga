@@ -250,8 +250,12 @@ def test_e3_a_winner_ends_the_day():
     win = [(117, 123, 117, 122.75), (116, 118, 114.5, 118), (117, 119, 114.5, 118.5)]  # TP, then a bounce off 115
     rep = G.replay_day(history(), today_break_retest(win), CFG, TICK)
     assert [s.outcome for s in rep.signals] == ["TP"]
-    rep = G.replay_day(history(), today_break_retest(win), replace_cfg(stop_after_win=False), TICK)
+    no_trim = replace_cfg(stop_after_win=False, trim_at_target=False)
+    rep = G.replay_day(history(), today_break_retest(win), no_trim, TICK)
     assert [s.setup for s in rep.signals] == ["BREAK_RETEST", "BOUNCE"]  # A8 re-picked from where price is
+    rep = G.replay_day(history(), today_break_retest(win), replace_cfg(stop_after_win=False), TICK)
+    [s] = rep.signals  # D152: the runner (stop 117 by 09:50) is flat at 09:51 — the bounce needed the 09:50 candle
+    assert s.runner is not None and s.runner.exit_time == _t(9, 51) and s.done_at == _t(9, 51)
 
 
 def test_e1_two_attempts_per_setup():
@@ -278,3 +282,89 @@ def test_replay_is_deterministic_bar_by_bar():
     assert G.replay_day(history(), [], CFG, TICK).skip == "GALA_NO_BARS"
     assert G.replay_day(history(), bars[1:], CFG, TICK).skip == "GALA_NO_OPEN"
     assert replace(full[0], exit_price=None).won is False
+
+
+# ---------------------------------------------------------------- D4 / D5 trim at 2R + candle-by-candle stop (D152)
+
+
+def _t(h, m):
+    return datetime(2026, 10, 13, h, m, tzinfo=G.ET)
+
+
+TREND_RUN = [  # after the 09:45 entry (117, stop 114.25, 2R 122.5, runner target 4R = 128)
+    (117, 123, 117, 122.75),  # 09:45–09:50: 2R reached at 09:47 → trim
+    (122.75, 124, 122, 123.5),  # 09:50–09:55
+    (123.5, 125, 123, 124.5),  # 09:55–10:00
+    (124.5, 124.5, 120, 121),  # 10:00–10:05: low 120 at 10:03
+]
+
+
+def test_d4_trim_at_2r_then_d5_stop_to_each_candle_open_until_above_entry():
+    [s] = G.replay_day(history(), today_break_retest(TREND_RUN), CFG, TICK).signals
+    assert (s.outcome, s.exit_time, s.exit_price) == ("TP", _t(9, 47), D("122.5"))  # leg A / 1 micro: all at 2R
+    r = s.runner
+    assert r is not None and s.runner_target == r.target == D(128)
+    # trim → last closed candle's open (116, the retest); 09:50 → 117 (= entry, not above yet); 09:55 → 122.75
+    assert r.stops == [(_t(9, 47), D(116)), (_t(9, 50), D(117)), (_t(9, 55), D("122.75"))]
+    assert (r.outcome, r.exit_time, r.exit_price) == ("STOP", _t(10, 3), D("122.75"))  # above entry: it stays (D5)
+    assert r.stop_at(_t(9, 46)) is None and r.stop_at(_t(9, 52)) == D(117) and s.done_at == _t(10, 3)
+
+
+def test_d5_gap_keep_trailing_after_entry():
+    keep = replace_cfg(runner_trail_after_entry=True)
+    [s] = G.replay_day(history(), today_break_retest(TREND_RUN), keep, TICK).signals
+    assert s.runner is not None and s.runner.stops[-1] == (_t(10, 0), D("123.5"))
+    assert (s.runner.outcome, s.runner.exit_price) == ("STOP", D("123.5"))
+
+
+def test_d5_a_candle_open_at_or_through_the_price_is_not_used():
+    red = [
+        (117, 123, 117, 122.75),  # trim 09:47 (stop 116), 09:50 → 117
+        (122.75, 123, 121, 121.5),  # red: its open is above the price → not a stop (stays 117)
+        (121.5, 122, 120, 121),  # red again → stays 117
+        (121, 122, 120.5, 121.75),  # green: open 121 is behind the close → stop 121 at 10:05
+        (121.75, 121.75, 119, 119.5),  # 10:08 low 119 → runner out at 121
+    ]
+    [s] = G.replay_day(history(), today_break_retest(red), CFG, TICK).signals
+    r = s.runner
+    assert r is not None
+    assert r.stops == [(_t(9, 47), D(116)), (_t(9, 50), D(117)), (_t(10, 5), D(121))]
+    assert (r.outcome, r.exit_time, r.exit_price) == ("STOP", _t(10, 8), D(121))
+
+
+def test_runner_far_target_and_time_exit():
+    up = [(117, 123, 117, 122.75), (122.75, 129, 122.75, 128.5)]
+    [s] = G.replay_day(history(), today_break_retest(up), CFG, TICK).signals
+    assert s.runner is not None and (s.runner.outcome, s.runner.exit_price) == ("TP", D(128))
+    flat = [(117, 123, 117, 122.75)] + [(122.75, 123, 122.5, 122.75)] * 12  # never stopped, never 4R
+    [s] = G.replay_day(history(), today_break_retest(flat), CFG, TICK).signals
+    assert s.runner is not None and (s.runner.outcome, s.runner.exit_time) == ("TIME", _t(10, 45))  # B2 60 min
+    assert s.runner.exit_price == D("122.75")
+
+
+def test_trim_off_is_the_single_2r_bracket_and_open_runner_is_open():
+    [s] = G.replay_day(history(), today_break_retest(TREND_RUN), replace_cfg(trim_at_target=False), TICK).signals
+    assert s.runner is None and s.runner_target is None and s.outcome == "TP" and s.done_at == _t(9, 47)
+    bars = today_break_retest(TREND_RUN)
+    [s] = G.replay_day(history(), [b for b in bars if b.close_time <= _t(9, 52)], CFG, TICK).signals
+    assert s.runner is not None and s.runner.outcome == "OPEN" and s.done_at is None
+    [s] = G.replay_day(history(), [b for b in bars if b.close_time <= _t(9, 46)], CFG, TICK).signals
+    assert s.outcome == "OPEN" and s.runner is None and s.done_at is None
+
+
+def test_runner_replay_bar_by_bar_equals_the_full_day():
+    bars = today_break_retest(TREND_RUN)
+    [full] = G.replay_day(history(), bars, CFG, TICK).signals
+    assert full.runner is not None
+    for b in bars:
+        if not (full.runner.trim_time <= b.close_time <= _t(10, 5)):
+            continue
+        [x] = G.replay_day(history(), [y for y in bars if y.close_time <= b.close_time], CFG, TICK).signals
+        assert x.runner is not None
+        assert x.runner.stops == [m for m in full.runner.stops if m[0] <= b.close_time]  # live = backtest
+
+
+def test_runner_target_must_be_beyond_the_trim():
+    with pytest.raises(ValueError):
+        GalaPaCfg(runner_target_r=D(2))
+    assert GalaPaCfg().trim_at_target is True and GalaPaCfg().runner_trail_after_entry is False

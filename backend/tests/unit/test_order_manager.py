@@ -529,3 +529,39 @@ async def test_hold_and_trail_rules_are_read_live_from_the_rules_holder(env):
     rules.behavior = SimpleNamespace(min_hold_seconds=D("7.5"))  # the user saves 7.5 s on the Risk page
     ev = await om.strategy_exit(t.trade_id, "NOISE_TRAIL", AT + timedelta(seconds=8))
     assert ev is not None and [e.detail for e in ev] == ["NOISE_TRAIL"]
+
+
+async def test_gala_runner_stop_after_the_trim_only_ratchet_and_behind_the_price(env):
+    """D152 (GALA D4/D5): leg A at 2R, leg B to the far target; no automatic break-even or trail — the engine's
+    candle-by-candle stop moves leg B, and only once leg A really filled."""
+    from app.engine.trade_plan import TradePlan
+
+    sim, om, _ = env
+    plan = TradePlan(Direction.LONG, D(20000), D(19990), D(20040), D(10), D(4), partial_price=D(20020), mode="GALA_PA")
+    t, _ = await opened(sim, om, plan, 3, True)
+    assert [(leg.name, leg.qty, leg.take_profit) for leg in t.legs] == [("A", 2, D(20020)), ("B", 1, D(20040))]
+    assert await om.runner_stop(t.trade_id, D(19995), "GALA_CANDLE_TRAIL", D(20010)) == []  # before the trim
+    ev = await pump(sim, om, 20010, 20021, 20008, 20019)  # leg A takes 2R
+    assert t.partial_done and not [e for e in ev if e.kind == "STOP_MOVED"]  # breakeven_price None: nothing moves
+    ev = await om.runner_stop(t.trade_id, D(20005), "GALA_CANDLE_TRAIL", D(20019))
+    assert [e.kind for e in ev] == ["STOP_MOVED"] and t.legs[1].stop == D(20005)
+    assert await om.runner_stop(t.trade_id, D(20003), "GALA_CANDLE_TRAIL", D(20019)) == []  # ratchet only
+    assert await om.runner_stop(t.trade_id, D(20019), "GALA_CANDLE_TRAIL", D(20019)) == []  # at the price
+    assert await om.runner_stop(t.trade_id, D("20019.5"), "GALA_CANDLE_TRAIL", D(20019)) == []  # through it
+    assert await om.runner_stop("missing", D(20010), "GALA_CANDLE_TRAIL", None) == []
+    ev = await pump(sim, om, 20019, 20020, 20004, 20006)  # runner stopped at 20005
+    assert [e.kind for e in ev if e.kind == "CLOSED"] and t.pnl() == D(2) * 20 / T * TV + D(5) / T * TV - D(3)
+    assert await om.runner_stop(t.trade_id, D(20010), "GALA_CANDLE_TRAIL", None) == []  # closed
+
+
+async def test_gala_runner_stop_skipped_without_runner_or_while_closing(env):
+    from app.engine.trade_plan import TradePlan
+
+    sim, om, _ = env
+    plan = TradePlan(Direction.LONG, D(20000), D(19990), D(20040), D(10), D(4), partial_price=D(20020), mode="GALA_PA")
+    t, _ = await opened(sim, om, plan, 2, True)
+    t.partial_done = True
+    t.legs[1].closed = True  # no open runner
+    assert await om.runner_stop(t.trade_id, D(20005), "GALA_CANDLE_TRAIL", D(20019)) == []
+    t.legs[1].closed, t.closing = False, "FLATTEN"
+    assert await om.runner_stop(t.trade_id, D(20005), "GALA_CANDLE_TRAIL", D(20019)) == []

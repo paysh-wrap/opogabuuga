@@ -96,6 +96,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                 )
 
         exits: list[tuple[int, str]] = []
+        stop_moves: list[tuple[int, Any, str]] = []  # D152 GALA runner stops (signal_id, price, reason)
         try:
             updates: list[SignalUpdate] = []
             if p.event == "ORDER_FLOW":
@@ -104,6 +105,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                 strat = await _run_sync(st, strategies)
                 updates = [*updates, *strat.updates]
                 exits = strat.exits
+                stop_moves = strat.stop_moves
         except Exception as e:  # §1.9: never silent — log + banner; entries stay blocked because nothing passed
             log.error("signal.process_failed", key=key, error=type(e).__name__, detail=str(e)[:300])
             await st.hub.broadcast(
@@ -130,6 +132,13 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
             ctl.notify("error", "Strategy exit failed - retrying", f"signal {sid}: {type(e).__name__}", "exit")
             continue
         await st.hub.broadcast("order.updated", {"signal": sid, "exit": why, "trades": n})
+    last_px = p.price.c if p.price is not None else None
+    for sid, px, why in stop_moves:  # D152: GALA runner stop, candle by candle (ratchet, after the trim only)
+        try:
+            await ctl.strategy_stop_move(sid, px, why, last_px)
+        except Exception as e:  # never silent; the replay sends the same stop again on the next minute
+            log.error("strategy.stop_move_failed", signal=sid, error=type(e).__name__)
+            ctl.notify("error", "Runner stop move failed - retrying", f"signal {sid}: {type(e).__name__}", "exit")
     if p.event == "HEARTBEAT" and p.price is not None:
         from app.monitor.feed import bar_lag_s, data_feed_status
 

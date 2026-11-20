@@ -13,7 +13,7 @@ from app.engine.filters import NewsEvent
 from app.engine.trade_plan import Direction
 from app.models import AuditLog, Bar, Signal, TradePlanRow
 from app.signals import strategy_service as SS
-from tests.unit.test_gala_pa import history, today_break_retest
+from tests.unit.test_gala_pa import TREND_RUN, history, today_break_retest
 
 AT = datetime(2026, 10, 13, 13, 45, tzinfo=UTC)  # Tue 09:45 ET: the retest candle closes
 
@@ -86,11 +86,12 @@ def _setup_accounts(authed, clock, stages):
     return st, ids
 
 
-def _signal(st, stop_pts, tag):
+def _signal(st, stop_pts, tag, runner=False):
+    feat = {"setup": "BREAK_RETEST", **({"runner_target": str(D(20000) + 4 * stop_pts)} if runner else {})}
     with st.sessionmaker() as s:
         sig = SS._new_signal(
             s, FixedClock(AT), symbol="MNQ", key=f"MNQ-GALA-2026-10-13-0945-{tag}", direction=Direction.LONG, at=AT,
-            gate=(True, "OK", ""), features={"setup": "BREAK_RETEST"},
+            gate=(True, "OK", ""), features=feat,
             plan=("GALA_PA", D(20000), D(20000) - stop_pts, D(20000) + 2 * stop_pts, stop_pts, D(2)),
         )  # fmt: skip
         s.commit()
@@ -143,3 +144,76 @@ def test_pro_plan_fit_table(k, stage, risk, n10, n20):
     # worst day = 3 losses ≤ DLL x 0.9, ≤ MLL room − kill distance, ≤ the consistency day stop
     assert 3 * got <= (sr.dll or got * 3) * D("0.9") + D("0.01") and 3 * got <= sr.max_loss - i.kill_switch_mll_distance
     assert (str(got), n) == (risk, [n10, n20])
+
+
+# ---------------------------------------------------------------- D152: GALA D4/D5 trim at 2R + candle-by-candle runner
+
+
+def test_runner_stop_is_sent_every_minute_after_the_trim(db, loaded_rules):
+    rules = _rules(loaded_rules)
+    m = lambda k: AT + timedelta(minutes=k)  # noqa: E731  (AT = 09:45 ET, the entry)
+    with db() as s:
+        for b in history() + today_break_retest(TREND_RUN):
+            s.add(Bar(symbol="MNQ", tf="1", close_time=b.close_time.astimezone(UTC), o=b.o, h=b.h, l=b.l, c=b.c,
+                      v=D(100), source="tv"))  # fmt: skip
+        s.commit()
+        sig_id = _run(s, rules, AT).updates[0].signal_id
+        assert D(s.get(Signal, sig_id).features["runner_target"]) == D(128)  # 4R, for the order's runner leg
+        assert _run(s, rules, m(1)).stop_moves == []  # before the trim (2R at 09:47)
+        assert _run(s, rules, m(2)).stop_moves == [(sig_id, D(116), "GALA_CANDLE_TRAIL")]  # trim: last candle open
+        assert _run(s, rules, m(3)).stop_moves == [(sig_id, D(116), "GALA_CANDLE_TRAIL")]  # re-sent (ratchet no-op)
+        assert _run(s, rules, m(5)).stop_moves == [(sig_id, D(117), "GALA_CANDLE_TRAIL")]
+        assert _run(s, rules, m(17)).stop_moves == [(sig_id, D("122.75"), "GALA_CANDLE_TRAIL")]
+        assert _run(s, rules, m(18)).stop_moves == []  # 10:03 the runner is stopped out: nothing more to move
+        off = _rules(loaded_rules, trim_at_target=False)
+        assert _run(s, off, m(5)).stop_moves == []
+
+
+def test_runner_time_exit_is_sent(db, loaded_rules):
+    rules = _rules(loaded_rules)
+    flat = [(117, 123, 117, 122.75)] + [(122.75, 123, 122.5, 122.75)] * 12
+    with db() as s:
+        for b in history() + today_break_retest(flat):
+            s.add(Bar(symbol="MNQ", tf="1", close_time=b.close_time.astimezone(UTC), o=b.o, h=b.h, l=b.l, c=b.c,
+                      v=D(100), source="tv"))  # fmt: skip
+        s.commit()
+        sig_id = _run(s, rules, AT).updates[0].signal_id
+        assert _run(s, rules, AT + timedelta(minutes=60)).exits == [(sig_id, "GALA_TIME_EXIT")]  # B2 / D6
+
+
+def test_controller_trim_split_then_runner_stop_moves(authed, clock):
+    st, ids = _setup_accounts(authed, clock, ["EVAL"])
+    ctl = st.controller
+    ctl.adapter.sim.last["MNQ"] = D(20000)
+    sid = _signal(st, D(10), "trim", runner=True)
+    assert [r.reason for r in asyncio.run(ctl.execute(sid, "automation", only=ids))] == [None]
+    [t] = list(ctl.om.trades.values())
+    assert t.guard_on and t.plan.breakeven_price is None and t.plan.partial_price == D(20020)
+    assert [(x.name, x.qty, x.take_profit) for x in t.legs] == [("A", 4, D(20020)), ("B", 3, D(20040))]  # 7 micros
+    assert asyncio.run(ctl.strategy_stop_move(sid, D(20005), "GALA_CANDLE_TRAIL", D(20010))) == 0  # no trim yet
+    entry = t.legs[0].entry
+    asyncio.run(ctl.on_bar("MNQ", entry, D(20021), entry, D(20019), clock.now()))  # leg A fills at 2R
+    assert t.partial_done and t.legs[1].stop == t.plan.stop  # no automatic break-even
+    assert asyncio.run(ctl.strategy_stop_move(sid, D(20005), "GALA_CANDLE_TRAIL", D(20019))) == 1
+    assert asyncio.run(ctl.strategy_stop_move(sid, D(20004), "GALA_CANDLE_TRAIL", D(20019))) == 0  # ratchet only
+    assert t.legs[1].stop == D(20005)
+    with st.sessionmaker() as s:
+        moved = [x.payload["detail"] for x in s.query(AuditLog).filter_by(action="trade.stop_moved")]
+    assert moved == ["GALA_CANDLE_TRAIL 20005"]
+
+
+def test_controller_one_micro_or_trim_off_is_the_single_2r_bracket(authed, clock):
+    st, ids = _setup_accounts(authed, clock, ["EVAL", "EVAL"])
+    ctl = st.controller
+    ctl.adapter.sim.last["MNQ"] = D(20000)
+    one = _signal(st, D(60), "one", runner=True)
+    asyncio.run(ctl.execute(one, "automation", only=ids))  # $158.33 fits 1 micro at 60 pt
+    [t] = [x for x in ctl.om.trades.values() if x.signal_id == one]
+    assert not t.guard_on and [(x.name, x.qty, x.take_profit) for x in t.legs] == [("ONLY", 1, D(20120))]
+    h = ctl.rules
+    g = h.rules.strategy.gala_pa_cfg.model_copy(update={"trim_at_target": False})
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update={"gala_pa_cfg": g})})
+    off = _signal(st, D(10), "off", runner=True)
+    asyncio.run(ctl.execute(off, "automation", only=ids))  # the other (free) account
+    [t] = [x for x in ctl.om.trades.values() if x.signal_id == off]
+    assert sum(x.qty for x in t.legs) == 7 and {x.take_profit for x in t.legs} == {D(20020)}  # all at 2R

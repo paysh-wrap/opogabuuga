@@ -768,6 +768,9 @@ class GalaPaCfg(_M):
     max_trades_per_day: int = Field(default=3, ge=1, le=3)  # E2 [GAP] 2–3
     stop_after_win: bool = True  # E3
     skip_news_first_hour: bool = True  # A9
+    trim_at_target: bool = True  # D4/D5 (D152): 2+ micros → ceil(n/2) off at 2R, the runner trails candle by candle
+    runner_trail_after_entry: bool = False  # D5 [GAP] False = stop moving once above entry  # not from the video
+    runner_target_r: D = Field(default=D("4"), gt=D("2"), le=D("10"))  # D6 [GAP] runner target  # not from the video
     risk_pct_of_drawdown: D = Field(default=D("0.25"), gt=D(0), le=D("0.5"))  # Lucid fit (D144)  # not from the video
     dll_use_pct: D = Field(default=D("0.9"), gt=D(0), le=D(1))  # Lucid fit: share of the DLL left 3 losses may use
     one_account_per_trade: bool = True  # D144: one free account per trade, no copy trading
@@ -779,6 +782,8 @@ class GalaPaCfg(_M):
         h1, m1 = (int(x) for x in self.window_end.split(":"))
         if not (9 * 60 + 30 <= h0 * 60 + m0 < h1 * 60 + m1 <= 16 * 60):
             raise ValueError("gala_pa_cfg: 09:30 <= window_start < window_end <= 16:00")
+        if self.runner_target_r <= self.target_r:
+            raise ValueError("gala_pa_cfg: runner_target_r must be beyond target_r (the runner runs past the trim)")
         return self
 
 

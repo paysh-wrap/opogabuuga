@@ -595,8 +595,15 @@ def gala_rules(r: Any) -> list[dict[str, object]]:
         {
             "key": "STOP / TARGET",
             "on": True,
-            "rule": f"{c.stop_buffer_ticks}* tick past the lowest / highest wick (D1); "
-            f"target {c.target_r}R (D3); trim / stop-move (D4/D5) NOT built — single bracket",
+            "rule": f"{c.stop_buffer_ticks}* tick past the lowest / highest wick (D1); target {c.target_r}R (D3)",
+        },
+        {
+            "key": "TRIM + TRAIL",
+            "on": c.trim_at_target,
+            "rule": f"2+ micros: about half off at {c.target_r}R (D4), then the stop moves to each closed 5-min "
+            "candle's open "
+            + ("every candle*" if c.runner_trail_after_entry else "until it is above entry")
+            + f" (D5); runner target {c.runner_target_r}R*, same time exit; 1 micro: all off at {c.target_r}R",
         },
         {
             "key": "LIMITS",
