@@ -78,6 +78,12 @@ for (const [name, path] of PAGES) {
   await page.waitForTimeout(1500);
   const h = await page.evaluate(() => document.documentElement.scrollHeight);
   await page.screenshot({ path: join(OUT, `${name}.jpg`), fullPage: true, type: "jpeg", quality: 85 });
+  if (h > 4000) { // chat apps cap images at 8000 px: also save ≤ 3,900 px (7,800 px at 2×) slices
+    for (let k = 0, y = 0; y < h; k++, y += 3900) {
+      await page.screenshot({ path: join(OUT, `${name}_part${k + 1}.jpg`), fullPage: true, type: "jpeg", quality: 85,
+        clip: { x: 0, y, width: WIDTH, height: Math.min(3900, h - y) } });
+    }
+  }
   console.log(`  saved ${name}.jpg (${h}px tall)`);
 }
 if (errors.length) console.log(`  page errors: ${errors.length}\n    ${errors.slice(0, 5).join("\n    ")}`);
