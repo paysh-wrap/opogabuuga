@@ -626,3 +626,9 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - $100-stop study (docs/results/pass_faster_100; 25K/50K NOISE 2 + CANDACE 1, 100K/150K NOISE 4 + CANDACE 2): $100 stop cuts NOISE win
   rate 51 → 43 % (PF ≈ same, net/micro −9 %). Every NOISE+CANDACE row fails (stuck +5…+27 pts). NOISE-4@$100 alone technically passes the
   rule on 100K/150K (only via "passed within 60 days"; pass % 45 vs 78 and 70 vs 77, many accounts still running) → not built.
+- Session 24 end (user "FINISH"): fastest-pass searches (50K floor 59 %, 150K floor 70 %) and two research agents (sizing maths,
+  intraday edges) STOPPED unfinished; partial search scripts in docs/results/pass_fastest_wip/ (no results). Done research notes:
+  docs/results/research_notes/Passing Lucid evaluations faster/ (Moltbook: nothing usable; eval tactics: third parties say the
+  LucidPro EVAL has NO consistency rule → our 38 % day stop may slow evals; USER MUST VERIFY with Lucid before any change).
+  Moltbook agent "eval_pass_researcher" registered (pending claim; key only in the session scratchpad); help post NOT made; draft
+  docs/results/moltbook/POST_DRAFT.md. Next: verify the consistency rule, then rerun the fastest-pass search (scripts above).
