@@ -953,7 +953,6 @@ class FastPassCfg(_M):
     fixed `candace_contracts`. Brakes are LISTS of steps per strategy (`noise_steps`, `candace_steps`); the smallest
     applicable step wins (cushion <= step, < when brake_inclusive is false). The old single-step fields
     (`brake_cushion_usd` + `noise_brake_contracts` / `candace_brake_contracts`) still work and convert to one step.
-    `day_lock_pct` (NOISE, EVAL): stop for the day once today's profit >= x * remaining eval target (like D66).
     Every check runs after this (shrink / skip only)."""
 
     account_size: D = Field(gt=D(0))
@@ -966,7 +965,6 @@ class FastPassCfg(_M):
     candace_brake_contracts: int | None = Field(default=None, ge=1)
     noise_steps: tuple[FastPassStep, ...] = ()
     candace_steps: tuple[FastPassStep, ...] = ()
-    day_lock_pct: D | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -988,8 +986,6 @@ class FastPassCfg(_M):
             ordered = sorted(steps, key=lambda x: x.cushion_usd)
             if any(b.contracts < a.contracts for a, b in zip(ordered, ordered[1:], strict=False)):
                 raise ValueError("fast_pass cfg: a higher cushion step must not trade fewer contracts than a lower one")
-        if self.day_lock_pct is not None and not (D(0) < self.day_lock_pct <= D(1)):
-            raise ValueError("fast_pass cfg: 0 < day_lock_pct <= 1")
         return self
 
 

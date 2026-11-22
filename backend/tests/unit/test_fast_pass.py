@@ -7,13 +7,13 @@ from decimal import Decimal as D
 import pytest
 
 from app.config import FastPassCfg, StrategyCfg, load_rules
-from app.risk.fast_pass import FastPassSize, fast_pass_day_lock, fast_pass_size, plan_fast_pass
+from app.risk.fast_pass import FastPassSize, fast_pass_size, plan_fast_pass
 from tests.conftest import REPO_ROOT
 
 CFG = FastPassCfg(
     account_size=D(150000), noise_contracts=5, noise_stop_usd=D(100), candace_contracts=4, brake_inclusive=False,
     noise_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 1500, "contracts": 1}],
-    candace_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 900, "contracts": 1}], day_lock_pct=D("0.5"),
+    candace_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 900, "contracts": 1}],
 )  # fmt: skip
 CFG25 = FastPassCfg(
     account_size=D(25000), noise_contracts=1, noise_stop_usd=D(75), candace_contracts=2, brake_inclusive=False,
@@ -88,22 +88,10 @@ def test_cfg_validation():
         )
     for bad in (
         {"noise_contracts": 0}, {"noise_stop_usd": 0}, {"brake_cushion_usd": -1}, {"account_size": 0},
-        {"day_lock_pct": 0}, {"day_lock_pct": 1.5},
     ):  # fmt: skip
         with pytest.raises(ValueError):
             FastPassCfg.model_validate({**CFG.model_dump(), **bad})
     assert StrategyCfg().fast_pass_150k is False and StrategyCfg().fast_pass_150k_cfg is None
-
-
-def test_day_lock():
-    n = FastPassSize(5, D(100), False)
-    lock = fast_pass_day_lock
-    assert lock(CFG, n, "NOISE", D(500), D(1000))  # exactly 50 %
-    assert not lock(CFG, n, "NOISE", D(499), D(1000))
-    assert not lock(CFG, n, "NOISE", D(0), D(1000)) and not lock(CFG, n, "NOISE", D(10), D(0))
-    assert not lock(CFG, n, "CANDACE_ICT", D(900), D(1000))  # NOISE only
-    assert not lock(CFG, None, "NOISE", D(900), D(1000))  # no fast-pass size (not EVAL / off)
-    assert not lock(None, n, "NOISE", D(900), D(1000)) and not lock(CFG25, n, "NOISE", D(900), D(1000))
 
 
 @pytest.mark.parametrize(

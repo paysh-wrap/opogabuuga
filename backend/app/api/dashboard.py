@@ -1106,7 +1106,6 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
         def steps_text(steps: Any, op: str = op) -> str:
             return ", ".join(f"{op} ${x.cushion_usd:,.0f}: {x.contracts}" for x in steps) or "no brake"
 
-        lock = f"; NOISE day lock at {fp.day_lock_pct * 100:.0f} % of the remaining target" if fp.day_lock_pct else ""
         out.append(
             {
                 "key": fk,
@@ -1114,12 +1113,11 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",
                 "value": fon,
                 "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd:,.0f} stop (cushion {steps_text(fp.noise_steps)})"
-                f" · CANDACE {fp.candace_contracts} (cushion {steps_text(fp.candace_steps)}){lock}",
+                f" · CANDACE {fp.candace_contracts} (cushion {steps_text(fp.candace_steps)})",
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
                 "consistency, hedge lock, news/flat) still shrinks or skips. "
-                "Numbers and pass figures: docs/results/pass_fastest/passfloor/RESULTS.md (not repeated here). "
-                "Optional: the NOISE 80 pt lock toggle (noise_lock_alt) is separate and global.",
+                "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans, beat109, passfloor RESULTS.md; not repeated here).",
             }
         )
     if st.eval_size_caps:
