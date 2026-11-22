@@ -55,7 +55,8 @@ async def run_bias(
 ) -> dict[str, str]:
     """TradingAgents (backbone) per proxy, then the D53 blend with Vibe-Trading (optional, can only unblock).
     `only` limits the run to these proxies (D109: the Order Flow advisor reuses this job for its own markets).
-    `refresh` (D160, AR pre-session runs) re-runs a proxy that already has a call today; a failed re-run keeps the old call."""
+    `refresh` (D160, AR pre-session runs) re-runs a proxy that already has a call today; a failed re-run keeps the old
+    call."""
     cred = s.execute(select(ApiCredential).where(ApiCredential.provider == "tradingagents")).scalar_one_or_none()
     vcred = s.execute(select(ApiCredential).where(ApiCredential.provider == "vibetrading")).scalar_one_or_none()
     out: dict[str, str] = {}

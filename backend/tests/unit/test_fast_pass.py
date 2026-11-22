@@ -123,6 +123,8 @@ def test_ar_side_by_side_cap_is_half_of_noise_and_tighten_only():
     assert ar_side_cap(1, FastPassSize(4, D(100), False)) == 1  # never raises
     assert ar_side_cap(2, FastPassSize(1, D(75), False)) == 1  # half of 1 → floor, at least 1
     st = load_rules(REPO_ROOT / "config" / "rules" / "lucid_pro_25k.yaml").rules.strategy
-    on = st.model_copy(update={"order_flow": True, "order_flow_cfg": st.order_flow_cfg.model_copy(update={"ar_side_by_side": True})})
+    on = st.model_copy(
+        update={"order_flow": True, "order_flow_cfg": st.order_flow_cfg.model_copy(update={"ar_side_by_side": True})}
+    )
     assert ar_side_by_side(on, None) and ar_side_by_side(on, {}) and not ar_side_by_side(on, {"zone": {}})
     assert not ar_side_by_side(st, None)  # default OFF

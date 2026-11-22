@@ -183,3 +183,23 @@ test("ORDER FLOW · AUCTION (IMRE) card lists its rules, says delta is estimated
   await userEvent.click(screen.getByRole("button", { name: /ORDER FLOW · AUCTION/ }));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.order_flow_cfg.auction.enabled":true'))).toBe(true));
 });
+
+test("Order Flow card: AR beside NOISE toggle, pre-session bias runs, NO_CALL and the estimated-data label", async () => {
+  const of = { key: "order_flow", name: "Order Flow", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: true, setting: "strategy.order_flow",
+    ar_side_by_side: { setting: "strategy.order_flow_cfg.ar_side_by_side", enabled: false, data_source: "ESTIMATED delta (online data)", evidence: "No edge shown on estimated data: UNVERIFIED, paper first. Evidence: docs/results/new_strategies and docs/results/session22.", verified: false, advisor_mode: "ADVISORY", session: "2026-11-23",
+      runs: [{ minutes_before: 240, at: "05:30", results: [{ symbol: "MNQ", status: "OK", side: "SHORT", rating: "Sell", prob_up: 0.45, prob_down: 0.55 }] }, { minutes_before: 60, at: "08:30", results: [{ symbol: "MNQ", status: "NO_CALL", reason: "AI key not connected" }] }, { minutes_before: 30, at: "09:00", results: [{ symbol: "MNQ", status: "PENDING" }] }] } };
+  const calls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, of] } : {}));
+  });
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  await screen.findByTestId("ar-sbs");
+  expect(screen.getByTestId("ar-sbs-source")).toHaveTextContent("ESTIMATED delta (online data)");
+  expect(screen.getByTestId("ar-sbs-source")).toHaveTextContent("4 h before (05:30 ET), 1 h before (08:30 ET), 30 min before (09:00 ET)");
+  expect(screen.getByTestId("ar-sbs-runs")).toHaveTextContent("MNQ SHORT (Sell) up 45% / down 55%");
+  expect(screen.getByTestId("ar-sbs-runs")).toHaveTextContent("NO_CALL — AI key not connected");
+  expect(screen.getByTestId("ar-sbs-evidence")).toHaveTextContent("session22");
+  await userEvent.click(screen.getByTestId("ar-sbs-toggle"));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.order_flow_cfg.ar_side_by_side":true'))).toBe(true));
+});

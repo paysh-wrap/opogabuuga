@@ -59,14 +59,16 @@ def test_on_opposite_direction_is_skipped_by_hedge_lock(authed, clock):
     st, (a, b) = _two(authed, clock, ar_side_by_side=True)
     assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
     short = (D(20000), D(20020), D(19900), D(20), D(5))
-    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1", Direction.SHORT, short), "automation", only=[a, b]))
+    res = asyncio.run(
+        st.controller.execute(_sig(st, "ORDER_FLOW", "O1", Direction.SHORT, short), "automation", only=[a, b])
+    )
     assert not any(r.ok for r in res) and any(r.reason == "HEDGE_LOCK" for r in res), res
 
 
 def test_ar_size_is_capped_at_half_of_the_noise_fast_pass_size(authed, clock):
     from app.config import FastPassCfg
 
-    st, (a, b) = _two(authed, clock, ar_side_by_side=True, contracts=4)
+    st, (a, _b) = _two(authed, clock, ar_side_by_side=True, contracts=4)
     fp = FastPassCfg(
         account_size=D(25000), noise_contracts=2, noise_stop_usd=D(75), candace_contracts=2,
         brake_cushion_usd=D(333), brake_inclusive=False, candace_brake_contracts=1,
@@ -104,7 +106,13 @@ def _et(h, m):  # Monday 2026-10-12 is EDT (UTC-4)
 def test_run_times_and_due(loaded_rules):
     r = _rules(loaded_rules)
     assert not ARP.enabled(r)  # default OFF
-    r = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow_cfg": r.strategy.order_flow_cfg.model_copy(update={"ar_side_by_side": True})})})
+    r = r.model_copy(
+        update={
+            "strategy": r.strategy.model_copy(
+                update={"order_flow_cfg": r.strategy.order_flow_cfg.model_copy(update={"ar_side_by_side": True})}
+            )
+        }
+    )
     assert ARP.enabled(r)
     assert ARP.run_times(r) == [(240, "05:30"), (60, "08:30"), (30, "09:00")]  # session start 09:30 (test window)
     d = MON.date()
@@ -112,7 +120,11 @@ def test_run_times_and_due(loaded_rules):
     assert not ARP.due(_et(5, 31), r, 240, d.isoformat(), d)  # once per session and run
     assert not ARP.due(_et(9, 31), r, 30, None, d)  # never after the session start
     assert not ARP.due(_et(9, 0), r, 45, None, d)  # unknown run
-    off = r.model_copy(update={"strategy": r.strategy.model_copy(update={"advisor": r.strategy.advisor.model_copy(update={"mode": "OFF"})})})
+    off = r.model_copy(
+        update={
+            "strategy": r.strategy.model_copy(update={"advisor": r.strategy.advisor.model_copy(update={"mode": "OFF"})})
+        }
+    )
     assert not ARP.enabled(off)
 
 
@@ -151,10 +163,13 @@ def test_scheduler_runs_three_times_stores_probabilities_and_card(authed, clock)
         assert s.query(BiasDecision).count() == 3
         rows = s.query(AuditLog).filter_by(action=ARP.ACTION).all()
         assert len(rows) == 3 and all(x.payload["status"] == "OK" and x.payload["side"] == "SHORT" for x in rows)
-        print([x.payload for x in rows])
         assert all(0 < x.payload["prob_down"] < 1 and x.payload["prob_up"] < 0.5 for x in rows)
-    card = next(c for c in authed.get("/api/strategies").json()["strategies"] if c["key"] == "order_flow")["ar_side_by_side"]
-    assert card["enabled"] is True and card["data_source"] == "ESTIMATED delta (online data)" and card["verified"] is False
+    card = next(c for c in authed.get("/api/strategies").json()["strategies"] if c["key"] == "order_flow")[
+        "ar_side_by_side"
+    ]
+    assert (
+        card["enabled"] is True and card["data_source"] == "ESTIMATED delta (online data)" and card["verified"] is False
+    )
     assert [r["minutes_before"] for r in card["runs"]] == [240, 60, 30]
     assert card["runs"][0]["results"][0]["status"] == "OK" and "session22" in card["evidence"]
     assert card["setting"] == "strategy.order_flow_cfg.ar_side_by_side"
@@ -170,8 +185,13 @@ def test_no_key_records_no_call(authed, clock):
         asyncio.run(_ar_pre_session(authed.app, s, clock.now()))
         row = s.query(AuditLog).filter_by(action=ARP.ACTION).one()
         assert row.payload["status"] == "NO_CALL" and row.payload["reason"] == "AI key not connected"
-    card = next(c for c in authed.get("/api/strategies").json()["strategies"] if c["key"] == "order_flow")["ar_side_by_side"]
-    assert card["runs"][1]["results"][0]["reason"] == "AI key not connected" and card["runs"][0]["results"][0]["status"] == "PENDING"
+    card = next(c for c in authed.get("/api/strategies").json()["strategies"] if c["key"] == "order_flow")[
+        "ar_side_by_side"
+    ]
+    assert (
+        card["runs"][1]["results"][0]["reason"] == "AI key not connected"
+        and card["runs"][0]["results"][0]["status"] == "PENDING"
+    )
 
 
 def test_crash_is_no_call_and_notifies(authed, clock, monkeypatch):

@@ -76,7 +76,7 @@ def record_run(s: Session, rules: Any, clock: Any, sess: date, minutes: int, fai
         side = SIDE.get(row.mapped) if row is not None and failed is None else None
         p: float | None = None
         if side is not None and row is not None:
-            ta, vd, vc = L.parse_label(row.raw_rating)
+            ta, vd, vc = L.parse_label(row.raw_rating.upper())  # the stored rating is title case ("Sell")
             p = combine(ta, vd, vc, Policy(bias_matters=True)).prob_up
         reason = None
         if side is None:
