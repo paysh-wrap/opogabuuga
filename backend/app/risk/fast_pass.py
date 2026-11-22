@@ -43,10 +43,32 @@ def fast_pass_size(
     if strategy not in FAST_PASS_STRATEGIES:
         return None
     if strategy == "NOISE":
-        n, braked = _step_size(cfg, cfg.noise_steps, cfg.noise_contracts, cushion)
+        n, braked = _step_size(cfg, cfg.noise_steps, _noise_base(cfg, cushion), cushion)
         return FastPassSize(n, cfg.noise_stop_usd, braked)
     n, braked = _step_size(cfg, cfg.candace_steps, cfg.candace_contracts, cushion)
     return FastPassSize(n, None, braked)
+
+
+def _noise_base(cfg: FastPassCfg, cushion: Decimal) -> int:
+    """D162 grow (study definition, NOISE only): +1 micro per `noise_grow_per` of cushion beyond the first, capped."""
+    if cfg.noise_grow_per is None or cfg.noise_max_contracts is None:
+        return cfg.noise_contracts
+    extra = int(cushion // cfg.noise_grow_per) - 1
+    return min(cfg.noise_max_contracts, cfg.noise_contracts + extra) if extra > 0 else cfg.noise_contracts
+
+
+def fast_pass_day_locked(cfg: FastPassCfg | None, day_profit: Decimal, remaining: Decimal) -> bool:
+    """D162 EVAL day lock (same rule as D66 EVAL_DAY_LOCK): True = no new NOISE entry today. Only ever skips."""
+    if cfg is None or cfg.day_lock_pct is None:
+        return False
+    return day_profit > 0 and remaining > 0 and day_profit >= cfg.day_lock_pct * remaining
+
+
+def fast_pass_lock(cfg: FastPassCfg | None, lock: tuple[Decimal, Decimal] | None) -> tuple[Decimal, Decimal] | None:
+    """D162: NOISE profit-lock (trigger, distance) with this plan's own trigger; no lock configured → none."""
+    if cfg is None or cfg.noise_lock_trigger_pts is None or lock is None:
+        return lock
+    return cfg.noise_lock_trigger_pts, lock[1]
 
 
 def _step_size(cfg: FastPassCfg, steps: tuple[FastPassStep, ...], normal: int, cushion: Decimal) -> tuple[int, bool]:
@@ -59,6 +81,7 @@ def plan_fast_pass(st: StrategyCfg, account_size: Decimal) -> tuple[bool, FastPa
     """The (switch, cfg) pair of the plan whose size equals the account's own size; (False, None) when there is none."""
     for on, cfg in (
         (st.fast_pass_25k, st.fast_pass_25k_cfg),
+        (st.fast_pass_50k, st.fast_pass_50k_cfg),
         (st.fast_pass_100k, st.fast_pass_100k_cfg),
         (st.fast_pass_150k, st.fast_pass_150k_cfg),
     ):

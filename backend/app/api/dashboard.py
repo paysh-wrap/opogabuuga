@@ -1096,6 +1096,7 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
         )
     for fk, fp, fon in (
         ("fast_pass_25k", st.fast_pass_25k_cfg, st.fast_pass_25k),
+        ("fast_pass_50k", st.fast_pass_50k_cfg, st.fast_pass_50k),
         ("fast_pass_100k", st.fast_pass_100k_cfg, st.fast_pass_100k),
         ("fast_pass_150k", st.fast_pass_150k_cfg, st.fast_pass_150k),
     ):
@@ -1113,13 +1114,20 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",
                 "value": fon,
                 "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd:,.0f} stop "
-                f"(cushion {steps_text(fp.noise_steps)}) · CANDACE {fp.candace_contracts} "
-                f"(cushion {steps_text(fp.candace_steps)})",
+                f"(cushion {steps_text(fp.noise_steps)}"
+                + (
+                    f"; +1 per ${fp.noise_grow_per:,.0f} of cushion, max {fp.noise_max_contracts}"
+                    if fp.noise_grow_per
+                    else ""
+                )
+                + f") · CANDACE {fp.candace_contracts or 'off'} (cushion {steps_text(fp.candace_steps)})"
+                + (f" · day lock {fp.day_lock_pct:g} of the remaining target" if fp.day_lock_pct else "")
+                + (f" · NOISE lock {fp.noise_lock_trigger_pts:g} pt" if fp.noise_lock_trigger_pts else ""),
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
                 "consistency, hedge lock, news/flat) still shrinks or skips. "
                 "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans/, beat109/RESULTS.md, passfloor/ "
-                "RESULTS.md; not repeated here).",
+                "RESULTS.md, pass70/RESULTS.md; not repeated here).",
             }
         )
     if st.eval_size_caps:

@@ -966,6 +966,14 @@ class FastPassCfg(_M):
     candace_brake_contracts: int | None = Field(default=None, ge=1)
     noise_steps: tuple[FastPassStep, ...] = ()
     candace_steps: tuple[FastPassStep, ...] = ()
+    # D162 (pass70 study): NOISE growth = +1 micro per `noise_grow_per` $ of cushion beyond the first (never above
+    # `noise_max_contracts`; NOISE only, like the study), steps/brakes then cap it. `day_lock_pct`: EVAL day lock,
+    # no new NOISE entry once today's profit >= x * the target still to earn at the session start (only ever skips).
+    # `noise_lock_trigger_pts`: NOISE profit-lock trigger for these fast-pass accounts only (global default unchanged).
+    noise_grow_per: D | None = Field(default=None, gt=D(0))
+    noise_max_contracts: int | None = Field(default=None, ge=1)
+    day_lock_pct: D | None = Field(default=None, gt=D(0), le=D(1))
+    noise_lock_trigger_pts: D | None = Field(default=None, gt=D(0))
 
     @model_validator(mode="before")
     @classmethod
@@ -981,6 +989,10 @@ class FastPassCfg(_M):
 
     @model_validator(mode="after")
     def _valid(self) -> FastPassCfg:
+        if (self.noise_grow_per is None) != (self.noise_max_contracts is None):
+            raise ValueError("fast_pass cfg: noise_grow_per and noise_max_contracts go together")
+        if self.noise_max_contracts is not None and self.noise_max_contracts < self.noise_contracts:
+            raise ValueError("fast_pass cfg: noise_max_contracts must be >= noise_contracts")
         for steps, base in ((self.noise_steps, self.noise_contracts), (self.candace_steps, self.candace_contracts)):
             if any(x.contracts > base for x in steps):
                 raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
@@ -1304,6 +1316,8 @@ class StrategyCfg(_M):
     fast_pass_25k_cfg: FastPassCfg | None = None
     fast_pass_100k: bool = False
     fast_pass_100k_cfg: FastPassCfg | None = None
+    fast_pass_50k: bool = False  # D162
+    fast_pass_50k_cfg: FastPassCfg | None = None
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,
     # ×4 58/42 → no grow above 2). Off = the eval tables as written (150K 4 micros, 100K grows to 4).

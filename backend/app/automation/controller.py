@@ -64,6 +64,8 @@ from app.risk.fast_pass import (
     FastPassSize,
     ar_side_by_side,
     ar_side_cap,
+    fast_pass_day_locked,
+    fast_pass_lock,
     fast_pass_size,
     plan_fast_pass,
 )
@@ -859,6 +861,11 @@ class Controller:
                 },
             )
         if strategy == "NOISE" and fp is not None:  # D156: fixed size + $ emergency stop per micro (never wider)
+            if fp_cfg is not None and fp_cfg.day_lock_pct is not None:  # D162 day lock (EVAL only, only ever skips)
+                fday = st.day_stats(s, a, now).day_profit
+                fremaining = r.eval.profit_target - (bal - fday - (a.starting_balance or r.account_size))
+                if fast_pass_day_locked(fp_cfg, fday, fremaining):
+                    return AccountResult(a.id, False, "EVAL_DAY_LOCK")
             fixed = fp.contracts
             if fp.stop_usd is not None:
                 slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
@@ -1060,6 +1067,8 @@ class Controller:
                 )  # D101 AR candle trail wired here (zone trades keep their own D111 bar-close trail)
                 t.dyn_trail = trail_params(dt, fee_cover_ticks(inst.fee_rt, inst.tick_value), cush_k, of)
             lock = r.strategy.noise_profit_lock()  # D82 / D75-P1 (preset C); D132 100/80 pt trigger toggle
+            if strategy == "NOISE" and fp is not None:
+                lock = fast_pass_lock(fp_cfg, lock)  # D162: this plan's own trigger (EVAL fast-pass accounts only)
             if strategy == "NOISE" and lock is not None:
                 t.profit_lock = lock
         except OrphanedPosition as e:
