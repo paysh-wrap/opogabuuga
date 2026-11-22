@@ -940,27 +940,56 @@ class EvalCapCfg(_M):
     max_contracts: int = Field(ge=1)
 
 
+class FastPassStep(_M):
+    """D161: one brake step: at / below (or strictly below, see FastPassCfg.brake_inclusive) `cushion_usd` trade `contracts`."""
+
+    cushion_usd: D = Field(gt=D(0))
+    contracts: int = Field(ge=1)
+
+
 class FastPassCfg(_M):
-    """D156/D157 (user 2026-11-22) per-plan "fast pass": EVAL-stage accounts of size `account_size` only
+    """D156/D157/D161 (user 2026-11-22) per-plan "fast pass": EVAL-stage accounts of size `account_size` only
     (risk/fast_pass.py). NOISE `noise_contracts` micros at a `noise_stop_usd` emergency stop per micro, CANDACE ICT a
-    fixed `candace_contracts`; once the cushion is <= brake_cushion_usd (< when brake_inclusive is false) NOISE trades
-    `noise_brake_contracts` (None = no NOISE brake) and CANDACE `candace_brake_contracts`. Every check runs after this
-    (shrink / skip only)."""
+    fixed `candace_contracts`. Brakes are LISTS of steps per strategy (`noise_steps`, `candace_steps`); the smallest
+    applicable step wins (cushion <= step, < when brake_inclusive is false). The old single-step fields
+    (`brake_cushion_usd` + `noise_brake_contracts` / `candace_brake_contracts`) still work and convert to one step.
+    `day_lock_pct` (NOISE, EVAL): stop for the day once today's profit >= x * remaining eval target (like D66).
+    Every check runs after this (shrink / skip only)."""
 
     account_size: D = Field(gt=D(0))
     noise_contracts: int = Field(ge=1)
     noise_stop_usd: D = Field(gt=D(0))
     candace_contracts: int = Field(ge=1)
-    brake_cushion_usd: D = Field(gt=D(0))
+    brake_cushion_usd: D | None = Field(default=None, gt=D(0))
     brake_inclusive: bool = True
     noise_brake_contracts: int | None = Field(default=None, ge=1)
-    candace_brake_contracts: int = Field(ge=1)
+    candace_brake_contracts: int | None = Field(default=None, ge=1)
+    noise_steps: tuple[FastPassStep, ...] = ()
+    candace_steps: tuple[FastPassStep, ...] = ()
+    day_lock_pct: D | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _convert_old(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        d = dict(data)
+        cush = d.get("brake_cushion_usd")
+        for steps, old in (("noise_steps", "noise_brake_contracts"), ("candace_steps", "candace_brake_contracts")):
+            if not d.get(steps) and cush is not None and d.get(old) is not None:
+                d[steps] = ({"cushion_usd": cush, "contracts": d[old]},)
+        return d
 
     @model_validator(mode="after")
     def _valid(self) -> FastPassCfg:
-        nb = self.noise_brake_contracts
-        if self.candace_brake_contracts > self.candace_contracts or (nb is not None and nb > self.noise_contracts):
-            raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
+        for steps, base in ((self.noise_steps, self.noise_contracts), (self.candace_steps, self.candace_contracts)):
+            if any(x.contracts > base for x in steps):
+                raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
+            ordered = sorted(steps, key=lambda x: x.cushion_usd)
+            if any(b.contracts < a.contracts for a, b in zip(ordered, ordered[1:], strict=False)):
+                raise ValueError("fast_pass cfg: a higher cushion step must not trade fewer contracts than a lower one")
+        if self.day_lock_pct is not None and not (D(0) < self.day_lock_pct <= D(1)):
+            raise ValueError("fast_pass cfg: 0 < day_lock_pct <= 1")
         return self
 
 

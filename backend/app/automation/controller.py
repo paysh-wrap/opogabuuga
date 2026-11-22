@@ -60,7 +60,14 @@ from app.risk.cushion import (
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
-from app.risk.fast_pass import FastPassSize, ar_side_by_side, ar_side_cap, fast_pass_size, plan_fast_pass
+from app.risk.fast_pass import (
+    FastPassSize,
+    ar_side_by_side,
+    ar_side_cap,
+    fast_pass_day_lock,
+    fast_pass_size,
+    plan_fast_pass,
+)
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -852,6 +859,11 @@ class Controller:
                     else "REGULAR",
                 },
             )
+        if strategy == "NOISE" and fp is not None and fp_cfg is not None and fp_cfg.day_lock_pct is not None:
+            fp_day = st.day_stats(s, a, now).day_profit  # D161: NOISE day lock (EVAL only; only ever skips)
+            fp_done = bal - fp_day - (a.starting_balance or r.account_size)
+            if fast_pass_day_lock(fp_cfg, fp, strategy, fp_day, r.eval.profit_target - fp_done):
+                return AccountResult(a.id, False, "EVAL_DAY_LOCK")
         if strategy == "NOISE" and fp is not None:  # D156: fixed size + $ emergency stop per micro (never wider)
             fixed = fp.contracts
             if fp.stop_usd is not None:

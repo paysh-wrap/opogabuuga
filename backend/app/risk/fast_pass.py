@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from app.config import FastPassCfg, StrategyCfg
+from app.config import FastPassCfg, FastPassStep, StrategyCfg
 
 FAST_PASS_STRATEGIES = ("NOISE", "CANDACE_ICT")
 
@@ -42,11 +42,27 @@ def fast_pass_size(
         return None
     if strategy not in FAST_PASS_STRATEGIES:
         return None
-    braked = cushion <= cfg.brake_cushion_usd if cfg.brake_inclusive else cushion < cfg.brake_cushion_usd
     if strategy == "NOISE":
-        nb = cfg.noise_brake_contracts
-        return FastPassSize(nb if braked and nb is not None else cfg.noise_contracts, cfg.noise_stop_usd, braked)
-    return FastPassSize(cfg.candace_brake_contracts if braked else cfg.candace_contracts, None, braked)
+        n, braked = _step_size(cfg, cfg.noise_steps, cfg.noise_contracts, cushion)
+        return FastPassSize(n, cfg.noise_stop_usd, braked)
+    n, braked = _step_size(cfg, cfg.candace_steps, cfg.candace_contracts, cushion)
+    return FastPassSize(n, None, braked)
+
+
+def _step_size(cfg: FastPassCfg, steps: tuple[FastPassStep, ...], normal: int, cushion: Decimal) -> tuple[int, bool]:
+    """D161: the smallest applicable brake step wins (strict < unless cfg.brake_inclusive); none → the normal size."""
+    hit = [x.contracts for x in steps if (cushion <= x.cushion_usd if cfg.brake_inclusive else cushion < x.cushion_usd)]
+    return (min(hit), True) if hit else (normal, False)
+
+
+def fast_pass_day_lock(
+    cfg: FastPassCfg | None, fp: FastPassSize | None, strategy: str, day_profit: Decimal, remaining: Decimal
+) -> bool:
+    """D161: NOISE only, only when a fast-pass size applies (EVAL): True = stop for the day once today's profit is
+    >= day_lock_pct x the remaining eval target. Only ever skips (like D66 EVAL_DAY_LOCK)."""
+    if cfg is None or fp is None or strategy != "NOISE" or cfg.day_lock_pct is None:
+        return False
+    return day_profit > 0 and remaining > 0 and day_profit >= cfg.day_lock_pct * remaining
 
 
 def plan_fast_pass(st: StrategyCfg, account_size: Decimal) -> tuple[bool, FastPassCfg | None]:

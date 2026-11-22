@@ -162,7 +162,7 @@ def test_strategy_card_and_setting(authed):
     cfgs = {"fast_pass_150k_cfg": CFG, "fast_pass_25k_cfg": CFG25, "fast_pass_100k_cfg": CFG100}
     h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=cfgs)})
     tg = {t["key"]: t for t in authed.get("/api/strategies").json()["toggles"]}
-    assert "smaller_plans/RESULTS.md" in tg["fast_pass_25k"]["note"] and "< $333" in tg["fast_pass_25k"]["on_label"]
+    assert "passfloor/RESULTS.md" in tg["fast_pass_25k"]["note"] and "< $333" in tg["fast_pass_25k"]["on_label"]
     assert "NOISE 2 @ $250" in tg["fast_pass_100k"]["on_label"] and "CANDACE 2" in tg["fast_pass_100k"]["on_label"]
     for k in ("fast_pass_25k", "fast_pass_100k"):
         assert (
