@@ -80,6 +80,7 @@ def test_noise_size_and_stop(authed, clock, cushion, want, braked):
     assert fp and fp[-1]["contracts"] == want and fp[-1]["braked"] is braked and fp[-1]["stop_usd"] == "100"
     assert D(fp[-1]["stop_pts"]) == _stop_pts(st)
     assert _fixed(res) == str(want), res
+    print("NOISE", res, [t.qty for t in st.controller.om.trades.values()])
     pre = next(c for c in res.checks if c["check"] == "fixed_size")
     assert pre["contracts"] == str(want)
 
@@ -103,6 +104,7 @@ def test_off_funded_other_size_unchanged(authed, clock, kw):
     st, aid = _setup(authed, clock, **kw)
     res, fp = _run(st, aid, "CANDACE_ICT")
     assert fp == []
+    print("OFF", kw, res, [t.qty for t in st.controller.om.trades.values()])
     assert res.reason == "CAND_GRADE_SIZE_BELOW_1" or sum(t.qty for t in st.controller.om.trades.values()) < 3
 
 
@@ -110,6 +112,7 @@ def test_checks_still_shrink(authed, clock):
     st, aid = _setup(authed, clock, internal={"internal_max_micros": 3})
     res, fp = _run(st, aid, "NOISE")
     assert fp[-1]["contracts"] == 4
+    print("SHRINK", res)
     assert res.contracts is None or res.contracts <= 3  # internal max (Paytience check) still caps the size
     if res.ok:
         assert sum(t.qty for t in st.controller.om.trades.values()) <= 3
@@ -122,4 +125,5 @@ def test_hedge_lock_still_skips(authed, clock):
     res, _ = _run(st, aid, "CANDACE_ICT", key="a")
     assert res.ok, res
     res2, fp = _run(st, aid, "NOISE", key="b")  # one position already open → max 1 position still skips
+    print("HEDGE", res2)
     assert not res2.ok and res2.reason
