@@ -210,3 +210,36 @@ def test_small_plan_dll_still_shrinks(authed, clock):
     st, aid = _setup(authed, clock, balance="100000", cushion=D(3000), dll=D(100))  # 2 micros × $250 > $100 DLL
     res, fp = _run(st, aid, "NOISE")
     assert fp[-1]["contracts"] == 2 and res.contracts * 250 <= 100
+
+
+# ---- D162: day lock + NOISE lock trigger + 50K card ------------------------------------------------------------------
+def test_d162_day_lock_skips_noise_only(authed, clock, monkeypatch):
+    import app.automation.state as stt
+
+    cfg = CFG.model_copy(update={"day_lock_pct": D("0.7"), "noise_lock_trigger_pts": D(80)})
+    monkeypatch.setitem(SWITCH, 150000, ("fast_pass_150k", cfg))
+    st, aid = _setup(authed, clock, cushion=D(4000))
+    target = st.controller.rules.rules.eval.profit_target
+    orig = stt.day_stats
+
+    def big_day(s, a, now):
+        d = orig(s, a, now)
+        d.day_profit = target  # remaining = 2 x target; 0.7 x remaining = 1.4 x target > target -> not yet locked
+        return d
+
+    monkeypatch.setattr(stt, "day_stats", big_day)
+    res, _ = _run(st, aid, "NOISE", "a")
+    assert res.reason != "EVAL_DAY_LOCK"  # below 70 % of the remaining target: sized and traded as usual
+    monkeypatch.setattr(stt, "day_stats", lambda s, a, now: _day(orig, s, a, now, target * 2))
+    res, _ = _run(st, aid, "NOISE", "b")
+    assert not res.ok and res.reason == "EVAL_DAY_LOCK", res  # today's profit >= 70 % of the remaining target
+    res, _ = _run(st, aid, "CANDACE_ICT", "c")  # CANDACE is not day-locked (study definition: NOISE only)
+    assert res.reason != "EVAL_DAY_LOCK"
+    ts = [t for t in st.controller.om.trades.values() if t.strategy == "NOISE"]
+    assert all(t.profit_lock is not None and t.profit_lock[0] == D(80) for t in ts)  # own trigger, same distance
+
+
+def _day(orig, s, a, now, profit):
+    d = orig(s, a, now)
+    d.day_profit = profit
+    return d
