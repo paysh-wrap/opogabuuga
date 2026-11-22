@@ -637,3 +637,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
   150K: NOISE 4 micros @ $100 stop + CANDACE 3 micros + brake (2 micros < 50 % cushion): pass 79.1 vs 77.1 %, within 60 days 9.3 vs
   5.8 %, median 111 vs 159 days, profit $78.6k vs $57.9k (C50: 79.9 / 9.7). Needs: size_table_eval 150K stop_usd 100 + D133 cap → 4
   (config) and fixed CANDACE 3 micros (code). NOT built — awaiting user approval.
+- Beat-109 search (docs/results/pass_fastest/beat109, 150K): robust config NOISE 5 micros @ $100 + CANDACE 4 + both to 2 micros at cushion ≤ $1,500:
+  median 86 days (U1 109), within 60 d 20.4 % (9.3), pass 74.3 % (78.8), days to first pass with resets 130 (150), profit $98.7k. Needs D133 cap → 5
+  (config) + CANDACE fixed 4 (code). NOT built; D156 build (U1: 4/3) still running — awaiting user choice of 4/3 vs 5/4.
