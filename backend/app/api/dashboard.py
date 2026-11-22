@@ -1118,7 +1118,7 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
                 "consistency, hedge lock, news/flat) still shrinks or skips. "
-                "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans, beat109, passfloor "
+                "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans/, beat109/RESULTS.md, passfloor/ "
                 "RESULTS.md; not repeated here).",
             }
         )

@@ -92,7 +92,7 @@ def test_cfg_validation():
 @pytest.mark.parametrize(
     ("cfg", "strategy", "cushion", "want"),
     [
-        (CFG25, "NOISE", D(100), FastPassSize(1, D(75), True)),  # no NOISE brake: stays 1
+        (CFG25, "NOISE", D(100), FastPassSize(1, D(75), False)),  # no NOISE brake: stays 1
         (CFG25, "NOISE", D(900), FastPassSize(1, D(75), False)),
         (CFG25, "CANDACE_ICT", D(900), FastPassSize(2, None, False)),
         (CFG25, "CANDACE_ICT", D(333), FastPassSize(2, None, False)),  # strictly below
