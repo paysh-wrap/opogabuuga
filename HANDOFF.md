@@ -646,3 +646,5 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
   Strategy-page toggle `strategy.fast_pass_150k` (default OFF) — EVAL-stage 150K accounts only: NOISE 4 micros @ $100 stop/micro, CANDACE 3
   fixed, both 2 at cushion ≤ $1,500 (risk/fast_pass.py, numbers in lucid_pro_150k.yaml `fast_pass_150k_cfg`; other plans inert). All checks after.
 - D157 BUILT (user 2026-11-22): `strategy.fast_pass_25k|100k|150k` (default OFF, EVAL + own size only; FastPassCfg, yaml `fast_pass_*_cfg`, card per plan). 150K now NOISE 5 @ $100 + CANDACE 4 (both 2 at cushion ≤ $1,500); 25K N1 @ $75 + C2 (→1 < $333); 100K N2 @ $250 (→1) + C3 (→2) < $1,000. Studies: beat109 and smaller_plans RESULTS.md. All later checks still shrink/skip.
+- D157 BUILT + verified (backend 1576 passed, 100 % cov): fast-pass switches 25K/100K/150K (all OFF). Within-60 search (docs/results/pass_fastest/within60, DLL on/off identical):
+  150K nothing better (more micros lowers pass: N3 89.5 … N5 75.8 … N10 56 %); 25K modest gain (within-60 33.7→36.3 %) with NOISE lock 80 + day lock 50 % (config) + CANDACE brake at $500 (code) — NOT applied.
