@@ -1,0 +1,12 @@
+25|1|25|BASE     pass 58.6 stuck 35.9 <=60 23.0 med 74.0 chain 117 judge 38.6 pick 58.9 profit 19293
+100|1|100|BASE   pass 77.7 stuck 11.3 <=60 5.8 med 152.0 chain 185 judge 60.4 pick 65.1 profit 38586
+150|1|150|BASE   pass 77.1 stuck 10.5 <=60 5.8 med 159.0 chain 187 judge 59.3 pick 65.1 profit 57879
+25|1|25|BUILT    pass 61.8 stuck 29.6 <=60 33.7 med 56.5 chain 95 judge 54.6 pick 62.5 profit 19328
+100|1|100|BUILT  pass 78.0 stuck 11.3 <=60 5.2 med 127.0 chain 166 judge 60.9 pick 64.0 profit 44850
+150|1|150|BUILT  pass 74.3 stuck 17.0 <=60 20.4 med 86.0 chain 130 judge 64.5 pick 66.7 profit 98728
+150|1|150|BUILT_incl pass 74.3 stuck 17.0 <=60 20.4 med 86.0 chain 130 judge 64.5 pick 66.7 profit 98728
+25|1|25|REF      pass 62.2 stuck 29.4 <=60 35.2 med 56.0 chain 100 judge 55.7 pick 61.4 profit 19540
+100|1|100|REF    pass 79.9 stuck 9.3 <=60 5.2 med 129.5 chain 169 judge 64.3 pick 64.0 profit 44850
+150|1|150|REF    pass 79.1 stuck 9.8 <=60 9.3 med 111.0 chain 155 judge 63.7 pick 68.7 profit 78612
+150|1|150|U1     pass 78.8 stuck 12.2 <=60 9.3 med 109.0 chain 150 judge 64.5 pick 67.1 profit 78612
+1 s
