@@ -216,7 +216,7 @@ def test_small_plan_dll_still_shrinks(authed, clock):
 def test_d162_day_lock_skips_noise_only(authed, clock, monkeypatch):
     import app.automation.state as stt
 
-    cfg = CFG.model_copy(update={"day_lock_pct": D("0.7"), "noise_lock_trigger_pts": D(80)})
+    cfg = CFG.model_copy(update={"day_lock_pct": D("0.1"), "noise_lock_trigger_pts": D(80)})
     monkeypatch.setitem(SWITCH, 150000, ("fast_pass_150k", cfg))
     st, aid = _setup(authed, clock, cushion=D(4000))
     target = st.controller.rules.rules.eval.profit_target
@@ -224,15 +224,17 @@ def test_d162_day_lock_skips_noise_only(authed, clock, monkeypatch):
 
     def big_day(s, a, now):
         d = orig(s, a, now)
-        d.day_profit = target  # remaining = 2 x target; 0.7 x remaining = 1.4 x target > target -> not yet locked
+        d.day_profit = target / 50  # 2 % of the target: below 10 % of the remaining target -> not locked
         return d
 
     monkeypatch.setattr(stt, "day_stats", big_day)
     res, _ = _run(st, aid, "NOISE", "a")
-    assert res.reason != "EVAL_DAY_LOCK"  # below 70 % of the remaining target: sized and traded as usual
-    monkeypatch.setattr(stt, "day_stats", lambda s, a, now: _day(orig, s, a, now, target * 2))
+    assert res.reason != "EVAL_DAY_LOCK"  # below the lock: sized and traded as usual
+    monkeypatch.setattr(
+        stt, "day_stats", lambda s, a, now: _day(orig, s, a, now, target / 5)
+    )  # 20 % of the target >= 10 % of the remaining
     res, _ = _run(st, aid, "NOISE", "b")
-    assert not res.ok and res.reason == "EVAL_DAY_LOCK", res  # today's profit >= 70 % of the remaining target
+    assert not res.ok and res.reason == "EVAL_DAY_LOCK", res  # today's profit >= day_lock_pct x remaining target
     res, _ = _run(st, aid, "CANDACE_ICT", "c")  # CANDACE is not day-locked (study definition: NOISE only)
     assert res.reason != "EVAL_DAY_LOCK"
     ts = [t for t in st.controller.om.trades.values() if t.strategy == "NOISE"]
