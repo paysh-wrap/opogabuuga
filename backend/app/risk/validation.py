@@ -85,6 +85,9 @@ def validate(rules: RulesConfig) -> Validation:
         v.errors.append("runner trail must be ≤ 2.0R")
     if i.day_lockin_r < Decimal(1):
         v.errors.append("day lock-in must be ≥ 1.0R")
+    cmax = rules.eval.consistency_max_day_pct
+    if cmax is not None and not (Decimal(20) <= cmax <= Decimal(100) and cmax > i.consistency_day_stop_buffer_pct):
+        v.errors.append("eval.consistency_max_day_pct must be 20-100 and above the day-stop buffer")  # D155
     if i.consistency_day_stop_buffer_pct <= 0:
         v.errors.append("consistency day stop must be below the consistency cap")
     if i.cushion_target_balance < rules.funded.payout.buffer + rules.funded.payout.min_request:

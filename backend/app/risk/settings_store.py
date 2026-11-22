@@ -183,6 +183,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
                 "warmup_trades",
             )
         ),
+        "eval.consistency_max_day_pct",  # D155 (user): Lucid Pro eval 40 % or the bought 50 % option → day stop 48 %
         "fast_eval.ladder.enabled",  # D87 Fast Evaluation (EVAL only): each mechanism has its own switch + parameters
         "fast_eval.ladder.steps",
         "fast_eval.ladder.max_contracts",
