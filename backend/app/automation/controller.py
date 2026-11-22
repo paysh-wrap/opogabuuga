@@ -64,7 +64,6 @@ from app.risk.fast_pass import (
     FastPassSize,
     ar_side_by_side,
     ar_side_cap,
-    fast_pass_day_lock,
     fast_pass_size,
     plan_fast_pass,
 )

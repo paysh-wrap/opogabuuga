@@ -11,6 +11,7 @@ import re
 from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Literal
 
@@ -941,7 +942,7 @@ class EvalCapCfg(_M):
 
 
 class FastPassStep(_M):
-    """D161: one brake step: at / below (or strictly below, see FastPassCfg.brake_inclusive) `cushion_usd` trade `contracts`."""
+    """D161: one brake step: at / below (or strictly below, see FastPassCfg.brake_inclusive) `cushion_usd`."""
 
     cushion_usd: D = Field(gt=D(0))
     contracts: int = Field(ge=1)
@@ -984,7 +985,7 @@ class FastPassCfg(_M):
             if any(x.contracts > base for x in steps):
                 raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
             ordered = sorted(steps, key=lambda x: x.cushion_usd)
-            if any(b.contracts < a.contracts for a, b in zip(ordered, ordered[1:], strict=False)):
+            if any(b.contracts < a.contracts for a, b in pairwise(ordered)):
                 raise ValueError("fast_pass cfg: a higher cushion step must not trade fewer contracts than a lower one")
         return self
 

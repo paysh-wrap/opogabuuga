@@ -1112,12 +1112,14 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "setting": f"strategy.{fk}",
                 "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",
                 "value": fon,
-                "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd:,.0f} stop (cushion {steps_text(fp.noise_steps)})"
-                f" · CANDACE {fp.candace_contracts} (cushion {steps_text(fp.candace_steps)})",
+                "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd:,.0f} stop "
+                f"(cushion {steps_text(fp.noise_steps)}) · CANDACE {fp.candace_contracts} "
+                f"(cushion {steps_text(fp.candace_steps)})",
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
                 "consistency, hedge lock, news/flat) still shrinks or skips. "
-                "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans, beat109, passfloor RESULTS.md; not repeated here).",
+                "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans, beat109, passfloor "
+                "RESULTS.md; not repeated here).",
             }
         )
     if st.eval_size_caps:

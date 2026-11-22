@@ -142,7 +142,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
   # (EXPERIMENTAL, likely chance). pm_fade_cfg.eval_off: fade OFF on EVAL accounts (shipped_config.md: better pass/bust).
   noise_lock_alt: false
   fast_pass_100k: false   # D157 (user 2026-11-22): Strategy-page toggle "100K fast pass", default OFF. EVAL-stage 100K accounts only;
-  fast_pass_100k_cfg:     # D161: docs/results/pass_fastest/passfloor/RESULTS.md (C40, DLL on)
+  fast_pass_100k_cfg:     # D161: passfloor/RESULTS.md (faster: median 121 vs 127 d, resets 159 vs 166)
     account_size: 100000
     noise_contracts: 2    #   NOISE 2 micros @ $250 stop, 1 below $750 cushion
     noise_stop_usd: 250

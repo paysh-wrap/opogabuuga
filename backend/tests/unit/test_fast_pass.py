@@ -11,13 +11,12 @@ from app.risk.fast_pass import FastPassSize, fast_pass_size, plan_fast_pass
 from tests.conftest import REPO_ROOT
 
 CFG = FastPassCfg(
-    account_size=D(150000), noise_contracts=5, noise_stop_usd=D(100), candace_contracts=4, brake_inclusive=False,
-    noise_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 1500, "contracts": 1}],
-    candace_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 900, "contracts": 1}],
+    account_size=D(150000), noise_contracts=5, noise_stop_usd=D(100), candace_contracts=4,
+    brake_cushion_usd=D(1500), noise_brake_contracts=2, candace_brake_contracts=2,
 )  # fmt: skip
 CFG25 = FastPassCfg(
-    account_size=D(25000), noise_contracts=1, noise_stop_usd=D(75), candace_contracts=2, brake_inclusive=False,
-    candace_steps=[{"cushion_usd": 500, "contracts": 1}],
+    account_size=D(25000), noise_contracts=1, noise_stop_usd=D(75), candace_contracts=2,
+    brake_cushion_usd=D(333), brake_inclusive=False, candace_brake_contracts=1,
 )  # fmt: skip
 CFG100 = FastPassCfg(
     account_size=D(100000), noise_contracts=2, noise_stop_usd=D(250), candace_contracts=4, brake_inclusive=False,
@@ -34,16 +33,12 @@ K150 = D(150000)
     ("strategy", "cushion", "want"),
     [
         ("NOISE", D(4500), FastPassSize(5, D(100), False)),
-        ("NOISE", D(2250), FastPassSize(5, D(100), False)),  # strict <
-        ("NOISE", D("2249.99"), FastPassSize(2, D(100), True)),
-        ("NOISE", D(1500), FastPassSize(2, D(100), True)),
-        ("NOISE", D("1499.99"), FastPassSize(1, D(100), True)),  # smallest applicable step
-        ("NOISE", D(-5), FastPassSize(1, D(100), True)),
+        ("NOISE", D("1500.01"), FastPassSize(5, D(100), False)),
+        ("NOISE", D(1500), FastPassSize(2, D(100), True)),  # at the brake -> braked (inclusive)
+        ("NOISE", D(200), FastPassSize(2, D(100), True)),
         ("CANDACE_ICT", D(3000), FastPassSize(4, None, False)),
-        ("CANDACE_ICT", D(2250), FastPassSize(4, None, False)),
-        ("CANDACE_ICT", D("2249.99"), FastPassSize(2, None, True)),
-        ("CANDACE_ICT", D(900), FastPassSize(2, None, True)),
-        ("CANDACE_ICT", D("899.99"), FastPassSize(1, None, True)),
+        ("CANDACE_ICT", D(1500), FastPassSize(2, None, True)),
+        ("CANDACE_ICT", D(-5), FastPassSize(2, None, True)),
     ],
 )
 def test_size_and_brake(strategy, cushion, want):
@@ -97,11 +92,14 @@ def test_cfg_validation():
 @pytest.mark.parametrize(
     ("cfg", "strategy", "cushion", "want"),
     [
-        (CFG25, "NOISE", D(100), FastPassSize(1, D(75), False)),  # no NOISE brake
-        (CFG25, "CANDACE_ICT", D(500), FastPassSize(2, None, False)),  # strictly below
-        (CFG25, "CANDACE_ICT", D("499.99"), FastPassSize(1, None, True)),
-        (CFG100, "NOISE", D(750), FastPassSize(2, D(250), False)),
+        (CFG25, "NOISE", D(100), FastPassSize(1, D(75), True)),  # no NOISE brake: stays 1
+        (CFG25, "NOISE", D(900), FastPassSize(1, D(75), False)),
+        (CFG25, "CANDACE_ICT", D(900), FastPassSize(2, None, False)),
+        (CFG25, "CANDACE_ICT", D(333), FastPassSize(2, None, False)),  # strictly below
+        (CFG25, "CANDACE_ICT", D("332.99"), FastPassSize(1, None, True)),
+        (CFG100, "NOISE", D(750), FastPassSize(2, D(250), False)),  # D161: per-strategy steps
         (CFG100, "NOISE", D("749.99"), FastPassSize(1, D(250), True)),
+        (CFG100, "NOISE", D(1000), FastPassSize(2, D(250), False)),  # NOISE step is 750, not CANDACE's 1500
         (CFG100, "CANDACE_ICT", D(1500), FastPassSize(4, None, False)),
         (CFG100, "CANDACE_ICT", D("1499.99"), FastPassSize(1, None, True)),
     ],
