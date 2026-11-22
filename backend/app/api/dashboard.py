@@ -1076,6 +1076,22 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "in-sample — treat as chance until paper proves it.",
             }
         )
+    fp = st.fast_pass_150k_cfg
+    if fp is not None:  # D156: only plan files that carry fast_pass_150k_cfg (Pro 150K) show the card
+        out.append(
+            {
+                "key": "fast_pass_150k",
+                "setting": "strategy.fast_pass_150k",
+                "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",
+                "value": st.fast_pass_150k,
+                "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd.normalize():f} stop · CANDACE "
+                f"{fp.candace_contracts}; both {fp.brake_contracts} at cushion ≤ ${fp.brake_cushion_usd.normalize():f}",
+                "off_label": "Normal evaluation sizes (default)",
+                "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
+                "consistency, hedge lock, news/flat) still shrinks or skips. Study: "
+                "docs/results/pass_fastest/brake150/RESULTS.md (row U1).",
+            }
+        )
     if st.eval_size_caps:
         out.append(
             {

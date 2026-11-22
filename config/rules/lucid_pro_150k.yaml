@@ -139,6 +139,14 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
   # numbers were measured); Mondays off also apply to the fade. alt trigger 80 pt = Strategy-page toggle noise_lock_alt
   # (EXPERIMENTAL, likely chance). pm_fade_cfg.eval_off: fade OFF on EVAL accounts (shipped_config.md: better pass/bust).
   noise_lock_alt: false
+  fast_pass_150k: false   # D156 (user 2026-11-22): Strategy-page toggle "150K fast pass", default OFF. EVAL-stage 150K
+  fast_pass_150k_cfg:     #   accounts only (risk/fast_pass.py); study docs/results/pass_fastest/brake150/RESULTS.md row U1.
+    account_size: 150000
+    noise_contracts: 4    #   NOISE 4 micros (replaces the eval size table / D133 cap of 3)
+    noise_stop_usd: 100   #   emergency stop $100 per micro (never wider than the strategy's own stop)
+    candace_contracts: 3  #   CANDACE ICT fixed 3 micros (replaces its Lucid fit + grade size)
+    brake_cushion_usd: 1500   # cushion (equity incl. open P&L - current MLL) <= this ->
+    brake_contracts: 2        #   NOISE and CANDACE both 2 micros. DLL/MLL/consistency/hedge/firm checks still run after.
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:
     - {account_size: 100000, max_contracts: 2}   # 100K x2 pass/bust 83/15 vs x3 69/31, x4 58/42 (7.5 yr, Mondays off)

@@ -60,6 +60,7 @@ from app.risk.cushion import (
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
+from app.risk.fast_pass import FastPassSize, fast_pass_size
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -398,6 +399,27 @@ class Controller:
         async with self.lock:
             return await self._execute(signal_id, actor, only)
 
+    def _audit_fast_pass(
+        self,
+        s: Session,
+        actor: str,
+        a: Account,
+        sig: Signal,
+        strategy: str,
+        fp: FastPassSize,
+        fit_risk_usd: Decimal | None,
+        mll: Decimal,
+        stop_pts: Decimal | None = None,
+    ) -> None:
+        """D156: the fast-pass size decision (the later checks may still shrink or skip the trade)."""
+        audit.record(
+            s, self.clock, actor, "trade.fast_pass", a.broker_account_id,
+            {"signal": sig.id, "strategy": strategy, "contracts": fp.contracts, "braked": fp.braked,
+             "stop_usd": None if fp.stop_usd is None else str(fp.stop_usd),
+             "stop_pts": None if stop_pts is None else str(stop_pts),
+             "fit_risk_usd": None if fit_risk_usd is None else str(fit_risk_usd), "mll": str(mll)},
+        )  # fmt: skip
+
     async def _execute(self, signal_id: int, actor: str, only: list[int] | None) -> list[AccountResult]:
         r = self.rules.rules
         out: list[AccountResult] = []
@@ -575,6 +597,10 @@ class Controller:
                 plan = apply_guard(plan, inst.tick, fee_cover_ticks(inst.fee_rt, inst.tick_value))
         acct_size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
         big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
+        # D156 "150K fast pass": EVAL-stage accounts of the plan's size only (pure check); None = today's sizing
+        fp = fast_pass_size(
+            r.strategy.fast_pass_150k, r.strategy.fast_pass_150k_cfg, a.stage, acct_size, strategy, base
+        )
         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
         try:
             positions = await self.open_positions(s)  # every account (hedge lock): one unreadable broker blocks
@@ -705,7 +731,10 @@ class Controller:
                 fixed = int(fixed * mult)
                 if fixed < 1:
                     return AccountResult(a.id, False, "BRUNI_AUTOCORR_SKIP")
-            if strategy == "CANDACE_ICT":  # E3 grade size, tighten-only: A+ = the Lucid-fit size, B half, C a quarter
+            if strategy == "CANDACE_ICT" and fp is not None:  # D156: fixed size instead of the fit + grade size
+                fixed = fp.contracts
+                self._audit_fast_pass(s, actor, a, sig, strategy, fp, risk_usd, mll.mll)
+            elif strategy == "CANDACE_ICT":  # E3 grade size, tighten-only: A+ = the Lucid-fit size, B half, C a quarter
                 gm = Decimal(str((sig.features or {}).get("size_mult", "0.5")))
                 fixed = grade_contracts(fixed, gm)
                 if fixed < 1:
@@ -819,6 +848,19 @@ class Controller:
                     else "REGULAR",
                 },
             )
+        if strategy == "NOISE" and fp is not None:  # D156: fixed size + $ emergency stop per micro (never wider)
+            fixed = fp.contracts
+            if fp.stop_usd is not None:
+                slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
+                pts = stop_pts_for_usd(fp.stop_usd, inst.tick, inst.tick_value, inst.fee_rt, slip)
+                if pts < plan.risk_pts:
+                    plan = replace(
+                        plan,
+                        stop=plan.entry - plan.direction.sign * pts,
+                        risk_pts=pts,
+                        rr=(plan.take_profit - plan.entry) * plan.direction.sign / pts,
+                    )
+            self._audit_fast_pass(s, actor, a, sig, strategy, fp, None, mll.mll, plan.risk_pts)
         # D87 Fast Evaluation — EVAL stage only (pure check in risk/fast_eval); every other check below still runs
         fast_cfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
         fast_pair = None
@@ -833,6 +875,8 @@ class Controller:
                 return AccountResult(a.id, False, skip)
             if fixed is not None:
                 sized = fast_contracts(fast_cfg, fctx, fixed)
+                if fp is not None:  # D156: the fast-pass size is the most this trade may use
+                    sized = min(sized, fp.contracts)
                 if sized != fixed:
                     audit.record(
                         s, self.clock, actor, "trade.fast_eval", a.broker_account_id,
