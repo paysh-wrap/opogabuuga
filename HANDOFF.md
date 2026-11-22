@@ -623,3 +623,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - Fixed-size NOISE+CANDACE (docs/results/pass_faster_fixed): 25K NOISE 1 + CANDACE 1 = same as C125_1 (5-yr stuck +9 → fail);
   50K NOISE 1 + CANDACE 2: pass 81 vs 69 %, stuck 10 vs 21 %, but profit −$15k over 5 yr and slower (121 vs 92 days) → fails the
   profit rule; the gain comes from NOISE at 1 micro, not CANDACE. Both-at-once (B) never beats one-at-a-time → no reason to change rule 7.
+- $100-stop study (docs/results/pass_faster_100; 25K/50K NOISE 2 + CANDACE 1, 100K/150K NOISE 4 + CANDACE 2): $100 stop cuts NOISE win
+  rate 51 → 43 % (PF ≈ same, net/micro −9 %). Every NOISE+CANDACE row fails (stuck +5…+27 pts). NOISE-4@$100 alone technically passes the
+  rule on 100K/150K (only via "passed within 60 days"; pass % 45 vs 78 and 70 vs 77, many accounts still running) → not built.
