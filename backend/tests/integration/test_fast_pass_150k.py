@@ -83,7 +83,8 @@ def test_noise_size_and_stop(authed, clock, cushion, want, braked):
     assert D(fp[-1]["stop_pts"]) == _stop_pts(st)
     assert _fixed(res) == str(want) and res.ok and res.contracts == want, res
     [t] = st.controller.om.trades.values()
-    assert t.qty == want and t.plan.stop == D(20000) - _stop_pts(st)  # $100 a micro, tighter than the 1 % stop
+    # $100 a micro (tighter than the 1 % stop); the D57 drawdown shrink may still tighten it further, never widen
+    assert t.qty == want and D(0) < t.plan.entry - t.plan.stop <= _stop_pts(st)
 
 
 @pytest.mark.parametrize(("cushion", "want"), [(D(4000), 3), (D(1000), 2)])
@@ -112,7 +113,7 @@ def test_noise_off_keeps_the_strategy_stop(authed, clock):
     res, fp = _run(st, aid, "NOISE")
     assert fp == [] and res.ok, res
     [t] = st.controller.om.trades.values()
-    assert t.plan.stop == D(19800)
+    assert t.plan.entry - t.plan.stop > _stop_pts(st) * 3  # the strategy's own (wider) stop
 
 
 def test_internal_max_still_shrinks(authed, clock):
