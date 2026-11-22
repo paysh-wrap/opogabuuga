@@ -136,3 +136,19 @@ def test_one_position_still_skips(authed, clock):
     assert res.ok, res
     res2, fp = _run(st, aid, "NOISE", key="b")  # one position already open → max 1 position still skips
     assert fp[-1]["contracts"] == 4 and not res2.ok and res2.reason == "POSITION_OPEN"
+
+
+def test_strategy_card_and_setting(authed):
+    got = {t["key"] for t in authed.get("/api/strategies").json()["toggles"]}
+    assert "fast_pass_150k" not in got  # plan file without fast_pass_150k_cfg → no card (feature inert)
+    h = authed.app.state.rules
+    h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update={"fast_pass_150k_cfg": CFG})})
+    t = {t["key"]: t for t in authed.get("/api/strategies").json()["toggles"]}["fast_pass_150k"]
+    assert t["setting"] == "strategy.fast_pass_150k" and t["value"] is False and t["title"].startswith("150K")
+    assert "NOISE 4 @ $100" in t["on_label"] and "CANDACE 3" in t["on_label"] and "≤ $1,500" in t["on_label"]
+    assert "brake150/RESULTS.md" in t["note"] and "%" not in t["note"]  # cites the study, no hard-coded odds
+    put = authed.put("/api/risk/settings", json={"changes": {"strategy.fast_pass_150k": True}, "note": "t"})
+    assert put.status_code == 200
+    assert authed.app.state.rules.rules.strategy.fast_pass_150k is True
+    bad = authed.put("/api/risk/settings", json={"changes": {"strategy.fast_pass_150k": "maybe"}, "note": "t"})
+    assert bad.status_code in (400, 422)

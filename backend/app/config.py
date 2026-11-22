@@ -953,7 +953,9 @@ class FastPass150kCfg(_M):
     @model_validator(mode="after")
     def _valid(self) -> FastPass150kCfg:
         if self.brake_contracts > min(self.noise_contracts, self.candace_contracts):
-            raise ValueError("fast_pass_150k_cfg: brake_contracts ≤ noise_contracts and candace_contracts (tighten-only)")
+            raise ValueError(
+                "fast_pass_150k_cfg: brake_contracts ≤ noise_contracts and candace_contracts (tighten-only)"
+            )
         return self
 
 

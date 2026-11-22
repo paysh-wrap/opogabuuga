@@ -155,7 +155,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.suggested_size",  # D127: NOISE size Suggested (session 19, lowest bust) / As configured
         "strategy.noise_lock_alt",  # D132: NOISE lock trigger 100 pt (default) / alternative (80 pt, experimental)
         "strategy.eod_closed_balance",  # D137: EOD accounts — kill switch watches the closed balance only (default off)
-        "strategy.fast_pass_150k",  # D156: 150K fast pass on EVAL accounts (default off; inert without fast_pass_150k_cfg)
+        "strategy.fast_pass_150k",  # D156: 150K fast pass, EVAL accounts (default off; inert w/o its cfg)
         "strategy.pm_fade_cfg.eval_off",  # D132 / I3: afternoon fade off on EVAL accounts (default on)
         "strategy.eval_size_s19",  # D133 / I1: Evaluation-Mode sizes capped at the session-19 lowest-bust sizes
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)
