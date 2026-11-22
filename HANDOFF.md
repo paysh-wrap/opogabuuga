@@ -640,3 +640,5 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - Beat-109 search (docs/results/pass_fastest/beat109, 150K): robust config NOISE 5 micros @ $100 + CANDACE 4 + both to 2 micros at cushion ≤ $1,500:
   median 86 days (U1 109), within 60 d 20.4 % (9.3), pass 74.3 % (78.8), days to first pass with resets 130 (150), profit $98.7k. Needs D133 cap → 5
   (config) + CANDACE fixed 4 (code). NOT built; D156 build (U1: 4/3) still running — awaiting user choice of 4/3 vs 5/4.
+- Smaller plans (docs/results/pass_fastest/smaller_plans): 25K best N1 @ $75 + CANDACE 2 (cut to 1 at cushion < $333): median 52 vs 69-74 d, pass 61.8-64.4 %;
+  50K none qualifies (keep BASE); 100K N2 @ $250 (1 below brake) + CANDACE 3 (2 below): median 127 vs 152 d, pass 78 %, profit $44.9k. Needs CANDACE fixed micros + brake (code). Not built.
