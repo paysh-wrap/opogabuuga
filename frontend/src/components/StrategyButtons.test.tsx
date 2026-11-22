@@ -77,8 +77,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("amt-layers")).toHaveTextContent("CONTEXT (OFF) — acceptance vs prior RTH value");
   await userEvent.click(screen.getByRole("button", { name: /OFF · AMT\+ Order Flow/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.order_flow_cfg.amt.enabled":true,"strategy.order_flow":true'))).toBe(true));
-  // D58: the MAIN card is first and turns NOISE on with the fade
-  expect(screen.getAllByRole("button")[0]).toHaveTextContent("MAIN");
+  // D58: NOISE is the first card; the MAIN fade card now sits under Lesser strategies
+  expect(screen.getAllByRole("button")[0]).toHaveTextContent("NOISE");
   expect(screen.getByTestId("pass-pm_fade")).toHaveTextContent("65.7%");
   await userEvent.click(screen.getByRole("button", { name: /OFF · MAIN/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.pm_fade":true,"strategy.noise":true'))).toBe(true));

@@ -144,140 +144,167 @@ export default function StrategyButtons() {
   const d = q.data;
   if (!d) return <p role="status">Loading strategies…</p>;
   const w = d.noise_warmup;
+  const MAIN = ["noise", "candace_ict"];
+  const isFlow = (k: string) => k.startsWith("order_flow");
+  const mainS = MAIN.map((k) => d.strategies.find((s) => s.key === k)).filter((s): s is Strat => !!s);
+  const flowS = d.strategies.filter((s) => isFlow(s.key));
+  const lesserS = d.strategies.filter((s) => !MAIN.includes(s.key) && !isFlow(s.key));
+  const allToggles = d.toggles ?? [];
+  const fastPass = allToggles.filter((t) => t.key.startsWith("fast_pass_"));
+  const otherToggles = allToggles.filter((t) => !t.key.startsWith("fast_pass_"));
+  const stratCard = (s: Strat) => (
+    <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
+      <button
+        type="button"
+        aria-pressed={s.enabled}
+        disabled={toggle.isPending}
+        onClick={() => toggle.mutate(s)}
+        className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${s.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+      >
+        {s.enabled ? "ON" : "OFF"} · {s.name}
+      </button>
+      <p className="mt-2 text-xs"><span aria-hidden style={{ color: s.verified ? badge.ok : badge.bad }}>●</span> <b className="text-gold">{s.status}</b> <span className="text-blue">{s.period}</span></p>
+      <dl className="mt-2 grid grid-cols-2 gap-x-2 text-sm">
+        <dt>Win rate</dt><dd className="text-gold" data-testid={`win-${s.key}`}>{pct(s.win_pct)}</dd>
+        <dt>Eval pass</dt><dd className="text-gold" data-testid={`pass-${s.key}`}>{pct(s.pro25k_pass_pct)}</dd>
+        <dt>Eval bust</dt><dd className="text-gold">{pct(s.pro25k_bust_pct)}</dd>
+        <dt>Profit factor</dt><dd className="text-gold">{s.profit_factor == null ? "—" : s.profit_factor.toFixed(2)}</dd>
+        <dt>Per trade (1 micro)</dt><dd className="text-gold">{s.usd_per_trade == null ? "— (not testable)" : `${s.usd_per_trade >= 0 ? "▲ +" : "▼ "}$${Math.abs(s.usd_per_trade).toFixed(2)}`}</dd>
+        <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
+      </dl>
+      {s.eval_odds && <p className="mt-1 text-xs text-blue" data-testid={`odds-${s.key}`}>Eval odds: {s.eval_odds.text}</p>}
+      {d.advisor && <AdvisorCardLine adv={d.advisor} cardKey={s.key} />}
+      {!noteInSetup(s) && <MoreInfo testId={`more-${s.key}`}><p className="text-blue">{s.note}</p></MoreInfo>}
+      {s.key === "order_flow" && (
+        <div className="mt-2 text-xs" data-testid="order-flow-setup">
+          <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED</span>
+          <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
+          <MoreInfo label="More info + setup" testId={`more-${s.key}`}>
+          <p className="text-blue">{s.note}</p>
+          <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
+          {s.ar_layers && (
+            <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="order-flow-layers">
+              {s.ar_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+            </ol>
+          )}
+          <ol className="mt-1 list-decimal pl-4 text-blue">
+            <li>TradingView: open a <b className="text-gold">1-minute {(s.instruments ?? ["MNQ"]).map((x) => `${x}1!`).join(" / ")}</b> chart (one alert per chart), add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
+            <li>Paste the webhook secret (Connections page) into the indicator settings.</li>
+            <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
+            <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
+          </ol>
+          </MoreInfo>
+        </div>
+      )}
+      {s.key === "order_flow_amt" && s.amt_layers && (
+        <div className="mt-2 text-xs" data-testid="amt-setup">
+          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span>
+          <MoreInfo testId={`more-${s.key}`}>
+          <p className="text-blue">{s.note}</p>
+          <p className="mt-1 text-blue">Top-down (D110): context first, location next, the order-flow signal LAST. Turning it on also turns Order Flow on; it only removes trades (codes OF_AMT_*).</p>
+          <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="amt-layers">
+            {s.amt_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+          </ol>
+          </MoreInfo>
+        </div>
+      )}
+      {s.key === "order_flow_zone" && s.zone_layers && (
+        <div className="mt-2 text-xs" data-testid="zone-setup">
+          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · iceberg PROXY (no MBO data)</span>
+          <MoreInfo testId={`more-${s.key}`}>
+          <p className="text-blue">{s.note}</p>
+          <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
+            {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+          </ol>
+          </MoreInfo>
+        </div>
+      )}
+      {s.strategy_rules && (
+        <div className="mt-2 text-xs" data-testid={`${s.key}-setup`}>
+          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one transcript</span>
+          <MoreInfo label="Rules" testId={`more-${s.key}-rules`}>
+          <ol className="mt-1 list-decimal pl-4 text-blue" data-testid={`${s.key}-rules`}>
+            {s.strategy_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+          </ol>
+          <p className="mt-1 text-blue">* = not from the video. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, flat times, never hedge).</p>
+          </MoreInfo>
+        </div>
+      )}
+      {s.key === "gala_pa" && s.gala_rules && (
+        <div className="mt-2 text-xs" data-testid="gala-setup">
+          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one Gala Trades transcript</span>
+          <MoreInfo label="Gala's rules" testId="more-gala-rules">
+          <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="gala-rules">
+            {s.gala_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+          </ol>
+          <p className="mt-1 text-blue">Full rule sheet with video times: docs/GALA_RULES.md (* = not from the video). Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
+          </MoreInfo>
+        </div>
+      )}
+      {s.key === "jj_fpt" && s.jj_rules && (
+        <div className="mt-2 text-xs" data-testid="jj-setup">
+          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from JJ's videos</span>
+          <MoreInfo label="JJ's rules" testId="more-jj-rules">
+          <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="jj-rules">
+            {s.jj_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
+          </ol>
+          <p className="mt-1 text-blue">Full rule sheet with video times: docs/JJ_FPT_RULES.md. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
+          </MoreInfo>
+        </div>
+      )}
+      {s.key === "noise" && !w.ready && (
+        <p className="mt-1 text-xs text-gold" data-testid="noise-warmup">Warm-up: {w.sessions}/{w.needed} sessions of TradingView 1-minute MNQ bars stored — NOISE starts trading after that.</p>
+      )}
+    </div>
+  );
+  const toggleCard = (t: ToggleRow) => (
+    <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
+      <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
+      <div className="mt-2 grid gap-2">
+        {([true, false] as const).map((v) => {
+          const on = t.value === v;
+          return (
+            <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending} onClick={() => !on && flip.mutate({ t, v })}
+              data-testid={`toggle-${t.key}-${v ? "on" : "off"}`}
+              className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+              {pickLabel(on)} · {v ? t.on_label : t.off_label}
+            </button>
+          );
+        })}
+      </div>
+      {t.compare && <DrawdownCompareView c={t.compare} />}
+      <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
+    </div>
+  );
   return (
     <section className={card} data-testid="strategy-buttons">
       <h2 className="font-semibold text-gold">Strategies — tap to turn on/off</h2>
       <MoreInfo label="How these numbers were measured" testId="strategy-method">
         <p className="text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
       </MoreInfo>
-      <div className="mt-3 grid gap-3 lg:grid-cols-3">
-        {d.strategies.map((s) => (
-          <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
-            <button
-              type="button"
-              aria-pressed={s.enabled}
-              disabled={toggle.isPending}
-              onClick={() => toggle.mutate(s)}
-              className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${s.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
-            >
-              {s.enabled ? "ON" : "OFF"} · {s.name}
-            </button>
-            <p className="mt-2 text-xs"><span aria-hidden style={{ color: s.verified ? badge.ok : badge.bad }}>●</span> <b className="text-gold">{s.status}</b> <span className="text-blue">{s.period}</span></p>
-            <dl className="mt-2 grid grid-cols-2 gap-x-2 text-sm">
-              <dt>Win rate</dt><dd className="text-gold" data-testid={`win-${s.key}`}>{pct(s.win_pct)}</dd>
-              <dt>Eval pass</dt><dd className="text-gold" data-testid={`pass-${s.key}`}>{pct(s.pro25k_pass_pct)}</dd>
-              <dt>Eval bust</dt><dd className="text-gold">{pct(s.pro25k_bust_pct)}</dd>
-              <dt>Profit factor</dt><dd className="text-gold">{s.profit_factor == null ? "—" : s.profit_factor.toFixed(2)}</dd>
-              <dt>Per trade (1 micro)</dt><dd className="text-gold">{s.usd_per_trade == null ? "— (not testable)" : `${s.usd_per_trade >= 0 ? "▲ +" : "▼ "}$${Math.abs(s.usd_per_trade).toFixed(2)}`}</dd>
-              <dt>Trades / week</dt><dd className="text-gold">{s.trades_per_week == null ? "—" : s.trades_per_week.toFixed(1)}</dd>
-            </dl>
-            {s.eval_odds && <p className="mt-1 text-xs text-blue" data-testid={`odds-${s.key}`}>Eval odds: {s.eval_odds.text}</p>}
-            {d.advisor && <AdvisorCardLine adv={d.advisor} cardKey={s.key} />}
-            {!noteInSetup(s) && <MoreInfo testId={`more-${s.key}`}><p className="text-blue">{s.note}</p></MoreInfo>}
-            {s.key === "order_flow" && (
-              <div className="mt-2 text-xs" data-testid="order-flow-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED</span>
-                <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
-                <MoreInfo label="More info + setup" testId={`more-${s.key}`}>
-                <p className="text-blue">{s.note}</p>
-                <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
-                {s.ar_layers && (
-                  <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="order-flow-layers">
-                    {s.ar_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                  </ol>
-                )}
-                <ol className="mt-1 list-decimal pl-4 text-blue">
-                  <li>TradingView: open a <b className="text-gold">1-minute {(s.instruments ?? ["MNQ"]).map((x) => `${x}1!`).join(" / ")}</b> chart (one alert per chart), add the Pine script <b className="text-gold">pine/Paytience_OrderFlow.pine</b> ("Paytience Order Flow").</li>
-                  <li>Paste the webhook secret (Connections page) into the indicator settings.</li>
-                  <li>Create an alert: Condition "Paytience Order Flow" → "Any alert() function call", once per bar close, Webhook URL = your Paytience URL /api/webhook/tradingview.</li>
-                  <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
-                </ol>
-                </MoreInfo>
-              </div>
-            )}
-            {s.key === "order_flow_amt" && s.amt_layers && (
-              <div className="mt-2 text-xs" data-testid="amt-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span>
-                <MoreInfo testId={`more-${s.key}`}>
-                <p className="text-blue">{s.note}</p>
-                <p className="mt-1 text-blue">Top-down (D110): context first, location next, the order-flow signal LAST. Turning it on also turns Order Flow on; it only removes trades (codes OF_AMT_*).</p>
-                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="amt-layers">
-                  {s.amt_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                </ol>
-                </MoreInfo>
-              </div>
-            )}
-            {s.key === "order_flow_zone" && s.zone_layers && (
-              <div className="mt-2 text-xs" data-testid="zone-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · iceberg PROXY (no MBO data)</span>
-                <MoreInfo testId={`more-${s.key}`}>
-                <p className="text-blue">{s.note}</p>
-                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
-                  {s.zone_layers.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                </ol>
-                </MoreInfo>
-              </div>
-            )}
-            {s.strategy_rules && (
-              <div className="mt-2 text-xs" data-testid={`${s.key}-setup`}>
-                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one transcript</span>
-                <MoreInfo label="Rules" testId={`more-${s.key}-rules`}>
-                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid={`${s.key}-rules`}>
-                  {s.strategy_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                </ol>
-                <p className="mt-1 text-blue">* = not from the video. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, flat times, never hedge).</p>
-                </MoreInfo>
-              </div>
-            )}
-            {s.key === "gala_pa" && s.gala_rules && (
-              <div className="mt-2 text-xs" data-testid="gala-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one Gala Trades transcript</span>
-                <MoreInfo label="Gala's rules" testId="more-gala-rules">
-                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="gala-rules">
-                  {s.gala_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                </ol>
-                <p className="mt-1 text-blue">Full rule sheet with video times: docs/GALA_RULES.md (* = not from the video). Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
-                </MoreInfo>
-              </div>
-            )}
-            {s.key === "jj_fpt" && s.jj_rules && (
-              <div className="mt-2 text-xs" data-testid="jj-setup">
-                <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from JJ's videos</span>
-                <MoreInfo label="JJ's rules" testId="more-jj-rules">
-                <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="jj-rules">
-                  {s.jj_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
-                </ol>
-                <p className="mt-1 text-blue">Full rule sheet with video times: docs/JJ_FPT_RULES.md. Every Lucid and Paytience safety check still applies (news, DLL, MLL, consistency, 1 position per account, never hedge).</p>
-                </MoreInfo>
-              </div>
-            )}
-            {s.key === "noise" && !w.ready && (
-              <p className="mt-1 text-xs text-gold" data-testid="noise-warmup">Warm-up: {w.sessions}/{w.needed} sessions of TradingView 1-minute MNQ bars stored — NOISE starts trading after that.</p>
-            )}
-          </div>
-        ))}
-      </div>
-      {d.toggles && d.toggles.length > 0 && (
-        <div className="mt-4 grid gap-3 lg:grid-cols-3" data-testid="strategy-toggles">
-          {d.toggles.map((t) => (
-            <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
-              <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
-              <div className="mt-2 grid gap-2">
-                {([true, false] as const).map((v) => {
-                  const on = t.value === v;
-                  return (
-                    <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending} onClick={() => !on && flip.mutate({ t, v })}
-                      data-testid={`toggle-${t.key}-${v ? "on" : "off"}`}
-                      className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
-                      {pickLabel(on)} · {v ? t.on_label : t.off_label}
-                    </button>
-                  );
-                })}
-              </div>
-              {t.compare && <DrawdownCompareView c={t.compare} />}
-              <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
+      <div className="mt-3 space-y-4">
+        <div data-testid="strategy-main-group">
+          <h3 className="text-lg font-bold text-gold">MAIN strategy — NOISE (+ CANDACE partner)</h3>
+          <div className="mt-2 grid gap-3 lg:grid-cols-3">{mainS.map(stratCard)}</div>
+          {fastPass.length > 0 && (
+            <div className="mt-3" data-testid="strategy-fast-pass">
+              <h4 className="font-semibold text-gold">NOISE fast-pass sizes (evaluations)</h4>
+              <div className="mt-2 grid gap-3 lg:grid-cols-3">{fastPass.map(toggleCard)}</div>
             </div>
-          ))}
+          )}
+        </div>
+        <div data-testid="strategy-order-flow-group">
+          <h3 className="text-lg font-bold text-gold">ORDER FLOW — second main option (UNVERIFIED)</h3>
+          <div className="mt-2 grid gap-3 lg:grid-cols-3">{flowS.map(stratCard)}</div>
+        </div>
+        <details className="rounded-lg border border-border p-3" data-testid="lesser-strategies">
+          <summary className="more-info-btn inline-flex cursor-pointer select-none items-center gap-1 rounded-md border border-blue px-2 py-0.5 font-semibold text-blue">Lesser strategies</summary>
+          <div className="mt-3 grid gap-3 lg:grid-cols-3">{lesserS.map(stratCard)}</div>
+        </details>
+      </div>
+      {otherToggles.length > 0 && (
+        <div className="mt-4 grid gap-3 lg:grid-cols-3" data-testid="strategy-toggles">
+          {otherToggles.map(toggleCard)}
         </div>
       )}
       {d.size_profiles && (
