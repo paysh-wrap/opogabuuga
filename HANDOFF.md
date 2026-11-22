@@ -617,3 +617,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - Pass-faster study (docs/results/pass_faster, user asked to test 1/2/4; baseline reproduced eval_odds.yaml exactly): LOCK80 (judge window
   better on both plans, but 25K 5-yr pass 54 vs 59 % → fail, inside noise), NOISE+CANDACE (faster median but fewer passes: 25K 50 vs 59 %,
   50K judge 42 vs 55 % → fail), NOISE+CONTI VWAP (pass ~9 %, ~90 % stuck → fail badly). Nothing built.
+- NOISE+CANDACE $125 cap / min 1 micro (docs/results/pass_faster_c125): CANDACE takes 303 of 304 signals, more profit (25K 5-yr
+  $21.5k vs $19.3k), faster passes (25K within 60 days 32 vs 23 %), but more stuck accounts (25K +9 pts, 50K judge pass 43 vs 55 %) →
+  fails the bust rule on 3 of 4 cells. Nothing built.
