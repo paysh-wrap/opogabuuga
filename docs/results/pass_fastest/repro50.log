@@ -1,0 +1,26 @@
+GMIN lib50 112.0 old 112.0
+1) BASE / NOISE-2@$100 / A / B vs pass_faster_100/results.json (mine / stored)
+  CANDACE signals kept at $125 cap: (304, 304) ; at $100 cap: 304 of 304
+  BASE ALL                           pass 68.85/68.85  stuck 21.41/21.41  <=60d 19.73/19.73  med 92.0/92.0  -> MATCH
+  BASE PICK                          pass 73.13/73.13  stuck 0.00/0.00  <=60d 20.66/20.66  med 86.5/86.5  -> MATCH
+  BASE JUDGE                         pass 55.32/55.32  stuck 27.38/27.38  <=60d 19.01/19.01  med 83.0/83.0  -> MATCH
+  N100 ALL                           pass 66.13/66.13  stuck 7.19/7.19  <=60d 21.17/21.17  med 79.0/79.0  -> MATCH
+  N100 PICK                          pass 63.62/63.62  stuck 10.79/10.79  <=60d 23.03/23.03  med 72.5/72.5  -> MATCH
+  N100 JUDGE                         pass 48.23/48.23  stuck 4.40/4.40  <=60d 19.72/19.72  med 67.0/67.0  -> MATCH
+  A ALL                              pass 59.11/59.11  stuck 30.59/30.59  <=60d 25.48/25.48  med 67.0/67.0  -> MATCH
+  A PICK                             pass 62.34/62.34  stuck 18.65/18.65  <=60d 29.43/29.43  med 63.0/63.0  -> MATCH
+  A JUDGE                            pass 48.94/48.94  stuck 32.77/32.77  <=60d 22.41/22.41  med 65.0/65.0  -> MATCH
+  B ALL                              pass 58.63/58.63  stuck 31.07/31.07  <=60d 25.48/25.48  med 67.0/67.0  -> MATCH
+  B PICK                             pass 62.34/62.34  stuck 18.65/18.65  <=60d 29.43/29.43  med 63.0/63.0  -> MATCH
+  B JUDGE                            pass 48.09/48.09  stuck 33.62/33.62  <=60d 22.41/22.41  med 64.0/64.0  -> MATCH
+2) per-start equality (all 1,252 starts)
+  BASE vs pf_sim.simulate: starts differing = 0
+  N100: table identical to old study table: True
+  N100 vs run_fixed.simulate: starts differing = 0
+  A: table identical to old study table: True
+  A vs run_fixed.simulate: starts differing = 0
+  B: table identical to old study table: True
+  B vs run_fixed.simulate: starts differing = 0
+3) lib50 sizing vs app.risk.strategy_sizing.auto_contracts
+  grid points 187110, mismatches 0
+ALL CHECKS PASSED 2.4 s

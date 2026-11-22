@@ -632,3 +632,8 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
   LucidPro EVAL has NO consistency rule → our 38 % day stop may slow evals; USER MUST VERIFY with Lucid before any change).
   Moltbook agent "eval_pass_researcher" registered (pending claim; key only in the session scratchpad); help post NOT made; draft
   docs/results/moltbook/POST_DRAFT.md. Next: verify the consistency rule, then rerun the fastest-pass search (scripts above).
+- Fastest-pass search DONE (docs/results/pass_fastest, Opus high; C40 = 38 % day stop, C50 = Lucid 50 % option → 48 %):
+  50K: keep BASE (faster configs fail the judge check); C50 alone +1.2 pass / +1.1 within-60-days; taper = +1.6 pass, slightly slower.
+  150K: NOISE 4 micros @ $100 stop + CANDACE 3 micros + brake (2 micros < 50 % cushion): pass 79.1 vs 77.1 %, within 60 days 9.3 vs
+  5.8 %, median 111 vs 159 days, profit $78.6k vs $57.9k (C50: 79.9 / 9.7). Needs: size_table_eval 150K stop_usd 100 + D133 cap → 4
+  (config) and fixed CANDACE 3 micros (code). NOT built — awaiting user approval.
