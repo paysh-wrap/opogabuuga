@@ -4,8 +4,9 @@ smaller_plans/RESULTS.md (25K, 100K)). Pure (no I/O).
 Only for EVAL-stage accounts (non-negotiable 10: never FUNDED / LIVE) whose own size equals the plan's
 the plan cfg's `account_size`, and only while the switch is on. NOISE then trades `noise_contracts` at a
 `noise_stop_usd` emergency stop per micro and CANDACE ICT a fixed `candace_contracts`; once the cushion (equity incl.
-open P&L - current MLL) is at / below `brake_cushion_usd` they trade the brake sizes (NOISE none when unset). The size returned here is only the
-starting size: every Lucid / Paytience check (DLL worst case, MLL room + kill distance, consistency cap / day stop,
+open P&L - current MLL) is at / below `brake_cushion_usd` they trade the brake sizes (NOISE none when unset).
+The size returned here is only the starting size: every Lucid / Paytience check (DLL worst case,
+MLL room + kill distance, consistency cap / day stop,
 max 1 position, hedge lock, news / flat, firm / internal max) still runs afterwards and can only shrink or skip.
 All numbers come from the plan file, never from code."""
 

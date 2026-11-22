@@ -645,3 +645,4 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - D156 BUILT (user 2026-11-22, row U1 of docs/results/pass_fastest/brake150/RESULTS.md; REC/U2 dropped: median days 111/112 do not beat 109):
   Strategy-page toggle `strategy.fast_pass_150k` (default OFF) — EVAL-stage 150K accounts only: NOISE 4 micros @ $100 stop/micro, CANDACE 3
   fixed, both 2 at cushion ≤ $1,500 (risk/fast_pass.py, numbers in lucid_pro_150k.yaml `fast_pass_150k_cfg`; other plans inert). All checks after.
+- D157 BUILT (user 2026-11-22): `strategy.fast_pass_25k|100k|150k` (default OFF, EVAL + own size only; FastPassCfg, yaml `fast_pass_*_cfg`, card per plan). 150K now NOISE 5 @ $100 + CANDACE 4 (both 2 at cushion ≤ $1,500); 25K N1 @ $75 + C2 (→1 < $333); 100K N2 @ $250 (→1) + C3 (→2) < $1,000. Studies: beat109 and smaller_plans RESULTS.md. All later checks still shrink/skip.

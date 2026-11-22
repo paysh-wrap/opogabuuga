@@ -1095,7 +1095,8 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
             continue
         op = "≤" if fp.brake_inclusive else "<"
         nb = fp.noise_brake_contracts
-        brake = f"cushion {op} ${fp.brake_cushion_usd:,.0f}: NOISE {nb if nb is not None else 'unchanged'}, CANDACE {fp.candace_brake_contracts}"
+        nbs = "unchanged" if nb is None else str(nb)
+        brake = f"cushion {op} ${fp.brake_cushion_usd:,.0f}: NOISE {nbs}, CANDACE {fp.candace_brake_contracts}"
         out.append(
             {
                 "key": fk,
@@ -1106,7 +1107,8 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 f"{fp.candace_contracts}; {brake}",
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
-                f"consistency, hedge lock, news/flat) still shrinks or skips. Study: docs/results/pass_fastest/{study}.",
+                "consistency, hedge lock, news/flat) still shrinks or skips. "
+                f"Study: docs/results/pass_fastest/{study}.",
             }
         )
     if st.eval_size_caps:
