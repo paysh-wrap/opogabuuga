@@ -87,6 +87,8 @@ super_groups:
 trade_plan: {rr_min: 1.5, rr_max: 2.5, stop_buffer_ticks: 4, min_stop_ticks: 20, slippage_ticks: 1, one_entry_per_model: true}
 
 strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-11-09): MAIN = NOISE ($250 stop) + afternoon fade (paper first). D55 (user 2026-11-09): NOISE (verified) on (D105/D107: LunqFX + Opening-drive removed)
+  advisor:
+    pre_session_runs_min: [240, 60, 30]   # D160: TradingAgents bias runs this many minutes before the session start (earliest entry window); ADVISORY unless the ledger is proven
   # D115 (user 2026-11-11) per-strategy, per-plan size. Every trade still goes through ALL pre-trade checks:
   # firm max micros (Flex: scaling plan), internal_max_micros, the $ caps below, worst case + DLL margin <= DLL left
   # and <= distance to the MLL - kill distance, consistency cap/day stop, split 50/50 halving, household hedge lock.
@@ -210,6 +212,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     ta_advisor: false          # D109 TradingAgents advisor (Order Flow page toggle); advisory only, never blocks unless below
     ta_advisor_blocks: false   # D109 true → opposite-side alert skipped OF_TA_DISAGREES, and only once the AI ledger is proven
     ta_advisor_lead_min: 60    # D109 run the bias job this many minutes before the first Order Flow entry window (ET)
+    ar_side_by_side: false     # D160 (user 2026-11-22): AR Model beside NOISE on a DIFFERENT free account (never the same account, opposite side skipped); My Settings toggle
     casper:   # D108 Casper 4h course = REFINEMENTS of the AR Model (UNVERIFIED; each a switch; codes OF_CASPER_<RULE>)
       price_confirms: true      # entry candle closes away from the trapped side (tightens the AR confirmation)
       close_pos_min: 0.5        # validator 0.5–0.9 of the entry candle range on the trade side

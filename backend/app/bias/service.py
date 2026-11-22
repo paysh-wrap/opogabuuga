@@ -51,14 +51,16 @@ async def run_bias(
     vt_root: Any = None,
     context: dict[str, Any] | None = None,
     only: list[str] | None = None,
+    refresh: bool = False,
 ) -> dict[str, str]:
     """TradingAgents (backbone) per proxy, then the D53 blend with Vibe-Trading (optional, can only unblock).
-    `only` limits the run to these proxies (D109: the Order Flow advisor reuses this job for its own markets)."""
+    `only` limits the run to these proxies (D109: the Order Flow advisor reuses this job for its own markets).
+    `refresh` (D160, AR pre-session runs) re-runs a proxy that already has a call today; a failed re-run keeps the old call."""
     cred = s.execute(select(ApiCredential).where(ApiCredential.provider == "tradingagents")).scalar_one_or_none()
     vcred = s.execute(select(ApiCredential).where(ApiCredential.provider == "vibetrading")).scalar_one_or_none()
     out: dict[str, str] = {}
     for proxy in proxies(rules) if only is None else only:
-        if _done(s, sess, proxy):
+        if _done(s, sess, proxy) and not refresh:
             continue
         raw, reasoning, version = "NOT_CONFIGURED", "TradingAgents LLM key not set (Connections page)", ""
         if cred is not None:
@@ -75,6 +77,9 @@ async def run_bias(
                 )
                 version = str(d.get("version") or "")
         mapped, alert = map_rating(raw, rules.bias.rating_map)
+        if refresh and alert and _done(s, sess, proxy):  # D160: a failed re-run never replaces a good call of the day
+            out[proxy] = mapped
+            continue
         note, label = "", raw
         if vcred is not None and vt_root is not None and not alert:  # D53: second opinion, can only unblock
             from pathlib import Path

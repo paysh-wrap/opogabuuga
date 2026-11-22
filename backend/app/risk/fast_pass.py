@@ -12,8 +12,10 @@ All numbers come from the plan file, never from code."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import Any
 
 from app.config import FastPassCfg, StrategyCfg
 
@@ -57,3 +59,14 @@ def plan_fast_pass(st: StrategyCfg, account_size: Decimal) -> tuple[bool, FastPa
         if cfg is not None and cfg.account_size == account_size:
             return on, cfg
     return False, None
+
+
+def ar_side_by_side(st: StrategyCfg, features: Mapping[str, Any] | None) -> bool:
+    """D160: True for an AR-Model Order Flow signal (not the ATR-zone type) while the side-by-side option is on."""
+    return st.order_flow and st.order_flow_cfg.ar_side_by_side and "zone" not in (features or {})
+
+
+def ar_side_cap(size: int, noise: FastPassSize | None) -> int:
+    """D160: AR side-by-side size = min(its own size, half of the NOISE fast-pass size when one applies), at least 1.
+    Tighten-only: the Lucid fit, DLL / MLL room, consistency and every other pre-trade check still shrink or skip."""
+    return size if noise is None else min(size, max(1, noise.contracts // 2))

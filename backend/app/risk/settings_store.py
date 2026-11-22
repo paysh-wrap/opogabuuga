@@ -74,6 +74,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.order_flow_cfg.amt.enabled",  # D110: AMT+ Order Flow button (Strategy page)
         "strategy.order_flow_cfg.amt.balance_mode",  # D110: BALANCE context: skip | edges
         "strategy.order_flow_cfg.zone_atr.enabled",
+        "strategy.order_flow_cfg.ar_side_by_side",  # D160: AR Model beside NOISE on a different free account
         "strategy.order_flow_cfg.auction.enabled",  # D150: Imre auction Order Flow option (toggle)
         "strategy.order_flow_cfg.zone_atr.modes",  # D111: POSITION / REVERSION selector
         "strategy.order_flow_cfg.zone_atr.a_plus_only",

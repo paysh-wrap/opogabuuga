@@ -27,16 +27,20 @@ ACTION = "order_flow.ta_advice"
 SIDE = {"LONG_ONLY": "LONG", "SHORT_ONLY": "SHORT", "NEUTRAL": "NEUTRAL"}
 
 
-def advisor_at(rules: Any) -> str:
-    """ET time the advisor runs: lead minutes before the earliest entry window start of the Order Flow markets."""
-    cfg = rules.strategy.order_flow_cfg
+def session_start_min(rules: Any) -> int:
+    """ET minute of day of the earliest entry window start of the Order Flow markets (the session start)."""
     starts = []
-    for sym in cfg.instruments:
+    for sym in rules.strategy.order_flow_cfg.instruments:
         inst = rules.instrument(sym)
         for a, _b in inst.windows or rules.internal.windows:
             h, m = (int(x) for x in a.split(":"))
             starts.append(h * 60 + m)
-    t = max(0, min(starts) - cfg.ta_advisor_lead_min)
+    return min(starts)
+
+
+def advisor_at(rules: Any) -> str:
+    """ET time the advisor runs: lead minutes before the earliest entry window start of the Order Flow markets."""
+    t = max(0, session_start_min(rules) - rules.strategy.order_flow_cfg.ta_advisor_lead_min)
     return f"{t // 60:02d}:{t % 60:02d}"
 
 

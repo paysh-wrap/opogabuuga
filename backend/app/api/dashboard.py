@@ -849,6 +849,23 @@ def _order_flow_markets(c: dict[str, object], r: Any) -> dict[str, object]:
     }
 
 
+def _ar_side_by_side(db: Session, r: Any, sess: Any) -> dict[str, Any]:
+    """D160: the Order Flow card's AR-beside-NOISE option: toggle, the pre-session TradingAgents runs and their latest
+    bias / probabilities (or NO_CALL), the data-source label and the evidence line. No pass / win figures."""
+    from app.bias import ar_pre_session as arp
+
+    return {
+        "setting": "strategy.order_flow_cfg.ar_side_by_side",
+        "enabled": r.strategy.order_flow_cfg.ar_side_by_side,
+        "data_source": arp.SOURCE,
+        "evidence": arp.EVIDENCE,
+        "verified": False,
+        "advisor_mode": r.strategy.advisor.mode,
+        "session": sess.isoformat(),
+        "runs": arp.view(db, r, sess),
+    }
+
+
 @router.get("/strategies")
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
@@ -901,6 +918,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 "enabled": on[str(c["key"])],
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
+                **({"ar_side_by_side": _ar_side_by_side(db, r, sess)} if c["key"] == "order_flow" else {}),
                 **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
                 **({"gala_rules": gala_rules(r)} if c["key"] == "gala_pa" else {}),
                 **({"strategy_rules": RULE_CARDS[str(c["key"])](r)} if c["key"] in RULE_CARDS else {}),

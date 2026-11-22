@@ -238,6 +238,47 @@ async def _of_ta_advisor(app: FastAPI, s: Session, now: datetime) -> None:
     ofa.record(s, r, st.clock, sess)
 
 
+async def _ar_pre_session(app: FastAPI, s: Session, now: datetime) -> None:
+    """D160: TradingAgents bias runs 4 h / 1 h / 30 min (plan file) before the session start while the AR side-by-side
+    option is on. Reuses the bias job (ledger rows); no key = NO_CALL; advisory only, never blocks."""
+    from app.automation import state as stt
+    from app.bias import ar_pre_session as arp
+    from app.bias import service as bias
+    from app.clock import session_date
+    from app.crypto import Vault
+
+    st = app.state
+    r = st.rules.rules
+    sess = session_date(now)
+    for minutes, _at in arp.run_times(r):
+        key = f"job.ar_pre.{minutes}"
+        if not arp.due(now, r, minutes, stt.get_setting(s, key), sess):  # type: ignore[arg-type]
+            continue
+        stt.set_setting(s, key, sess.isoformat(), now)
+        s.commit()
+        failed = None
+        try:
+            await bias.run_bias(
+                s,
+                st.ta,
+                Vault(st.settings.master_key.get_secret_value()),
+                r,
+                st.clock,
+                sess,
+                st.controller.notify,
+                vt_root=st.settings.vt_root,
+                context=bias.openbb_context(st),
+                only=sorted({r.instrument(x).bias_proxy for x in r.strategy.order_flow_cfg.instruments}),
+                refresh=True,
+            )
+        except Exception as e:  # advisory only (§1.8: logged + notified); the card shows NO_CALL
+            s.rollback()
+            failed = f"run failed ({type(e).__name__})"
+            log.warning("ar_pre_session.failed", error=type(e).__name__)
+            st.controller.notify("warn", "AR pre-session AI bias: no call", failed)
+        arp.record_run(s, r, st.clock, sess, minutes, failed)
+
+
 async def _ta_mgc_research(app: FastAPI, s: Session, now: datetime) -> None:
     """D84: the MGC research part of AI Duo. Off unless AI Duo is on with MGC. Reuses the existing TradingAgents /
     Vibe-Trading connections; no key = nothing runs (the Strategy page shows "AI key not connected")."""
@@ -326,6 +367,7 @@ async def _scheduler(app: FastAPI) -> None:
                 await _inactivity(app, s, now)
                 await _daily_bias(app, s, now)
                 await _of_ta_advisor(app, s, now)
+                await _ar_pre_session(app, s, now)
                 await _ta_mgc_research(app, s, now)
                 await _eod(app, s, now)
                 await _nightly(app, s, now)

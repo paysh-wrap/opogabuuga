@@ -14,6 +14,7 @@ export interface Strat {
   eval_odds?: OddsView; // D137: pass / bust from config/eval_odds.yaml for the active plan, size table and EOD toggle
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
+  ar_side_by_side?: ArSideBySide; // D160: AR Model beside NOISE + pre-session TradingAgents runs
   ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
   amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
   zone_layers?: { key: string; on: boolean; rule: string }[]; // D111: ATR-zone type (iceberg PROXY)
@@ -21,6 +22,12 @@ export interface Strat {
   gala_rules?: { key: string; on: boolean; rule: string }[]; // D144 GALA PRICE ACTION: rule sheet + plan numbers
   strategy_rules?: { key: string; on: boolean; rule: string }[]; // D146+: rule-sheet strategies (CONTI, OKALA)
 }
+export interface ArRunResult { symbol: string; status: string; side?: string | null; rating?: string | null; prob_up?: number | null; prob_down?: number | null; reason?: string | null }
+export interface ArSideBySide {
+  setting: string; enabled: boolean; data_source: string; evidence: string; verified: boolean; advisor_mode: string; session: string;
+  runs: { minutes_before: number; at: string; results: ArRunResult[] }[];
+}
+const runLabel = (m: number) => (m % 60 === 0 ? `${m / 60} h` : `${m} min`);
 // D137: eval pass / bust of one (plan, size table, EOD toggle) cell — numbers null + text "not measured yet" until measured
 export interface OddsView { plan: string; table: string; eod_on: boolean; text: string; pass_pct: number | null; bust_pct: number | null; last12_pass_pct: number | null; last12_bust_pct: number | null }
 export interface Ledger {
@@ -126,6 +133,11 @@ export default function StrategyButtons() {
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [s.setting]: !s.enabled, ...(s.enabled ? {} : Object.fromEntries((s.also ?? []).map((k) => [k, true]))) }, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
+  const sbs = useMutation({
+    mutationFn: (a: ArSideBySide) =>
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [a.setting]: !a.enabled }, note: `AR beside NOISE: ${a.enabled ? "off" : "on"}` }) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+  });
   const size = useMutation({
     mutationFn: (high: boolean) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.high_risk": high }, note: `Size profile: ${high ? "high risk" : "regular"}` }) }),
@@ -194,6 +206,34 @@ export default function StrategyButtons() {
             <li>Keep the Paytience_Bridge heartbeat alert on as well.</li>
           </ol>
           </MoreInfo>
+        </div>
+      )}
+      {s.key === "order_flow" && s.ar_side_by_side && (
+        <div className="mt-2 text-xs" data-testid="ar-sbs">
+          <button
+            type="button"
+            aria-pressed={s.ar_side_by_side.enabled}
+            disabled={sbs.isPending}
+            onClick={() => sbs.mutate(s.ar_side_by_side!)}
+            className={`w-full rounded-md border px-2 py-1 text-left font-semibold ${s.ar_side_by_side.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+            data-testid="ar-sbs-toggle"
+          >
+            {s.ar_side_by_side.enabled ? "ON" : "OFF"} · AR Model beside NOISE (different free account)
+          </button>
+          <p className="mt-1 text-blue" data-testid="ar-sbs-source">Data: <b className="text-gold">{s.ar_side_by_side.data_source}</b> · bias runs {s.ar_side_by_side.runs.map((r) => `${runLabel(r.minutes_before)} before (${r.at} ET)`).join(", ")}</p>
+          <ul className="mt-1 text-blue" data-testid="ar-sbs-runs">
+            {s.ar_side_by_side.runs.map((r) => (
+              <li key={r.minutes_before}>
+                <b className="text-gold">{runLabel(r.minutes_before)}</b>:{" "}
+                {r.results.map((x) => (
+                  <span key={x.symbol} className="mr-2">
+                    {x.symbol} {x.status === "OK" ? `${x.side} (${x.rating}) up ${Math.round((x.prob_up ?? 0) * 100)}% / down ${Math.round((x.prob_down ?? 0) * 100)}%` : x.status === "NO_CALL" ? `NO_CALL — ${x.reason ?? "no call"}` : "pending"}
+                  </span>
+                ))}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-blue" data-testid="ar-sbs-evidence"><span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span> {s.ar_side_by_side.evidence} AI bias is {s.ar_side_by_side.advisor_mode.toLowerCase()} only until its ledger is proven.</p>
         </div>
       )}
       {s.key === "order_flow_amt" && s.amt_layers && (

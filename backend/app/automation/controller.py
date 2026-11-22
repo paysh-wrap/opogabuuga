@@ -60,7 +60,7 @@ from app.risk.cushion import (
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
-from app.risk.fast_pass import FastPassSize, fast_pass_size, plan_fast_pass
+from app.risk.fast_pass import FastPassSize, ar_side_by_side, ar_side_cap, fast_pass_size, plan_fast_pass
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -469,6 +469,8 @@ class Controller:
             one_acct = (plan0.mode == "JJ_FPT" and r.strategy.jj_fpt_cfg.one_account_per_trade) or (
                 fit0 is not None and fit0[1].one_account_per_trade
             )
+            ar_sbs = plan0.mode == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features)  # D160
+            one_acct = one_acct or ar_sbs
             if one_acct:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
                 busy = {t.account for t in self.om.trades.values()}
@@ -668,6 +670,9 @@ class Controller:
         if brake is not None and fixed is not None and fixed > 1:  # D85/D115 cushion brake (size-table brake reused)
             tier = SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)
             fixed = auto_contracts(acct_size, base, [tier]).contracts
+        if fixed is not None and strategy == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features):
+            # D160: AR beside NOISE — never above half the NOISE fast-pass size (tighten-only; every check still runs)
+            fixed = ar_side_cap(fixed, fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base))
         if jj is not None:  # JJ #28 + #29 same dollars on every stop size; D143: his 3-loss session fits Lucid's limits
             slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
             jday = st.day_state(s, a, opnl, now)

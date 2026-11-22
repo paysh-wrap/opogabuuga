@@ -521,6 +521,9 @@ class OrderFlowCfg(_M):
     ta_advisor: bool = False
     ta_advisor_blocks: bool = False
     ta_advisor_lead_min: int = Field(default=60, ge=15, le=240)
+    # D160 (user 2026-11-22): AR Model beside NOISE — AR signals go to a DIFFERENT free account than any open position
+    # (one free account per trade, never copy trading) or wait; opposite side stays skipped (hedge lock). Default OFF.
+    ar_side_by_side: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> OrderFlowCfg:
@@ -1163,6 +1166,9 @@ class AdvisorCfg(_M):
 
     mode: Literal["OFF", "ADVISORY", "GATE"] = "ADVISORY"
     skip_strategies: list[str] = []
+    # D160: TradingAgents bias runs this many minutes before each session start (earliest entry window, ET), shown on
+    # the Order Flow card when AR side-by-side is on. Advisory; the ledger rules above are unchanged.
+    pre_session_runs_min: list[int] = [240, 60, 30]
 
     @model_validator(mode="before")
     @classmethod
@@ -1173,6 +1179,9 @@ class AdvisorCfg(_M):
 
     @model_validator(mode="after")
     def _known(self) -> AdvisorCfg:
+        runs = self.pre_session_runs_min
+        if len(set(runs)) != len(runs) or any(not 5 <= m <= 600 for m in runs):
+            raise ValueError("advisor.pre_session_runs_min: unique minutes within 5-600")
         bad = [x for x in self.skip_strategies if x not in ADVISED_MODES]
         if bad:
             raise ValueError(f"advisor.skip_strategies: unknown {bad} (allowed {list(ADVISED_MODES)})")
