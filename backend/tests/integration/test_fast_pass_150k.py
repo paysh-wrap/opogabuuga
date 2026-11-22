@@ -27,7 +27,7 @@ PLANS = {
 }
 
 
-def _setup(authed, clock, *, stage="EVAL", balance="150000", cushion=D(4000), on=True, strat=None, internal=None):
+def _setup(authed, clock, *, stage="EVAL", balance="150000", cushion=D(4000), on=True, internal=None, dll=None):
     st = authed.app.state
     clock.set(AT)
     aid = authed.post("/api/accounts", json={"label": "F", "stage": stage, "balance": balance}).json()["id"]
@@ -40,10 +40,12 @@ def _setup(authed, clock, *, stage="EVAL", balance="150000", cushion=D(4000), on
         a.mll, a.mll_peak = D(balance) - cushion, D(balance)  # cushion = equity − current MLL
         s.commit()
     h = st.controller.rules
-    upd = {"fast_pass_150k": on, "fast_pass_150k_cfg": CFG, "candace_ict": True, **(strat or {})}
+    upd = {"fast_pass_150k": on, "fast_pass_150k_cfg": CFG, "candace_ict": True}
     rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=upd)})
     if internal:
         rules = rules.model_copy(update={"internal": rules.internal.model_copy(update=internal)})
+    if dll is not None:
+        rules = rules.model_copy(update={"eval": rules.eval.model_copy(update={"daily_loss_limit": dll})})
     h.rules = rules
     return st, aid
 
@@ -79,10 +81,9 @@ def test_noise_size_and_stop(authed, clock, cushion, want, braked):
     res, fp = _run(st, aid, "NOISE")
     assert fp and fp[-1]["contracts"] == want and fp[-1]["braked"] is braked and fp[-1]["stop_usd"] == "100"
     assert D(fp[-1]["stop_pts"]) == _stop_pts(st)
-    assert _fixed(res) == str(want), res
-    print("NOISE", res, [t.qty for t in st.controller.om.trades.values()])
-    pre = next(c for c in res.checks if c["check"] == "fixed_size")
-    assert pre["contracts"] == str(want)
+    assert _fixed(res) == str(want) and res.ok and res.contracts == want, res
+    [t] = st.controller.om.trades.values()
+    assert t.qty == want and t.plan.stop == D(20000) - _stop_pts(st)  # $100 a micro, tighter than the 1 % stop
 
 
 @pytest.mark.parametrize(("cushion", "want"), [(D(4000), 3), (D(1000), 2)])
@@ -103,27 +104,34 @@ def test_candace_fixed_size(authed, clock, cushion, want):
 def test_off_funded_other_size_unchanged(authed, clock, kw):
     st, aid = _setup(authed, clock, **kw)
     res, fp = _run(st, aid, "CANDACE_ICT")
-    assert fp == []
-    print("OFF", kw, res, [t.qty for t in st.controller.om.trades.values()])
-    assert res.reason == "CAND_GRADE_SIZE_BELOW_1" or sum(t.qty for t in st.controller.om.trades.values()) < 3
+    assert fp == [] and res.reason == "CAND_GRADE_SIZE_BELOW_1"  # today's grade size (C = 0.25 → 0 micros)
 
 
-def test_checks_still_shrink(authed, clock):
+def test_noise_off_keeps_the_strategy_stop(authed, clock):
+    st, aid = _setup(authed, clock, on=False)
+    res, fp = _run(st, aid, "NOISE")
+    assert fp == [] and res.ok, res
+    [t] = st.controller.om.trades.values()
+    assert t.plan.stop == D(19800)
+
+
+def test_internal_max_still_shrinks(authed, clock):
     st, aid = _setup(authed, clock, internal={"internal_max_micros": 3})
     res, fp = _run(st, aid, "NOISE")
+    assert fp[-1]["contracts"] == 4 and res.ok and res.contracts == 3, res
+
+
+def test_dll_worst_case_still_shrinks(authed, clock):
+    st, aid = _setup(authed, clock, dll=D(250))  # 4 micros × $100 does not fit a $250 daily loss limit
+    res, fp = _run(st, aid, "NOISE")
     assert fp[-1]["contracts"] == 4
-    print("SHRINK", res)
-    assert res.contracts is None or res.contracts <= 3  # internal max (Paytience check) still caps the size
-    if res.ok:
-        assert sum(t.qty for t in st.controller.om.trades.values()) <= 3
-    else:
-        assert res.reason
+    assert (res.ok and 1 <= res.contracts < 4) or not res.ok, res
+    assert res.contracts * 100 <= 250
 
 
-def test_hedge_lock_still_skips(authed, clock):
+def test_one_position_still_skips(authed, clock):
     st, aid = _setup(authed, clock)
     res, _ = _run(st, aid, "CANDACE_ICT", key="a")
     assert res.ok, res
     res2, fp = _run(st, aid, "NOISE", key="b")  # one position already open → max 1 position still skips
-    print("HEDGE", res2)
-    assert not res2.ok and res2.reason
+    assert fp[-1]["contracts"] == 4 and not res2.ok and res2.reason == "POSITION_OPEN"
