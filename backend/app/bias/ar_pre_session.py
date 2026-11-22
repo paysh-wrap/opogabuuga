@@ -45,15 +45,23 @@ def run_times(rules: Any) -> list[tuple[int, str]]:
 
 
 def due(now: datetime, rules: Any, minutes: int, last: str | None, sess: date) -> bool:
-    """True once the run time passed, before the session start, once per session and run (no catch-up after start)."""
+    """True once the run time passed, before the session start, once per session and run; only the latest due run."""
     from app.bias.service import due as _due
     from app.clock import to_et
 
-    at = dict(run_times(rules)).get(minutes)
+    times = dict(run_times(rules))
+    at = times.get(minutes)
     if not enabled(rules) or at is None:
         return False
     local = to_et(now)
-    return _due(now, at, last, sess) and local.hour * 60 + local.minute < session_start_min(rules)
+    cur = local.hour * 60 + local.minute
+
+    def mins(t: str) -> int:
+        return int(t[:2]) * 60 + int(t[3:])
+
+    if any(mins(t) > mins(at) and mins(t) <= cur for t in times.values()):
+        return False  # a later run is already due: no stale catch-up of an earlier one
+    return _due(now, at, last, sess) and cur < session_start_min(rules)
 
 
 def entity(symbol: str, day: date, minutes: int) -> str:

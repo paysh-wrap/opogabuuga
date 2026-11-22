@@ -15,82 +15,81 @@ from app.engine.trade_plan import Direction
 from app.models import AuditLog, BiasDecision
 from app.signals import strategy_service as SS
 from tests.integration.test_bias_job import FakeTA, save_creds
-from tests.integration.test_order_flow import AT, _rules
+from tests.integration.test_order_flow import _rules
+from tests.integration.test_split_risk import AT, PLAN, _ext, _qty, _setup, _sig
 
 
 def _on(st, **cfg):
-    st.rules.rules = _rules(st.rules)
-    of = st.rules.rules.strategy.order_flow_cfg.model_copy(update=cfg)
-    r = st.rules.rules
+    r = _rules(st.rules)
+    of = r.strategy.order_flow_cfg.model_copy(update=cfg)
     st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow_cfg": of})})
-
-
-def _accounts(authed, clock, n=2):
-    clock.set(AT)
-    ids = []
-    for i in range(n):
-        aid = authed.post("/api/accounts", json={"label": f"A{i}", "stage": "EVAL", "balance": "25000"}).json()["id"]
-        authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True})
-        ids.append(aid)
-    authed.post("/api/attestation", json={"confirm": True})
-    authed.app.state.controller.mode = "FULL"
-    return ids
-
-
-def _signal(st, n, direction="LONG", features=None):
-    long_ = direction == "LONG"
-    plan = ("ORDER_FLOW", D(20010), D("19999.75") if long_ else D("20020.25"), D("20030.5") if long_ else D("19989.5"),
-            D("10.25"), D(2))  # fmt: skip
-    with st.sessionmaker() as s:
-        sig = SS._new_signal(
-            s, FixedClock(AT), symbol="MNQ", key=f"MNQ-OF-2026-10-12-{n}-{direction}",
-            direction=Direction.LONG if long_ else Direction.SHORT, at=AT, gate=(True, "OK", ""),
-            features=features or {}, plan=plan,
-        )  # fmt: skip
-        s.commit()
-        return sig.id
 
 
 def _traded(res):
     return [r.account_id for r in res if r.ok]
 
 
+def _two(authed, clock, **cfg):
+    st, ids = _setup(authed, clock, [("a", "25000"), ("b", "25000")], noise=True)
+    _on(st, **cfg)
+    r = st.rules.rules
+    st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow": True})})
+    return st, ids
+
+
 def test_off_is_unchanged_every_selected_account_is_tried(authed, clock):
-    st = authed.app.state
-    ids = _accounts(authed, clock)
-    _on(st)
+    st, (a, b) = _two(authed, clock)
     assert st.rules.rules.strategy.order_flow_cfg.ar_side_by_side is False
-    res = asyncio.run(st.controller.execute(_signal(st, 1), "automation", only=ids))
-    assert {r.account_id for r in res} == set(ids)
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))
+    assert {r.account_id for r in res} == {a, b}  # today's routing; the busy account is stopped by the 1-position check
+    assert next(r for r in res if r.account_id == a).ok is False
 
 
-def test_on_second_signal_goes_to_free_account_never_the_busy_one(authed, clock):
-    st = authed.app.state
-    ids = _accounts(authed, clock)
-    _on(st, ar_side_by_side=True)
-    first = _traded(asyncio.run(st.controller.execute(_signal(st, 1), "automation", only=ids)))
-    assert len(first) == 1  # one free account per trade, never copy trading
-    second = asyncio.run(st.controller.execute(_signal(st, 2), "automation", only=ids))
-    assert [r.account_id for r in second] == [i for i in ids if i != first[0]]  # only the free account is tried
-    third = asyncio.run(st.controller.execute(_signal(st, 3), "automation", only=ids))
-    assert third == [] or all(not r.ok for r in third)  # both busy: never a second position on one account
+def test_on_ar_goes_to_a_free_account_never_the_noise_account(authed, clock):
+    st, (a, b) = _two(authed, clock, ar_side_by_side=True)
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))
+    assert [r.account_id for r in res] == [b] and res[0].ok, res  # only the free account; never copy trading
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O2"), "automation", only=[a, b]))
+    assert not any(r.ok for r in res)  # both busy: never a second position on one account
 
 
 def test_on_opposite_direction_is_skipped_by_hedge_lock(authed, clock):
-    st = authed.app.state
-    ids = _accounts(authed, clock)
-    _on(st, ar_side_by_side=True)
-    assert len(_traded(asyncio.run(st.controller.execute(_signal(st, 1), "automation", only=ids)))) == 1
-    res = asyncio.run(st.controller.execute(_signal(st, 2, "SHORT"), "automation", only=ids))
-    assert not any(r.ok for r in res) and any("HEDGE" in (r.reason or "") for r in res), res
+    st, (a, b) = _two(authed, clock, ar_side_by_side=True)
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    short = (D(20000), D(20020), D(19900), D(20), D(5))
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1", Direction.SHORT, short), "automation", only=[a, b]))
+    assert not any(r.ok for r in res) and any(r.reason == "HEDGE_LOCK" for r in res), res
+
+
+def test_ar_size_is_capped_at_half_of_the_noise_fast_pass_size(authed, clock):
+    from app.config import FastPassCfg
+
+    st, (a, b) = _two(authed, clock, ar_side_by_side=True, contracts=4)
+    fp = FastPassCfg(
+        account_size=D(25000), noise_contracts=2, noise_stop_usd=D(75), candace_contracts=2,
+        brake_cushion_usd=D(333), brake_inclusive=False, candace_brake_contracts=1,
+    )  # fmt: skip
+    r = st.rules.rules
+    st.rules.rules = r.model_copy(
+        update={"strategy": r.strategy.model_copy(update={"fast_pass_25k": True, "fast_pass_25k_cfg": fp})}
+    )
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a]))
+    assert res[0].ok and _qty(st, _ext(st, a)) == 1  # half of NOISE's 2 micros
 
 
 def test_zone_signals_keep_todays_routing(authed, clock):
-    st = authed.app.state
-    ids = _accounts(authed, clock)
-    _on(st, ar_side_by_side=True)
-    res = asyncio.run(st.controller.execute(_signal(st, 1, features={"zone": {}}), "automation", only=ids))
-    assert {r.account_id for r in res} == set(ids)
+    st, (a, b) = _two(authed, clock, ar_side_by_side=True)
+    with st.sessionmaker() as s:
+        sig = SS._new_signal(
+            s, FixedClock(AT), symbol="MNQ", key="Z1", direction=Direction.LONG, at=AT, gate=(True, "OK", ""),
+            features={"zone": {}}, plan=("ORDER_FLOW", *PLAN),
+        )  # fmt: skip
+        s.commit()
+        sid = sig.id
+    res = asyncio.run(st.controller.execute(sid, "automation", only=[a, b]))
+    assert {r.account_id for r in res} == {a, b}
 
 
 # ---------- pre-session runs ----------
@@ -152,6 +151,7 @@ def test_scheduler_runs_three_times_stores_probabilities_and_card(authed, clock)
         assert s.query(BiasDecision).count() == 3
         rows = s.query(AuditLog).filter_by(action=ARP.ACTION).all()
         assert len(rows) == 3 and all(x.payload["status"] == "OK" and x.payload["side"] == "SHORT" for x in rows)
+        print([x.payload for x in rows])
         assert all(0 < x.payload["prob_down"] < 1 and x.payload["prob_up"] < 0.5 for x in rows)
     card = next(c for c in authed.get("/api/strategies").json()["strategies"] if c["key"] == "order_flow")["ar_side_by_side"]
     assert card["enabled"] is True and card["data_source"] == "ESTIMATED delta (online data)" and card["verified"] is False
