@@ -620,3 +620,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - NOISE+CANDACE $125 cap / min 1 micro (docs/results/pass_faster_c125): CANDACE takes 303 of 304 signals, more profit (25K 5-yr
   $21.5k vs $19.3k), faster passes (25K within 60 days 32 vs 23 %), but more stuck accounts (25K +9 pts, 50K judge pass 43 vs 55 %) →
   fails the bust rule on 3 of 4 cells. Nothing built.
+- Fixed-size NOISE+CANDACE (docs/results/pass_faster_fixed): 25K NOISE 1 + CANDACE 1 = same as C125_1 (5-yr stuck +9 → fail);
+  50K NOISE 1 + CANDACE 2: pass 81 vs 69 %, stuck 10 vs 21 %, but profit −$15k over 5 yr and slower (121 vs 92 days) → fails the
+  profit rule; the gain comes from NOISE at 1 micro, not CANDACE. Both-at-once (B) never beats one-at-a-time → no reason to change rule 7.
