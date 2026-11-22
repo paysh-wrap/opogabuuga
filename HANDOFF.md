@@ -614,3 +614,6 @@ Branch ccr-2354b05d-0csdc0 (= ccr-eea226b3-j4r2pm 74b83e4 + this session). Sessi
 - D154 BUILT (user "Do it", 5-year view over the held-out rule for this change only): CANDACE keep_all_sweeps ON (engine/candace_ict
   _Episode/_advance; toggle strategy.candace_ict_cfg.keep_all_sweeps). Checked on all 1,266 days: OFF = D149 engine exactly (100 trades),
   ON = study V1 exactly (310 trades) — docs/results/new_strategies/candace_keep_sweeps/verify_d154.py. Backend 1,521 passed, 100 % cov.
+- Pass-faster study (docs/results/pass_faster, user asked to test 1/2/4; baseline reproduced eval_odds.yaml exactly): LOCK80 (judge window
+  better on both plans, but 25K 5-yr pass 54 vs 59 % → fail, inside noise), NOISE+CANDACE (faster median but fewer passes: 25K 50 vs 59 %,
+  50K judge 42 vs 55 % → fail), NOISE+CONTI VWAP (pass ~9 %, ~90 % stuck → fail badly). Nothing built.
