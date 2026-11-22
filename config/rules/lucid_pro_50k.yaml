@@ -152,7 +152,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
       - {cushion_usd: 667, contracts: 1}
     candace_steps:
       - {cushion_usd: 1000, contracts: 3}
-    day_lock_pct: 0.5     #   EVAL day lock (only skips)
+    day_lock_pct: 0.4     #   EVAL day lock (only skips); D163 0.5 -> 0.4
     noise_lock_trigger_pts: 80   # NOISE profit-lock trigger for these accounts only (global noise_lock_alt untouched)
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:

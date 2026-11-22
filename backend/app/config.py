@@ -974,6 +974,9 @@ class FastPassCfg(_M):
     noise_max_contracts: int | None = Field(default=None, ge=1)
     day_lock_pct: D | None = Field(default=None, gt=D(0), le=D(1))
     noise_lock_trigger_pts: D | None = Field(default=None, gt=D(0))
+    # D163 (final_search study): CANDACE growth = +1 micro per `candace_grow_per` $ of cushion beyond the first, capped.
+    candace_grow_per: D | None = Field(default=None, gt=D(0))
+    candace_max_contracts: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="before")
     @classmethod
@@ -993,6 +996,10 @@ class FastPassCfg(_M):
             raise ValueError("fast_pass cfg: noise_grow_per and noise_max_contracts go together")
         if self.noise_max_contracts is not None and self.noise_max_contracts < self.noise_contracts:
             raise ValueError("fast_pass cfg: noise_max_contracts must be >= noise_contracts")
+        if (self.candace_grow_per is None) != (self.candace_max_contracts is None):
+            raise ValueError("fast_pass cfg: candace_grow_per and candace_max_contracts go together")
+        if self.candace_max_contracts is not None and self.candace_max_contracts < self.candace_contracts:
+            raise ValueError("fast_pass cfg: candace_max_contracts must be >= candace_contracts")
         for steps, base in ((self.noise_steps, self.noise_contracts), (self.candace_steps, self.candace_contracts)):
             if any(x.contracts > base for x in steps):
                 raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")

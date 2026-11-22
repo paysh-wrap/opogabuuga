@@ -148,6 +148,8 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
     noise_stop_usd: 100   #   emergency stop $100 per micro (never wider than the strategy's own stop)
     noise_grow_per: 500
     noise_max_contracts: 6
+    candace_grow_per: 1500   # D163: CANDACE +1 micro per $1,500 of cushion beyond the first, max 6 (steps then cap)
+    candace_max_contracts: 6
     candace_contracts: 5  #   CANDACE ICT fixed 5 micros (replaces its Lucid fit + grade size)
     brake_inclusive: false   # cushion (equity incl. open P&L - current MLL) strictly below each step (= study's cushion / MLL < frac)
     noise_steps:

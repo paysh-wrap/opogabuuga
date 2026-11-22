@@ -45,7 +45,7 @@ def fast_pass_size(
     if strategy == "NOISE":
         n, braked = _step_size(cfg, cfg.noise_steps, _noise_base(cfg, cushion), cushion)
         return FastPassSize(n, cfg.noise_stop_usd, braked)
-    n, braked = _step_size(cfg, cfg.candace_steps, cfg.candace_contracts, cushion)
+    n, braked = _step_size(cfg, cfg.candace_steps, _candace_base(cfg, cushion), cushion)
     return FastPassSize(n, None, braked)
 
 
@@ -55,6 +55,14 @@ def _noise_base(cfg: FastPassCfg, cushion: Decimal) -> int:
         return cfg.noise_contracts
     extra = int(cushion // cfg.noise_grow_per) - 1
     return min(cfg.noise_max_contracts, cfg.noise_contracts + extra) if extra > 0 else cfg.noise_contracts
+
+
+def _candace_base(cfg: FastPassCfg, cushion: Decimal) -> int:
+    """D163 grow (final_search study, CANDACE only): +1 micro per `candace_grow_per` of cushion beyond the first, capped."""
+    if cfg.candace_grow_per is None or cfg.candace_max_contracts is None:
+        return cfg.candace_contracts
+    extra = int(cushion // cfg.candace_grow_per) - 1
+    return min(cfg.candace_max_contracts, cfg.candace_contracts + extra) if extra > 0 else cfg.candace_contracts
 
 
 def fast_pass_day_locked(cfg: FastPassCfg | None, day_profit: Decimal, remaining: Decimal) -> bool:

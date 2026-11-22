@@ -1120,7 +1120,13 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                     if fp.noise_grow_per
                     else ""
                 )
-                + f") · CANDACE {fp.candace_contracts or 'off'} (cushion {steps_text(fp.candace_steps)})"
+                + f") · CANDACE {fp.candace_contracts or 'off'} (cushion {steps_text(fp.candace_steps)}"
+                + (
+                    f"; +1 per ${fp.candace_grow_per:,.0f} of cushion, max {fp.candace_max_contracts}"
+                    if fp.candace_grow_per
+                    else ""
+                )
+                + ")"
                 + (f" · day lock {fp.day_lock_pct:g} of the remaining target" if fp.day_lock_pct else "")
                 + (f" · NOISE lock {fp.noise_lock_trigger_pts:g} pt" if fp.noise_lock_trigger_pts else ""),
                 "off_label": "Normal evaluation sizes (default)",

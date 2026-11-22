@@ -240,3 +240,23 @@ def test_d162_cfg_validation():
 def test_plan_fast_pass_50k():
     st = StrategyCfg(fast_pass_50k=True, fast_pass_50k_cfg=CFG50)
     assert plan_fast_pass(st, D(50000)) == (True, CFG50)
+
+
+def test_d163_candace_grow():
+    cfg = CFG150_NEW.model_copy(
+        update={"candace_steps": (), "candace_grow_per": D(1500), "candace_max_contracts": 6}
+    )
+    got = [fast_pass_size(True, cfg, "EVAL", K150, "CANDACE_ICT", D(c)).contracts for c in (0, 2999, 3000, 9000)]
+    assert got == [5, 5, 6, 6]  # extra = cushion // 1500 - 1 (first +1 at $3,000), capped at 6
+    # steps still cap the grown size (tighten-only)
+    capped = CFG150_NEW.model_copy(update={"candace_grow_per": D(1500), "candace_max_contracts": 6})
+    assert fast_pass_size(True, capped, "EVAL", K150, "CANDACE_ICT", D(1400)).contracts == 1
+    assert fast_pass_size(True, capped, "EVAL", K150, "CANDACE_ICT", D(2600)).contracts == 4
+    # inert default
+    assert fast_pass_size(True, CFG150_NEW, "EVAL", K150, "CANDACE_ICT", D(9000)).contracts == 5
+
+
+def test_d163_candace_grow_validation():
+    for bad in ({"candace_grow_per": D(1500)}, {"candace_max_contracts": 6}, {"candace_grow_per": D(1500), "candace_max_contracts": 4}):
+        with pytest.raises(ValueError):
+            FastPassCfg.model_validate({**CFG150_NEW.model_dump(), **bad})
