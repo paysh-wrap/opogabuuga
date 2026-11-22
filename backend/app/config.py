@@ -937,26 +937,31 @@ class EvalCapCfg(_M):
     max_contracts: int = Field(ge=1)
 
 
-class FastPass150kCfg(_M):
-    """D156 (user 2026-11-22) "150K fast pass" (study row U1): EVAL-stage accounts of size `account_size` only
+class FastPassCfg(_M):
+    """D156/D157 (user 2026-11-22) per-plan "fast pass": EVAL-stage accounts of size `account_size` only
     (risk/fast_pass.py). NOISE `noise_contracts` micros at a `noise_stop_usd` emergency stop per micro, CANDACE ICT a
-    fixed `candace_contracts`; once the cushion is ≤ brake_cushion_usd both trade `brake_contracts`. Every check runs
-    after this (shrink / skip only)."""
+    fixed `candace_contracts`; once the cushion is <= brake_cushion_usd (< when brake_inclusive is false) NOISE trades
+    `noise_brake_contracts` (None = no NOISE brake) and CANDACE `candace_brake_contracts`. Every check runs after this
+    (shrink / skip only)."""
 
     account_size: D = Field(gt=D(0))
     noise_contracts: int = Field(ge=1)
     noise_stop_usd: D = Field(gt=D(0))
     candace_contracts: int = Field(ge=1)
     brake_cushion_usd: D = Field(gt=D(0))
-    brake_contracts: int = Field(ge=1)
+    brake_inclusive: bool = True
+    noise_brake_contracts: int | None = Field(default=None, ge=1)
+    candace_brake_contracts: int = Field(ge=1)
 
     @model_validator(mode="after")
-    def _valid(self) -> FastPass150kCfg:
-        if self.brake_contracts > min(self.noise_contracts, self.candace_contracts):
-            raise ValueError(
-                "fast_pass_150k_cfg: brake_contracts ≤ noise_contracts and candace_contracts (tighten-only)"
-            )
+    def _valid(self) -> FastPassCfg:
+        nb = self.noise_brake_contracts
+        if self.candace_brake_contracts > self.candace_contracts or (nb is not None and nb > self.noise_contracts):
+            raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
         return self
+
+
+FastPass150kCfg = FastPassCfg  # D156 name kept
 
 
 class SizeTierCfg(_M):
@@ -1257,7 +1262,13 @@ class StrategyCfg(_M):
     # fast_pass_150k_cfg.account_size only — NOISE 4 micros @ $100 stop, CANDACE 3, cushion brake (risk/fast_pass.py).
     # A plan file without fast_pass_150k_cfg → inert. Every Lucid / Paytience check still runs after (shrink/skip only).
     fast_pass_150k: bool = False
-    fast_pass_150k_cfg: FastPass150kCfg | None = None
+    fast_pass_150k_cfg: FastPassCfg | None = None
+    # D157 (user 2026-11-22): same switch for the 25K (NOISE 1 @ $75 + CANDACE 2, brake 1) and 100K plans; each applies
+    # only when the account's own size equals that plan's cfg.account_size. Default OFF; inert without the cfg.
+    fast_pass_25k: bool = False
+    fast_pass_25k_cfg: FastPassCfg | None = None
+    fast_pass_100k: bool = False
+    fast_pass_100k_cfg: FastPassCfg | None = None
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,
     # ×4 58/42 → no grow above 2). Off = the eval tables as written (150K 4 micros, 100K grows to 4).

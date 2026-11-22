@@ -1076,20 +1076,37 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "in-sample — treat as chance until paper proves it.",
             }
         )
-    fp = st.fast_pass_150k_cfg
-    if fp is not None:  # D156: only plan files that carry fast_pass_150k_cfg (Pro 150K) show the card
+    for fk, fp, fon, study in (
+        (
+            "fast_pass_25k",
+            st.fast_pass_25k_cfg,
+            st.fast_pass_25k,
+            "smaller_plans/RESULTS.md (config N1@75+C2 brake 1/1)",
+        ),
+        (
+            "fast_pass_100k",
+            st.fast_pass_100k_cfg,
+            st.fast_pass_100k,
+            "smaller_plans/RESULTS.md (config N2@250+C3 brake 1/2)",
+        ),
+        ("fast_pass_150k", st.fast_pass_150k_cfg, st.fast_pass_150k, "beat109/RESULTS.md (row s100|N5|c4|b1500/2)"),
+    ):
+        if fp is None:  # D156/D157: only plan files that carry the cfg show the card
+            continue
+        op = "≤" if fp.brake_inclusive else "<"
+        nb = fp.noise_brake_contracts
+        brake = f"cushion {op} ${fp.brake_cushion_usd:,.0f}: NOISE {nb if nb is not None else 'unchanged'}, CANDACE {fp.candace_brake_contracts}"
         out.append(
             {
-                "key": "fast_pass_150k",
-                "setting": "strategy.fast_pass_150k",
+                "key": fk,
+                "setting": f"strategy.{fk}",
                 "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",
-                "value": st.fast_pass_150k,
+                "value": fon,
                 "on_label": f"NOISE {fp.noise_contracts} @ ${fp.noise_stop_usd:,.0f} stop · CANDACE "
-                f"{fp.candace_contracts}; both {fp.brake_contracts} at cushion ≤ ${fp.brake_cushion_usd:,.0f}",
+                f"{fp.candace_contracts}; {brake}",
                 "off_label": "Normal evaluation sizes (default)",
                 "note": f"EVAL stage, {int(fp.account_size) // 1000}K accounts only. Every Lucid check (DLL, MLL room, "
-                "consistency, hedge lock, news/flat) still shrinks or skips. Study: "
-                "docs/results/pass_fastest/brake150/RESULTS.md (row U1).",
+                f"consistency, hedge lock, news/flat) still shrinks or skips. Study: docs/results/pass_fastest/{study}.",
             }
         )
     if st.eval_size_caps:

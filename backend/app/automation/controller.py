@@ -60,7 +60,7 @@ from app.risk.cushion import (
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
-from app.risk.fast_pass import FastPassSize, fast_pass_size
+from app.risk.fast_pass import FastPassSize, fast_pass_size, plan_fast_pass
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
@@ -598,9 +598,8 @@ class Controller:
         acct_size = a.starting_balance if a.starting_balance and a.starting_balance > 0 else r.account_size
         big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
         # D156 "150K fast pass": EVAL-stage accounts of the plan's size only (pure check); None = today's sizing
-        fp = fast_pass_size(
-            r.strategy.fast_pass_150k, r.strategy.fast_pass_150k_cfg, a.stage, acct_size, strategy, base
-        )
+        fp_on, fp_cfg = plan_fast_pass(r.strategy, acct_size)  # D157: 25K / 100K / 150K, own size only
+        fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base)
         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
         try:
             positions = await self.open_positions(s)  # every account (hedge lock): one unreadable broker blocks
