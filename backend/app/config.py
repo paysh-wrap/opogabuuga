@@ -937,6 +937,26 @@ class EvalCapCfg(_M):
     max_contracts: int = Field(ge=1)
 
 
+class FastPass150kCfg(_M):
+    """D156 (user 2026-11-22) "150K fast pass" (study row U1): EVAL-stage accounts of size `account_size` only
+    (risk/fast_pass.py). NOISE `noise_contracts` micros at a `noise_stop_usd` emergency stop per micro, CANDACE ICT a
+    fixed `candace_contracts`; once the cushion is ≤ brake_cushion_usd both trade `brake_contracts`. Every check runs
+    after this (shrink / skip only)."""
+
+    account_size: D = Field(gt=D(0))
+    noise_contracts: int = Field(ge=1)
+    noise_stop_usd: D = Field(gt=D(0))
+    candace_contracts: int = Field(ge=1)
+    brake_cushion_usd: D = Field(gt=D(0))
+    brake_contracts: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def _valid(self) -> FastPass150kCfg:
+        if self.brake_contracts > min(self.noise_contracts, self.candace_contracts):
+            raise ValueError("fast_pass_150k_cfg: brake_contracts ≤ noise_contracts and candace_contracts (tighten-only)")
+        return self
+
+
 class SizeTierCfg(_M):
     """D63: one row of the automatic size table (account size → micros, drawdown brake)."""
 
@@ -1231,6 +1251,11 @@ class StrategyCfg(_M):
     # $250 broker stop, DLL flatten and the pre-trade room check still apply. Default OFF = balance + open P&L.
     # Confirmed (user 2026-11-13): on EOD accounts an open loss touching the floor does not breach by itself.
     eod_closed_balance: bool = False
+    # D156 (user 2026-11-22): Strategy-page toggle "150K fast pass" (default OFF): EVAL-stage accounts of the plan's
+    # fast_pass_150k_cfg.account_size only — NOISE 4 micros @ $100 stop, CANDACE 3, cushion brake (risk/fast_pass.py).
+    # A plan file without fast_pass_150k_cfg → inert. Every Lucid / Paytience check still runs after (shrink/skip only).
+    fast_pass_150k: bool = False
+    fast_pass_150k_cfg: FastPass150kCfg | None = None
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,
     # ×4 58/42 → no grow above 2). Off = the eval tables as written (150K 4 micros, 100K grows to 4).
