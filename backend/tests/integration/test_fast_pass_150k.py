@@ -1,0 +1,125 @@
+"""D156 "150K fast pass" through the controller: NOISE 4 @ $100 stop, CANDACE 3, both 2 at a cushion <= $1,500;
+OFF / FUNDED = today's sizing; the later Lucid / Paytience checks still shrink or skip."""
+
+from __future__ import annotations
+
+import asyncio
+from datetime import UTC, datetime
+from decimal import Decimal as D
+
+import pytest
+
+from app.clock import FixedClock
+from app.config import FastPass150kCfg
+from app.engine.noise import stop_pts_for_usd
+from app.engine.trade_plan import Direction
+from app.models import Account, AuditLog
+from app.signals import strategy_service as SS
+
+AT = datetime(2026, 10, 13, 15, 0, tzinfo=UTC)  # Tue 11:00 ET
+CFG = FastPass150kCfg(
+    account_size=D(150000), noise_contracts=4, noise_stop_usd=D(100), candace_contracts=3,
+    brake_cushion_usd=D(1500), brake_contracts=2,
+)  # fmt: skip
+PLANS = {
+    "NOISE": ("NOISE", D(20000), D(19800), D(20050), D(200), D("0.25")),  # 1 % stop ($400 a micro) → $100 is tighter
+    "CANDACE_ICT": ("CANDACE_ICT", D(20000), D(19980), D(20040), D(20), D(2)),
+}
+
+
+def _setup(authed, clock, *, stage="EVAL", balance="150000", cushion=D(4000), on=True, strat=None, internal=None):
+    st = authed.app.state
+    clock.set(AT)
+    aid = authed.post("/api/accounts", json={"label": "F", "stage": stage, "balance": balance}).json()["id"]
+    authed.patch(f"/api/accounts/{aid}", json={"armed": True, "selected": True})
+    authed.post("/api/attestation", json={"confirm": True})
+    st.controller.mode = "FULL"
+    st.controller.adapter.sim.last["MNQ"] = D(20000)
+    with st.sessionmaker() as s:
+        a = s.get(Account, aid)
+        a.mll, a.mll_peak = D(balance) - cushion, D(balance)  # cushion = equity − current MLL
+        s.commit()
+    h = st.controller.rules
+    upd = {"fast_pass_150k": on, "fast_pass_150k_cfg": CFG, "candace_ict": True, **(strat or {})}
+    rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=upd)})
+    if internal:
+        rules = rules.model_copy(update={"internal": rules.internal.model_copy(update=internal)})
+    h.rules = rules
+    return st, aid
+
+
+def _run(st, aid, mode, key="1"):
+    with st.sessionmaker() as s:
+        x = SS._new_signal(
+            s, FixedClock(AT), symbol="MNQ", key=f"MNQ-{mode}-fp-{key}", direction=Direction.LONG, at=AT,
+            gate=(True, "OK", ""), features={"size_mult": "0.25", "invalid": "19800", "t2": "20050"},
+            plan=PLANS[mode],
+        )  # fmt: skip
+        s.commit()
+        sid = x.id
+    [res] = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+    with st.sessionmaker() as s:
+        fp = [x.payload for x in s.query(AuditLog).filter_by(action="trade.fast_pass")]
+    return res, fp
+
+
+def _fixed(res):
+    return next(c for c in res.checks if c["check"] == "fixed_size")["contracts"]
+
+
+def _stop_pts(st):
+    inst = st.controller.rules.rules.instruments["MNQ"]
+    slip = inst.slippage_ticks or st.controller.rules.rules.trade_plan.slippage_ticks
+    return stop_pts_for_usd(D(100), inst.tick, inst.tick_value, inst.fee_rt, slip)
+
+
+@pytest.mark.parametrize(("cushion", "want", "braked"), [(D(4000), 4, False), (D(1500), 2, True)])
+def test_noise_size_and_stop(authed, clock, cushion, want, braked):
+    st, aid = _setup(authed, clock, cushion=cushion)
+    res, fp = _run(st, aid, "NOISE")
+    assert fp and fp[-1]["contracts"] == want and fp[-1]["braked"] is braked and fp[-1]["stop_usd"] == "100"
+    assert D(fp[-1]["stop_pts"]) == _stop_pts(st)
+    assert _fixed(res) == str(want), res
+    pre = next(c for c in res.checks if c["check"] == "fixed_size")
+    assert pre["contracts"] == str(want)
+
+
+@pytest.mark.parametrize(("cushion", "want"), [(D(4000), 3), (D(1000), 2)])
+def test_candace_fixed_size(authed, clock, cushion, want):
+    st, aid = _setup(authed, clock, cushion=cushion)
+    res, fp = _run(st, aid, "CANDACE_ICT")
+    assert fp[-1]["contracts"] == want and fp[-1]["strategy"] == "CANDACE_ICT" and fp[-1]["stop_usd"] is None
+    with st.sessionmaker() as s:
+        assert s.query(AuditLog).filter_by(action="trade.cand_size").one().payload["contracts"] == want
+    assert res.ok, res
+    assert sum(t.qty for t in st.controller.om.trades.values()) == want  # grade C (0.25) would have been 0-1
+
+
+@pytest.mark.parametrize(
+    ("kw"),
+    [{"on": False}, {"stage": "FUNDED"}, {"balance": "100000"}],
+)
+def test_off_funded_other_size_unchanged(authed, clock, kw):
+    st, aid = _setup(authed, clock, **kw)
+    res, fp = _run(st, aid, "CANDACE_ICT")
+    assert fp == []
+    assert res.reason == "CAND_GRADE_SIZE_BELOW_1" or sum(t.qty for t in st.controller.om.trades.values()) < 3
+
+
+def test_checks_still_shrink(authed, clock):
+    st, aid = _setup(authed, clock, internal={"internal_max_micros": 3})
+    res, fp = _run(st, aid, "NOISE")
+    assert fp[-1]["contracts"] == 4
+    assert res.contracts is None or res.contracts <= 3  # internal max (Paytience check) still caps the size
+    if res.ok:
+        assert sum(t.qty for t in st.controller.om.trades.values()) <= 3
+    else:
+        assert res.reason
+
+
+def test_hedge_lock_still_skips(authed, clock):
+    st, aid = _setup(authed, clock)
+    res, _ = _run(st, aid, "CANDACE_ICT", key="a")
+    assert res.ok, res
+    res2, fp = _run(st, aid, "NOISE", key="b")  # one position already open → max 1 position still skips
+    assert not res2.ok and res2.reason
