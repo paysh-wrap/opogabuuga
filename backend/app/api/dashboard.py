@@ -824,7 +824,41 @@ def auction_rules(r: Any) -> list[dict[str, object]]:
     ]
 
 
+def mgc_nc_rules(r: Any) -> list[dict[str, object]]:
+    """D165 NOISE + CANDACE · MGC card: the same engines as the MNQ cards on MGC, with the 30-day picks."""
+    m = r.strategy.mgc_noise_candace_cfg
+    n, c = m.noise, m.candace
+    return [
+        {
+            "key": "NOISE",
+            "on": True,
+            "rule": f"noise-area momentum on MGC RTH (same engine as MNQ): hourly checks, "
+            f"${n.emergency_stop_usd} emergency stop, no profit lock, no weekday skip, flat {n.flat_at} ET; "
+            f"needs {n.min_history_days} stored MGC sessions",
+        },
+        {
+            "key": "CANDACE",
+            "on": True,
+            "rule": f"ICT sweep + IFVG retrace (same engine as MNQ): window {c.ny_window} ET, "
+            f"stop cap {c.ny_max_stop_pts} pt, hold {c.ny_max_hold_minutes} min, min {c.min_rr}R",
+        },
+        {
+            "key": "SIZE",
+            "on": True,
+            "rule": f"fixed {m.contracts} micro; METALS group (no equity hedge lock); "
+            "one position per account; DLL / MLL / consistency / news checks only shrink or skip",
+        },
+        {
+            "key": "DATA",
+            "on": True,
+            "rule": "MGC 1-minute bars from the existing live feed (TradingView heartbeats); "
+            "the 30-day test used Yahoo continuous contracts, not MGC.v.0",
+        },
+    ]
+
+
 RULE_CARDS: dict[str, Any] = {
+    "mgc_noise_candace": mgc_nc_rules,
     "order_flow_auction": auction_rules,
     "candace_ict": candace_rules,
     "bruni_structure": bruni_rules,
@@ -928,6 +962,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "okala_8020": r.strategy.okala_8020,
         "bruni_structure": r.strategy.bruni_structure,
         "candace_ict": r.strategy.candace_ict,
+        "mgc_noise_candace": r.strategy.mgc_noise_candace,  # D165
         "order_flow_auction": r.strategy.order_flow and r.strategy.order_flow_cfg.auction.enabled,  # D150
         "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }

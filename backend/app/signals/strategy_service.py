@@ -24,7 +24,7 @@ from app.bias import of_advisor as OFA
 from app.bias import ta_mgc_research as TR
 from app.bias.policy import LedgerStats, Policy, combine
 from app.clock import ET, Clock, session_date
-from app.config import ADVISED_MODES, RulesConfig
+from app.config import ADVISED_MODES, CandaceIctCfg, NoiseCfg, RulesConfig
 from app.engine import ai_duo as DU
 from app.engine import auction_imre as AU
 from app.engine import bruni_structure as BR
@@ -275,9 +275,19 @@ def structure_check(
 
 
 def run_noise(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    at: datetime,
+    exits_only: bool = False,
+    cfg: NoiseCfg | None = None,
+    mode: str = "NOISE",
 ) -> StrategyOutput:
-    cfg = rules.strategy.noise_cfg
+    """NOISE on MNQ. D165: the same code runs on MGC with `cfg` = the MGC NOISE settings and `mode` = "MGC_NOISE" (the
+    MGC button is that market's own switch; no AI-bias block, structure filter or Duo lock on it)."""
+    mgc = cfg is not None
+    cfg = cfg or rules.strategy.noise_cfg
     out = StrategyOutput()
     k = N.minute_index(at)
     check = N.is_check(k, cfg.check_minutes, cfg.first_check, cfg.last_check)
@@ -328,14 +338,16 @@ def run_noise(
             if any(x.bar_time == at for x in sigs):
                 continue  # this bar was already decided (replay after a crash): never a second entry for one bar
             p = N.plan(
-                a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules)
+                a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules, cfg)
             )
             entries += 1
-            gate = _gate(rules, cfg.symbol, at, calendar)
-            if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, a.direction) is not None:
-                gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
-            gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
-            if gate[0]:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
+            gate = _gate(rules, cfg.symbol, at, calendar, True if mgc else None)
+            sf: dict[str, object] = {}
+            if not mgc:
+                if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, a.direction) is not None:
+                    gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
+                gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
+            if gate[0] and not mgc:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
                 why = ledger.may_block(
                     s,
                     inst.bias_proxy,
@@ -364,7 +376,7 @@ def run_noise(
                     "k": k,
                     **sf,
                 },
-                plan=("NOISE", p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
+                plan=(mode, p.entry, p.stop, p.take_profit, p.risk_pts, p.rr),
             )
             out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -706,9 +718,9 @@ def zone_trail_exits(s: Session, symbol: str, close: Decimal, at: datetime, cloc
     return out
 
 
-def noise_stop_pts(rules: RulesConfig) -> Decimal | None:
+def noise_stop_pts(rules: RulesConfig, cfg: NoiseCfg | None = None) -> Decimal | None:
     """D58: NOISE fixed-dollar emergency stop in points (None = the % stop)."""
-    cfg = rules.strategy.noise_cfg
+    cfg = cfg or rules.strategy.noise_cfg
     if cfg.emergency_stop_usd is None:
         return None
     inst = rules.instrument(cfg.symbol)
@@ -1517,10 +1529,19 @@ def run_bruni_structure(
 
 
 def run_candace_ict(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    at: datetime,
+    exits_only: bool = False,
+    cfg: CandaceIctCfg | None = None,
+    mode: str = "CANDACE_ICT",
 ) -> StrategyOutput:
-    """D149 CANDACE ICT SCALP: replay today's bars (all hours stored); a signal on THIS bar, the max-hold exit."""
-    cfg = rules.strategy.candace_ict_cfg
+    """D149 CANDACE ICT SCALP: replay today's bars (all hours stored); a signal on THIS bar, the max-hold exit.
+    D165: the same code runs on MGC with `cfg` = the MGC CANDACE settings and `mode` = "MGC_CANDACE"."""
+    mgc = cfg is not None
+    cfg = cfg or rules.strategy.candace_ict_cfg
     out = StrategyOutput()
     day0 = _et_at(at.astimezone(ET).date(), "00:00")
     rows = list(
@@ -1547,10 +1568,10 @@ def run_candace_ict(
         rr = (x.take_profit - x.entry) * x.direction.sign / risk
         new = _new_signal(
             s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
-            gate=_gate(rules, cfg.symbol, at, calendar),
+            gate=_gate(rules, cfg.symbol, at, calendar, True if mgc else None),
             features={"session": x.session, "swept": x.swept.kind, "confluences": x.confluences, "grade": x.grade,
                       "size_mult": str(x.size_mult), "paper_only": cfg.paper_only},
-            plan=("CANDACE_ICT", x.entry, x.stop, x.take_profit, risk, rr), rules=rules,
+            plan=(mode, x.entry, x.stop, x.take_profit, risk, rr), rules=rules,  # MGC_CANDACE is no ADVISED_MODE: no-op
         )  # fmt: skip
         out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1638,6 +1659,16 @@ def run(
         r = run_candace_ict(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
+    if st.mgc_noise_candace:  # D165: the MGC pair — own market switch, fixed 1 micro, no AI advisor
+        mc = st.mgc_noise_candace_cfg
+        if symbol == mc.noise.symbol:
+            r = run_noise(s, rules, clock, calendar, at, exits_only, mc.noise, "MGC_NOISE")
+            out.updates += r.updates
+            out.exits += r.exits
+        if symbol == mc.candace.symbol:
+            r = run_candace_ict(s, rules, clock, calendar, at, exits_only, mc.candace, "MGC_CANDACE")
+            out.updates += r.updates
+            out.exits += r.exits
     if st.bruni_structure and symbol == st.bruni_structure_cfg.symbol:
         r = run_bruni_structure(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates

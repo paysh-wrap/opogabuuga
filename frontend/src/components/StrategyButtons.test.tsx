@@ -164,6 +164,17 @@ test("GALA PRICE ACTION card lists the rule sheet and turns on through its own s
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.gala_pa":true'))).toBe(true));
 });
 
+test("MGC NOISE + CANDACE card shows its own gold evidence badge", async () => {
+  const g = { key: "mgc_noise_candace", name: "NOISE + CANDACE · MGC", source: "30-day test", verified: false, status: "UNVERIFIED", badge: "UNVERIFIED · 30-day yfinance test only", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "30 days.", note: "n", enabled: false, setting: "strategy.mgc_noise_candace",
+    strategy_rules: [{ key: "NOISE", on: true, rule: "noise-area momentum on MGC" }] };
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
+    new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, g] } : {})));
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  const setup = await screen.findByTestId("mgc_noise_candace-setup");
+  expect(setup).toHaveTextContent("UNVERIFIED · 30-day yfinance test only");
+  expect(setup).not.toHaveTextContent("rules from one transcript");
+});
+
 test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"], ["okala_8020", "OKALA 8020"], ["bruni_structure", "BRUNI STRUCTURE"], ["candace_ict", "CANDACE ICT SCALP"]])("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
   const g = { key, name, source: "transcript", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "Not back-tested yet.", note: "n", enabled: false, setting: `strategy.${key}`,
     strategy_rules: [{ key: "ENTRY", on: true, rule: "the entry rule" }, { key: "EXTRA", on: false, rule: "an optional rule" }] };

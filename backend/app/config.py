@@ -934,6 +934,23 @@ class CandaceIctCfg(_M):
     paper_only: bool = False
 
 
+class MgcNoiseCandaceCfg(_M):
+    """D165 (user 2026-11-23): NOISE + CANDACE on MGC (gold, METALS group) — the SAME engines as the MNQ cards,
+    parameters
+    from the 30-day Yahoo test (docs/results/yf30/RESULTS.md). UNVERIFIED: ~20 sessions, 2-minute continuous contracts.
+    Fixed 1 micro; every Lucid check still only shrinks / skips. The bar-count CANDACE settings keep their defaults."""
+
+    noise: NoiseCfg = NoiseCfg(symbol="MGC", skip_weekdays=[])
+    candace: CandaceIctCfg = CandaceIctCfg(
+        symbol="MGC",
+        ny_window="08:20-11:00",
+        ny_max_stop_pts=D("6"),
+        ny_max_hold_minutes=30,
+        gap_level_tol_pts=D("0.7"),
+    )
+    contracts: int = Field(default=1, ge=1, le=1)  # fixed 1 micro
+
+
 class EvalCapCfg(_M):
     """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
 
@@ -1246,6 +1263,7 @@ class StrategyCfg(_M):
     ai_duo: bool = False  # D83: AI Duo button (paper only, default OFF)
     order_flow: bool = False  # D95: Order Flow button (UNVERIFIED, default OFF; D102: not forced paper-only)
     jj_fpt: bool = False  # JJ F.P.T STRAT button (user 2026-11-14; docs/JJ_FPT_RULES.md), default OFF
+    mgc_noise_candace: bool = False  # D165 "NOISE + CANDACE · MGC" button (30-day yfinance test only), default OFF
     candace_ict: bool = False  # D149 CANDACE ICT SCALP button (docs/CANDACE_ICT_RULES.md), default OFF
     bruni_structure: bool = False  # D148 BRUNI STRUCTURE button (docs/BRUNI_RULES.md), default OFF
     okala_8020: bool = False  # D145 OKALA 8020 button (docs/OKALA_8020_RULES.md), default OFF
@@ -1276,6 +1294,7 @@ class StrategyCfg(_M):
     okala_8020_cfg: Okala8020Cfg = Okala8020Cfg()
     bruni_structure_cfg: BruniStructureCfg = BruniStructureCfg()
     candace_ict_cfg: CandaceIctCfg = CandaceIctCfg()
+    mgc_noise_candace_cfg: MgcNoiseCandaceCfg = MgcNoiseCandaceCfg()  # D165
     advisor: AdvisorCfg = AdvisorCfg()  # D151
     ta_mgc_cfg: TaMgcCfg = TaMgcCfg()
     dynamic_trail: DynamicTrailCfg = DynamicTrailCfg()  # D122

@@ -135,6 +135,22 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     dll_use_pct: 0.9
     max_losses_per_day: 3
     london: false              # untestable here (RTH-only history)
+  mgc_noise_candace: false     # D165 (user 2026-11-23): "NOISE + CANDACE · MGC" button, default OFF. UNVERIFIED: 30-day yfinance test only (docs/results/yf30/RESULTS.md)
+  mgc_noise_candace_cfg:       # same NOISE / CANDACE engines on MGC (METALS group), fixed 1 micro; Lucid checks only shrink / skip
+    contracts: 1
+    noise:                     # 30-day picks: the MNQ-verified $250 stop kept, profit lock + Monday skip off (nothing to transfer / no evidence)
+      symbol: MGC
+      emergency_stop_usd: 250
+      skip_weekdays: []
+      profit_lock_trigger_pts: null
+      profit_lock_pts: null
+      profit_lock_trigger_alt_pts: null
+    candace:                   # 30-day picks: window 08:20-11:00 ET (COMEX open), stop cap 6 pt (~0.16% of price like MNQ 40 pt), hold 30 min
+      symbol: MGC
+      ny_window: "08:20-11:00"
+      ny_max_stop_pts: 6
+      ny_max_hold_minutes: 30
+      gap_level_tol_pts: 0.7
   noise_cfg: {contracts: 1, skip_weekdays: [0], profit_lock_trigger_pts: 100, profit_lock_pts: 10, profit_lock_trigger_alt_pts: 80}         # fallback only — NOISE is sized by size_table below (D63/D64 research, verified)
   pm_fade_cfg: {contracts: 1, eval_off: true}       # fallback only — PM_FADE uses size_table below (same as NOISE)
   # D132 (session 20, B2): NOISE preset C profit lock ON in every plan (+100 pt -> stop to entry +10, as the session-19

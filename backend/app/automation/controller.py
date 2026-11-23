@@ -92,6 +92,8 @@ STRATEGY_MODES = (
     "BRUNI_STRUCTURE",
     "CANDACE_ICT",
     "ORDER_FLOW_AUCTION",
+    "MGC_NOISE",  # D165: NOISE / CANDACE on MGC, fixed 1 micro; every pre-trade check only shrinks / skips
+    "MGC_CANDACE",
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
 FIT_TAGS = {
@@ -963,7 +965,9 @@ class Controller:
             r.internal.kill_switch_mll_distance,
             Decimal(2) if self.rules.low_risk else None,  # D36: low risk may still trade 1 micro ≤ normal risk
             fixed_contracts=fixed,
-            shrink_fraction=r.strategy.drawdown_shrink if strategy in ("NOISE", "AI_BIAS", "AI_DUO") else None,
+            shrink_fraction=r.strategy.drawdown_shrink
+            if strategy in ("NOISE", "MGC_NOISE", "AI_BIAS", "AI_DUO")
+            else None,
             max_risk_usd=risk_cap(  # D85 AI Duo $250 · D115 strategy budget · D115 plan per-trade cap
                 duo.max_risk_usd if duo is not None else None,
                 {

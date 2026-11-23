@@ -320,6 +320,31 @@ CATALOG: list[dict[str, object]] = [
         "bracket (her partial and break-even move are not built). All Lucid rules and checks apply.",
     },
     {
+        "key": "mgc_noise_candace",
+        "name": "NOISE + CANDACE · MGC",
+        "source": "D165: the same NOISE (noise-area momentum) and CANDACE ICT engines as the MNQ cards, run on MGC "
+        "gold; parameters from a 30-day Yahoo (yfinance / OpenBB) test, docs/results/yf30/RESULTS.md",
+        "verified": False,
+        "status": "UNVERIFIED",
+        "badge": "UNVERIFIED · 30-day yfinance test only",
+        "win_pct": None,
+        "profit_factor": None,
+        "usd_per_trade": None,
+        "trades_per_week": None,
+        "held_out_trades": 0,
+        "pro25k_pass_pct": None,
+        "pro25k_bust_pct": None,
+        "period": "30 days of Yahoo 2-minute continuous MGC=F (23 sessions, 2026-10-20 → 11-20), 1 micro, costs "
+        "included, nothing held out. Far too small to show an edge.",
+        "note": "Default OFF. Result at 1 micro: CANDACE 25 trades, win 48 %, PF 1.97, +$458 (random direction "
+        "beats it 6 % of the time; picked from 8 settings, in-sample); NOISE only 2 trades (+$423) because "
+        "10 sessions are warm-up. Same window MNQ: NOISE 10 trades PF 2.19, CANDACE 14 trades PF 2.04. "
+        "Gold fell 12 % in the window and Yahoo splices contracts (not MGC.v.0), so treat all of it as a "
+        "guess. MGC is the METALS group; fixed 1 micro; every Lucid rule and safety check still applies. "
+        "Needs 10 stored MGC sessions from the feed.",
+        "setting_key": "strategy.mgc_noise_candace",
+    },
+    {
         "key": "order_flow_auction",
         "name": "ORDER FLOW · AUCTION (IMRE)",
         "source": "Imre Gans' auction-market theory, built only from one transcript (docs/IMRE_AMT_RULES.md): daily "

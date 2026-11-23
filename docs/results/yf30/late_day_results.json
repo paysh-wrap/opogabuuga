@@ -1,0 +1,323 @@
+{
+ "MNQ": {
+  "stop_pts": 60,
+  "A_trend_0930-1330": {
+   "n": 22,
+   "win": 36.4,
+   "pf": 1.46,
+   "net": 695.5,
+   "avg": 31.61,
+   "rand_net_mean": -5.0,
+   "rand_net_p95": 1218.5,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 1.97,
+   "p_net": 0.177
+  },
+  "A0_trend_nofilter": {
+   "n": 23,
+   "win": 34.8,
+   "pf": 1.35,
+   "net": 573.5,
+   "avg": 24.93,
+   "rand_net_mean": -5.5,
+   "rand_net_p95": 1228.0,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 1.93,
+   "p_net": 0.235
+  },
+  "C_overnight_sign": {
+   "n": 22,
+   "win": 40.9,
+   "pf": 1.73,
+   "net": 974.5,
+   "avg": 44.3,
+   "rand_net_mean": -5.1,
+   "rand_net_p95": 1216.0,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 1.94,
+   "p_net": 0.099
+  },
+  "D_trend_and_overnight_agree": {
+   "n": 14,
+   "win": 42.9,
+   "pf": 2.13,
+   "net": 933.0,
+   "avg": 66.64,
+   "rand_net_mean": 134.5,
+   "rand_net_p95": 1187.5,
+   "rand_pf_mean": 1.25,
+   "rand_pf_p95": 2.63,
+   "p_net": 0.116
+  },
+  "E_trend_plus_overnight": {
+   "n": 23,
+   "win": 34.8,
+   "pf": 1.26,
+   "net": 417.0,
+   "avg": 18.13,
+   "rand_net_mean": -5.5,
+   "rand_net_p95": 1228.0,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 1.93,
+   "p_net": 0.301
+  },
+  "F_first30_to_last30": {
+   "n": 23,
+   "win": 30.4,
+   "pf": 0.44,
+   "net": -1030.5,
+   "avg": -44.8,
+   "rand_net_mean": -43.4,
+   "rand_net_p95": 1155.5,
+   "rand_pf_mean": 1.15,
+   "rand_pf_p95": 2.55,
+   "p_net": 0.919
+  },
+  "G_overnight+first30_to_last30": {
+   "n": 22,
+   "win": 36.4,
+   "pf": 1.14,
+   "net": 168.5,
+   "avg": 7.66,
+   "rand_net_mean": -54.5,
+   "rand_net_p95": 1114.5,
+   "rand_pf_mean": 1.14,
+   "rand_pf_p95": 2.49,
+   "p_net": 0.379
+  },
+  "H_overnight_to_last30": {
+   "n": 22,
+   "win": 40.9,
+   "pf": 1.3,
+   "net": 341.5,
+   "avg": 15.52,
+   "rand_net_mean": -54.5,
+   "rand_net_p95": 1114.5,
+   "rand_pf_mean": 1.14,
+   "rand_pf_p95": 2.49,
+   "p_net": 0.294
+  },
+  "corr_last30_vs": {
+   "n": 22,
+   "first30": -0.01,
+   "overnight": 0.05,
+   "sum": 0.03,
+   "sign_hit_sum": 0.36
+  },
+  "n_sessions": 23
+ },
+ "MES": {
+  "stop_pts": 16,
+  "A_trend_0930-1330": {
+   "n": 21,
+   "win": 42.9,
+   "pf": 1.27,
+   "net": 181.5,
+   "avg": 8.64,
+   "rand_net_mean": 104.9,
+   "rand_net_p95": 715.2,
+   "rand_pf_mean": 1.3,
+   "rand_pf_p95": 2.67,
+   "p_net": 0.425
+  },
+  "A0_trend_nofilter": {
+   "n": 23,
+   "win": 39.1,
+   "pf": 1.04,
+   "net": 33.2,
+   "avg": 1.45,
+   "rand_net_mean": 109.3,
+   "rand_net_p95": 747.0,
+   "rand_pf_mean": 1.28,
+   "rand_pf_p95": 2.54,
+   "p_net": 0.562
+  },
+  "C_overnight_sign": {
+   "n": 22,
+   "win": 50.0,
+   "pf": 1.21,
+   "net": 151.8,
+   "avg": 6.9,
+   "rand_net_mean": 103.5,
+   "rand_net_p95": 760.5,
+   "rand_pf_mean": 1.27,
+   "rand_pf_p95": 2.56,
+   "p_net": 0.464
+  },
+  "D_trend_and_overnight_agree": {
+   "n": 16,
+   "win": 43.8,
+   "pf": 1.14,
+   "net": 90.2,
+   "avg": 5.64,
+   "rand_net_mean": 106.3,
+   "rand_net_p95": 691.5,
+   "rand_pf_mean": 1.35,
+   "rand_pf_p95": 2.81,
+   "p_net": 0.518
+  },
+  "E_trend_plus_overnight": {
+   "n": 23,
+   "win": 47.8,
+   "pf": 1.32,
+   "net": 225.8,
+   "avg": 9.82,
+   "rand_net_mean": 109.3,
+   "rand_net_p95": 747.0,
+   "rand_pf_mean": 1.28,
+   "rand_pf_p95": 2.54,
+   "p_net": 0.382
+  },
+  "F_first30_to_last30": {
+   "n": 23,
+   "win": 39.1,
+   "pf": 0.5,
+   "net": -411.8,
+   "avg": -17.9,
+   "rand_net_mean": -80.5,
+   "rand_net_p95": 465.8,
+   "rand_pf_mean": 1.04,
+   "rand_pf_p95": 2.26,
+   "p_net": 0.848
+  },
+  "G_overnight+first30_to_last30": {
+   "n": 22,
+   "win": 22.7,
+   "pf": 0.34,
+   "net": -603.2,
+   "avg": -27.42,
+   "rand_net_mean": -76.4,
+   "rand_net_p95": 446.8,
+   "rand_pf_mean": 1.03,
+   "rand_pf_p95": 2.26,
+   "p_net": 0.959
+  },
+  "H_overnight_to_last30": {
+   "n": 22,
+   "win": 31.8,
+   "pf": 0.59,
+   "net": -310.8,
+   "avg": -14.12,
+   "rand_net_mean": -76.4,
+   "rand_net_p95": 446.8,
+   "rand_pf_mean": 1.03,
+   "rand_pf_p95": 2.26,
+   "p_net": 0.772
+  },
+  "corr_last30_vs": {
+   "n": 22,
+   "first30": -0.23,
+   "overnight": -0.18,
+   "sum": -0.28,
+   "sign_hit_sum": 0.23
+  },
+  "n_sessions": 23
+ },
+ "MGC": {
+  "stop_pts": 8,
+  "A_trend_0930-1330": {
+   "n": 23,
+   "win": 43.5,
+   "pf": 0.84,
+   "net": -109.8,
+   "avg": -4.77,
+   "rand_net_mean": -145.4,
+   "rand_net_p95": 453.2,
+   "rand_pf_mean": 0.9,
+   "rand_pf_p95": 1.81,
+   "p_net": 0.47
+  },
+  "A0_trend_nofilter": {
+   "n": 24,
+   "win": 45.8,
+   "pf": 0.85,
+   "net": -102.4,
+   "avg": -4.27,
+   "rand_net_mean": -143.6,
+   "rand_net_p95": 463.6,
+   "rand_pf_mean": 0.9,
+   "rand_pf_p95": 1.85,
+   "p_net": 0.464
+  },
+  "C_overnight_sign": {
+   "n": 23,
+   "win": 47.8,
+   "pf": 0.79,
+   "net": -131.8,
+   "avg": -5.73,
+   "rand_net_mean": -141.6,
+   "rand_net_p95": 460.2,
+   "rand_pf_mean": 0.9,
+   "rand_pf_p95": 1.85,
+   "p_net": 0.486
+  },
+  "D_trend_and_overnight_agree": {
+   "n": 18,
+   "win": 50.0,
+   "pf": 0.95,
+   "net": -22.8,
+   "avg": -1.27,
+   "rand_net_mean": -77.6,
+   "rand_net_p95": 492.2,
+   "rand_pf_mean": 1.01,
+   "rand_pf_p95": 2.36,
+   "p_net": 0.436
+  },
+  "E_trend_plus_overnight": {
+   "n": 24,
+   "win": 45.8,
+   "pf": 0.74,
+   "net": -171.4,
+   "avg": -7.14,
+   "rand_net_mean": -143.6,
+   "rand_net_p95": 463.6,
+   "rand_pf_mean": 0.9,
+   "rand_pf_p95": 1.85,
+   "p_net": 0.531
+  },
+  "F_first30_to_last30": {
+   "n": 24,
+   "win": 54.2,
+   "pf": 0.78,
+   "net": -132.4,
+   "avg": -5.52,
+   "rand_net_mean": -78.7,
+   "rand_net_p95": 455.6,
+   "rand_pf_mean": 1.04,
+   "rand_pf_p95": 2.48,
+   "p_net": 0.559
+  },
+  "G_overnight+first30_to_last30": {
+   "n": 23,
+   "win": 43.5,
+   "pf": 0.5,
+   "net": -364.8,
+   "avg": -15.86,
+   "rand_net_mean": -71.7,
+   "rand_net_p95": 457.2,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 2.52,
+   "p_net": 0.813
+  },
+  "H_overnight_to_last30": {
+   "n": 23,
+   "win": 52.2,
+   "pf": 0.68,
+   "net": -202.8,
+   "avg": -8.82,
+   "rand_net_mean": -71.7,
+   "rand_net_p95": 457.2,
+   "rand_pf_mean": 1.06,
+   "rand_pf_p95": 2.52,
+   "p_net": 0.653
+  },
+  "corr_last30_vs": {
+   "n": 23,
+   "first30": 0.21,
+   "overnight": -0.08,
+   "sum": -0.03,
+   "sign_hit_sum": 0.48
+  },
+  "n_sessions": 24
+ }
+}

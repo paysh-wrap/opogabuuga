@@ -11,7 +11,7 @@ export interface Strat {
   key: string; name: string; source: string; verified: boolean; status: string;
   win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number | null; held_out_trades: number;
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
-  enabled: boolean; setting: string;
+  enabled: boolean; setting: string; badge?: string; // D165: gold evidence badge text (default: rules from one transcript)
   eval_odds?: OddsView; // D137: pass / bust from config/eval_odds.yaml for the active plan, size table and EOD toggle
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
@@ -263,7 +263,7 @@ export default function StrategyButtons() {
       )}
       {s.strategy_rules && (
         <div className="mt-2 text-xs" data-testid={`${s.key}-setup`}>
-          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one transcript</span>
+          <span className="rounded border border-gold px-1 font-semibold text-gold">{s.badge ?? "UNVERIFIED · rules from one transcript"}</span>
           <MoreInfo label="Rules" testId={`more-${s.key}-rules`}>
           <ol className="mt-1 list-decimal pl-4 text-blue" data-testid={`${s.key}-rules`}>
             {s.strategy_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}

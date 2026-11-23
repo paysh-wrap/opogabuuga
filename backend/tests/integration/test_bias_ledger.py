@@ -91,8 +91,11 @@ def test_strategies_endpoint(authed):
         "okala_8020",
         "bruni_structure",
         "candace_ict",
+        "mgc_noise_candace",
         "order_flow_auction",
     ]
+    mgc = body["strategies"].pop(-2)  # D165 NOISE + CANDACE · MGC card: off by default, own gold badge
+    assert mgc["setting"] == "strategy.mgc_noise_candace" and mgc["enabled"] is False and "badge" in mgc
     ofa = body["strategies"][-1]
     assert ofa["setting"] == "strategy.order_flow_cfg.auction.enabled" and ofa["enabled"] is False
     assert [x["key"] for x in ofa["strategy_rules"]][:3] == ["REGIME", "VALUE", "DELTA"]
