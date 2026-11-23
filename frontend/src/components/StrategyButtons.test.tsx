@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StrategyButtons, { type StrategiesResp } from "./StrategyButtons";
@@ -32,7 +32,7 @@ const resp: StrategiesResp = {
   },
   toggles: [
     { key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass (evaluations)", value: false, on_label: "on", off_label: "off", note: "n",
-      weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", needed_week_10: "1106.20", sim_week: "74.23", sim_week_10: "742.30", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" } },
+      weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" } },
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
     { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
       compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
@@ -99,10 +99,15 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
   // D164: weekly profit targets on the fast-pass card
-  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Weekly target: $111/week (10 accounts $1,106)");
-  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Simulated avg: $74/week (10 accounts $743)");
-  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; 10 accounts move together.");
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Weekly target: $111/week");
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Simulated avg: $74/week");
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; accounts trade the same signals so they win and lose together.");
   expect(screen.getByTestId("weekly-unmeasured-fast_pass_25k")).toBeInTheDocument();
+  // calculator: default 1 account, totals = count x per-account API figures, remembered per viewer
+  expect(screen.getByTestId("calc-total")).toHaveTextContent("$111$74");
+  fireEvent.change(screen.getByTestId("calc-count-fast_pass_25k"), { target: { value: "10" } });
+  expect(screen.getByTestId("calc-total")).toHaveTextContent("$1,106$742");
+  expect(localStorage.getItem("paytience.weekly_counts")).toContain('"fast_pass_25k":10');
   // D137: EOD toggle with its VERIFY badge
   expect(screen.getByTestId("verify-eod_closed_balance")).toHaveTextContent("VERIFY");
   expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("✓ IN USE · Kill switch watches balance + open P&L (default, safest)");

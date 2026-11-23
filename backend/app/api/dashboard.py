@@ -889,9 +889,7 @@ def _fast_pass_weekly(plan_stem: str) -> dict[str, Any] | None:
         "target": str(target),
         "median_days": str(row.median_days),
         "needed_week": str(needed),
-        "needed_week_10": str(needed * 10),
         "sim_week": str(sim),
-        "sim_week_10": str(sim * 10),
         "measured": row.measured,
         "source": source,
     }

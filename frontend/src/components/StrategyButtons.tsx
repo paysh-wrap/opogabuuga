@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { badge } from "../lib/theme";
@@ -52,7 +53,7 @@ export interface DdRow { plan: string; eod: DdOdds; intraday: DdOdds }
 /** Session 22: EOD-trailing vs intraday-trailing drawdown (config/eval_odds.yaml drawdown_types). */
 export interface DrawdownCompare { current: DdRow | null; rows: DdRow[]; source: string | null; text: string }
 export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare; weekly?: WeeklyTarget | null }
-export interface WeeklyTarget { target: string; median_days: string; needed_week: string; needed_week_10: string; sim_week: string; sim_week_10: string; measured: boolean; source: string }
+export interface WeeklyTarget { target: string; median_days: string; needed_week: string; sim_week: string; measured: boolean; source: string }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
   enabled: boolean; connected: boolean; message: string | null;
@@ -303,9 +304,9 @@ export default function StrategyButtons() {
       <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
       {t.weekly && (
         <div className="mt-2 text-xs text-blue" data-testid={`weekly-${t.key}`}>
-          <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> (10 accounts <b className="text-gold">${Number(t.weekly.needed_week_10).toLocaleString("en-US", { maximumFractionDigits: 0 })}</b>) to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
-          <p>Simulated avg: <b className="text-gold">${Number(t.weekly.sim_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> (10 accounts <b className="text-gold">${Number(t.weekly.sim_week_10).toLocaleString("en-US", { maximumFractionDigits: 0 })}</b>)</p>
-          <p>Backtest estimate; 10 accounts move together.{!t.weekly.measured && <span className="ml-1 rounded border border-gold px-1 font-semibold text-gold" data-testid={`weekly-unmeasured-${t.key}`}>NOT RE-MEASURED after D163</span>}</p>
+          <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
+          <p>Simulated avg: <b className="text-gold">${Number(t.weekly.sim_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b></p>
+          <p>Backtest estimate; accounts trade the same signals so they win and lose together.{!t.weekly.measured && <span className="ml-1 rounded border border-gold px-1 font-semibold text-gold" data-testid={`weekly-unmeasured-${t.key}`}>NOT RE-MEASURED after D163</span>}</p>
         </div>
       )}
       <div className="mt-2 grid gap-2">
@@ -337,6 +338,7 @@ export default function StrategyButtons() {
           {fastPass.length > 0 && (
             <div className="mt-3" data-testid="strategy-fast-pass">
               <h4 className="font-semibold text-gold">NOISE fast-pass sizes (evaluations)</h4>
+              <WeeklyCalculator toggles={fastPass} />
               <div className="mt-2 grid gap-3 lg:grid-cols-3">{fastPass.map(toggleCard)}</div>
             </div>
           )}
@@ -429,5 +431,54 @@ export default function StrategyButtons() {
       </div>
       {d.markets.MGC === false && <p className="mt-2 text-xs text-blue">MGC (gold) is off — every gold strategy failed the 2019–2026 test{d.strategies.some((x) => x.key === "order_flow" && x.instruments?.includes("MGC")) && " (exception: Order Flow, D96)"}.</p>}
     </section>
+  );
+}
+
+const COUNTS_KEY = "paytience.weekly_counts";
+const usd0 = (n: number) => `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+
+/** D164: accounts per plan (0-20, default 1 each, remembered per viewer) x the API's per-account weekly figures. */
+export function WeeklyCalculator({ toggles }: { toggles: ToggleRow[] }) {
+  const rows = toggles.filter((t) => t.weekly);
+  const [counts, setCounts] = useState<Record<string, number>>(() => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(COUNTS_KEY) ?? "{}");
+      return raw && typeof raw === "object" ? raw : {};
+    } catch {
+      return {};
+    }
+  });
+  if (rows.length === 0) return null;
+  const n = (k: string) => Math.min(20, Math.max(0, Math.trunc(Number.isFinite(counts[k]) ? counts[k] : 1)));
+  const set = (k: string, v: string) => {
+    const next = { ...counts, [k]: Math.min(20, Math.max(0, Math.trunc(Number(v) || 0))) };
+    setCounts(next);
+    try {
+      localStorage.setItem(COUNTS_KEY, JSON.stringify(next));
+    } catch {
+      /* storage blocked: keep in memory only */
+    }
+  };
+  const need = rows.reduce((a, t) => a + n(t.key) * Number(t.weekly!.needed_week), 0);
+  const sim = rows.reduce((a, t) => a + n(t.key) * Number(t.weekly!.sim_week), 0);
+  return (
+    <div className="mt-2 rounded-lg border border-border p-3 text-sm text-blue" data-testid="weekly-calc">
+      <h5 className="font-semibold text-gold">Weekly target calculator</h5>
+      <table className="mt-1 w-full text-left text-xs">
+        <thead><tr><th>Plan</th><th>Accounts</th><th>Needed / week</th><th>Simulated avg / week</th></tr></thead>
+        <tbody>
+          {rows.map((t) => (
+            <tr key={t.key} data-testid={`calc-row-${t.key}`}>
+              <td>{t.title.split(" ")[0]}</td>
+              <td><input type="number" min={0} max={20} value={n(t.key)} aria-label={`${t.title} accounts`} data-testid={`calc-count-${t.key}`} onChange={(e) => set(t.key, e.target.value)} className="w-16 rounded border border-border bg-transparent px-1 text-gold" /></td>
+              <td className="text-gold">{usd0(n(t.key) * Number(t.weekly!.needed_week))}</td>
+              <td className="text-gold">{usd0(n(t.key) * Number(t.weekly!.sim_week))}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot><tr data-testid="calc-total"><th>Total</th><th /><th className="text-gold">{usd0(need)}</th><th className="text-gold">{usd0(sim)}</th></tr></tfoot>
+      </table>
+      <p className="mt-1 text-xs">Backtest estimate; accounts trade the same signals so they win and lose together.</p>
+    </div>
   );
 }

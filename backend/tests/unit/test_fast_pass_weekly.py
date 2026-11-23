@@ -15,9 +15,8 @@ def test_25k_figures() -> None:
     assert w is not None
     assert w["target"] == "1250" and w["median_days"] == "56.5" and w["measured"] is True
     assert D(w["needed_week"]) == D("110.62")  # 1250 / (56.5 / 5)
-    assert D(w["needed_week_10"]) == D("1106.20")
     assert D(w["sim_week"]) == D("74.23")  # 19300 / 260
-    assert D(w["sim_week_10"]) == D("742.30")
+    assert "needed_week_10" not in w and "sim_week_10" not in w  # counts come from the UI calculator
     assert w["source"].endswith("final_search/RESULTS.md")
 
 
