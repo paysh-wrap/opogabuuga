@@ -449,7 +449,7 @@ export function WeeklyCalculator({ toggles }: { toggles: ToggleRow[] }) {
     }
   });
   if (rows.length === 0) return null;
-  const n = (k: string) => Math.min(20, Math.max(0, Math.trunc(Number.isFinite(counts[k]) ? counts[k] : 1)));
+  const n = (k: string) => Math.min(20, Math.max(0, Math.trunc(Number.isFinite(counts[k]) ? (counts[k] as number) : 1)));
   const set = (k: string, v: string) => {
     const next = { ...counts, [k]: Math.min(20, Math.max(0, Math.trunc(Number(v) || 0))) };
     setCounts(next);

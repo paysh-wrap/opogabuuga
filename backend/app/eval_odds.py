@@ -6,9 +6,9 @@ not come from this file."""
 
 from __future__ import annotations
 
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
-from decimal import Decimal
 from typing import Any
 
 import yaml

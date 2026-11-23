@@ -36,3 +36,4 @@ desktop/version.json
 docs/results/session18/**/*.pkl
 backups/
 .env.tmp
+backend/.coverage.*

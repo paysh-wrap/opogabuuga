@@ -1,4 +1,4 @@
-"""D164: weekly profit targets on the fast-pass cards (figures from config/eval_odds.yaml, eval target from the plan yaml)."""
+"""D164: weekly profit targets on the fast-pass cards (figures from eval_odds.yaml, eval target from the plan yaml)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,11 @@ def test_25k_figures() -> None:
 
 @pytest.mark.parametrize(
     ("stem", "target", "days", "measured"),
-    [("lucid_pro_50k", "3000", "61", False), ("lucid_pro_100k", "6000", "87", True), ("lucid_pro_150k", "9000", "80", False)],
+    [
+        ("lucid_pro_50k", "3000", "61", False),
+        ("lucid_pro_100k", "6000", "87", True),
+        ("lucid_pro_150k", "9000", "80", False),
+    ],
 )
 def test_other_plans(stem: str, target: str, days: str, measured: bool) -> None:
     w = _fast_pass_weekly(stem)

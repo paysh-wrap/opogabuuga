@@ -870,7 +870,7 @@ def _ar_side_by_side(db: Session, r: Any, sess: Any) -> dict[str, Any]:
 
 def _fast_pass_weekly(plan_stem: str) -> dict[str, Any] | None:
     """D164: weekly profit targets for a fast-pass card. Figures come from config/eval_odds.yaml (fast_pass_weekly), the
-    eval target from the plan yaml. weekly_needed = target / (median_days / 5); sim_weekly = 5-year profit / 260 weeks."""
+    eval target from the plan yaml. weekly_needed = target / (median_days / 5); sim_weekly = 5-year profit / 260."""
     from app.config import load_yaml_decimal
     from app.eval_odds import weekly_row
 
