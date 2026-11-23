@@ -227,3 +227,15 @@ drawdown_types:
     lucid_pro_50k:
       eod: {all: {pass: 65, bust: 34, stuck: 34, open: 0, days: 78}, is: {pass: 66, bust: 33, stuck: 33, open: 0, days: 80}, j: {pass: 52, bust: 48, stuck: 48, open: 0, days: 55}}
       intraday: {all: {pass: 55, bust: 44, stuck: 40, open: 0, days: 78}, is: {pass: 58, bust: 41, stuck: 40, open: 0, days: 76}, j: {pass: 34, bust: 66, stuck: 50, open: 0, days: 53}}
+
+# D164 (user 2026-11-23): weekly profit targets on the fast-pass cards. Hand-added (not from run2.py). Source: docs/results/pass_fastest/final_search/RESULTS.md.
+# median_days = median trading days to pass; sim_profit_5y = simulated profit over the 5-year backtest (1 account, fast-pass sizes).
+# The eval target comes from each plan yaml (eval.profit_target); weekly figures are computed in api/dashboard.py.
+# measured: false = the figure predates the D163 change (not re-measured) and the UI flags it.
+fast_pass_weekly:
+  source: docs/results/pass_fastest/final_search/RESULTS.md
+  plans:
+    lucid_pro_25k: {median_days: 56.5, sim_profit_5y: 19300, measured: true}
+    lucid_pro_50k: {median_days: 61, sim_profit_5y: 39100, measured: false}
+    lucid_pro_100k: {median_days: 87, sim_profit_5y: 60300, measured: true}
+    lucid_pro_150k: {median_days: 80, sim_profit_5y: 100600, measured: false}

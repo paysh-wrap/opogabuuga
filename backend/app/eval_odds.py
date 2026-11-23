@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from decimal import Decimal
 from typing import Any
 
 import yaml
@@ -60,12 +61,28 @@ class DrawdownTypes(BaseModel):
     plans: dict[str, DrawdownPair]
 
 
+class WeeklyRow(BaseModel):
+    """D164: one fast-pass plan's backtest figures (median trading days to pass, 5-year simulated profit)."""
+
+    model_config = ConfigDict(frozen=True)
+    median_days: Decimal = Field(gt=0)
+    sim_profit_5y: Decimal
+    measured: bool = True
+
+
+class FastPassWeekly(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    source: str
+    plans: dict[str, WeeklyRow]
+
+
 class OddsFile(BaseModel):
     model_config = ConfigDict(frozen=True)
     version: int
     study: str
     source: str
     plans: dict[str, dict[str, TableOdds]]
+    fast_pass_weekly: FastPassWeekly | None = None  # D164
     drawdown_types: DrawdownTypes | None = None  # session 22 (optional: an older file without it still loads)
 
 
@@ -159,3 +176,11 @@ def drawdown_compare(plan_stem: str) -> dict[str, Any]:
         "source": dt.source,
         "text": text,
     }
+
+
+def weekly_row(plan_stem: str) -> tuple[WeeklyRow, str] | None:
+    """D164: the fast-pass backtest figures and their source for a plan, or None when not in the file."""
+    f = load_odds()
+    fw = f.fast_pass_weekly if f is not None else None
+    row = fw.plans.get(plan_stem) if fw is not None else None
+    return None if fw is None or row is None else (row, fw.source)

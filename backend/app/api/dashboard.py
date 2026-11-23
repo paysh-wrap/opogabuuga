@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, Request
@@ -21,6 +22,7 @@ from app.phases.phase_engine import stage_rules
 from app.risk.checks import dll_remaining
 from app.risk.cushion import cushion_level, cushion_share
 from app.risk.eval_mode import eval_mode_effective
+from app.risk.risk_base import money
 from app.risk.split_risk import split_active
 from app.signals.service import today_bias
 
@@ -866,6 +868,35 @@ def _ar_side_by_side(db: Session, r: Any, sess: Any) -> dict[str, Any]:
     }
 
 
+def _fast_pass_weekly(plan_stem: str) -> dict[str, Any] | None:
+    """D164: weekly profit targets for a fast-pass card. Figures come from config/eval_odds.yaml (fast_pass_weekly), the
+    eval target from the plan yaml. weekly_needed = target / (median_days / 5); sim_weekly = 5-year profit / 260 weeks."""
+    from app.config import load_yaml_decimal
+    from app.eval_odds import weekly_row
+
+    got = weekly_row(plan_stem)
+    path = Path(__file__).resolve().parents[3] / "config" / "rules" / f"{plan_stem}.yaml"
+    try:
+        target = Decimal(str(load_yaml_decimal(path.read_text(encoding="utf-8"))["eval"]["profit_target"]))
+    except (OSError, KeyError, TypeError, ArithmeticError):
+        return None
+    if got is None:
+        return None
+    row, source = got
+    needed = money(target / (row.median_days / Decimal(5)))
+    sim = money(row.sim_profit_5y / Decimal(260))
+    return {
+        "target": str(target),
+        "median_days": str(row.median_days),
+        "needed_week": str(needed),
+        "needed_week_10": str(needed * 10),
+        "sim_week": str(sim),
+        "sim_week_10": str(sim * 10),
+        "measured": row.measured,
+        "source": source,
+    }
+
+
 @router.get("/strategies")
 def strategies(request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     """D55: strategy buttons — on/off (My Settings keys strategy.*), tested results next to each, NOISE warm-up
@@ -1109,6 +1140,7 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
 
         out.append(
             {
+                "weekly": _fast_pass_weekly(f"lucid_pro_{int(fp.account_size) // 1000}k"),
                 "key": fk,
                 "setting": f"strategy.{fk}",
                 "title": f"{int(fp.account_size) // 1000}K fast pass (evaluations)",

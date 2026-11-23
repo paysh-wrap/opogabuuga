@@ -31,6 +31,8 @@ const resp: StrategiesResp = {
     odds: { regular: { plan: "p", table: "regular", eod_on: false, text: "pass 70% / bust 30% · last 12 mo 60/40 · EOD toggle OFF", pass_pct: 70, bust_pct: 30, last12_pass_pct: 60, last12_bust_pct: 40 }, suggested: { plan: "p", table: "suggested", eod_on: false, text: "pass 90% / bust 10% · last 12 mo 85/15 · EOD toggle OFF", pass_pct: 90, bust_pct: 10, last12_pass_pct: 85, last12_bust_pct: 15 } },
   },
   toggles: [
+    { key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass (evaluations)", value: false, on_label: "on", off_label: "off", note: "n",
+      weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", needed_week_10: "1106.20", sim_week: "74.23", sim_week_10: "742.30", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" } },
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
     { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
       compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
@@ -96,6 +98,11 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("noise-size-configured")).toHaveTextContent("✓ IN USE · As configured — 50K 2 micros");
   await userEvent.click(screen.getByTestId("noise-size-suggested"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.suggested_size":true'))).toBe(true));
+  // D164: weekly profit targets on the fast-pass card
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Weekly target: $111/week (10 accounts $1,106)");
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Simulated avg: $74/week (10 accounts $743)");
+  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; 10 accounts move together.");
+  expect(screen.getByTestId("weekly-unmeasured-fast_pass_25k")).toBeInTheDocument();
   // D137: EOD toggle with its VERIFY badge
   expect(screen.getByTestId("verify-eod_closed_balance")).toHaveTextContent("VERIFY");
   expect(screen.getByTestId("toggle-eod_closed_balance-off")).toHaveTextContent("✓ IN USE · Kill switch watches balance + open P&L (default, safest)");

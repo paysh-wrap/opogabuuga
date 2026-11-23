@@ -51,7 +51,8 @@ export interface DdOdds { pass: number; bust: number; j_pass: number; j_bust: nu
 export interface DdRow { plan: string; eod: DdOdds; intraday: DdOdds }
 /** Session 22: EOD-trailing vs intraday-trailing drawdown (config/eval_odds.yaml drawdown_types). */
 export interface DrawdownCompare { current: DdRow | null; rows: DdRow[]; source: string | null; text: string }
-export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare }
+export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare; weekly?: WeeklyTarget | null }
+export interface WeeklyTarget { target: string; median_days: string; needed_week: string; needed_week_10: string; sim_week: string; sim_week_10: string; measured: boolean; source: string }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
   enabled: boolean; connected: boolean; message: string | null;
@@ -300,6 +301,13 @@ export default function StrategyButtons() {
   const toggleCard = (t: ToggleRow) => (
     <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
       <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
+      {t.weekly && (
+        <div className="mt-2 text-xs text-blue" data-testid={`weekly-${t.key}`}>
+          <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> (10 accounts <b className="text-gold">${Number(t.weekly.needed_week_10).toLocaleString("en-US", { maximumFractionDigits: 0 })}</b>) to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
+          <p>Simulated avg: <b className="text-gold">${Number(t.weekly.sim_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> (10 accounts <b className="text-gold">${Number(t.weekly.sim_week_10).toLocaleString("en-US", { maximumFractionDigits: 0 })}</b>)</p>
+          <p>Backtest estimate; 10 accounts move together.{!t.weekly.measured && <span className="ml-1 rounded border border-gold px-1 font-semibold text-gold" data-testid={`weekly-unmeasured-${t.key}`}>NOT RE-MEASURED after D163</span>}</p>
+        </div>
+      )}
       <div className="mt-2 grid gap-2">
         {([true, false] as const).map((v) => {
           const on = t.value === v;
