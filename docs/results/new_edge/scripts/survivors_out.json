@@ -1,0 +1,99 @@
+{
+ "lastmom": {
+  "n_cfg": 24,
+  "n_survive": 0,
+  "survivors": []
+ },
+ "lastmom_day": {
+  "n_cfg": 60,
+  "n_survive": 0,
+  "survivors": []
+ },
+ "gapfade": {
+  "n_cfg": 96,
+  "n_survive": 2,
+  "survivors": [
+   {
+    "p": {
+     "mode": "cont",
+     "mingap": 0.8,
+     "e": 5,
+     "xend": 389,
+     "stop": 0.2,
+     "fill": 0.5
+    },
+    "pick": {
+     "n": 40,
+     "pf": 1.446,
+     "wr": 35.0,
+     "net_usd_micro": 1148.0,
+     "exp_pts": 14.35
+    },
+    "judge": {
+     "n": 120,
+     "pf": 1.382,
+     "wr": 26.7,
+     "net_usd_micro": 4138.0,
+     "exp_pts": 17.24
+    },
+    "all": {
+     "n": 160,
+     "pf": 1.394,
+     "wr": 28.7,
+     "net_usd_micro": 5286.0,
+     "exp_pts": 16.52
+    },
+    "rand_judge_pf_mean": 1.119,
+    "rand_judge_pf_p95": 1.486
+   },
+   {
+    "p": {
+     "mode": "cont",
+     "mingap": 0.8,
+     "e": 5,
+     "xend": 389,
+     "stop": 0.2,
+     "fill": 1.0
+    },
+    "pick": {
+     "n": 40,
+     "pf": 1.446,
+     "wr": 35.0,
+     "net_usd_micro": 1148.0,
+     "exp_pts": 14.35
+    },
+    "judge": {
+     "n": 120,
+     "pf": 1.382,
+     "wr": 26.7,
+     "net_usd_micro": 4138.0,
+     "exp_pts": 17.24
+    },
+    "all": {
+     "n": 160,
+     "pf": 1.394,
+     "wr": 28.7,
+     "net_usd_micro": 5286.0,
+     "exp_pts": 16.52
+    },
+    "rand_judge_pf_mean": 1.235,
+    "rand_judge_pf_p95": 1.578
+   }
+  ]
+ },
+ "vwapmr": {
+  "n_cfg": 48,
+  "n_survive": 0,
+  "survivors": []
+ },
+ "lunchbrk": {
+  "n_cfg": 64,
+  "n_survive": 0,
+  "survivors": []
+ },
+ "tom": {
+  "n_cfg": 6,
+  "n_survive": 0,
+  "survivors": []
+ }
+}
