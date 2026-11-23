@@ -58,7 +58,7 @@ def _noise_base(cfg: FastPassCfg, cushion: Decimal) -> int:
 
 
 def _candace_base(cfg: FastPassCfg, cushion: Decimal) -> int:
-    """D163 grow (final_search study, CANDACE only): +1 micro per `candace_grow_per` of cushion beyond the first, capped."""
+    """D163 grow (final_search study, CANDACE only): +1 micro per `candace_grow_per` of cushion beyond first, capped."""
     if cfg.candace_grow_per is None or cfg.candace_max_contracts is None:
         return cfg.candace_contracts
     extra = int(cushion // cfg.candace_grow_per) - 1

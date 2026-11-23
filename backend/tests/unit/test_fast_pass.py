@@ -38,11 +38,12 @@ CFG150_NEW = FastPassCfg(  # D162 pass70 row N5[2250>2,1500>1] C5[2700>4,1500>1]
     noise_steps=[{"cushion_usd": 2250, "contracts": 2}, {"cushion_usd": 1500, "contracts": 1}],
     candace_steps=[{"cushion_usd": 2700, "contracts": 4}, {"cushion_usd": 1500, "contracts": 1}],
     noise_grow_per=D(500), noise_max_contracts=6, day_lock_pct=D("0.7"),
+    candace_grow_per=D(1500), candace_max_contracts=6,
 )  # fmt: skip
-CFG50 = FastPassCfg(  # D162 pass70 62 %-floor row N2@$75 [667>1] C4 [1000>3] dl0.5 lock80
+CFG50 = FastPassCfg(  # D162 pass70 62 %-floor row N2@$75 [667>1] C4 [1000>3] dl0.4 lock80 (D163)
     account_size=D(50000), noise_contracts=2, noise_stop_usd=D(75), candace_contracts=4, brake_inclusive=False,
     noise_steps=[{"cushion_usd": 667, "contracts": 1}], candace_steps=[{"cushion_usd": 1000, "contracts": 3}],
-    day_lock_pct=D("0.5"), noise_lock_trigger_pts=D(80),
+    day_lock_pct=D("0.4"), noise_lock_trigger_pts=D(80),
 )  # fmt: skip
 OLD = FastPassCfg(
     account_size=D(150000), noise_contracts=5, noise_stop_usd=D(100), candace_contracts=4,
@@ -212,9 +213,9 @@ def test_grow_and_day_lock_and_lock_trigger():
     ]
     assert got == [5, 5, 6, 6, 7, 8, 8]  # extra = max(0, cushion // 500 - 1), capped at noise_max_contracts
     assert fast_pass_size(True, CFG100_NEW, "EVAL", D(100000), "NOISE", D(9000)).contracts == 3  # no grow configured
-    # day lock: only ever skips, from the remaining target (0.7 x 1,000 = 700; 0.5 x 1,000 = 500)
+    # day lock: only ever skips, from the remaining target (0.7 x 1,000 = 700; 0.4 x 1,000 = 400)
     assert fast_pass_day_locked(CFG150_NEW, D(700), D(1000)) and not fast_pass_day_locked(CFG150_NEW, D(699), D(1000))
-    assert fast_pass_day_locked(CFG50, D(500), D(1000)) and not fast_pass_day_locked(CFG50, D(499), D(1000))
+    assert fast_pass_day_locked(CFG50, D(400), D(1000)) and not fast_pass_day_locked(CFG50, D(399), D(1000))
     assert not fast_pass_day_locked(CFG50, D(0), D(1000)) and not fast_pass_day_locked(CFG50, D(10), D(0))
     assert not fast_pass_day_locked(CFG, D(900), D(1000)) and not fast_pass_day_locked(None, D(900), D(1000))
     # NOISE lock trigger only where configured; no lock configured at all -> none
@@ -242,23 +243,28 @@ def test_plan_fast_pass_50k():
     assert plan_fast_pass(st, D(50000)) == (True, CFG50)
 
 
+NO_CGROW = {"candace_grow_per": None, "candace_max_contracts": None}
+
+
 def test_d163_candace_grow():
-    cfg = CFG150_NEW.model_copy(update={"candace_steps": (), "candace_grow_per": D(1500), "candace_max_contracts": 6})
-    got = [fast_pass_size(True, cfg, "EVAL", K150, "CANDACE_ICT", D(c)).contracts for c in (0, 2999, 3000, 9000)]
-    assert got == [5, 5, 6, 6]  # extra = cushion // 1500 - 1 (first +1 at $3,000), capped at 6
-    # steps still cap the grown size (tighten-only)
-    capped = CFG150_NEW.model_copy(update={"candace_grow_per": D(1500), "candace_max_contracts": 6})
-    assert fast_pass_size(True, capped, "EVAL", K150, "CANDACE_ICT", D(1400)).contracts == 1
-    assert fast_pass_size(True, capped, "EVAL", K150, "CANDACE_ICT", D(2600)).contracts == 4
+    cfg = CFG150_NEW.model_copy(update={"candace_steps": (), "candace_contracts": 4})  # no brake: pure grow, cap 6
+    got = [fast_pass_size(True, cfg, "EVAL", K150, "CANDACE_ICT", D(c)).contracts for c in (0, 2999, 3000, 4500, 9000)]
+    assert got == [4, 4, 5, 6, 6]  # extra = cushion // 1500 - 1 (first +1 at $3,000), capped at 6
+    # the steps still cap the grown size (tighten-only)
+    assert fast_pass_size(True, CFG150_NEW, "EVAL", K150, "CANDACE_ICT", D(1400)).contracts == 1
+    assert fast_pass_size(True, CFG150_NEW, "EVAL", K150, "CANDACE_ICT", D(2600)).contracts == 4
+    assert fast_pass_size(True, CFG150_NEW, "EVAL", K150, "CANDACE_ICT", D(9000)).contracts == 6
     # inert default
-    assert fast_pass_size(True, CFG150_NEW, "EVAL", K150, "CANDACE_ICT", D(9000)).contracts == 5
+    inert = CFG150_NEW.model_copy(update=NO_CGROW)
+    assert fast_pass_size(True, inert, "EVAL", K150, "CANDACE_ICT", D(9000)).contracts == 5
 
 
 def test_d163_candace_grow_validation():
+    base = {**CFG150_NEW.model_dump()}
     for bad in (
-        {"candace_grow_per": D(1500)},
-        {"candace_max_contracts": 6},
-        {"candace_grow_per": D(1500), "candace_max_contracts": 4},
+        {"candace_max_contracts": None},
+        {"candace_grow_per": None},
+        {"candace_max_contracts": 4},
     ):
         with pytest.raises(ValueError):
-            FastPassCfg.model_validate({**CFG150_NEW.model_dump(), **bad})
+            FastPassCfg.model_validate({**base, **bad})
