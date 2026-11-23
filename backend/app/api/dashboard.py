@@ -1171,8 +1171,20 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
         def steps_text(steps: Any, op: str = op) -> str:
             return ", ".join(f"{op} ${x.cushion_usd:,.0f}: {x.contracts}" for x in steps) or "no brake"
 
+        late = None
+        if fp.late_contracts is not None:  # D166: the 3rd-edge option lives INSIDE the card (one global switch)
+            late = {
+                "setting": "strategy.fast_pass_late_day",
+                "value": st.fast_pass_late_day,
+                "label": "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.10)",
+                "detail": f"MNQ, follows the 09:30-13:30 trend at 15:00, {st.late_day_cfg.stop_pts:g} pt stop, flat "
+                f"{st.late_day_cfg.flat_at}: {fp.late_contracts} micro(s) (cushion {steps_text(fp.late_steps)}). "
+                "Only while this plan's fast pass is ON; EVAL, own size; one position per account; hedge lock and "
+                "every Lucid check still shrink or skip. Study: docs/results/new_edge/late_leg_sizes/RESULTS.md.",
+            }
         out.append(
             {
+                "late": late,
                 "weekly": _fast_pass_weekly(f"lucid_pro_{int(fp.account_size) // 1000}k"),
                 "key": fk,
                 "setting": f"strategy.{fk}",

@@ -175,6 +175,9 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
       - {cushion_usd: 2700, contracts: 4}
       - {cushion_usd: 1500, contracts: 1}
     day_lock_pct: 0.7     #   EVAL day lock: no new NOISE entry once today's profit >= 70 % of the target still to earn
+    late_contracts: 4    #   D166 3rd edge late-day momentum (option strategy.fast_pass_late_day, UNVERIFIED): 4 micro(s) (new_edge/late_leg_sizes/RESULTS.md)
+    late_steps:
+      - {cushion_usd: 2250, contracts: 1}   #   1 micro while cushion is below $2,250
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:
     - {account_size: 100000, max_contracts: 2}   # 100K x2 pass/bust 83/15 vs x3 69/31, x4 58/42 (7.5 yr, Mondays off)

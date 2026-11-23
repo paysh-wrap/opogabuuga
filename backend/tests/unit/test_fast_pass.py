@@ -6,7 +6,7 @@ from decimal import Decimal as D
 
 import pytest
 
-from app.config import FastPassCfg, StrategyCfg, load_rules
+from app.config import FastPassCfg, FastPassStep, StrategyCfg, load_rules
 from app.risk.fast_pass import (
     FastPassSize,
     fast_pass_day_locked,
@@ -147,8 +147,16 @@ def test_plan_fast_pass_picks_by_size():
 def test_plan_files():
     """Only Pro 25K / 100K / 150K carry numbers (default OFF); every other plan omits them → inert."""
     want = {
-        "lucid_pro_25k.yaml": CFG25, "lucid_pro_50k.yaml": CFG50, "lucid_pro_100k.yaml": CFG100_NEW,
-        "lucid_pro_150k.yaml": CFG150_NEW,
+        "lucid_pro_25k.yaml": CFG25,
+        "lucid_pro_50k.yaml": CFG50.model_copy(  # D166 late-day leg sizes
+            update={"late_contracts": 2, "late_steps": (FastPassStep(cushion_usd=D(667), contracts=1),)}
+        ),
+        "lucid_pro_100k.yaml": CFG100_NEW.model_copy(
+            update={"late_contracts": 2, "late_steps": (FastPassStep(cushion_usd=D(1000), contracts=1),)}
+        ),
+        "lucid_pro_150k.yaml": CFG150_NEW.model_copy(
+            update={"late_contracts": 4, "late_steps": (FastPassStep(cushion_usd=D(2250), contracts=1),)}
+        ),
     }  # fmt: skip
     for f in sorted((REPO_ROOT / "config" / "rules").glob("*.yaml")):
         st = load_rules(f).rules.strategy
@@ -268,3 +276,13 @@ def test_d163_candace_grow_validation():
     ):
         with pytest.raises(ValueError):
             FastPassCfg.model_validate({**base, **bad})
+
+
+def test_plan_files_late_day_sizes_d166():
+    """D166: the Pro plan files carry the late-leg sizes (25K inert); the option itself defaults OFF."""
+    want = {25: (None, 0), 50: (2, 1), 100: (2, 1), 150: (4, 1)}
+    for k, (n, steps) in want.items():
+        st = load_rules(REPO_ROOT / "config" / "rules" / f"lucid_pro_{k}k.yaml").rules.strategy
+        cfg = getattr(st, f"fast_pass_{k}k_cfg")
+        assert cfg.late_contracts == n and len(cfg.late_steps) == steps
+        assert st.fast_pass_late_day is False

@@ -32,7 +32,8 @@ const resp: StrategiesResp = {
   },
   toggles: [
     { key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass (evaluations)", value: false, on_label: "on", off_label: "off", note: "n",
-      weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" } },
+      weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" },
+      late: { setting: "strategy.fast_pass_late_day", value: false, label: "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.10)", detail: "MNQ, 2 micro(s)" } },
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
     { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
       compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
@@ -103,6 +104,11 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Simulated avg: $74/week");
   expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; accounts trade the same signals so they win and lose together.");
   expect(screen.getByTestId("weekly-unmeasured-fast_pass_25k")).toBeInTheDocument();
+  // D166: 3rd-edge option INSIDE the fast-pass card, gold UNVERIFIED badge, own setting key
+  expect(screen.getByTestId("late-badge-fast_pass_25k")).toHaveTextContent("UNVERIFIED · held-out PF 1.10");
+  expect(screen.getByTestId("late-fast_pass_25k")).toHaveTextContent("3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.10)");
+  await userEvent.click(screen.getByTestId("late-toggle-fast_pass_25k"));
+  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.fast_pass_late_day":true'))).toBe(true));
   // calculator: default 1 account, totals = count x per-account API figures, remembered per viewer
   expect(screen.getByTestId("calc-total")).toHaveTextContent("$111$74");
   fireEvent.change(screen.getByTestId("calc-count-fast_pass_25k"), { target: { value: "10" } });

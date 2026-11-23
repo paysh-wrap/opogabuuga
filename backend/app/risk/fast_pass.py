@@ -49,6 +49,25 @@ def fast_pass_size(
     return FastPassSize(n, None, braked)
 
 
+def late_day_size(
+    late_on: bool,
+    fast_on: bool,
+    cfg: FastPassCfg | None,
+    stage: str,
+    account_size: Decimal,
+    cushion: Decimal,
+) -> FastPassSize | None:
+    """D166: starting size of the late-day momentum leg, or None = not active (then NO trade is taken). Needs the
+    option AND this plan's fast pass ON, EVAL stage, own account size and a `late_contracts` in the plan file; below a
+    `late_steps` cushion it trades fewer micros. Every Lucid / Paytience check still runs after (shrink / skip only)."""
+    if not (late_on and fast_on) or cfg is None or cfg.late_contracts is None:
+        return None
+    if stage != "EVAL" or account_size != cfg.account_size:
+        return None
+    n, braked = _step_size(cfg, cfg.late_steps, cfg.late_contracts, cushion)
+    return FastPassSize(n, None, braked)
+
+
 def _noise_base(cfg: FastPassCfg, cushion: Decimal) -> int:
     """D162 grow (study definition, NOISE only): +1 micro per `noise_grow_per` of cushion beyond the first, capped."""
     if cfg.noise_grow_per is None or cfg.noise_max_contracts is None:

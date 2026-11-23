@@ -169,6 +169,9 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     candace_steps:
       - {cushion_usd: 1000, contracts: 3}
     day_lock_pct: 0.4     #   EVAL day lock (only skips); D163 0.5 -> 0.4
+    late_contracts: 2    #   D166 3rd edge late-day momentum (option strategy.fast_pass_late_day, UNVERIFIED): 2 micros (new_edge/late_leg_sizes/RESULTS.md)
+    late_steps:
+      - {cushion_usd: 667, contracts: 1}   #   1 micro while cushion is below $667
     noise_lock_trigger_pts: 80   # NOISE profit-lock trigger for these accounts only (global noise_lock_alt untouched)
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:

@@ -67,6 +67,7 @@ from app.risk.fast_pass import (
     fast_pass_day_locked,
     fast_pass_lock,
     fast_pass_size,
+    late_day_size,
     plan_fast_pass,
 )
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
@@ -94,6 +95,7 @@ STRATEGY_MODES = (
     "ORDER_FLOW_AUCTION",
     "MGC_NOISE",  # D165: NOISE / CANDACE on MGC, fixed 1 micro; every pre-trade check only shrinks / skips
     "MGC_CANDACE",
+    "LATE_DAY",  # D166: late-day momentum, 3rd edge of the fast pass (sized only by fast_pass cfg late_contracts)
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
 FIT_TAGS = {
@@ -612,6 +614,11 @@ class Controller:
         # D156 "150K fast pass": EVAL-stage accounts of the plan's size only (pure check); None = today's sizing
         fp_on, fp_cfg = plan_fast_pass(r.strategy, acct_size)  # D157: 25K / 100K / 150K, own size only
         fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base)
+        late = None
+        if strategy == "LATE_DAY":  # D166: only with the plan's fast pass ON + the late option ON, EVAL, own size
+            late = late_day_size(r.strategy.fast_pass_late_day, fp_on, fp_cfg, a.stage, acct_size, base)
+            if late is None:
+                return AccountResult(a.id, False, "LATE_DAY_NOT_ACTIVE")
         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
         try:
             positions = await self.open_positions(s)  # every account (hedge lock): one unreadable broker blocks
@@ -777,6 +784,13 @@ class Controller:
             )  # fmt: skip
             if fixed < 1:
                 return AccountResult(a.id, False, f"{tag}_SIZE_BELOW_1")
+        if late is not None:  # D166: fixed size from the fast-pass cfg; every check below still shrinks / skips
+            fixed = late.contracts
+            audit.record(
+                s, self.clock, actor, "trade.late_day_size", a.broker_account_id,
+                {"signal": sig.id, "contracts": late.contracts, "braked": late.braked, "cushion": str(base),
+                 "stop_pts": str(plan.risk_pts)},
+            )  # fmt: skip
         table = r.strategy.active_size_table()  # D64: Regular or High-risk profile
         eval_sizing = bool(r.strategy.active_eval_table()) and eval_mode_effective(
             a.stage, a.eval_mode, self.rules.eval_mode_on

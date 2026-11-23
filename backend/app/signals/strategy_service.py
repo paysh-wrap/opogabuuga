@@ -33,6 +33,7 @@ from app.engine import conti_orb as CO
 from app.engine import conti_vwap as CV
 from app.engine import gala_pa as GP
 from app.engine import jj_fpt as JJ
+from app.engine import late_day as LD
 from app.engine import noise as N
 from app.engine import okala_8020 as OK
 from app.engine import order_flow as OF
@@ -1577,6 +1578,45 @@ def run_candace_ict(
     return out
 
 
+def run_late_day(
+    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+) -> StrategyOutput:
+    """D166 LATE-DAY MOMENTUM (3rd edge of the fast pass): trend of the session so far, followed at 15:00 with a 60 pt
+    stop, flat at 15:59. One entry a day; the controller decides per account whether the plan's fast pass applies."""
+    cfg = rules.strategy.late_day_cfg
+    out = StrategyOutput()
+    day = at.astimezone(ET).date().isoformat()
+    if LD.is_flat_time(at, cfg):
+        for sig in _today_signals(s, cfg.symbol, "LATE", day):
+            if sig.features.get("state") == "OPEN":
+                _close(s, sig, "LATE_FLAT_1559", at, clock)
+                out.exits.append((sig.id, "LATE_FLAT_1559"))
+        return out
+    if exits_only:
+        return out
+    day0 = _et_at(at.astimezone(ET).date(), "00:00")
+    rows = s.execute(
+        select(Bar)
+        .where(Bar.symbol == cfg.symbol, Bar.tf == "1", Bar.close_time > day0 - timedelta(days=HISTORY_CALENDAR_DAYS))
+        .where(Bar.close_time <= at)
+        .order_by(Bar.close_time)
+    ).scalars()
+    mb = [CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows]
+    hist, today = [b for b in mb if b.close_time <= day0], [b for b in mb if b.close_time > day0]
+    x = LD.decide(hist, today, cfg, rules.instrument(cfg.symbol).tick, at)
+    key = f"{cfg.symbol}-LATE-{day}-{at.astimezone(ET).strftime('%H%M')}"
+    if x is None or _key_id(s, key) is not None:
+        return out
+    new = _new_signal(
+        s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
+        gate=_gate(rules, cfg.symbol, at, calendar),
+        features={"trend_pts": str(x.trend_pts), "atr": str(x.atr), "paper_only": cfg.paper_only},
+        plan=("LATE_DAY", x.entry, x.stop, x.take_profit, x.risk_pts, x.rr), rules=rules,
+    )  # fmt: skip
+    out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
+    return out
+
+
 def run_order_flow_auction(
     s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
 ) -> StrategyOutput:
@@ -1657,6 +1697,10 @@ def run(
         out.updates += r.updates
     if st.candace_ict and symbol == st.candace_ict_cfg.symbol:
         r = run_candace_ict(s, rules, clock, calendar, at, exits_only)
+        out.updates += r.updates
+        out.exits += r.exits
+    if st.fast_pass_late_day and symbol == st.late_day_cfg.symbol:  # D166: the controller gates it per account
+        r = run_late_day(s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.mgc_noise_candace:  # D165: the MGC pair — own market switch, fixed 1 micro, no AI advisor

@@ -161,6 +161,7 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.fast_pass_25k",  # D157: 25K fast pass (same rules)
         "strategy.fast_pass_100k",  # D157: 100K fast pass (same rules)
         "strategy.fast_pass_50k",  # D162: 50K fast pass (same rules)
+        "strategy.fast_pass_late_day",  # D166: 3rd edge (late-day momentum) inside the fast-pass cards
         "strategy.pm_fade_cfg.eval_off",  # D132 / I3: afternoon fade off on EVAL accounts (default on)
         "strategy.eval_size_s19",  # D133 / I1: Evaluation-Mode sizes capped at the session-19 lowest-bust sizes
         "strategy.preset",  # D82: NOISE strategy preset (config/strategy_presets.yaml)

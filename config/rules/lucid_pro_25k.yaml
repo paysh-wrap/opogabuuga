@@ -166,6 +166,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D58 (user 2026-
     brake_cushion_usd: 333    # ... cut to 1 when cushion (equity incl. open P&L - current MLL) < $333 (MLL/3)
     brake_inclusive: false
     candace_brake_contracts: 1
+    # D166 late-day leg: INERT on 25K (no size keeps the 62 % pass floor: late_leg_sizes/RESULTS.md) - no late_contracts
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:
     - {account_size: 100000, max_contracts: 2}   # 100K x2 pass/bust 83/15 vs x3 69/31, x4 58/42 (7.5 yr, Mondays off)

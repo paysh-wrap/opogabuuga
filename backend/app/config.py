@@ -958,6 +958,29 @@ class EvalCapCfg(_M):
     max_contracts: int = Field(ge=1)
 
 
+class LateDayCfg(_M):
+    """D166 (user 2026-11-23) "late-day momentum" 3rd edge of the fast pass, from the new_edge study
+    (docs/results/new_edge: lastmom239, MNQ 2021-10..2026-10, held-out 2024+ PF 1.12 — UNVERIFIED):
+    the trend of the session so far (close of the `ref_close` bar vs the 09:30 open, at least `min_range_atr` x the
+    average daily range of the last `atr_days` sessions) is followed at `entry_at` with a
+    `stop_pts` hard stop; flat at `flat_at`. Size comes from the fast-pass cfg (`late_contracts` /
+    `late_steps`), never from here.
+    Changing these values is NOT verified."""
+
+    symbol: str = "MNQ"
+    ref_close: str = "13:30"  # close of the 13:29 bar (study index 239)
+    entry_at: str = "15:00"  # decided on the bar closing here (study: open of the 15:00 bar)
+    flat_at: str = "15:59"
+    min_range_atr: D = Field(default=D("0.1"), ge=D(0))
+    atr_days: int = Field(default=14, ge=3)
+    min_history_days: int = Field(default=3, ge=1)
+    stop_pts: D = Field(default=D(60), gt=D(0))
+    target_r: D = Field(
+        default=D(3), gt=D(0)
+    )  # safety target only (the study has none; 3R = 180 pt is almost never hit)
+    paper_only: bool = False
+
+
 class FastPassStep(_M):
     """D161: one brake step: at / below (or strictly below, see FastPassCfg.brake_inclusive) `cushion_usd`."""
 
@@ -994,6 +1017,11 @@ class FastPassCfg(_M):
     # D163 (final_search study): CANDACE growth = +1 micro per `candace_grow_per` $ of cushion beyond the first, capped.
     candace_grow_per: D | None = Field(default=None, gt=D(0))
     candace_max_contracts: int | None = Field(default=None, ge=1)
+    # D166 (final late-leg study, docs/results/new_edge/late_leg_sizes): 3rd edge "late-day momentum" micros, used only
+    # while strategy.fast_pass_late_day is on. None = inert on this plan. `late_steps` cut it below a cushion (same
+    # strictness as the other steps; contracts <= late_contracts, tighten-only).
+    late_contracts: int | None = Field(default=None, ge=1)
+    late_steps: tuple[FastPassStep, ...] = ()
 
     @model_validator(mode="before")
     @classmethod
@@ -1017,7 +1045,13 @@ class FastPassCfg(_M):
             raise ValueError("fast_pass cfg: candace_grow_per and candace_max_contracts go together")
         if self.candace_max_contracts is not None and self.candace_max_contracts < self.candace_contracts:
             raise ValueError("fast_pass cfg: candace_max_contracts must be >= candace_contracts")
-        for steps, base in ((self.noise_steps, self.noise_contracts), (self.candace_steps, self.candace_contracts)):
+        if self.late_steps and self.late_contracts is None:
+            raise ValueError("fast_pass cfg: late_steps need late_contracts")
+        for steps, base in (
+            (self.noise_steps, self.noise_contracts),
+            (self.candace_steps, self.candace_contracts),
+            (self.late_steps, self.late_contracts or 1),
+        ):
             if any(x.contracts > base for x in steps):
                 raise ValueError("fast_pass cfg: brake contracts must not exceed the normal contracts (tighten-only)")
             ordered = sorted(steps, key=lambda x: x.cushion_usd)
@@ -1344,6 +1378,10 @@ class StrategyCfg(_M):
     fast_pass_100k_cfg: FastPassCfg | None = None
     fast_pass_50k: bool = False  # D162
     fast_pass_50k_cfg: FastPassCfg | None = None
+    # D166: option INSIDE the fast-pass cards (default OFF, UNVERIFIED): late-day momentum as a 3rd edge. Active only
+    # while that plan's fast pass is ON, EVAL stage and own size; sizes in fast_pass_*_cfg.late_contracts/late_steps.
+    fast_pass_late_day: bool = False
+    late_day_cfg: LateDayCfg = LateDayCfg()
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,
     # ×4 58/42 → no grow above 2). Off = the eval tables as written (150K 4 micros, 100K grows to 4).

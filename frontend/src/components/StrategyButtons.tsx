@@ -52,7 +52,8 @@ export interface DdOdds { pass: number; bust: number; j_pass: number; j_bust: nu
 export interface DdRow { plan: string; eod: DdOdds; intraday: DdOdds }
 /** Session 22: EOD-trailing vs intraday-trailing drawdown (config/eval_odds.yaml drawdown_types). */
 export interface DrawdownCompare { current: DdRow | null; rows: DdRow[]; source: string | null; text: string }
-export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare; weekly?: WeeklyTarget | null }
+export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare; weekly?: WeeklyTarget | null; late?: LateOption | null }
+export interface LateOption { setting: string; value: boolean; label: string; detail: string }
 export interface WeeklyTarget { target: string; median_days: string; needed_week: string; sim_week: string; measured: boolean; source: string }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
@@ -153,6 +154,11 @@ export default function StrategyButtons() {
   const flip = useMutation({
     mutationFn: ({ t, v }: { t: ToggleRow; v: boolean }) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [t.setting]: v }, note: `${t.title}: ${v ? t.on_label : t.off_label}` }) }),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
+  });
+  const lateFlip = useMutation({
+    mutationFn: ({ late, v }: { late: LateOption; v: boolean }) =>
+      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [late.setting]: v }, note: `${late.label}: ${v ? "on" : "off"}` }) }),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
@@ -321,6 +327,17 @@ export default function StrategyButtons() {
           );
         })}
       </div>
+      {t.late && (
+        <div className="mt-3 rounded-md border border-border p-2 text-xs" data-testid={`late-${t.key}`}>
+          <span className="mr-2 rounded border border-gold px-1 font-semibold text-gold" data-testid={`late-badge-${t.key}`}>UNVERIFIED · held-out PF 1.10</span>
+          <button type="button" aria-pressed={t.late.value} disabled={flip.isPending} data-testid={`late-toggle-${t.key}`}
+            onClick={() => lateFlip.mutate({ late: t.late!, v: !t.late!.value })}
+            className={`rounded-md border px-2 py-1 text-left font-semibold ${t.late.value ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue"}`}>
+            {t.late.value ? "✓ ON" : "OFF"} · {t.late.label}
+          </button>
+          <p className="mt-1 text-blue">{t.late.detail}</p>
+        </div>
+      )}
       {t.compare && <DrawdownCompareView c={t.compare} />}
       <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
     </div>
