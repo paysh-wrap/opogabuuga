@@ -1,0 +1,860 @@
+{
+ "standalone": {
+  "NOISE": {
+   "n": 10,
+   "win": 50.0,
+   "pf": 2.19,
+   "net": 971.5,
+   "avg": 97.15,
+   "maxdd": 567.0,
+   "shorts": 8
+  },
+  "CANDACE": {
+   "n": 14,
+   "win": 42.9,
+   "pf": 2.04,
+   "net": 370.0,
+   "avg": 26.43,
+   "maxdd": 140.0,
+   "shorts": 5
+  },
+  "LATE": {
+   "n": 22,
+   "win": 36.4,
+   "pf": 1.46,
+   "net": 695.5,
+   "avg": 31.61,
+   "maxdd": 710.5,
+   "shorts": 12
+  }
+ },
+ "a_one_account": {
+  "combined": {
+   "n": 43,
+   "win": 41.9,
+   "pf": 1.64,
+   "net": 1541.0,
+   "avg": 35.84,
+   "maxdd": 611.5,
+   "shorts": 22
+  },
+  "per_leg": {
+   "NOISE": {
+    "n": 10,
+    "win": 50.0,
+    "pf": 2.19,
+    "net": 971.5,
+    "avg": 97.15,
+    "maxdd": 567.0,
+    "shorts": 8
+   },
+   "CANDACE": {
+    "n": 14,
+    "win": 42.9,
+    "pf": 2.04,
+    "net": 370.0,
+    "avg": 26.43,
+    "maxdd": 140.0,
+    "shorts": 5
+   },
+   "LATE": {
+    "n": 19,
+    "win": 36.8,
+    "pf": 1.16,
+    "net": 199.5,
+    "avg": 10.5,
+    "maxdd": 710.5,
+    "shorts": 9
+   }
+  },
+  "skips": {
+   "LATE": {
+    "POSITION_OPEN": 3
+   }
+  },
+  "daily_corr": {
+   "NOISE-CANDACE": -0.04,
+   "NOISE-LATE": -0.02,
+   "CANDACE-LATE": 0.27
+  },
+  "p_random": {
+   "actual": 1541.0,
+   "rand_mean": -15.8,
+   "rand_p95": 1939.0,
+   "p_net": 0.111
+  },
+  "n_sessions": 24,
+  "eval": {
+   "25K_1micro": {
+    "result": "NOT_REACHED",
+    "bal": 26541,
+    "profit": 1541,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 9,
+    "pct_of_target": 123.3,
+    "best_day_pct_of_profit": 102.2,
+    "peak_balance": 26541
+   },
+   "25K_D157_N1_C2": {
+    "result": "NOT_REACHED",
+    "bal": 26911,
+    "profit": 1911,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 9,
+    "pct_of_target": 152.9,
+    "best_day_pct_of_profit": 82.4,
+    "peak_balance": 26911
+   },
+   "50K_1micro": {
+    "result": "NOT_REACHED",
+    "bal": 51541,
+    "profit": 1541,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 9,
+    "pct_of_target": 51.4,
+    "best_day_pct_of_profit": 102.2,
+    "peak_balance": 51541
+   },
+   "50K_D163_N2_C4": {
+    "result": "NOT_REACHED",
+    "bal": 53622,
+    "profit": 3622,
+    "days": 24,
+    "best_day": 3150.0,
+    "profitable_days": 9,
+    "pct_of_target": 120.8,
+    "best_day_pct_of_profit": 87.0,
+    "peak_balance": 53977
+   }
+  },
+  "trades": [
+   {
+    "day": "2026-10-20",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-21",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -30.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-21",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-22",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -30.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-22",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-23",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -59.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-26",
+    "sign": -1,
+    "why": "TP",
+    "usd": 153.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-26",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -53.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-27",
+    "sign": -1,
+    "why": "TP",
+    "usd": 147.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-27",
+    "sign": 1,
+    "why": "LATE",
+    "usd": 12.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-28",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -81.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-28",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-29",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-30",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -58.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-02",
+    "sign": 1,
+    "why": "TP",
+    "usd": 88.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-02",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 365.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-03",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-03",
+    "sign": 1,
+    "why": "LATE",
+    "usd": 78.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-04",
+    "sign": 1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-04",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-05",
+    "sign": -1,
+    "why": "NOISE_FLAT_1600",
+    "usd": 1575.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-06",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 254.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-09",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -41.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-10",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -25.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -15.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "TP",
+    "usd": 140.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-12",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -49.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-12",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -64.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_TRAIL",
+    "usd": 159.5,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_TRAIL",
+    "usd": -49.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_FLAT_1600",
+    "usd": -18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": 1,
+    "why": "TIME",
+    "usd": 47.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": 1,
+    "why": "TP",
+    "usd": 148.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 168.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-19",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 178.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-20",
+    "sign": -1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-20",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 395.5,
+    "leg": "LATE"
+   }
+  ]
+ },
+ "b_late_separate_account": {
+  "combined": {
+   "n": 46,
+   "win": 41.3,
+   "pf": 1.76,
+   "net": 2037.0,
+   "avg": 44.28,
+   "maxdd": 690.0,
+   "shorts": 25
+  },
+  "per_leg": {
+   "NOISE": {
+    "n": 10,
+    "win": 50.0,
+    "pf": 2.19,
+    "net": 971.5,
+    "avg": 97.15,
+    "maxdd": 567.0,
+    "shorts": 8
+   },
+   "CANDACE": {
+    "n": 14,
+    "win": 42.9,
+    "pf": 2.04,
+    "net": 370.0,
+    "avg": 26.43,
+    "maxdd": 140.0,
+    "shorts": 5
+   },
+   "LATE": {
+    "n": 22,
+    "win": 36.4,
+    "pf": 1.46,
+    "net": 695.5,
+    "avg": 31.61,
+    "maxdd": 710.5,
+    "shorts": 12
+   }
+  },
+  "skips": {},
+  "daily_corr": {
+   "NOISE-CANDACE": -0.04,
+   "NOISE-LATE": 0.67,
+   "CANDACE-LATE": 0.19
+  },
+  "p_random": {
+   "actual": 2037.0,
+   "rand_mean": 289.3,
+   "rand_p95": 2466.5,
+   "p_net": 0.094
+  },
+  "n_sessions": 24,
+  "eval": {
+   "25K_1micro": {
+    "result": "NOT_REACHED",
+    "bal": 26297,
+    "profit": 1297,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 8,
+    "pct_of_target": 103.8,
+    "best_day_pct_of_profit": 121.4,
+    "peak_balance": 26396
+   },
+   "25K_D157_N1_C2": {
+    "result": "NOT_REACHED",
+    "bal": 26667,
+    "profit": 1667,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 9,
+    "pct_of_target": 133.4,
+    "best_day_pct_of_profit": 94.5,
+    "peak_balance": 26680
+   },
+   "50K_1micro": {
+    "result": "NOT_REACHED",
+    "bal": 51297,
+    "profit": 1297,
+    "days": 24,
+    "best_day": 1575.0,
+    "profitable_days": 8,
+    "pct_of_target": 43.2,
+    "best_day_pct_of_profit": 121.4,
+    "peak_balance": 51396
+   },
+   "50K_D163_N2_C4": {
+    "result": "NOT_REACHED",
+    "bal": 53378,
+    "profit": 3378,
+    "days": 24,
+    "best_day": 3150.0,
+    "profitable_days": 9,
+    "pct_of_target": 112.6,
+    "best_day_pct_of_profit": 93.2,
+    "peak_balance": 53855
+   }
+  },
+  "trades": [
+   {
+    "day": "2026-10-20",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-21",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -30.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-21",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-22",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -30.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-22",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-23",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -59.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-26",
+    "sign": -1,
+    "why": "TP",
+    "usd": 153.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-26",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -53.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-27",
+    "sign": -1,
+    "why": "TP",
+    "usd": 147.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-27",
+    "sign": 1,
+    "why": "LATE",
+    "usd": 12.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-28",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -81.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-10-28",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-29",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-10-30",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -58.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-02",
+    "sign": 1,
+    "why": "TP",
+    "usd": 88.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-02",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 365.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-03",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-03",
+    "sign": 1,
+    "why": "LATE",
+    "usd": 78.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-04",
+    "sign": 1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-04",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-05",
+    "sign": -1,
+    "why": "NOISE_FLAT_1600",
+    "usd": 1575.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-05",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 740.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-06",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 254.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-09",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -41.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-10",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -25.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -15.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": -1,
+    "why": "TP",
+    "usd": 140.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-11",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-12",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -49.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-12",
+    "sign": 1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": 1,
+    "why": "STOP",
+    "usd": -64.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_TRAIL",
+    "usd": 159.5,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_TRAIL",
+    "usd": -49.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "NOISE_FLAT_1600",
+    "usd": -18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-13",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": 1,
+    "why": "TIME",
+    "usd": 47.5,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": 1,
+    "why": "TP",
+    "usd": 148.0,
+    "leg": "CANDACE"
+   },
+   {
+    "day": "2026-11-16",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 168.5,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP",
+    "usd": -250.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-17",
+    "sign": -1,
+    "why": "LATE",
+    "usd": -122.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-19",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 178.0,
+    "leg": "LATE"
+   },
+   {
+    "day": "2026-11-20",
+    "sign": -1,
+    "why": "STOP_LOCK",
+    "usd": 18.0,
+    "leg": "NOISE"
+   },
+   {
+    "day": "2026-11-20",
+    "sign": -1,
+    "why": "LATE",
+    "usd": 395.5,
+    "leg": "LATE"
+   }
+  ]
+ }
+}
