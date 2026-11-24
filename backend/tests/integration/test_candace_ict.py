@@ -157,3 +157,34 @@ def test_live_candace_parity_all_hours_feed_equals_rth_only_research():
     assert live.gap_levels == research.gap_levels and live.gap_levels != []  # Monday: Friday RTH close, not Sunday
     raw = K.replay_day(hist_all, today_all, cfg, D("0.25"))  # the old live path differs (documents the bug)
     assert raw.gap_levels != research.gap_levels or [x.time for x in raw.signals] != [x.time for x in research.signals]
+
+
+def test_candace_time_exit_fires_on_first_bar_at_or_after_the_hold_even_if_replay_saw_a_tp(client, loaded_rules):
+    """E (M1): the replay shows a TP touch the live limit never filled, and the exact 15-minute bar is missing:
+    the 15-minute max hold must still exit on the first later bar."""
+    rules = _cand_rules(loaded_rules)
+    with client.app.state.sessionmaker() as s:
+        for b in bars(t0=T0):
+            s.add(Bar(symbol="MNQ", tf="1", close_time=b.close_time.astimezone(UTC), o=b.o, h=b.h, l=b.l, c=b.c,
+                      v=b.v, source="tv"))  # fmt: skip
+        s.commit()
+        out = SS.run(s, rules=rules, clock=FixedClock(AT), calendar=lambda _d: [], symbol="MNQ", tf="1", at=AT)
+        sig = s.get(Signal, out.updates[0].signal_id)
+        tp = s.query(TradePlanRow).filter_by(signal_id=sig.id).one().take_profit
+        for m in range(14, 20):  # a bar that touches the TP (replay: TP hit, trade closed) then flat quietly
+            t = (T0 + timedelta(minutes=m)).astimezone(UTC)
+            low = tp - 1 if m == 14 else D(101)
+            s.add(Bar(symbol="MNQ", tf="1", close_time=t, o=D(101), h=D(101), l=low, c=D(101), v=D(1), source="tv"))
+        s.commit()
+        late = (T0 + timedelta(minutes=30)).astimezone(UTC)  # 10:00: first bar stored after the hold (09:58 missing)
+        for m in range(20, 31):
+            t = (T0 + timedelta(minutes=m)).astimezone(UTC)
+            if t == (T0 + timedelta(minutes=28)).astimezone(UTC):
+                continue  # the exact exit bar never arrives
+            s.add(Bar(symbol="MNQ", tf="1", close_time=t, o=D(101), h=D(101), l=D(101), c=D(101), v=D(1), source="tv"))
+        s.commit()
+        before = SS.run(s, rules=rules, clock=FixedClock(late), calendar=lambda _d: [], symbol="MNQ", tf="1",
+                        at=(T0 + timedelta(minutes=27)).astimezone(UTC))  # fmt: skip
+        assert before.exits == []  # still inside the hold
+        out = SS.run(s, rules=rules, clock=FixedClock(late), calendar=lambda _d: [], symbol="MNQ", tf="1", at=late)
+        assert out.exits == [(sig.id, "CAND_TIME_EXIT")]

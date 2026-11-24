@@ -92,8 +92,9 @@ def average_range(ranges: Sequence[Decimal], atr_days: int, min_days: int) -> De
 
 
 def is_flat_time(at: datetime, cfg: LateDayParams) -> bool:
-    """True on the bar closing at `flat_at` (the app exit; the broker stop covers everything before)."""
-    return at.astimezone(ET).time() == _hm(cfg.flat_at)
+    """True on the first bar closing at or after `flat_at` (the app exit; the broker stop covers everything before).
+    At-or-after, not equality: a missing heartbeat on the exact bar must not leave the leg open to the 16:40 flatten."""
+    return at.astimezone(ET).time() >= _hm(cfg.flat_at)
 
 
 def decide(

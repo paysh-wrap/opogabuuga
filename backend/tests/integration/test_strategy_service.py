@@ -483,3 +483,36 @@ def test_one_runner_exception_keeps_the_other_strategies_exits(db, loaded_rules,
         assert [(e[0], e[1]) for e in out.errors] == [("run_candace_ict", "RuntimeError")]
         s.refresh(sig)
         assert sig.features["state"] == "CLOSED"  # the NOISE exit marker was committed
+
+
+def test_noise_flat_fires_on_the_first_bar_at_or_after_1600(db, loaded_rules):
+    """E: the 16:00 bar is missing (heartbeat gap); the 16:01 bar still flattens the open NOISE position."""
+    later = {k: D(20200) for k in range(30, 390)}
+    rules, today, clock, cal, sid = _noise_long_at_1000(db, loaded_rules, later)
+    with db() as s:
+        s.query(Bar).filter(Bar.close_time == today + timedelta(minutes=390)).delete()  # the 16:00 bar never came
+        s.add(Bar(symbol="MNQ", tf="1", close_time=today + timedelta(minutes=391), o=D(20200), h=D(20201),
+                  l=D(20199), c=D(20200), v=D(100), source="tradingview"))  # fmt: skip
+        s.commit()
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=today + timedelta(minutes=391))
+        assert out.exits == [(sid, "NOISE_FLAT_1600")]
+
+
+def test_late_day_flat_fires_on_the_first_bar_at_or_after_1559(db, loaded_rules):
+    """E: no 15:59 bar stored; the 16:00 bar flattens the late-day leg (and the exact bar still does)."""
+    from app.engine import late_day as LD
+
+    rules = _rules(loaded_rules, fast_pass_late_day=True)
+    today = _sessions(12)[-1]
+    clock = FixedClock(today + timedelta(minutes=390))
+    with db() as s:
+        sig = SS._new_signal(s, clock, symbol="MNQ", key=f"MNQ-LATE-{today.astimezone(SS.ET).date().isoformat()}-1500",
+                             direction=SS.Direction.LONG, at=today, gate=(True, "OK", ""), features={},
+                             plan=("LATE_DAY", D(20000), D(19940), D(20120), D(60), D(2)), rules=rules)  # fmt: skip
+        s.commit()
+        cfg = rules.strategy.late_day_cfg
+        assert LD.is_flat_time(today + timedelta(minutes=389), cfg)  # 15:59
+        assert LD.is_flat_time(today + timedelta(minutes=390), cfg)  # 16:00: first bar after a missing 15:59
+        assert not LD.is_flat_time(today + timedelta(minutes=388), cfg)
+        out = SS.run_late_day(s, rules, clock, lambda _d: [], today + timedelta(minutes=390))
+        assert out.exits == [(sig.id, "LATE_FLAT_1559")]

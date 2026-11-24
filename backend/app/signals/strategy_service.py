@@ -303,7 +303,7 @@ def run_noise(
     k = N.minute_index(at)
     check = N.is_check(k, cfg.check_minutes, cfg.first_check, cfg.last_check)
     flat_k = N.hhmm_to_k(cfg.flat_at)
-    if not check and k != flat_k:
+    if not check and k < flat_k:
         return out
     days = load_days(s, cfg.symbol, at)
     day = at.astimezone(ET).date().isoformat()
@@ -313,7 +313,7 @@ def run_noise(
     sigs = _today_signals(s, cfg.symbol, "NOISE", day)
     open_sig = next((x for x in sigs if x.features.get("state") == "OPEN"), None)
     position = Direction(open_sig.direction) if open_sig is not None else None
-    if k == flat_k:
+    if k >= flat_k:  # first bar at or after the flat time (a missing 16:00 heartbeat must not leave it open)
         if open_sig is not None:
             _close(s, open_sig, "NOISE_FLAT_1600", at, clock)
             out.exits.append((open_sig.id, "NOISE_FLAT_1600"))
@@ -1591,8 +1591,13 @@ def run_candace_ict(
     for x in CI.replay_day(hist, today, cfg, rules.instrument(cfg.symbol).tick).signals:
         key = f"{cfg.symbol}-CAND-{day}-{x.time.astimezone(ET).strftime('%H%M')}"
         sid = _key_id(s, key)
-        if x.outcome == "TIME" and x.exit_time == at and sid is not None:
-            out.exits.append((sid, "CAND_TIME_EXIT"))
+        if sid is not None and at >= x.hold_until:
+            # first bar at or after the max hold, whatever the replay thinks happened (a TP touch the live limit did
+            # not fill, a rebuilt stop, a missed heartbeat): exit while the live signal still holds a position
+            held = s.get(Signal, sid)
+            if held is not None and held.features.get("state") == "OPEN":
+                _close(s, held, "CAND_TIME_EXIT", at, clock)
+                out.exits.append((sid, "CAND_TIME_EXIT"))
         if x.time != at or exits_only or sid is not None:
             continue
         risk = (x.entry - x.stop) * x.direction.sign
