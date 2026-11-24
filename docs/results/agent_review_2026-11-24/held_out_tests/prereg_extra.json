@@ -1,0 +1,17 @@
+{
+ "frozen_at": "2026-11-24 02:35:02",
+ "vix_source": "FRED VIXCLS (free), prior-day close",
+ "pick_median_vix": 20.34,
+ "variants": {
+  "V1": "NOISE only if prior VIX >= pick median",
+  "V2": "NOISE only if prior VIX < pick median",
+  "G5": "CANDACE only if prior VIX >= pick median",
+  "G6": "CANDACE only if prior VIX < pick median"
+ },
+ "pick_rule": "per strategy: pick trades >= 60, pick PF > base, pick net >= base; highest pick PF (else REJECT)",
+ "control": "judge net above the 95th pct of 5000 random subsets of the judge trades of the same size",
+ "pick_result": {
+  "noise": null,
+  "candace": "G5"
+ }
+}

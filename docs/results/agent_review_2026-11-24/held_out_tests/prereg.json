@@ -1,0 +1,66 @@
+{
+ "frozen_at": "2026-11-24 02:32:17",
+ "windows": {
+  "pick": [
+   "2021-10-21",
+   "2023-12-31"
+  ],
+  "judge": [
+   "2024-01-01",
+   "2026-10-30"
+  ],
+  "all": [
+   "2021-10-21",
+   "2026-10-30"
+  ]
+ },
+ "pass_rule": "judge net > base AND judge PF > base AND judge trades >= 60 AND beats its random control (pre-specified per idea); an idea with no pick-window pick is REJECT without a judge verdict.",
+ "ideas": {
+  "1_entry_cadence": {
+   "variants": {
+    "E30a": "entry checks every 30 min 10:00..15:30 (k=29..359), exits stay hourly",
+    "E30b": "entry checks every 30 min 10:00..15:00 (k=29..329), exits stay hourly"
+   },
+   "pick_rule": "pick PF >= base AND pick net >= base; highest pick net among those",
+   "control": "(a) judge PF and net above the 95th pct of the random-direction version of the pick (500 seeds); (b) judge delta vs base above the 95th pct of random-direction deltas (same seeds)",
+   "pick_result": "E30a"
+  },
+  "2_vol_target_sizing": {
+   "variants": {
+    "VT": "Pro 50K frame (base = fixed 2 micros @ $250): q = clip(round(2 x target / vol14), 1, 3); vol14 = std of the prior 14 RTH close-to-close returns; target = pick-window median vol14"
+   },
+   "pick_rule": "pick net >= base AND pick Sharpe > base",
+   "extra_judge_rule": "judge Sharpe > base AND judge max DD <= base",
+   "control": "judge delta net above the 95th pct of 2000 random permutations of the same size vector",
+   "target_vol14": 0.014120285225711883,
+   "pick_result": null
+  },
+  "3_candace_regime_gate": {
+   "variants": {
+    "G1": "trade only if sig10 >= pick median",
+    "G2": "only if sig10 < pick median",
+    "G3": "only if or5 >= pick median",
+    "G4": "only if or5 < pick median"
+   },
+   "features": "sig10 = prior-14-day mean |close(10:00)/open-1| (NOISE band at 10:00, known pre-open); or5 = 09:30-09:34 high-low / 14-day mean daily range (known at 09:35; every CANDACE entry is bar >= 5)",
+   "pick_rule": "pick trades >= 60, pick PF > base, pick net >= base; highest pick PF",
+   "control": "judge net and PF above the 95th pct of 5000 random subsets of the judge trades of the same size",
+   "medians": {
+    "sig10": 0.003940022363954592,
+    "or5": 0.2078804347826087
+   },
+   "pick_result": "G3"
+  },
+  "4_leg_priority": {
+   "variants": {
+    "P1": "NOISE-first: if NOISE signals while a CANDACE/late position is open, flatten it at the open of the NOISE entry bar and enter NOISE one bar later (D139 wait-for-flat)"
+   },
+   "baseline": "shipped first-come, one position per account; same-bar tie -> NOISE (dispatch order)",
+   "primary": "NOISE + CANDACE (1 micro each); secondary: + late-day leg",
+   "pick_rule": "pick combined net >= base AND pick PF >= base",
+   "control": "judge delta above the 95th pct of P1-vs-P0 deltas with a random-direction NOISE stream (500 seeds)",
+   "pick_result": null
+  },
+  "5_github_ports": "not run (no repo fetch; the two paper differences it would surface, 30-min checks and vol sizing, are ideas 1-2)"
+ }
+}
