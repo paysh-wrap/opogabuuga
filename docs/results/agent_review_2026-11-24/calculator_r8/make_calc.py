@@ -1,6 +1,6 @@
 """Generates config/income_calc.json for the Dashboard profit calculator (research projection, UNVERIFIED).
 MAIN strategy = Fast Evaluation NOISE + CANDACE (fast-pass setups) replayed through the FUNDED rules of funded_payout_r6/fsim.py
-(EOD MLL + lock, DLL + LucidScale, payout consistency 35%, kill $50, news hard breach, $2/micro RT) on /home/user/days.pkl (MNQ 1-min RTH).
+(EOD MLL + lock, DLL + LucidScale, payout consistency 40%, kill $50, news hard breach, $2/micro RT) on /home/user/days.pkl (MNQ 1-min RTH).
 Micros 1..9 = NOISE and CANDACE both at N micros (stop $100, profit lock 100/10), optional growth (+1 micro per $g of cushion, cap 9).
 Auto = the plan's own fast_pass_*_cfg sizes+brakes (profile high = r6 candidate a) or the lowest brake step (profile regular = r6 candidate b / b2).
 Payout cadence: 5 / 10 sessions = a payout is requested only on those days; 0 = on-demand (whenever eligible; UNVERIFIED model). Per account, first 250 sessions."""
@@ -16,7 +16,7 @@ src = src.replace(a, "        if (cad == 0 or s % cad == 0) and cp > 0 and cp >=
 fsim = types.ModuleType("fsim_r8"); fsim.__file__ = R6 + "fsim.py"; exec(compile(src, fsim.__file__, "exec"), fsim.__dict__)
 import harness as H, h4
 PLANS = {25: "lucid_pro_25k", 50: "lucid_pro_50k", 100: "lucid_pro_100k", 150: "lucid_pro_150k"}
-GROWS = [0, 500, 1000, 1500, 2000, 3000]; CADS = [5, 10, 0]; HZ = 250; CAP = 0.35; MAXM = 9
+GROWS = [0, 500, 1000, 1500, 2000, 3000]; CADS = [5, 10, 0]; HZ = 250; CAP = 0.40; MAXM = 9
 REG = {25: dict(stop=75, N=1, nc=1), 50: dict(stop=75, N=1, nc=3, lock=80), 100: dict(stop=100, N=2, nc=2),
        150: dict(stop=100, N=2, nc=4, nb=((1500, 1),), cb=((1500, 1),))}
 _cache = {}
@@ -29,9 +29,17 @@ def cell(S, cc, days, k, cad):
     L = S.L; ix = range(0, L - HZ + 1); res = [fsim.life(S, k, days, i, cc, CAP, 0.38, HZ, False, cad) for i in ix]
     net = np.array([0.9 * sum(g for _, g in r["pays"]) for r in res]); npay = np.array([len(r["pays"]) for r in res])
     first = [r["pays"][0][0] for r in res if r["pays"]]
+    pn = net[npay > 0]  # PROFIT SCENARIO: only starts whose account got >= 1 payout (all N accounts take the same trades)
+    pv = (lambda f: round(float(f(pn)), 2)) if len(pn) else (lambda f: 0.0)
     return dict(year_mean=round(float(net.mean()), 2), year_median=round(float(np.median(net)), 2), year_p25=round(float(np.percentile(net, 25)), 2),
                 year_p75=round(float(np.percentile(net, 75)), 2), week_mean=round(float(net.mean()) / (HZ / 5), 2),
                 per_paycheck_mean=round(float(net.sum() / npay.sum()), 2) if npay.sum() else 0.0,
+                paid_year_mean=pv(np.mean), paid_year_median=pv(np.median), paid_year_p25=pv(lambda x: np.percentile(x, 25)),
+                paid_year_p75=pv(lambda x: np.percentile(x, 75)), paid_week_mean=pv(lambda x: x.mean() / (HZ / 5)),
+                paid_payouts_mean=round(float(npay[npay > 0].mean()), 2) if len(pn) else 0.0,
+                payouts_mean=round(float(npay.mean()), 2), any_payout_n=int((npay > 0).sum()),
+                per_payout_median=round(float(np.median([0.9 * g for r in res for _, g in r["pays"]])), 2) if npay.sum() else 0.0,
+                per_payout_max=round(float(max([0.9 * g for r in res for _, g in r["pays"]], default=0.0)), 2),
                 any_payout_pct=round(100 * float((npay > 0).mean()), 1), max_payouts_pct=round(100 * float((npay >= 5).mean()), 1),
                 bust_pct=round(100 * float(np.mean([r["status"] in ("BUST", "STUCK") for r in res])), 1),
                 median_sessions_to_first=int(np.median(first)) if first else None, starts=len(res))
@@ -54,7 +62,7 @@ if __name__ == "__main__":
         fixed_stop_usd=100, max_micros=MAXM, grows=GROWS, cadences=CADS, caveat="Funded accounts are lost often: 20-43% lost within 120 days on 25K/50K/100K (funded_payout_r6/RESULTS.md); open-trade drawdown only through the stop, eval fees and resets not subtracted.",
         on_demand="Lucid help center (on_demand_payouts_r8/RESULTS.md) CONFIRMS LucidPro has no fixed payout window: a payout may be requested any day once eligible (min $500, min cycle profit, consistency 40%, buffer). Intraday timing, DLL-on requirement and trading pause after a request are third-party only, and the app's '3 profitable days' rule is not on the official page: all VERIFY. Modelled as a payout whenever eligible, same-evening, trading not blocked."), plans={})
     for k, n in PLANS.items():
-        P = fsim.PAY[k]; data["plans"][n] = dict(account_size=k * 1000, max_possible_year=round(0.9 * (P[1] + 4 * P[2]), 2), cells={},
+        P = fsim.PAY[k]; data["plans"][n] = dict(account_size=k * 1000, max_possible_year=round(0.9 * (P[1] + 4 * P[2]), 2), payout_events_max=5, cap_first_net=round(0.9 * P[1], 2), cap_next_net=round(0.9 * P[2], 2), cells={},
             auto={md: dict(setup=("fast-pass sizes + brakes (r6 candidate a)" if md == "auto-high" else "lowest brake step (r6 candidate b)"), cfg={x: (list(v) if isinstance(v, tuple) else v) for x, v in (H.BUILT[k] if md == "auto-high" else REG[k]).items()}) for md in ("high", "regular")} if False else {})
     for (k, mode, m, g), cads, c in out:
         n = PLANS[k]; cells = data["plans"][n]["cells"]

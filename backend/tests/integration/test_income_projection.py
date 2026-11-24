@@ -113,7 +113,7 @@ def test_income_endpoint(authed):
     assert r.status_code == 200, r.text
     b = r.json()
     assert b["micros"] == 9 and b["accounts"] == 5 and "lucid_pro_50k" in b["plans"]
-    assert D(b["year_mean"]) == D(str(cell["year_mean"])) * 5  # same trades on every account -> N x one account
+    assert D(b["year_mean"]) == D(str(cell["paid_year_mean"])) * 5  # same trades on every account -> N x one account
     assert b["bust_pct"] == str(cell["bust_pct"]) and b["median_sessions_to_first"] == cell["median_sessions_to_first"]
     assert "UNVERIFIED" in b["basis"] and "NOISE" in b["basis"] and "CANDACE" in b["basis"] and "$250" not in b["basis"]
     assert "20-43%" in b["caveat"] and "session-19" not in b["basis"]
@@ -127,7 +127,7 @@ def test_income_endpoint(authed):
     assert authed.get("/api/income/projection").status_code == 200  # current plan, auto
     h = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "profile": "high"}).json()
     hc = data["plans"]["lucid_pro_150k"]["cells"]["auto-high|c10"]
-    assert h["profile"] == "high" and h["auto"]["contracts"] == 5 and h["year_median"] == str(D(str(hc["year_median"])) * 5)
+    assert h["profile"] == "high" and h["auto"]["contracts"] == 5 and h["year_median"] == str(D(str(hc["paid_year_median"])) * 5)
     od = authed.get("/api/income/projection", params={"cadence": 0, "micros": 3}).json()
     assert od["cadence_sessions"] == 0 and "VERIFY" in od["on_demand_note"] and "no fixed payout window" in od["on_demand_note"]
     assert authed.get("/api/income/projection", params={"profile": "max"}).status_code == 422
@@ -175,3 +175,55 @@ def test_partial_withdrawal_leaves_profit_to_compound():
     assert half.paid < full.paid
     tiny = funded_path([(D(400),)] * 10, PRO25, 1, 10, take=D("0.1"))  # 10% of $900 < $500 minimum → no payout
     assert tiny.payouts == ()
+
+
+def _cells():
+    import json
+
+    from app.api.income import CALC_PATH
+
+    d = json.loads(CALC_PATH.read_text())
+    for pn, p in d["plans"].items():
+        for key, c in p["cells"].items():
+            yield pn, p, key, c
+
+
+def test_income_invariants_all_cells():
+    """Units/consistency of every cell: per-payout <= cap, week x weeks = year, median vs share paid, ranges."""
+    for pn, p, key, c in _cells():
+        wk = 250 // 5
+        assert 0 < p["cap_first_net"] <= p["cap_next_net"]
+        assert c["per_paycheck_mean"] <= p["cap_next_net"] + 0.01 and c["per_payout_max"] <= p["cap_next_net"] + 0.01, (pn, key)
+        assert abs(c["week_mean"] * wk - c["year_mean"]) <= 0.5 * wk and abs(c["paid_week_mean"] * wk - c["paid_year_mean"]) <= 0.5 * wk, (pn, key)
+        assert p["max_possible_year"] == round(p["cap_first_net"] + (p["payout_events_max"] - 1) * p["cap_next_net"], 2)
+        assert 0 <= c["any_payout_pct"] <= 100 and 0 <= c["bust_pct"] <= 100 and 0 <= c["max_payouts_pct"] <= 100
+        if c["any_payout_pct"] < 49.9:
+            assert c["year_median"] == 0, (pn, key)  # median 0 iff at most half are paid
+        if c["any_payout_pct"] > 50.1:
+            assert c["year_median"] > 0, (pn, key)
+        for f in ("year_mean", "year_median", "year_p25", "year_p75", "paid_year_mean", "paid_year_median", "paid_year_p25", "paid_year_p75", "paid_week_mean", "week_mean"):
+            assert c[f] >= 0
+        assert c["year_p25"] <= c["year_median"] <= c["year_p75"] and c["paid_year_p25"] <= c["paid_year_median"] <= c["paid_year_p75"]
+        assert c["paid_year_mean"] >= c["year_mean"] - 0.01  # profit scenario never below the all-accounts mean
+        assert c["paid_year_mean"] <= p["max_possible_year"] + 0.01 and c["paid_year_p75"] <= p["max_possible_year"] + 0.01
+
+
+def test_income_endpoint_units_and_note(authed):
+    b = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "accounts": 5, "micros": 9, "cadence": 10}).json()
+    assert b["scenario"] == "paid" and b["net_of_split"] is True
+    assert D(b["max_possible_year"]) == D(b["max_possible_account"]) * 5 == (D(b["cap_first_net"]) + 4 * D(b["cap_next_net"])) * 5
+    assert "5 accounts" in b["max_possible_formula"]
+    assert D(b["per_paycheck_mean"]) <= D(b["cap_next_net"]) * 5
+    assert abs(D(b["week_mean"]) * b["weeks_in_horizon"] - D(b["year_mean"])) <= 5 * b["weeks_in_horizon"] / 2
+    assert D(b["incl_unpaid_year_mean"]) <= D(b["year_mean"])
+    assert 0 <= float(b["bust_pct"]) <= 100 and 0 <= float(b["any_payout_pct"]) <= 100
+
+
+def test_income_150k_9_micros_matches_sim_distribution():
+    import json
+
+    from app.api.income import CALC_PATH
+
+    c = json.loads(CALC_PATH.read_text())["plans"]["lucid_pro_150k"]["cells"]["m9|g0|c10"]
+    assert c["starts"] > 500 and c["paid_year_mean"] >= c["year_mean"]
+    assert abs(c["paid_year_mean"] * c["any_payout_pct"] / 100 - c["year_mean"]) <= 0.002 * c["paid_year_mean"] + 1  # (pct rounded to 0.1) mixture identity: mean = share paid x paid mean

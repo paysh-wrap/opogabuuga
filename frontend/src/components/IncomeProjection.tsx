@@ -11,6 +11,9 @@ export interface IncomeResp {
   accounts: number; micros: number; cadence_sessions: number; starts: number; horizon_sessions: number;
   year_mean: string; year_median: string; year_p25: string; year_p75: string; week_mean: string; per_paycheck_mean: string;
   any_payout_pct: string; bust_pct: string; max_payouts_pct: string; median_sessions_to_first: number | null; max_possible_year: string;
+  paid_week_mean_account?: string; paid_year_mean_account?: string; paid_year_median_account?: string; paid_year_p25_account?: string; paid_year_p75_account?: string;
+  per_payout_account?: string; cap_first_net?: string; cap_next_net?: string; payout_events_max?: number; max_possible_account?: string; max_possible_formula?: string;
+  incl_unpaid_year_mean?: string; incl_unpaid_week_mean?: string; incl_unpaid_year_median?: string; weeks_in_horizon?: number;
 }
 
 const KEY = "paytience.income.calc.v2";
@@ -79,17 +82,26 @@ export default function IncomeProjection() {
       {q.error && <p role="alert" className="mt-2 text-sm text-goldLight">⚠ Cannot load the projection.</p>}
       {d && (
         <>
-          <dl className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-sm">
-            <dt>Per week (average)</dt><dd className="text-lg font-semibold text-gold" data-testid="income-week">▲ {usd(d.week_mean)}</dd>
-            <dt>Per {d.cadence_sessions === 5 ? "weekly" : "2-week"} payout</dt><dd className="text-gold" data-testid="income-paycheck">▲ {usd(d.per_paycheck_mean)}</dd>
-            <dt>First year: average</dt><dd className="text-gold">{usd(d.year_mean)}</dd>
-            <dt>First year: typical (median)</dt><dd className="text-gold" data-testid="income-median">{usd(d.year_median)}</dd>
-            <dt>Middle half of outcomes</dt><dd className="text-gold">{usd(d.year_p25)} – {usd(d.year_p75)}</dd>
-            <dt>Most possible (all payouts at cap)</dt><dd className="text-gold">{usd(d.max_possible_year)}</dd>
-            <dt>Accounts with ≥ 1 payout</dt><dd className="text-gold">{d.any_payout_pct}%</dd>
-            <dt>Funded account busts in year 1</dt><dd className="text-gold" data-testid="income-bust">{d.bust_pct}%</dd>
-            <dt>Typical wait for 1st payout</dt><dd className="text-gold">{d.median_sessions_to_first == null ? "—" : `${d.median_sessions_to_first} trading days`}</dd>
-          </dl>
+          <p className="mt-3 text-sm font-semibold text-gold" data-testid="income-scenario">Profit scenario: all {d.accounts} account{d.accounts > 1 ? "s" : ""} get paid. Amounts are NET to you (after the 10% Lucid split); gross = net / 0.9.</p>
+          <table className="mt-1 w-full text-sm" data-testid="income-table">
+            <thead><tr className="text-left text-xs text-blue"><th scope="col">Figure</th><th scope="col">Per account (net)</th><th scope="col">All {d.accounts} accounts (net)</th><th scope="col">All {d.accounts} (gross)</th></tr></thead>
+            <tbody>
+              {([
+                ["Per week, average", "Average income per trading week over the first year (year total / " + (d.weeks_in_horizon ?? 50) + " weeks).", d.paid_week_mean_account, d.week_mean, "income-week"],
+                ["Per payout (one payout event)", "Average size of one payout when one is requested. Each payout is capped by the plan: " + usd(d.cap_first_net) + " net first, " + usd(d.cap_next_net) + " net later, per account.", d.per_payout_account, d.per_paycheck_mean, "income-paycheck"],
+                ["First year: average", "Mean year-1 total across the simulated starts that got paid.", d.paid_year_mean_account, d.year_mean, "income-year"],
+                ["First year: typical (median)", "Half of the paid starts earn less, half more.", d.paid_year_median_account, d.year_median, "income-median"],
+                ["Middle half: low end (25th pct)", "One quarter of paid starts earn less than this.", d.paid_year_p25_account, d.year_p25, "income-p25"],
+                ["Middle half: high end (75th pct)", "One quarter of paid starts earn more than this.", d.paid_year_p75_account, d.year_p75, "income-p75"],
+                ["Most possible", "Best case: every payout at the plan cap. " + (d.max_possible_formula ?? ""), d.max_possible_account, d.max_possible_year, "income-max"],
+              ] as [string, string, string | undefined, string, string][]).map(([k, tip, acc, all, id]) => (
+                <tr key={id} title={tip}><th scope="row" className="text-left font-normal">{k} <span className="text-xs text-blue" aria-label={tip}>(?)</span></th>
+                  <td className="text-gold">{usd(acc)}</td><td className="text-gold" data-testid={id}>{id === "income-week" ? "▲ " : ""}{usd(all)}</td><td className="text-gold">{usd(String(Number(all) / 0.9))}</td></tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-1 text-xs text-blue" data-testid="income-formula">Most possible = {d.max_possible_formula}. Typical wait for the 1st payout (accounts that get paid): {d.median_sessions_to_first == null ? "—" : `${d.median_sessions_to_first} trading days`}.</p>
+          <p className="mt-2 text-sm text-goldLight" data-testid="income-note">Not every account gets paid: in the simulation only {d.any_payout_pct}% of accounts receive a payout and {d.bust_pct}% bust in year 1 (all accounts take the same trades, so they win and lose together). The figures above assume all {d.accounts} account{d.accounts > 1 ? "s are" : " is"} paid. Including accounts that are never paid: average {usd(d.incl_unpaid_week_mean)} per week, {usd(d.incl_unpaid_year_mean)} first-year average, {usd(d.incl_unpaid_year_median)} median (all {d.accounts}, net).</p>
           {d.auto && (
             <p className="mt-2 text-sm" data-testid="income-auto">Auto size: <b className="text-gold">NOISE {d.auto.contracts} + CANDACE {d.auto.candace ?? d.auto.contracts} micros</b> per account
               {[...(d.auto.noise_brake ?? []).map(([c, q]) => `NOISE drops to ${q} below $${c.toLocaleString()} cushion`), ...(d.auto.candace_brake ?? []).map(([c, q]) => `CANDACE drops to ${q} below $${c.toLocaleString()} cushion`)].map((t) => <span key={t}> · {t}</span>)}

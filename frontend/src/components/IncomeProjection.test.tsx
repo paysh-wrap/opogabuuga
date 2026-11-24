@@ -8,6 +8,9 @@ const base: IncomeResp = {
   accounts: 5, micros: 1, cadence_sessions: 10, starts: 497, horizon_sessions: 260,
   year_mean: "8232.03", year_median: "4500.00", year_p25: "0", year_p75: "16875.30", week_mean: "158.31", per_paycheck_mean: "316.62",
   auto: { contracts: 1, candace: 2, noise_brake: [], candace_brake: [[333, 1]] },
+  paid_year_mean_account: "1800", paid_week_mean_account: "36", per_payout_account: "300", cap_first_net: "900", cap_next_net: "1350", payout_events_max: 5,
+  max_possible_account: "6300", max_possible_formula: "5 accounts x (900 first + 4 x 1,350 later payouts, net of 10% split) = 31,500", weeks_in_horizon: 52,
+  incl_unpaid_year_mean: "4000", incl_unpaid_week_mean: "77", incl_unpaid_year_median: "0",
   any_payout_pct: "58.3", bust_pct: "56.6", max_payouts_pct: "4.2", median_sessions_to_first: 70, max_possible_year: "31500.00",
 };
 
@@ -22,7 +25,11 @@ test("projected income card shows weekly / paycheck numbers and re-queries on pl
   expect(await screen.findByTestId("income-week")).toHaveTextContent("$158");
   expect(screen.getByTestId("income-paycheck")).toHaveTextContent("$317");
   expect(screen.getByTestId("income-median")).toHaveTextContent("$4,500");
-  expect(screen.getByTestId("income-bust")).toHaveTextContent("56.6%");
+  expect(screen.getByTestId("income-note")).toHaveTextContent("only 58.3% of accounts receive a payout and 56.6% bust in year 1");
+  expect(screen.getByTestId("income-scenario")).toHaveTextContent("Profit scenario: all 5 accounts get paid");
+  expect(screen.getByTestId("income-formula")).toHaveTextContent("5 accounts x");
+  expect(screen.getByTestId("income-note")).toHaveTextContent("Including accounts that are never paid");
+  expect(screen.getByTestId("income-warning")).toHaveTextContent("UNVERIFIED");
   expect(screen.getByRole("option", { name: /Pro 25K \(current\)/i })).toBeInTheDocument();
   expect(urls[0]).toContain("micros=0"); // D63: automatic size by default
   expect(screen.getByTestId("income-auto")).toHaveTextContent("NOISE 1 + CANDACE 2 micros per account");
@@ -57,7 +64,7 @@ test("numbers shown are exactly the server data (nothing hard-coded in the UI)",
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({ ...base, week_mean: "1234.5", bust_pct: "12.3", basis: "BASIS-FROM-DATA-FILE" })));
   render(<QueryClientProvider client={new QueryClient()}><IncomeProjection /></QueryClientProvider>);
   expect(await screen.findByTestId("income-week")).toHaveTextContent("$1,235");
-  expect(screen.getByTestId("income-bust")).toHaveTextContent("12.3%");
+  expect(screen.getByTestId("income-note")).toHaveTextContent("12.3% bust in year 1");
   expect(screen.getByText(/BASIS-FROM-DATA-FILE/)).toBeInTheDocument();
 });
 

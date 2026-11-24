@@ -88,10 +88,24 @@ def income_projection(
         "accounts": n, "micros": micros or a["noise"], "cadence_sessions": cadence, "starts": c["starts"],
         "horizon_sessions": meta["horizon_sessions"], "status": meta["status"], "caveat": meta["caveat"],
         "on_demand_note": meta["on_demand"], "max_micros": meta["max_micros"], "cadences": meta["cadences"],
-        "year_mean": _scale(c["year_mean"], n), "year_median": _scale(c["year_median"], n), "year_p25": _scale(c["year_p25"], n),
-        "year_p75": _scale(c["year_p75"], n), "week_mean": _scale(c["week_mean"], n), "per_paycheck_mean": _scale(c["per_paycheck_mean"], n),
+        # HEADLINE = PROFIT SCENARIO: only the simulated starts that got >= 1 payout, scaled to all N accounts (all N assumed paid).
+        "scenario": "paid", "year_mean": _scale(c["paid_year_mean"], n), "year_median": _scale(c["paid_year_median"], n),
+        "year_p25": _scale(c["paid_year_p25"], n), "year_p75": _scale(c["paid_year_p75"], n), "week_mean": _scale(c["paid_week_mean"], n),
+        "per_paycheck_mean": _scale(c["per_paycheck_mean"], n),
+        "paid_year_mean_account": str(c["paid_year_mean"]), "paid_year_median_account": str(c["paid_year_median"]),
+        "paid_year_p25_account": str(c["paid_year_p25"]), "paid_year_p75_account": str(c["paid_year_p75"]), "paid_week_mean_account": str(c["paid_week_mean"]),
+        "paid_payouts_per_account_year": str(c["paid_payouts_mean"]),
+        # Unconditional (includes accounts that never get a payout), kept so nothing is hidden.
+        "incl_unpaid_year_mean": _scale(c["year_mean"], n), "incl_unpaid_week_mean": _scale(c["week_mean"], n), "incl_unpaid_year_median": _scale(c["year_median"], n),
         "max_possible_year": _scale(p["max_possible_year"], n), "any_payout_pct": str(c["any_payout_pct"]), "bust_pct": str(c["bust_pct"]),
-        "max_payouts_pct": str(c["max_payouts_pct"]), "median_sessions_to_first": c["median_sessions_to_first"],
+        "max_payouts_pct": str(c["max_payouts_pct"]),
+        # Units: every *_account field = ONE account; the unsuffixed money fields = all N accounts (same trades, correlated). All NET of the 10% split.
+        "net_of_split": True, "weeks_in_horizon": meta["horizon_sessions"] // 5, "payouts_per_account_year": str(c["payouts_mean"]),
+        "per_payout_account": str(c["per_paycheck_mean"]), "per_payout_median_account": str(c["per_payout_median"]), "per_payout_median": _scale(c["per_payout_median"], n),
+        
+        "cap_first_net": str(p["cap_first_net"]), "cap_next_net": str(p["cap_next_net"]), "payout_events_max": p["payout_events_max"],
+        "max_possible_account": str(p["max_possible_year"]),
+        "max_possible_formula": f"{n} accounts x ({p['cap_first_net']:,.0f} first + {p['payout_events_max'] - 1} x {p['cap_next_net']:,.0f} later payouts, net of 10% split) = {Decimal(str(p['max_possible_year'])) * n:,.0f}", "median_sessions_to_first": c["median_sessions_to_first"],
         "auto": a and {"contracts": a["noise"], "candace": a["candace"], "stop_usd": a["stop_usd"], "noise_brake": a["noise_brake"],
                        "candace_brake": a["candace_brake"], "grow": a["grow"], "setup": a["setup"]},
         "basis": _basis(meta, p, micros, prof, grow, a),
