@@ -216,6 +216,13 @@ class _Episode:
 _RANK = {"A+": 2, "B": 1, "C": 0}
 
 
+def rth_only(bars: Sequence[MBar]) -> list[MBar]:
+    """Regular trading hours only: bars closing in (09:30, 16:00] ET. The research ran on RTH bars alone, so the live
+    feed (a 24 h store) is cut to the same bars before replay_day: no 09:01-09:30 trades, session/swing/hourly pools
+    and the displacement average without overnight bars, and a Monday's previous day = Friday's RTH session."""
+    return [b for b in bars if time(9, 30) < b.close_time.astimezone(ET).time() <= time(16, 0)]
+
+
 def replay_day(history: Sequence[MBar], today: Sequence[MBar], cfg: CandaceCfg, tick: Decimal) -> CandaceDay:
     """Every CANDACE ICT entry of this ET day so far (today = this day's 1-minute bars, any hour).
 

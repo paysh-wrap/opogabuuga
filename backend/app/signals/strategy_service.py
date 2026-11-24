@@ -1563,7 +1563,7 @@ def run_candace_ict(
     cfg: CandaceIctCfg | None = None,
     mode: str = "CANDACE_ICT",
 ) -> StrategyOutput:
-    """D149 CANDACE ICT SCALP: replay today's bars (all hours stored); a signal on THIS bar, the max-hold exit.
+    """D149 CANDACE ICT SCALP: replay today's regular-hours bars; a signal on THIS bar, the max-hold exit.
     D165: the same code runs on MGC with `cfg` = the MGC CANDACE settings and `mode` = "MGC_CANDACE"."""
     mgc = cfg is not None
     cfg = cfg or rules.strategy.candace_ict_cfg
@@ -1572,14 +1572,15 @@ def run_candace_ict(
     rows = list(
         s.execute(
             select(Bar)
-            .where(Bar.symbol == cfg.symbol, Bar.tf == "1", Bar.close_time > day0 - timedelta(days=4))
+            .where(Bar.symbol == cfg.symbol, Bar.tf == "1", Bar.close_time > day0 - timedelta(days=7))
             .where(Bar.close_time <= at)
             .order_by(Bar.close_time)
         ).scalars()
     )
     if not rows or rows[-1].close_time != at:
         return out
-    mb = [CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows]
+    # research parity (model_qa 2 / H1): regular-hours bars only; 7 calendar days keep ~4 RTH sessions over a weekend
+    mb = CI.rth_only([CO.MBar(b.close_time, b.o, b.h, b.l, b.c, b.v or Decimal(0)) for b in rows])
     hist, today = [b for b in mb if b.close_time <= day0], [b for b in mb if b.close_time > day0]
     day = at.astimezone(ET).date().isoformat()
     for x in CI.replay_day(hist, today, cfg, rules.instrument(cfg.symbol).tick).signals:

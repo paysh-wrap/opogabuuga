@@ -13,7 +13,8 @@ from app.signals import strategy_service as SS
 from tests.unit.test_candace_ict import T9, bars
 
 DAY0 = datetime(2026, 10, 12, 13, 30, tzinfo=UTC)  # Monday 09:30 ET
-AT = (T9 + timedelta(minutes=13)).astimezone(UTC)
+T0 = T9 + timedelta(minutes=30)  # CANDACE is fed regular-hours bars only
+AT = (T0 + timedelta(minutes=13)).astimezone(UTC)
 
 
 def _rules(loaded_rules, on=True, **cand):
@@ -66,7 +67,7 @@ def test_noise_on_mgc_signal_and_switches(client, loaded_rules):
 
 def test_candace_on_mgc_signal(client, loaded_rules):
     with client.app.state.sessionmaker() as s:
-        for b in bars():
+        for b in bars(t0=T0):
             s.add(Bar(symbol="MGC", tf="1", close_time=b.close_time.astimezone(UTC), o=b.o, h=b.h, l=b.l, c=b.c,
                       v=b.v, source="tv"))  # fmt: skip
         s.commit()
@@ -74,7 +75,7 @@ def test_candace_on_mgc_signal(client, loaded_rules):
         assert SS.run(s, rules=_rules(loaded_rules, on=False, premium_pct=D("0.2")), **args).updates == []
         out = SS.run(s, rules=_rules(loaded_rules, premium_pct=D("0.2"), ny_max_stop_pts=D(50)), **args)
         sig = s.get(Signal, out.updates[0].signal_id)
-        assert sig.model_key == "MGC-CAND-2026-10-13-0913" and sig.status == "PASS" and sig.direction == "SHORT"
+        assert sig.model_key == "MGC-CAND-2026-10-13-0943" and sig.status == "PASS" and sig.direction == "SHORT"
         assert s.query(TradePlanRow).filter_by(signal_id=sig.id).one().mode == "MGC_CANDACE"
         # the default 6-pt stop cap skips this 9.5-pt setup (never widened)
         assert SS.run(s, rules=_rules(loaded_rules, premium_pct=D("0.2")), **args).updates == []
