@@ -102,23 +102,52 @@ def test_projection_from_research_file():
 
 
 def test_income_endpoint(authed):
-    r = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "accounts": 5, "micros": 1})
+    """Dashboard calculator: every number comes from config/income_calc.json (micros 1..9, MAIN = fast-pass NOISE + CANDACE)."""
+    import json
+
+    from app.api.income import CALC_PATH
+
+    data = json.loads(CALC_PATH.read_text())
+    cell = data["plans"]["lucid_pro_25k"]["cells"]["m9|g0|c10"]
+    r = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "accounts": 5, "micros": 9})
     assert r.status_code == 200, r.text
     b = r.json()
-    assert (
-        b["year_mean"] == "7089.66" and "Mondays" in b["basis"] and "lucid_pro_50k" in b["plans"] and b["accounts"] == 5
-    )
+    assert b["micros"] == 9 and b["accounts"] == 5 and "lucid_pro_50k" in b["plans"]
+    assert D(b["year_mean"]) == D(str(cell["year_mean"])) * 5  # same trades on every account -> N x one account
+    assert b["bust_pct"] == str(cell["bust_pct"]) and b["median_sessions_to_first"] == cell["median_sessions_to_first"]
+    assert "UNVERIFIED" in b["basis"] and "NOISE" in b["basis"] and "CANDACE" in b["basis"] and "$250" not in b["basis"]
+    assert "20-43%" in b["caveat"] and "session-19" not in b["basis"]
+    for m in range(1, 10):  # micros 1..9 all selectable, nine and above is refused
+        assert authed.get("/api/income/projection", params={"micros": m}).status_code == 200
+    assert authed.get("/api/income/projection", params={"micros": 10}).status_code == 422
     assert authed.get("/api/income/projection", params={"plan": "../../etc/passwd"}).status_code == 422
     assert authed.get("/api/income/projection", params={"accounts": 9}).status_code == 422
-    assert authed.get("/api/income/projection").status_code == 200  # current plan
-    a = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k"}).json()  # D63/D64 auto, Regular
-    assert a["micros"] == 3 and a["auto"] == {"contracts": 3, "brake_below": "0.5", "brake_contracts": 2}
-    assert a["profile"] == "regular" and a["bust_pct"] == "27.6"
+    assert authed.get("/api/income/projection", params={"cadence": 7}).status_code == 422
+    assert authed.get("/api/income/projection", params={"grow": 123, "micros": 2}).status_code == 422
+    assert authed.get("/api/income/projection").status_code == 200  # current plan, auto
     h = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "profile": "high"}).json()
-    assert h["micros"] == 4 and h["profile"] == "high" and h["year_median"] == "2489.05"
+    hc = data["plans"]["lucid_pro_150k"]["cells"]["auto-high|c10"]
+    assert h["profile"] == "high" and h["auto"]["contracts"] == 5 and h["year_median"] == str(D(str(hc["year_median"])) * 5)
+    od = authed.get("/api/income/projection", params={"cadence": 0, "micros": 3}).json()
+    assert od["cadence_sessions"] == 0 and "VERIFY" in od["on_demand_note"] and "no fixed payout window" in od["on_demand_note"]
     assert authed.get("/api/income/projection", params={"profile": "max"}).status_code == 422
-    g = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "grow": 1000}).json()
-    assert g["grow"] == 1000 and g["year_mean"] == "7609.05"  # D60 growth (session-14 stream $4,173, hindsight $9,049)
+
+
+def test_income_data_file_is_complete():
+    import json
+
+    from app.api.income import CALC_PATH
+
+    d = json.loads(CALC_PATH.read_text())
+    assert d["meta"]["max_micros"] == 9 and "UNVERIFIED" in d["meta"]["status"]
+    for p in d["plans"].values():
+        for m in range(1, 10):
+            for g in d["meta"]["grows"]:
+                for c in d["meta"]["cadences"]:
+                    assert f"m{m}|g{g}|c{c}" in p["cells"]
+        for prof in ("high", "regular"):
+            for c in d["meta"]["cadences"]:
+                assert f"auto-{prof}|c{c}" in p["cells"]
 
 
 def test_account_growth_sizing_and_eval_path():

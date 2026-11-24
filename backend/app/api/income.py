@@ -1,8 +1,10 @@
-"""D59: projected income from funded Lucid accounts on the Dashboard (research replay of the MAIN strategy)."""
+"""Dashboard profit calculator. Every figure comes from config/income_calc.json (written by
+docs/results/agent_review_2026-11-24/calculator_r8/make_calc.py: MAIN strategy = Fast Evaluation NOISE + CANDACE replayed through the
+funded rules). UNVERIFIED research projection, not a promise; nothing is hard-coded here (CLAUDE.md: no figures in the UI)."""
 
 from __future__ import annotations
 
-from dataclasses import asdict
+import json
 from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
@@ -11,42 +13,43 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.api.deps import Principal, current_user
-from app.backtest.income_projection import project, rules_view
-from app.config import load_rules
-from app.risk.strategy_sizing import SizeTier, tier_for
 
 router = APIRouter(prefix="/api")
+CALC_PATH = Path(__file__).resolve().parents[3] / "config" / "income_calc.json"
 
 
-@lru_cache(maxsize=64)
-def _cached(
-    path: str, mtime: float, accounts: int, micros: int, cadence: int, grow: int, high: bool = False
-) -> dict[str, Any]:
-    """micros = 0 → D63 automatic size from the plan's size_table (tier for the plan's account size + brake)."""
-    r = load_rules(Path(path)).rules
-    g = Decimal(grow) if grow else None
-    brake: tuple[Decimal, int] | None = None
-    auto = None
-    if micros == 0:
-        table = (r.strategy.size_table_high or r.strategy.size_table) if high else r.strategy.size_table
-        if table:
-            t = tier_for(
-                r.account_size,
-                [SizeTier(x.account_size, x.mll, x.contracts, x.brake_below, x.brake_contracts) for x in table],
-            )
-            micros = t.contracts
-            if t.brake_below is not None and t.brake_contracts is not None:
-                brake = (t.brake_below, t.brake_contracts)
-            auto = {
-                "contracts": t.contracts,
-                "brake_below": None if t.brake_below is None else str(t.brake_below),
-                "brake_contracts": t.brake_contracts,
-            }
-        else:
-            micros = r.strategy.noise_cfg.contracts
-    p = project(rules_view(r), accounts=accounts, micros=micros, cadence=cadence, grow_per=g, brake=brake)
-    out = {k: (str(v) if v is not None and not isinstance(v, int) else v) for k, v in asdict(p).items()}
-    return {**out, "auto": auto}
+@lru_cache(maxsize=4)
+def _load(path: str, mtime: float) -> dict[str, Any]:
+    return json.loads(Path(path).read_text())
+
+
+def calc_data() -> dict[str, Any]:
+    return _load(str(CALC_PATH), CALC_PATH.stat().st_mtime)
+
+
+def _scale(v: float | None, n: int) -> str | None:
+    return None if v is None else str(Decimal(str(v)) * n)
+
+
+def _basis(meta: dict[str, Any], plan: dict[str, Any], micros: int, profile: str, grow: int, a: dict[str, Any] | None) -> str:
+    if micros:
+        size = f"NOISE {micros} + CANDACE {micros} micros each, stop ${meta['fixed_stop_usd']}, profit lock 100 pt to entry +10"
+        if grow:
+            size += f", +1 micro per ${grow:,} cushion (max {meta['max_micros']})"
+    else:
+        assert a is not None
+        brakes = "; ".join(
+            f"{name} drops to {q} below ${c:,} cushion" for name, br in (("NOISE", a["noise_brake"]), ("CANDACE", a["candace_brake"])) for c, q in br
+        )
+        size = f"{a['setup']}: NOISE {a['noise']} (stop ${a['stop_usd']}) + CANDACE {a['candace']} micros" + (f"; {brakes}" if brakes else "")
+        if a.get("grow"):
+            size += f"; +1 micro per ${int(a['grow'][0]):,} cushion (max {a['grow'][1]})"
+    return (
+        f"MAIN strategy = {meta['title'].split('= ')[-1]} ({meta['setups']}). Setup: {size}. {meta['data']}, first "
+        f"{meta['horizon_sessions']} trading days per account, rolling starts on every day, funded rules: EOD drawdown + lock, DLL, payout "
+        f"consistency {meta['payout_consistency_pct']}%, kill switch $50, news {meta['news']}, ${meta['cost_per_micro_rt_usd']} per micro round trip, "
+        f"payouts net of {int((1 - Decimal(str(meta['net_split']))) * 100)}% split. {meta['status'].upper()}. {meta['caveat']}"
+    )
 
 
 @router.get("/income/projection")
@@ -55,30 +58,41 @@ def income_projection(
     _: Principal = Depends(current_user),
     plan: str | None = None,
     accounts: int = Query(5, ge=1, le=5),
-    micros: int = Query(0, ge=0, le=6),  # 0 = automatic (D63 size_table)
-    cadence: int = Query(10, ge=5, le=20),
-    grow: int = Query(0, ge=0, le=10000),  # D60: +1 micro per `grow` $ of cushion above the trailing MLL (0 = fixed)
-    profile: str | None = Query(None, pattern="^(regular|high)$"),  # D64: size profile for "Auto" (default: active)
+    micros: int = Query(0, ge=0, le=9),  # 0 = the plan's own fast-pass size + brakes
+    cadence: int = Query(10, ge=0, le=20),  # sessions between payouts; 0 = on-demand (UNVERIFIED model)
+    grow: int = Query(0, ge=0, le=10000),
+    profile: str | None = Query(None, pattern="^(regular|high)$"),
 ) -> dict[str, Any]:
+    d = calc_data()
+    meta, plans = d["meta"], d["plans"]
     st = request.app.state
-    folder: Path = st.settings.rules_path.parent
-    plans = sorted(p.stem for p in folder.glob("lucid_*.yaml"))
-    name = plan or st.rules.plan
-    if name not in plans:  # whitelist: only plan files in the rules folder (no paths from the client)
+    name = plan or (st.rules.plan if st.rules.plan in plans else sorted(plans)[0])
+    if name not in plans:  # whitelist: only plans present in the data file
         raise HTTPException(422, f"unknown plan {name!r}")
-    path = folder / f"{name}.yaml"
-    high = st.rules.rules.strategy.high_risk if profile is None else profile == "high"
-    out = _cached(str(path), path.stat().st_mtime, accounts, micros, cadence, grow, high)
+    if cadence not in meta["cadences"] or (grow and grow not in meta["grows"]):
+        raise HTTPException(422, "cadence / growth value not in the simulated grid")
+    p = plans[name]
+    prof = profile or ("high" if st.rules.rules.strategy.high_risk else "regular")
+    a = None
+    if micros:
+        key = f"m{micros}|g{grow}|c{cadence}"
+        if micros > meta["max_micros"]:
+            raise HTTPException(422, "micros above the simulated grid")
+    else:
+        a = p["auto"][prof]
+        key = f"auto-{prof}|c{cadence}"
+    c = p["cells"][key]
+    n = accounts
     return {
-        **out,
-        "plan": name,
-        "grow": grow,
-        "profile": "high" if high else "regular",
-        "plans": plans,
-        "current_plan": st.rules.plan,
-        "basis": "MAIN strategy, session-19 shipped config (NOISE $250 stop + profit lock +100 pt → entry +10, Mondays "
-        "off, plus the afternoon fade $250 on days NOISE did not trade, Mondays off), Databento MNQ 2019-05 → 2026-11, "
-        "replayed through "
-        "the plan's funded payout rules; rolling starts, first 12 months per account. Research projection, not a "
-        "promise: same trades on every account, open-trade drawdown and news not modeled, eval fees not subtracted.",
+        "plan": name, "plans": sorted(plans), "current_plan": st.rules.plan, "grow": grow, "profile": prof,
+        "accounts": n, "micros": micros or a["noise"], "cadence_sessions": cadence, "starts": c["starts"],
+        "horizon_sessions": meta["horizon_sessions"], "status": meta["status"], "caveat": meta["caveat"],
+        "on_demand_note": meta["on_demand"], "max_micros": meta["max_micros"], "cadences": meta["cadences"],
+        "year_mean": _scale(c["year_mean"], n), "year_median": _scale(c["year_median"], n), "year_p25": _scale(c["year_p25"], n),
+        "year_p75": _scale(c["year_p75"], n), "week_mean": _scale(c["week_mean"], n), "per_paycheck_mean": _scale(c["per_paycheck_mean"], n),
+        "max_possible_year": _scale(p["max_possible_year"], n), "any_payout_pct": str(c["any_payout_pct"]), "bust_pct": str(c["bust_pct"]),
+        "max_payouts_pct": str(c["max_payouts_pct"]), "median_sessions_to_first": c["median_sessions_to_first"],
+        "auto": a and {"contracts": a["noise"], "candace": a["candace"], "stop_usd": a["stop_usd"], "noise_brake": a["noise_brake"],
+                       "candace_brake": a["candace_brake"], "grow": a["grow"], "setup": a["setup"]},
+        "basis": _basis(meta, p, micros, prof, grow, a),
     }
