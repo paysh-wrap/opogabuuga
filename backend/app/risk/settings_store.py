@@ -417,14 +417,6 @@ def fallback_notice(mine: dict[str, Any], fixed: dict[str, Any]) -> str | None:
     )
 
 
-def _eligible_accounts(s: Session) -> int:
-    from app.models import Account
-    from app.risk.fast_pass import sbs_eligible_accounts
-
-    rows = s.execute(select(Account)).scalars()
-    return sbs_eligible_accounts({a.id: (a.selected, a.paused_reason, a.closed_by_firm) for a in rows})
-
-
 def save_my_settings(
     s: Session,
     base: LoadedRules,
@@ -455,18 +447,6 @@ def save_my_settings(
         )
     if touched and len(on) > 1:
         raise SettingsError([f"only one strategy button may be ON at a time (D167); ON: {', '.join(on)}"], v)
-    if COMBINED_CHOICE in on and COMBINED_CHOICE not in was:
-        from app.risk.fast_pass import sbs_needs_more_accounts
-
-        n = _eligible_accounts(s)
-        if sbs_needs_more_accounts(n):
-            raise SettingsError(
-                [
-                    "MAIN + ORDER FLOW needs at least 2 eligible accounts (selected, not paused, "
-                    f"not closed); found {n} (D175)"
-                ],
-                v,
-            )
     std_over_11 = any(
         p > Decimal("0.11") for p in (cfg.internal.risk_pct_ceiling, *cfg.internal.risk_pct_by_score.values())
     )

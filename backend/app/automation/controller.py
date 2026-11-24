@@ -74,8 +74,8 @@ from app.risk.fast_pass import (
     stage_switch_on,
     late_day_size,
     plan_fast_pass,
-    sbs_eligible_accounts,
-    sbs_needs_more_accounts,
+    budget_left,
+    combined_of_size,
 )
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
@@ -501,15 +501,6 @@ class Controller:
             one_acct = (plan0.mode == "JJ_FPT" and r.strategy.jj_fpt_cfg.one_account_per_trade) or (
                 fit0 is not None and fit0[1].one_account_per_trade
             )
-            ar_sbs = plan0.mode == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features)  # D160
-            one_acct = one_acct or ar_sbs
-            if ar_sbs and sbs_needs_more_accounts(
-                sbs_eligible_accounts({a.id: (a.selected, a.paused_reason, a.closed_by_firm) for a in all_accts})
-            ):  # D175: the combined choice needs 2+ eligible accounts: refuse loudly, never fall back to one account
-                audit.record(
-                    s, self.clock, actor, "order_flow.sbs_blocked", str(sig.id), {"reason": "SBS_NEEDS_2_ACCOUNTS"}
-                )
-                return [*out, AccountResult(0, False, "SBS_NEEDS_2_ACCOUNTS")]
             if one_acct:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
                 busy = {t.account for t in self.om.trades.values()}
@@ -684,6 +675,15 @@ class Controller:
                               okc.add_after_tp1)  # fmt: skip
             if not pre.ok:
                 return AccountResult(a.id, False, pre.reason)
+        sbs_legs: list[OpenTrade] | None = None
+        if strategy == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features) and n_open > 0:
+            # D181 (user 2026-11-24): the narrow rule-7 exception: Order Flow beside the MAIN position on the SAME account,
+            # same direction only; anything else open on the account keeps POSITION_OPEN / HEDGE_LOCK
+            if len(mine) < n_open or any(t.strategy not in ("NOISE", "CANDACE_ICT") for t in mine):
+                return AccountResult(a.id, False, "POSITION_OPEN")
+            if any(t.d.sign != plan.direction.sign for t in mine):
+                return AccountResult(a.id, False, "HEDGE_LOCK")
+            sbs_legs = mine
         view = AccountView(
             a.broker_account_id,
             a.stage,
@@ -700,12 +700,12 @@ class Controller:
             st.dll_for(r, a),
             base,
             max_open_positions=(
-                n_open + 1 if add_legs is not None else duo.max_open_positions if duo is not None and big else 1
+                n_open + 1 if add_legs is not None or sbs_legs is not None else duo.max_open_positions if duo is not None and big else 1
             ),
             open_positions=n_open,
             open_risk_usd=(
                 sum((self._open_risk(t) for t in mine), Decimal(0))
-                if duo is not None or add_legs is not None
+                if duo is not None or add_legs is not None or sbs_legs is not None
                 else Decimal(0)
             ),
         )
@@ -736,9 +736,20 @@ class Controller:
         if brake is not None and fixed is not None and fixed > 1:  # D85/D115 cushion brake (size-table brake reused)
             tier = SizeTier(acct_size, r.eval.max_loss_limit, fixed, brake, 1)
             fixed = auto_contracts(acct_size, base, [tier]).contracts
+        firm_cap = firm_max_micros(
+            r, a.stage, bal - st.day_stats(s, a, now).day_profit - (a.starting_balance or Decimal(0))
+        )
+        open_qty = sum(t.qty for t in sbs_legs) if sbs_legs else 0
+        open_usd = sum((self._open_risk(t) for t in sbs_legs), Decimal(0)) if sbs_legs else Decimal(0)
         if fixed is not None and strategy == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features):
             # D160: AR beside NOISE — never above half the NOISE fast-pass size (tighten-only; every check still runs)
-            fixed = ar_side_cap(fixed, fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base, sw_on))
+            noise_fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base, sw_on)
+            fixed = ar_side_cap(fixed, noise_fp)
+            fixed = combined_of_size(
+                fixed, firm_cap, r.internal.internal_max_micros, open_qty if sbs_legs else 0
+            )  # D181: at most 2, total micros on the account never above its cap
+            if fixed < 1:
+                return AccountResult(a.id, False, "SBS_NO_HEADROOM")
         if jj is not None:  # JJ #28 + #29 same dollars on every stop size; D143: his 3-loss session fits Lucid's limits
             slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
             jday = st.day_state(s, a, opnl, now)
@@ -995,8 +1006,8 @@ class Controller:
             inst.tick_value,
             inst.fee_rt,
             inst.slippage_ticks or r.trade_plan.slippage_ticks,
-            firm_max_micros(r, a.stage, bal - st.day_stats(s, a, now).day_profit - (a.starting_balance or Decimal(0))),
-            r.internal.internal_max_micros,
+            firm_cap - open_qty,  # D181: the other leg's micros count against the account's cap
+            r.internal.internal_max_micros - open_qty,
             min_contracts(guard_on, r.drawdown_guard.min_contracts_on, r.drawdown_guard.min_contracts_off),
             r.internal.dll_safety_margin,
             r.internal.pause_below_risk_base,
@@ -1006,14 +1017,14 @@ class Controller:
             shrink_fraction=r.strategy.drawdown_shrink
             if strategy in ("NOISE", "MGC_NOISE", "AI_BIAS", "AI_DUO")
             else None,
-            max_risk_usd=risk_cap(  # D85 AI Duo $250 · D115 strategy budget · D115 plan per-trade cap
+            max_risk_usd=budget_left(risk_cap(  # D85 AI Duo $250 · D115 strategy budget · D115 plan per-trade cap
                 duo.max_risk_usd if duo is not None else None,
                 {
                     "AI_BIAS": r.strategy.ai_bias_cfg.max_risk_usd,
                     "ORDER_FLOW": r.strategy.order_flow_cfg.max_risk_usd,
                 }.get(strategy),
                 r.strategy.max_trade_risk_usd if strategy else None,
-            ),
+            ), open_usd),
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
             tp_fit_waiver=strategy not in TP_FIT_STRATEGIES and not funded_fp,  # D180: funded never waives the cap fit  # B: only NOISE-like exits keep the N6 waiver
         )

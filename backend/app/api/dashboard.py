@@ -924,16 +924,13 @@ def _ai_advice(db: Session, r: Any, sess: Any) -> dict[str, Any]:
 
 def _combined_view(db: Session, r: Any) -> dict[str, Any]:
     """D175: the ONE choice that runs MAIN (Fast Evaluation NOISE + CANDACE) and Order Flow AR together, with its guard
-    parameters in plain words and whether it can start (needs 2+ eligible accounts, otherwise blocked, no fallback)."""
-    from app.risk.fast_pass import SBS_MIN_ACCOUNTS, sbs_needs_more_accounts
-    from app.risk.settings_store import COMBINED_CHOICE, _eligible_accounts, strategy_choices_on
+    parameters in plain words (D181: same account, one account is enough)."""
+    from app.risk.settings_store import COMBINED_CHOICE, strategy_choices_on
 
-    n = _eligible_accounts(db)
-    blocked = sbs_needs_more_accounts(n)
     of = r.strategy.order_flow_cfg
     return {
         "key": COMBINED_CHOICE,
-        "title": "MAIN FAST PASS + ORDER FLOW (separate accounts)",
+        "title": "MAIN FAST PASS + ORDER FLOW (same account)",
         "enabled": COMBINED_CHOICE in strategy_choices_on(r.strategy),
         "setting": "strategy.order_flow_cfg.ar_side_by_side",
         "settings_on": [
@@ -942,20 +939,13 @@ def _combined_view(db: Session, r: Any) -> dict[str, Any]:
             "strategy.order_flow",
             "strategy.order_flow_cfg.ar_side_by_side",
         ],
-        "eligible_accounts": n,
-        "min_accounts": SBS_MIN_ACCOUNTS,
-        "can_start": not blocked,
-        "blocked_reason": (
-            f"needs at least {SBS_MIN_ACCOUNTS} eligible accounts (selected, not paused, not closed); found {n}"
-            if blocked
-            else None
-        ),
         "guards": [
-            "Order Flow trades only on a DIFFERENT free account than NOISE / CANDACE (one account per trade).",
-            "One direction for the whole household: an opposite-side signal is skipped (HEDGE_LOCK). Never a hedge.",
-            "At most 1 open position per account.",
-            "Every account keeps its own loss limit, daily loss limit, day stop, kill switch, news and flat rules.",
-            f"Order Flow size = the smallest of its own size ({of.contracts}), the Lucid fit and half the NOISE size.",
+            "Same account, same direction only: Order Flow sits beside the main position on the SAME account, never opposite.",
+            "Total contracts within the account cap: main + Order Flow micros never exceed it; Order Flow adds at most 2.",
+            "An opposite-side signal anywhere in the household is skipped (HEDGE_LOCK). Never a hedge.",
+            "Combined open risk must fit the loss limit, daily loss limit, day stop and per-trade budget, else Order Flow shrinks or skips.",
+            "Each strategy keeps its own exits; kill switch, flatten, news and early close or the flat time close both.",
+            f"Order Flow size = the smallest of its own size ({of.contracts}), 2, the room under the cap, the Lucid fit and half the NOISE size.",
             "Fast-pass sizes follow the stage rules shown in the size card; Evaluation Mode stays EVAL only.",
             "Plain MAIN and plain Order Flow stay mutually exclusive; this is the only way both run.",
         ],

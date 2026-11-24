@@ -46,13 +46,13 @@ def test_off_is_unchanged_every_selected_account_is_tried(authed, clock):
     assert next(r for r in res if r.account_id == a).ok is False
 
 
-def test_on_ar_goes_to_a_free_account_never_the_noise_account(authed, clock):
+def test_on_ar_sits_beside_noise_on_the_same_account_same_direction(authed, clock):
     st, (a, b) = _two(authed, clock, ar_side_by_side=True)
     assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
-    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))
-    assert [r.account_id for r in res] == [b] and res[0].ok, res  # only the free account; never copy trading
-    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O2"), "automation", only=[a, b]))
-    assert not any(r.ok for r in res)  # both busy: never a second position on one account
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a]))  # D181
+    assert res[0].ok and res[0].contracts <= 2, res
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O2"), "automation", only=[a]))
+    assert not res[0].ok and res[0].reason == "POSITION_OPEN"  # no second Order Flow leg
 
 
 def test_on_opposite_direction_is_skipped_by_hedge_lock(authed, clock):

@@ -153,15 +153,16 @@ def ar_side_cap(size: int, noise: FastPassSize | None) -> int:
     return size if noise is None else min(size, max(1, noise.contracts // 2))
 
 
-SBS_MIN_ACCOUNTS = 2
+COMBINED_OF_MAX = 2  # D181: Order Flow adds at most 2 micros beside the main strategy on the same account
 
 
-def sbs_eligible_accounts(accounts: Mapping[Any, tuple[bool, str | None, bool]]) -> int:
-    """D175: accounts that can take a trade for the combined MAIN + ORDER FLOW choice. Each value is
-    (selected, paused_reason, closed_by_firm); a paused / closed / unselected account is not eligible."""
-    return sum(1 for sel, paused, closed in accounts.values() if sel and paused is None and not closed)
+def combined_of_size(own: int, firm_cap: int, internal_cap: int, open_qty: int) -> int:
+    """D181: Order Flow size in the combined option = min(own, 2, headroom under the account's TOTAL micro cap (firm
+    max, internal max; minus the micros already open) and, via ar_side_cap, half the NOISE size); 0 = no headroom."""
+    cap = min(firm_cap, internal_cap)  # the fast-pass size caps the MAIN legs; the account cap caps the total
+    return max(0, min(own, COMBINED_OF_MAX, cap - open_qty))
 
 
-def sbs_needs_more_accounts(eligible: int) -> bool:
-    """D175: True = the combined choice cannot run (needs SBS_MIN_ACCOUNTS eligible accounts): block, no fallback."""
-    return eligible < SBS_MIN_ACCOUNTS
+def budget_left(cap: Decimal | None, open_usd: Decimal) -> Decimal | None:
+    """D181: the per-trade risk budget still free after the risk already open on the account (None = no budget)."""
+    return None if cap is None else max(cap - open_usd, Decimal(0))
