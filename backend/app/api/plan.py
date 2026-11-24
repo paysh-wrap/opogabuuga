@@ -34,10 +34,10 @@ DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 def account_eval_pace(
     acct_id: int, request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
-    r = request.app.state.rules.rules
     a = db.get(Account, acct_id)
     if a is None:
         raise HTTPException(404, "no such account")
+    r = request.app.state.rules.rules_for(a)  # D168: the account's own plan
     if a.stage != "EVAL":
         raise HTTPException(409, f"eval pace applies to EVAL accounts only (this one is {a.stage})")
     out = eval_pace(db, a, r)
@@ -173,7 +173,7 @@ async def plan(request: Request, _: Principal = Depends(current_user), db: Sessi
         except BrokerError as e:
             nxt.append({**row, "error": str(e)})
             continue
-        pp = plan_for(db, r, a, bal, now)
+        pp = plan_for(db, st.rules, a, bal, now)  # D168: holder → the account's own plan
         nxt.append(
             {
                 **row,

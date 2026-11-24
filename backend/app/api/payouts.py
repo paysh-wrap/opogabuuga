@@ -44,7 +44,7 @@ def consistency(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
     """D89: Lucid payout-consistency status of every FUNDED account (largest day / cycle profit vs the limit)."""
-    r = request.app.state.rules.rules
+    r = request.app.state.rules  # D168: holder → each account's own plan
     out = []
     for a in db.execute(
         select(Account).where(Account.stage == "FUNDED").order_by(Account.priority, Account.id)
@@ -58,9 +58,8 @@ def consistency(
 @router.post("/payouts/check")
 async def run_check(request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)) -> Any:
     st = request.app.state
-    r = st.rules.rules
-    check = session_check if r.payouts.frequency == "every_n_sessions" else weekly_check  # D65
-    made = await check(db, st.controller, r, st.clock.now())
+    check = session_check if st.rules.rules.payouts.frequency == "every_n_sessions" else weekly_check  # D65
+    made = await check(db, st.controller, st.rules, st.clock.now())
     db.commit()
     return {"created": [_row(x, db.get(Account, x.account_id)) for x in made]}
 
@@ -81,7 +80,7 @@ async def set_status(
         raise HTTPException(409, f"cannot go from {row.status} to {body.status}")
     a = db.get(Account, row.account_id)
     if body.status == "submitted" and a is not None:  # D89: never submit while Lucid's consistency rule is not met
-        got = payout_consistency_for(db, st.rules.rules, a)
+        got = payout_consistency_for(db, st.rules, a)
         if got is not None and not got[0].eligible:
             from app.risk.consistency import payout_consistency_text
 
@@ -90,7 +89,7 @@ async def set_status(
     row.status = body.status
     if body.status == "submitted":
         row.submitted_at = now  # trading on this account blocks until processed (§14)
-        r = st.rules.rules
+        r = st.rules.rules_for(a) if a is not None else st.rules.rules
         if a is not None and r.funded.payout.lock_mll_on_payout and not a.mll_locked:
             a.mll, a.mll_locked = r.funded.lock_level, True  # LucidFlex: MLL moves to the locked level
     if body.status == "processed":

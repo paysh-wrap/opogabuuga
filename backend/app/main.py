@@ -352,7 +352,7 @@ async def _scheduler(app: FastAPI) -> None:
             pc = st.rules.rules.payouts
             with st.sessionmaker() as s:
                 if pc.frequency == "weekly" and due(now, pc.check_time, stt.get_setting(s, "job.payouts.week")):  # type: ignore[arg-type]
-                    await weekly_check(s, st.controller, st.rules.rules, now)
+                    await weekly_check(s, st.controller, st.rules, now)
                     stt.set_setting(s, "job.payouts.week", week_key(now), now)
                     s.commit()
                 elif pc.frequency == "every_n_sessions" and session_due(  # D65
@@ -360,7 +360,7 @@ async def _scheduler(app: FastAPI) -> None:
                     pc.session_check_time,
                     stt.get_setting(s, "job.payouts.day"),  # type: ignore[arg-type]
                 ):
-                    await session_check(s, st.controller, st.rules.rules, now)
+                    await session_check(s, st.controller, st.rules, now)
                     stt.set_setting(s, "job.payouts.day", session_date(now).isoformat(), now)
                     s.commit()
                 await _refresh_calendar(app, s, now)

@@ -303,13 +303,16 @@ def build(raw: dict[str, Any]) -> tuple[RulesConfig, Validation]:
     return cfg, v
 
 
-def effective(s: Session, base: LoadedRules) -> Effective:
+def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effective:
+    """apply_firm=False (D168): Risk-page firm overrides belong to the ACTIVE plan only; another plan used by an
+    account is built from its own yaml + the household My Settings / Lab layers."""
     std, firm, ev = latest(s, "standard"), latest_firm(s), latest(s, "evaluation")
     fe = latest(s, "fast_eval")
     lab = latest(s, "lab")  # §17: approved Lab tunables (separate layer; My Settings never contain these keys)
     mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
-    cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, mine))
-    verified = list(firm.verified_paths) if firm else []
+    use_firm = firm if apply_firm else None
+    cfg, _ = build(merged_raw(base, use_firm.body_overrides() if use_firm else {}, mine))
+    verified = list(use_firm.verified_paths) if use_firm else []
     return Effective(
         cfg,
         std.version if std else 0,

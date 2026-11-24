@@ -314,9 +314,12 @@ def _consistency_pct(r: Any, stage: str) -> str | None:
 def list_accounts(
     request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
 ) -> dict[str, Any]:
-    on = request.app.state.rules.eval_mode_on
+    h = request.app.state.rules
+    on = h.eval_mode_on
     rows = db.execute(select(Account).order_by(Account.priority, Account.id)).scalars()
     return {
+        "active_plan": h.plan,  # D168: the plan the Risk page edits
+        "plans": list_plans(request, _)["plans"],  # D168: dropdown options (files in config/rules)
         "accounts": [
             {
                 "id": a.id,
@@ -325,7 +328,10 @@ def list_accounts(
                 "stage": a.stage,
                 "paper": a.is_sim,
                 "drawdown_type": a.drawdown_type,
-                "drawdown_expected": (exp := stage_rules(request.app.state.rules.rules, a.stage).drawdown_type),
+                "plan": h.plan_for(a),  # D168: effective plan (explicit, else inferred from the size)
+                "plan_explicit": a.plan,
+                "plan_error": h.account_error(a),
+                "drawdown_expected": (exp := stage_rules(h.rules_for(a), a.stage).drawdown_type),
                 "drawdown_check": None
                 if a.drawdown_type == exp
                 else f"{a.stage} accounts at Lucid normally use {exp.upper()} — confirm this account is "
@@ -339,12 +345,12 @@ def list_accounts(
                 "mll_locked": a.mll_locked,
                 "paused_reason": a.paused_reason,
                 "mode_override": a.mode_override or "inherit",
-                "consistency_pct": _consistency_pct(request.app.state.rules.rules, a.stage),
+                "consistency_pct": _consistency_pct(h.rules_for(a), a.stage),
                 "purchased_at": a.purchased_at.isoformat() if a.purchased_at else None,  # D89
-                "payout_consistency": consistency_view(db, request.app.state.rules.rules, a),
+                "payout_consistency": consistency_view(db, h, a),
             }
             for a in rows
-        ]
+        ],
     }
 
 

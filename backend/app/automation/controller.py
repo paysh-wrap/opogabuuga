@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Literal
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -76,6 +77,8 @@ from app.risk.risk_base import money, risk_base
 from app.risk.split_risk import SPLIT_STRATEGIES, side_budget_left, split_active, split_budget, split_contracts
 from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size, plan_contracts, risk_cap
 from app.risk.tiers import FloorRules, RiskCfg
+
+log = structlog.get_logger()
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
@@ -261,9 +264,14 @@ class Controller:
         balance: Decimal,
         actor: str,
         real_id: str | None = None,
+        plan: str | None = None,
     ) -> Account:
-        """real_id = Tradovate account → REAL account: orders only via the live broker + full live checklist."""
-        sr = stage_rules(self.rules.rules, stage, drawdown_type)
+        """real_id = Tradovate account → REAL account: orders only via the live broker + full live checklist.
+        plan (D168) = rule plan of this account; None → inferred from its size, else the active plan."""
+        from app.risk.account_plan import resolve_plan
+
+        plan_name = resolve_plan(plan, balance, self.rules.plan, self.rules.available_plans())
+        sr = stage_rules(self.rules.rules_for_name(s, plan_name), stage, drawdown_type)
         ext = real_id or f"SIM-{label or 'acct'}-{int(self.clock.now().timestamp())}"
         m = new_mll(sr, balance)
         a = Account(
@@ -273,6 +281,7 @@ class Controller:
             drawdown_type=drawdown_type,
             is_sim=real_id is None,
             starting_balance=balance,
+            plan=plan,
             mll=m.mll,
             mll_peak=m.peak,
             mll_locked=False,
@@ -297,7 +306,7 @@ class Controller:
         return a
 
     def _mll_state(self, a: Account) -> MllState:
-        sr = stage_rules(self.rules.rules, a.stage, a.drawdown_type, a.dll_enabled)
+        sr = stage_rules(self.rules.rules_for(a), a.stage, a.drawdown_type, a.dll_enabled)
         start = a.starting_balance or Decimal(0)
         if a.mll is None or a.mll_peak is None:
             return new_mll(sr, start)
@@ -530,7 +539,22 @@ class Controller:
         fl: FloorRules,
         actor: str,
     ) -> AccountResult:
-        r = self.rules.rules
+        bad_plan = self.rules.account_error(a)
+        if (
+            bad_plan
+        ):  # D168: the account's own plan is missing / invalid → no NEW entry here, never another plan's numbers
+            log.error("account.plan_invalid", account=a.broker_account_id, error=bad_plan)
+            self.notify("error", "Account rule plan invalid", f"{a.label}: {bad_plan}", "rules")
+            return AccountResult(a.id, False, "ACCOUNT_PLAN_INVALID")
+        r = self.rules.rules_for(a)  # D168: this account's OWN plan (MLL / DLL / target / consistency / fast pass ...)
+        inst = r.instrument(sig.symbol)
+        std, evm = RiskCfg.standard(r.internal), RiskCfg.evaluation(r.eval_mode)
+        fl = FloorRules(
+            r.internal.day_lockin_r,
+            r.internal.dd_floor_pct,
+            r.internal.streak_floor_losses,
+            r.internal.streak_release_wins,
+        )
         now = self.clock.now()
         try:
             bal, opnl = await self._equity(a)
@@ -1553,7 +1577,7 @@ class Controller:
         self.notify("info", "Trade closed", f"{a.label}: {pnl} ({row.net_r}R)", "trade")
         self.publish("position.updated", {"account": a.id})
         self.publish("account.updated", {"id": a.id})
-        lock_r = self.rules.rules.internal.day_lockin_r
+        lock_r = self.rules.rules_for(a).internal.day_lockin_r
         if ds.day_net_r >= lock_r and ds.day_net_r - row.net_r < lock_r:  # crossed the lock-in this trade
             self.publish("risk.day_lockin", {"account": a.id, "day_net_r": str(ds.day_net_r), "lockin_r": str(lock_r)})
 
@@ -1569,10 +1593,10 @@ class Controller:
 
     async def _monitor(self, s: Session) -> None:
         """Every price update: intraday MLL, kill distance, DLL breach (§9)."""
-        r = self.rules.rules
         for a in s.execute(select(Account)).scalars():
             if a.broker_account_id not in self.adapter.accounts:
                 continue
+            r = self.rules.rules_for(a)  # D168
             try:
                 bal, opnl = await self._equity(a)
             except BrokerError as e:  # no P&L → cannot watch MLL/DLL → block entries on this account (§1.8)
@@ -1775,16 +1799,17 @@ class Controller:
         breach_min_after."""
         if not events:
             return None
-        r, now = self.rules.rules, self.clock.now()
+        now = self.clock.now()
         hit = None
         async with self.lock:
             with self.sessionmaker() as s:
                 for a in s.execute(select(Account)).scalars():
                     if a.broker_account_id not in self.adapter.accounts:
                         continue
-                    sr = stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled)
-                    stage_cfg = r.funded if a.stage != "EVAL" else r.eval
-                    before = max(r.internal.news_flatten_before_min, stage_cfg.news_breach_min_before)
+                    ra = self.rules.rules_for(a)  # D168
+                    sr = stage_rules(ra, a.stage, a.drawdown_type, a.dll_enabled)
+                    stage_cfg = ra.funded if a.stage != "EVAL" else ra.eval
+                    before = max(ra.internal.news_flatten_before_min, stage_cfg.news_breach_min_before)
                     after = stage_cfg.news_breach_min_after if sr.news_hard_breach else 0
                     ev = news_flatten_due(now, events, before, after)
                     if ev is not None and await self._exposed(a):

@@ -16,8 +16,9 @@ function mock(calls: string[], attested = false) {
     if (u === "/api/automation/preflight") return j({ ok: false, checks: [{ check: "attested", ok: false, detail: "not attested" }] });
     if (u === "/api/positions") return j({ accounts: [{ account_id: 1, label: "E1", balance: "25000", open_pnl: "-12.5", mll: "24000", positions: [{ symbol: "MNQ", qty: -2, avg: "20000", exit_pending: "NOISE_TRAIL" }] }] });
     if (u === "/api/accounts") return j({ accounts: [
-      { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null, mode_override: "inherit", consistency_pct: "40" },
-      { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null }] });
+      { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null, mode_override: "inherit", consistency_pct: "40", plan: "lucid_pro_25k", plan_explicit: null },
+      { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null, plan: "lucid_pro_150k", plan_explicit: "lucid_pro_150k", plan_error: "rule plan 'lucid_pro_150k' not found" }],
+      active_plan: "lucid_pro_25k", plans: [{ id: "lucid_pro_25k", title: "25K" }, { id: "lucid_pro_150k", title: "150K" }] });
     if (u === "/api/orders?limit=25") return j({ orders: [{ id: 7, created_at: "2026-11-06T15:00:00+00:00", account: "E1", symbol: "MGC", kind: "bracket", side: "SELL", qty: 2, price: "4100.5", status: "FILLED", source: "MANUAL", filled_qty: 2, avg_fill: "4100.40" }] });
     if (u === "/api/dashboard") return j({ accounts: [{ id: 1, idle_days: 25, idle_alert_days: 21 }] });
     if (u === "/api/health") return j({ mode: "PAPER" });
@@ -89,6 +90,21 @@ test("Accounts: selector, priority, drawdown, eval override (EVAL only), inactiv
   fireEvent.change(screen.getByTestId("override-1"), { target: { value: "SEMI" } });
   await waitFor(() => expect(calls).toContain('PATCH /api/accounts/1 {"mode_override":"SEMI"}'));
   expect(document.title).toBe("Paytience · Accounts");
+});
+
+test("Accounts: per-account rule plan dropdown (D168) + invalid-plan warning", async () => {
+  const calls: string[] = [];
+  mock(calls);
+  wrap(<Accounts />);
+  const sel = await screen.findByTestId("plan-1");
+  expect(sel).toHaveValue("");
+  expect(sel).toHaveTextContent("auto (lucid_pro_25k)");
+  expect(screen.getByTestId("plan-2")).toHaveValue("lucid_pro_150k");
+  expect(screen.getByTestId("plan-error-2")).toHaveTextContent("new entries on this account are blocked");
+  expect(screen.queryByTestId("plan-error-1")).toBeNull();
+  await waitFor(() => expect(sel).toBeEnabled());
+  fireEvent.change(sel, { target: { value: "lucid_pro_150k" } });
+  await waitFor(() => expect(calls).toContain('PATCH /api/accounts/1 {"plan":"lucid_pro_150k"}'));
 });
 
 test("Settings: mode, schedule, connections and purchase gate from the API", async () => {
