@@ -157,7 +157,7 @@ def test_one_position_still_skips(authed, clock):
 
 def test_strategy_card_and_setting(authed):
     got = {t["key"] for t in authed.get("/api/strategies").json()["toggles"]}
-    assert "fast_pass_150k" not in got  # plan file without fast_pass_150k_cfg → no card (feature inert)
+    assert "fast_pass_150k" in got  # D167: all four cards always shown (cfg read from each plan file)
     h = authed.app.state.rules
     cfgs = {"fast_pass_150k_cfg": CFG, "fast_pass_25k_cfg": CFG25, "fast_pass_100k_cfg": CFG100}
     h.rules = h.rules.model_copy(update={"strategy": h.rules.strategy.model_copy(update=cfgs)})
