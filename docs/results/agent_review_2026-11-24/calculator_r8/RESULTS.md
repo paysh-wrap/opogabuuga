@@ -1,0 +1,7 @@
+# Dashboard profit calculator, round 8 (2026-11-24) - UNVERIFIED research projection, not a promise
+Generator: make_calc.py -> config/income_calc.json (the ONLY source of the calculator's figures; backend app/api/income.py + IncomeProjection.tsx only read it). Rerun: `python3 make_calc.py` (about 2 min, 4 cores).
+Strategy: MAIN = Fast Evaluation NOISE + CANDACE (NOISE profit lock 100/10, stop $100 for the fixed 1-9 micro cells; "Auto" = the plan's own fast_pass_*_cfg sizes and brakes, r6 candidate a = High risk, lowest brake step = Regular). Replaces the old session-19 $250 stream.
+Sim: funded_payout_r6/fsim.py (patched in memory with a payout cadence) on /home/user/days.pkl: EOD MLL + lock, DLL + LucidScale, payout consistency 35 %, kill $50, news hard breach, $2/micro RT, net 90 %. Per account, first 250 sessions, rolling start on every day; N accounts = N x one account (same trades).
+Grid: 4 Pro plans x micros 1..9 x growth (off, 500..3000, cap 9) x payout (weekly, 2 weeks, on-demand) + Auto high/regular = 672 cells. Micros above 9 are not offered (the plan yamls cap fast-pass sizes at 5-6).
+On-demand = payout whenever eligible; official help center confirms no fixed payout window (on_demand_payouts_r8/RESULTS.md), intraday/pause/3-day details VERIFY.
+Caveat shown in the UI: funded accounts are lost often (funded_payout_r6/RESULTS.md: 20-43 % lost within 120 days on 25K/50K/100K). Large fixed sizes bust almost always (e.g. 25K 3 micros: 100 % busts, 9 micros 5 % ever paid).
