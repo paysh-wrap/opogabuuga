@@ -10,9 +10,12 @@ import "./mission.css";
 import "./finish.css"; // D117 refined finish
 import "./variants.css"; // optional style variants (html[data-style])
 import "./polish.css"; // UI polish 2026-11-24; loaded last
+import "./luxe.css"; // luxe depth + motion layer; after polish
+import { installLuxe } from "./luxe";
 import { applyStyle } from "./style-switch";
 
 applyStyle();
+installLuxe();
 
 const qc = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: true } } });
 

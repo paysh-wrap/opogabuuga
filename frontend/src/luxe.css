@@ -1,0 +1,50 @@
+/* ---------- Luxe layer 2026-11-24: depth, sheen, flash, load-in. Loaded after polish.css. Token colours only (theme.ts gold/blue,
+   navy ground). Paint-only effects (no layout shift); every animation off under prefers-reduced-motion. ---------- */
+:root { --lx-gold: 212, 175, 55; --lx-blue: 59, 130, 246; }
+
+/* depth: faint slow aurora + grain behind the page, fixed and non-interactive */
+.mission::before {
+  content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 20% 15%, rgba(var(--lx-blue), .10), transparent 70%),
+    radial-gradient(35% 30% at 80% 10%, rgba(var(--lx-gold), .06), transparent 70%),
+    radial-gradient(45% 40% at 60% 90%, rgba(var(--lx-blue), .07), transparent 70%);
+  animation: lx-aurora 60s ease-in-out infinite alternate;
+}
+@keyframes lx-aurora { to { transform: translate3d(4%, -3%, 0) rotate(6deg); } }
+
+/* cards: 1px gold hairline on top, soft inner glow, pointer-follow sheen (vars set by luxe.ts) */
+.mission main :is(section, article).bg-card { position: relative; isolation: isolate;
+  box-shadow: inset 0 1px 0 rgba(var(--lx-gold), .22), inset 0 0 24px rgba(var(--lx-blue), .05), 0 8px 24px rgba(0, 0, 0, .25); }
+.mission main :is(section, article).bg-card::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1; opacity: 0;
+  background: radial-gradient(380px circle at var(--lx-x, 50%) var(--lx-y, 0%), rgba(var(--lx-gold), .07), transparent 60%);
+  transition: opacity .35s ease;
+}
+.mission main :is(section, article).bg-card:hover::after { opacity: 1; }
+
+/* gold focus rings and press feedback */
+.mission :is(button, a, summary, input, select):focus-visible { outline: 2px solid rgb(var(--lx-gold)); outline-offset: 2px; }
+.mission main button:not(:disabled):active { transform: translateY(1px) scale(.99); }
+
+/* reactive numbers: tabular figures + soft gold flash when the value changes (class set by luxe.ts) */
+.mission .tabular-nums, .mission .font-mono { font-variant-numeric: tabular-nums; }
+.lx-flash { animation: lx-flash 900ms ease-out; border-radius: 4px; }
+@keyframes lx-flash { 0% { background-color: rgba(var(--lx-gold), .22); } 100% { background-color: transparent; } }
+
+/* staggered load-in of top-level cards (opacity/transform only) */
+.mission main :is(section, article).bg-card { animation: lx-in .5s cubic-bezier(.2, .7, .2, 1) both; }
+.mission main :is(section, article).bg-card:nth-child(2) { animation-delay: 40ms; }
+.mission main :is(section, article).bg-card:nth-child(3) { animation-delay: 80ms; }
+.mission main :is(section, article).bg-card:nth-child(4) { animation-delay: 120ms; }
+.mission main :is(section, article).bg-card:nth-child(n+5) { animation-delay: 160ms; }
+@keyframes lx-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* uppercase label tracking */
+.mission main .uppercase { letter-spacing: .12em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission::before, .mission main :is(section, article).bg-card, .lx-flash { animation: none !important; }
+  .mission main :is(section, article).bg-card::after { display: none; }
+  .mission main button:active { transform: none; }
+}
