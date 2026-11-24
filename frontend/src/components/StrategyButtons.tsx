@@ -135,10 +135,9 @@ function DrawdownCompareView({ c }: { c: DrawdownCompare }) {
 export const choiceOf = (key: string): string | null =>
   ["noise", "candace_ict", "pm_fade"].includes(key) ? "main"
     : key.startsWith("order_flow") ? "order_flow"
-    : ["ai_duo", "noise_ai_split"].includes(key) ? "ai_duo"
     : key === "ai_bias" ? null : key;
 const CHOICE_SETTINGS: Record<string, string[]> = {
-  main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"], ai_duo: ["strategy.ai_duo", "strategy.noise_ai_split"],
+  main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"],
 };
 const MAIN_PAIR = ["noise", "candace_ict"];
 const MAIN_SETTINGS = ["strategy.noise", "strategy.candace_ict"];
@@ -163,7 +162,7 @@ export default function StrategyButtons() {
         turnedOff = [...others].map((c) => offName(c));
       }
       const pair = !s.enabled && mine === "main" ? ["strategy.noise", "strategy.candace_ict"] : [];
-      const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || s.key === "noise_ai_split" || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
+      const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
       const mainOff = s.enabled && mine === "main" && MAIN_PAIR.includes(s.key) ? Object.fromEntries(MAIN_SETTINGS.map((k) => [k, false])) : {}; // one choice: never a half-on state
       const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on, ...mainOff };
       await api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });

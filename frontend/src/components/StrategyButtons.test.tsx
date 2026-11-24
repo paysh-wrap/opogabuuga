@@ -7,7 +7,7 @@ const resp: StrategiesResp = {
   strategies: [
     { key: "pm_fade", name: "MAIN — NOISE + Afternoon fade ($250 stops, MNQ)", source: "s", verified: true, status: "MAIN", win_pct: 50, profit_factor: 1.33, usd_per_trade: 19.63, trades_per_week: 5.2, held_out_trades: 1291, pro25k_pass_pct: 65.7, pro25k_bust_pct: 32.2, period: "p", note: "n", enabled: false, setting: "strategy.pm_fade", also: ["strategy.noise"] },
     { key: "noise", name: "NOISE — intraday momentum (MNQ)", source: "Zarattini", verified: true, status: "VERIFIED", win_pct: 45, profit_factor: 1.33, usd_per_trade: 25.81, trades_per_week: 3, held_out_trades: 440, pro25k_pass_pct: 56.9, pro25k_bust_pct: 42.2, eval_odds: { plan: "lucid_pro_25k", table: "regular", eod_on: false, text: "pass 56.9% / bust 42.2% · last 12 mo 55/45 · EOD toggle OFF", pass_pct: 56.9, bust_pct: 42.2, last12_pass_pct: 55, last12_bust_pct: 45 }, period: "held-out 2024-01 → 2026-11", note: "n", enabled: true, setting: "strategy.noise" },
-    { key: "noise_ai_split", name: "NOISE + AI Duo — 50/50 risk split", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.noise_ai_split", also: ["strategy.noise", "strategy.ai_duo"] },
+    { key: "ai_duo", name: "AI Duo — both AIs agree", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT measured", note: "n", enabled: false, setting: "strategy.ai_duo", also: [] },
     { key: "order_flow", name: "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow", instruments: ["MNQ", "MGC"], paper_only: false, flat_at: "16:00", ar_layers: [{ key: "ENVIRONMENT", on: true, rule: "no compression" }, { key: "PATH", on: false, rule: "Asia zones" }] },
     { key: "order_flow_amt", name: "AMT+ Order Flow — context → location → order flow last — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.amt.enabled", also: ["strategy.order_flow"], amt_layers: [{ key: "CONTEXT", on: false, rule: "acceptance vs prior RTH value" }] },
     { key: "order_flow_zone", name: "Order Flow · ATR zones (iceberg PROXY) — UNVERIFIED", source: "s", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "NOT tested", note: "n", enabled: false, setting: "strategy.order_flow_cfg.zone_atr.enabled", also: ["strategy.order_flow"], zone_layers: [{ key: "EVENT", on: false, rule: "footprint absorption zone" }] },
@@ -71,10 +71,6 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("duo-log")).toHaveTextContent("NO TRADE · AI_DISAGREE");
   expect(screen.getByTestId("duo-log")).toHaveTextContent("TRADE LONG · TAKEN");
   expect(screen.getByTestId("duo-log")).toHaveTextContent("same side as NOISE");
-  // D92: split-risk card is OFF by default, shows no invented numbers, and turns NOISE + AI Duo on with it
-  expect(screen.getByTestId("win-noise_ai_split")).toHaveTextContent("—");
-  await userEvent.click(screen.getByRole("button", { name: /OFF · NOISE \+ AI Duo — 50\/50 risk split/ }));
-  await waitFor(() => expect(calls.some((c) => c.includes('"strategy.noise_ai_split":true,"strategy.noise":true,"strategy.ai_duo":true'))).toBe(true));
   // D110: AMT+ button lists its layers and turns Order Flow on with it
   expect(screen.getByTestId("zone-layers")).toHaveTextContent("EVENT (OFF) — footprint absorption zone");
   expect(screen.getByTestId("amt-layers")).toHaveTextContent("CONTEXT (OFF) — acceptance vs prior RTH value");
@@ -254,8 +250,8 @@ test("D167: main strategy first, one strategy ON at a time, four independent fas
   expect(flow.compareDocumentPosition(lesser) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // main → secondary → lesser
   expect(lesser.open).toBe(false); // closed by default
   expect(screen.getByTestId("strategy-order-flow-group")).toHaveTextContent("SECONDARY strategy — ORDER FLOW");
-  expect(lesser).toContainElement(screen.getByTestId("strategy-noise_ai_split"));
-  expect(flow).not.toContainElement(screen.getByTestId("strategy-noise_ai_split"));
+  expect(lesser).toContainElement(screen.getByTestId("strategy-ai_duo"));
+  expect(flow).not.toContainElement(screen.getByTestId("strategy-ai_duo"));
   for (const n of ["25k", "50k", "100k", "150k"]) expect(screen.getByTestId(`weekly-fast_pass_${n}`)).toHaveTextContent("Weekly target");
   // two fast-pass plans ON together is fine (independent)
   expect(screen.getByTestId("toggle-fast_pass_25k-on")).toHaveAttribute("aria-pressed", "true");
