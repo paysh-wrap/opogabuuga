@@ -1,0 +1,31 @@
+variants (thr,stop,target): pick-part 2024-01..2025-06 PF/net/n
+(0.35, 40, 60) n=190 PF=1.25 net=2081
+(0.35, 30, 45) n=190 PF=1.12 net=820
+(0.35, 60, 90) n=190 PF=1.21 net=2541
+(0.5, 40, 60) n=134 PF=1.33 net=1873
+(0.5, 30, 45) n=134 PF=1.15 net=692
+(0.5, 60, 90) n=134 PF=1.26 net=2185
+FROZEN (best recent-pick PF): (0.5, 40, 60)
+pre-2024               n=206 win=41.7% PF=1.03 net=255 maxDD=1120
+recent-pick 24-01..25-06 n=134 win=48.5% PF=1.33 net=1873 maxDD=548
+recent-JUDGE 25-07..26-10 n=134 win=46.3% PF=1.23 net=1343 maxDD=794
+full 2024-26           n=268 win=47.4% PF=1.28 net=3215 maxDD=1096
+  2021H2: n=18 PF=0.73 net=-247
+  2022H1: n=42 PF=0.89 net=-244
+  2022H2: n=42 PF=0.98 net=-44
+  2023H1: n=52 PF=0.97 net=-64
+  2023H2: n=52 PF=1.40 net=855
+  2024H1: n=41 PF=1.05 net=99
+  2024H2: n=50 PF=1.69 net=1300
+  2025H1: n=43 PF=1.25 net=474
+  2025H2: n=56 PF=0.84 net=-461
+  2026H1: n=47 PF=1.78 net=1346
+  2026H2: n=31 PF=1.35 net=458
+judge random-direction control (1000): PF p95=1.17 net p95=1012; real PF=1.23 net=1343
+corr daily P&L proxy vs NOISE+CANDACE full: 0.094 (all days); on days proxy traded: 0.170
+corr daily P&L proxy vs NOISE+CANDACE recent 24-26: 0.089 (all days); on days proxy traded: 0.162
+corr daily P&L proxy vs NOISE+CANDACE judge: 0.073 (all days); on days proxy traded: 0.121
+SIM 50K base: {'all': (np.float64(66.3), 61.0, np.float64(26.2)), '2024+': (np.float64(56.5), 64.5, np.float64(30.2)), '2025-07+': (np.float64(36.2), 57.0, np.float64(35.6)), 'profit': 39080, 'dd': 3703}
+SIM 50K +proxy: {'all': (np.float64(61.4), 57.0, np.float64(32.6)), '2024+': (np.float64(53.9), 60.0, np.float64(35.5)), '2025-07+': (np.float64(26.9), 44.5, np.float64(50.6)), 'profit': 38368, 'dd': 3693}
+SIM 150K base: {'all': (np.float64(74.4), 80.0, np.float64(4.4)), '2024+': (np.float64(57.3), 70.0, np.float64(5.0)), '2025-07+': (np.float64(35.3), 66.5, np.float64(0.0)), 'profit': 100575, 'dd': 8192}
+SIM 150K +proxy: {'all': (np.float64(71.0), 76.0, np.float64(17.2)), '2024+': (np.float64(48.5), 62.0, np.float64(30.5)), '2025-07+': (np.float64(33.5), 80.5, np.float64(22.2)), 'profit': 98122, 'dd': 8248}
