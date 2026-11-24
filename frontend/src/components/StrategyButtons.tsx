@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { badge } from "../lib/theme";
 import MoreInfo from "./MoreInfo";
+import EvidenceBadge from "./EvidenceBadge";
 import { AdvisorCardLine, type AdvisorResp } from "./AdvisorCard";
 import LoadError from "./LoadError";
 import { SaveAlert, useSaveAlert } from "./useSaveAlert";
@@ -55,7 +55,7 @@ export interface DdRow { plan: string; eod: DdOdds; intraday: DdOdds }
 /** Session 22: EOD-trailing vs intraday-trailing drawdown (config/eval_odds.yaml drawdown_types). */
 export interface DrawdownCompare { current: DdRow | null; rows: DdRow[]; source: string | null; text: string }
 export interface ToggleRow { key: string; setting: string; title: string; value: boolean; on_label: string; off_label: string; note: string; compare?: DrawdownCompare; weekly?: WeeklyTarget | null; late?: LateOption | null }
-export interface LateOption { setting: string; value: boolean; label: string; detail: string }
+export interface LateOption { setting: string; value: boolean; label: string; detail: string; verified?: boolean; badge?: string | null } // label carries the API's held-out PF
 export interface WeeklyTarget { target: string; median_days: string; needed_week: string; sim_week: string; measured: boolean; source: string }
 export interface DuoRow { symbol?: string; day: string; status: string; code: string; direction: string; label: string | null; agrees_with_noise: boolean | null; mode?: string; below_preferred_2r?: boolean }
 export interface TaMgcResp {
@@ -242,7 +242,7 @@ export default function StrategyButtons() {
       >
         {s.enabled ? "ON" : "OFF"} · {s.name}
       </button>}
-      <p className="mt-2 text-xs"><span aria-hidden style={{ color: s.verified ? badge.ok : badge.bad }}>●</span> <b className="text-gold">{s.status}</b> <span className="text-blue">{s.period}</span></p>
+      <p className="mt-2 text-xs"><EvidenceBadge verified={s.verified} text={s.verified ? s.badge ?? s.status : s.badge} testId={`evidence-${s.key}`} /> <span className="text-blue">{s.period}</span></p>
       <dl className="mt-2 grid grid-cols-2 gap-x-2 text-sm">
         <dt>Win rate</dt><dd className="text-gold" data-testid={`win-${s.key}`}>{pct(s.win_pct)}</dd>
         <dt>Eval pass</dt><dd className="text-gold" data-testid={`pass-${s.key}`}>{pct(s.pro25k_pass_pct)}</dd>
@@ -256,8 +256,7 @@ export default function StrategyButtons() {
       {!noteInSetup(s) && <MoreInfo testId={`more-${s.key}`}><p className="text-blue">{s.note}</p></MoreInfo>}
       {s.key === "order_flow" && (
         <div className="mt-2 text-xs" data-testid="order-flow-setup">
-          <span className="rounded border border-gold px-1 font-semibold text-gold" data-testid="order-flow-badge">UNVERIFIED</span>
-          <p className="mt-1 text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
+          <p className="text-blue" data-testid="order-flow-markets">Trades: <b className="text-gold">{(s.instruments ?? ["MNQ"]).join(" + ")}</b>{s.paper_only === true && " · PAPER accounts only (plan file)"}{s.flat_at && ` · flat ${s.flat_at} ET`} · 1 micro{s.instruments?.includes("MGC") && " · MGC (gold) is on for Order Flow only — every other strategy keeps it off"}</p>
           <MoreInfo label="More info + setup" testId={`more-${s.key}`}>
           <p className="text-blue">{s.note}</p>
           <p className="mt-1 text-blue">AR Model (D101): every layer must agree before the order-flow signal counts; stop beyond the absorption zone, 2R target. No real order-flow backtest exists.</p>
@@ -300,12 +299,11 @@ export default function StrategyButtons() {
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-blue" data-testid="ar-sbs-evidence"><span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span> {s.ar_side_by_side.evidence} AI bias is {s.ar_side_by_side.advisor_mode.toLowerCase()} only until its ledger is proven.</p>
+          <p className="mt-1 text-blue" data-testid="ar-sbs-evidence"><EvidenceBadge verified={s.ar_side_by_side.verified} /> {s.ar_side_by_side.evidence} AI bias is {s.ar_side_by_side.advisor_mode.toLowerCase()} only until its ledger is proven.</p>
         </div>
       )}
       {s.key === "order_flow_amt" && s.amt_layers && (
         <div className="mt-2 text-xs" data-testid="amt-setup">
-          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED</span>
           <MoreInfo testId={`more-${s.key}`}>
           <p className="text-blue">{s.note}</p>
           <p className="mt-1 text-blue">Top-down (D110): context first, location next, the order-flow signal LAST. Turning it on also turns Order Flow on; it only removes trades (codes OF_AMT_*).</p>
@@ -317,7 +315,6 @@ export default function StrategyButtons() {
       )}
       {s.key === "order_flow_zone" && s.zone_layers && (
         <div className="mt-2 text-xs" data-testid="zone-setup">
-          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · iceberg PROXY (no MBO data)</span>
           <MoreInfo testId={`more-${s.key}`}>
           <p className="text-blue">{s.note}</p>
           <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="zone-layers">
@@ -328,7 +325,6 @@ export default function StrategyButtons() {
       )}
       {s.strategy_rules && (
         <div className="mt-2 text-xs" data-testid={`${s.key}-setup`}>
-          <span className="rounded border border-gold px-1 font-semibold text-gold">{s.badge ?? "UNVERIFIED · rules from one transcript"}</span>
           <MoreInfo label="Rules" testId={`more-${s.key}-rules`}>
           <ol className="mt-1 list-decimal pl-4 text-blue" data-testid={`${s.key}-rules`}>
             {s.strategy_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
@@ -339,7 +335,6 @@ export default function StrategyButtons() {
       )}
       {s.key === "gala_pa" && s.gala_rules && (
         <div className="mt-2 text-xs" data-testid="gala-setup">
-          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from one Gala Trades transcript</span>
           <MoreInfo label="Gala's rules" testId="more-gala-rules">
           <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="gala-rules">
             {s.gala_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
@@ -350,7 +345,6 @@ export default function StrategyButtons() {
       )}
       {s.key === "jj_fpt" && s.jj_rules && (
         <div className="mt-2 text-xs" data-testid="jj-setup">
-          <span className="rounded border border-gold px-1 font-semibold text-gold">UNVERIFIED · rules from JJ's videos</span>
           <MoreInfo label="JJ's rules" testId="more-jj-rules">
           <ol className="mt-1 list-decimal pl-4 text-blue" data-testid="jj-rules">
             {s.jj_rules.map((l) => <li key={l.key}><b className="text-gold">{l.key}</b> {l.on ? "" : "(OFF) "}— {l.rule}</li>)}
@@ -372,7 +366,7 @@ export default function StrategyButtons() {
         <div className="mt-2 text-xs text-blue" data-testid={`weekly-${t.key}`}>
           <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
           <p>Simulated avg: <b className="text-gold">${Number(t.weekly.sim_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b></p>
-          <p>Backtest estimate; accounts trade the same signals so they win and lose together.{!t.weekly.measured && <span className="ml-1 rounded border border-gold px-1 font-semibold text-gold" data-testid={`weekly-unmeasured-${t.key}`}>NOT RE-MEASURED after D163</span>}</p>
+          <p>Backtest estimate; accounts trade the same signals so they win and lose together.{!t.weekly.measured && <span className="ml-1"><EvidenceBadge verified={false} text={`not re-measured — ${t.weekly.source}`} testId={`weekly-unmeasured-${t.key}`} /></span>}</p>
         </div>
       )}
       <div className="mt-2 grid gap-2">
@@ -389,7 +383,7 @@ export default function StrategyButtons() {
       </div>
       {t.late && (
         <div className="mt-3 rounded-md border border-border p-2 text-xs" data-testid={`late-${t.key}`}>
-          <span className="mr-2 rounded border border-gold px-1 font-semibold text-gold" data-testid={`late-badge-${t.key}`}>UNVERIFIED · held-out PF 1.10</span>
+          <span className="mr-2"><EvidenceBadge verified={t.late.verified === true} text={t.late.badge} testId={`late-badge-${t.key}`} /></span>
           <button type="button" aria-pressed={t.late.value} disabled={flip.isPending} data-testid={`late-toggle-${t.key}`}
             onClick={() => lateFlip.mutate({ late: t.late!, v: !t.late!.value })}
             className={`rounded-md border px-2 py-1 text-left font-semibold ${t.late.value ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue"}`}>

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StrategyButtons, { type StrategiesResp, type Strat } from "./StrategyButtons";
@@ -143,4 +143,27 @@ test("Lesser summary shows the current choice; the note sits in the clicked card
   await userEvent.click(summary);
   await waitFor(() => expect(screen.queryByTestId("exclusive-note-closed")).toBeNull());
   expect(screen.getByTestId("strategy-gala_pa")).toContainElement(screen.getByTestId("exclusive-note"));
+});
+
+// ---- item 5: one API-driven evidence badge per strategy ----
+test("every strategy card has exactly one evidence badge from the API; CANDACE and late-day are UNVERIFIED", async () => {
+  const data = base([
+    strat({ key: "noise", name: "NOISE", setting: "strategy.noise", verified: true, status: "VERIFIED", enabled: true }),
+    strat({ key: "candace_ict", name: "CANDACE", setting: "strategy.candace_ict", verified: false, status: "UNVERIFIED", badge: "UNVERIFIED · rules from one transcript", enabled: true }),
+    strat({ key: "gala_pa", name: "GALA", setting: "strategy.gala_pa", verified: false, status: "UNVERIFIED", strategy_rules: [{ key: "A", on: true, rule: "r" }] }),
+  ]);
+  data.toggles = [{ key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass", value: false, on_label: "on", off_label: "off", note: "n",
+    late: { setting: "strategy.fast_pass_late_day", value: false, label: "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.12)", detail: "d" } }];
+  server(data, false);
+  wrap(<StrategyButtons />);
+  expect(await screen.findByTestId("evidence-noise")).toHaveTextContent("VERIFIED");
+  expect(screen.getByTestId("evidence-candace_ict")).toHaveTextContent("UNVERIFIED · rules from one transcript");
+  expect(screen.getByTestId("evidence-gala_pa")).toHaveTextContent("UNVERIFIED");
+  for (const k of ["noise", "candace_ict", "gala_pa"]) expect(within(screen.getByTestId(`strategy-${k}`)).getAllByText(/VERIFIED/)).toHaveLength(1);
+  expect(screen.getByTestId("late-badge-fast_pass_25k")).toHaveTextContent("UNVERIFIED");
+  // the late-day PF is shown once, straight from the API label (1.12), never hard-coded in the UI
+  const late = screen.getByTestId("late-fast_pass_25k");
+  expect(late).toHaveTextContent("held-out PF 1.12");
+  expect(late.textContent).not.toContain("1.10");
+  expect(late.textContent?.match(/held-out PF/g)).toHaveLength(1);
 });

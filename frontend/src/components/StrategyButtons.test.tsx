@@ -33,7 +33,7 @@ const resp: StrategiesResp = {
   toggles: [
     { key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass (evaluations)", value: false, on_label: "on", off_label: "off", note: "n",
       weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" },
-      late: { setting: "strategy.fast_pass_late_day", value: false, label: "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.10)", detail: "MNQ, 2 micro(s)" } },
+      late: { setting: "strategy.fast_pass_late_day", value: false, label: "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.12)", detail: "MNQ, 2 micro(s)" } },
     { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
     { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
       compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
@@ -57,7 +57,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.queryByTestId("odds-ai_bias")).toBeNull();
   expect(screen.getByTestId("win-ai_bias")).toHaveTextContent("—"); // D56: not back-testable → no fake numbers
   expect(screen.getAllByText("— (not testable)").length).toBe(5); // AI only + D92 split + D95 order flow + D110 AMT+ + D111 zones
-  expect(screen.getByTestId("order-flow-badge")).toHaveTextContent("UNVERIFIED"); // D95 (D102: no paper-only label)
+  expect(screen.getByTestId("evidence-order_flow")).toHaveTextContent("UNVERIFIED"); // D95 (D102: no paper-only label)
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("Paytience_OrderFlow.pine");
   expect(screen.getByTestId("order-flow-setup")).toHaveTextContent("1-minute MNQ1! / MGC1!"); // D96
   expect(screen.getByTestId("order-flow-markets")).toHaveTextContent("Trades: MNQ + MGC · flat 16:00 ET · 1 micro");
@@ -105,8 +105,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; accounts trade the same signals so they win and lose together.");
   expect(screen.getByTestId("weekly-unmeasured-fast_pass_25k")).toBeInTheDocument();
   // D166: 3rd-edge option INSIDE the fast-pass card, gold UNVERIFIED badge, own setting key
-  expect(screen.getByTestId("late-badge-fast_pass_25k")).toHaveTextContent("UNVERIFIED · held-out PF 1.10");
-  expect(screen.getByTestId("late-fast_pass_25k")).toHaveTextContent("3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.10)");
+  expect(screen.getByTestId("late-badge-fast_pass_25k")).toHaveTextContent("UNVERIFIED"); // badge is generic; the PF comes only from the API label below
+  expect(screen.getByTestId("late-fast_pass_25k")).toHaveTextContent("3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.12)");
   await userEvent.click(screen.getByTestId("late-toggle-fast_pass_25k"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.fast_pass_late_day":true'))).toBe(true));
   // calculator: default 1 account, totals = count x per-account API figures, remembered per viewer
@@ -146,7 +146,7 @@ test("JJ F.P.T STRAT card lists JJ's rules and turns on through its own setting"
   render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
   const card = await screen.findByTestId("strategy-jj_fpt");
   expect(card).toHaveTextContent("OFF · JJ F.P.T STRAT");
-  expect(screen.getByTestId("jj-setup")).toHaveTextContent("UNVERIFIED · rules from JJ's videos");
+  expect(screen.getByTestId("evidence-jj_fpt")).toHaveTextContent("UNVERIFIED"); // from the API (verified=false), one badge
   expect(screen.getByTestId("jj-rules")).toHaveTextContent("SESSIONS — first 90 min of each open, ET: NY 09:30");
   expect(screen.getByTestId("jj-rules")).toHaveTextContent("NEWS (OFF) — 08:30 red-folder news");
   await userEvent.click(screen.getByRole("button", { name: /JJ F.P.T STRAT/ }));
@@ -176,9 +176,9 @@ test("MGC NOISE + CANDACE card shows its own gold evidence badge", async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async (url) =>
     new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, g] } : {})));
   render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
-  const setup = await screen.findByTestId("mgc_noise_candace-setup");
-  expect(setup).toHaveTextContent("UNVERIFIED · 30-day yfinance test only");
-  expect(setup).not.toHaveTextContent("rules from one transcript");
+  const badge = await screen.findByTestId("evidence-mgc_noise_candace");
+  expect(badge).toHaveTextContent("UNVERIFIED · 30-day yfinance test only"); // text comes from the API badge field
+  expect(screen.getAllByText(/UNVERIFIED · 30-day yfinance/)).toHaveLength(1); // one badge, not repeated in the rules block
 });
 
 test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"], ["okala_8020", "OKALA 8020"], ["bruni_structure", "BRUNI STRUCTURE"]]) ("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
