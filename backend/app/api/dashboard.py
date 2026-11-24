@@ -903,6 +903,41 @@ def _ar_side_by_side(db: Session, r: Any, sess: Any) -> dict[str, Any]:
     }
 
 
+def _combined_view(db: Session, r: Any) -> dict[str, Any]:
+    """D175: the ONE choice that runs MAIN (Fast Evaluation NOISE + CANDACE) and Order Flow AR together, with its guard
+    parameters in plain words and whether it can start (needs 2+ eligible accounts, otherwise blocked, no fallback)."""
+    from app.risk.fast_pass import SBS_MIN_ACCOUNTS, sbs_needs_more_accounts
+    from app.risk.settings_store import COMBINED_CHOICE, _eligible_accounts, strategy_choices_on
+
+    n = _eligible_accounts(db)
+    blocked = sbs_needs_more_accounts(n)
+    of = r.strategy.order_flow_cfg
+    return {
+        "key": COMBINED_CHOICE,
+        "title": "MAIN FAST PASS + ORDER FLOW (separate accounts)",
+        "enabled": COMBINED_CHOICE in strategy_choices_on(r.strategy),
+        "setting": "strategy.order_flow_cfg.ar_side_by_side",
+        "settings_on": ["strategy.noise", "strategy.candace_ict", "strategy.order_flow", "strategy.order_flow_cfg.ar_side_by_side"],
+        "eligible_accounts": n,
+        "min_accounts": SBS_MIN_ACCOUNTS,
+        "can_start": not blocked,
+        "blocked_reason": (
+            f"needs at least {SBS_MIN_ACCOUNTS} eligible accounts (selected, not paused, not closed); found {n}"
+            if blocked
+            else None
+        ),
+        "guards": [
+            "Order Flow trades only on a DIFFERENT free account than NOISE / CANDACE (one account per trade, never copy trading).",
+            "One direction for the whole household: an opposite-side signal is skipped (HEDGE_LOCK). Never a hedge.",
+            "At most 1 open position per account.",
+            "Every account keeps its own loss limit, daily loss limit, consistency day stop, kill switch, news and flat rules.",
+            f"Order Flow size = the smallest of its own size ({of.contracts}), the Lucid fit and half of the NOISE fast-pass size (at least 1).",
+            "Fast-pass sizes follow the stage rules shown in the size card; Evaluation Mode stays EVAL only.",
+            "Plain MAIN and plain Order Flow stay mutually exclusive; this is the only way both run.",
+        ],
+    }
+
+
 def _fast_pass_weekly(plan_stem: str) -> dict[str, Any] | None:
     """D164: weekly profit targets for a fast-pass card. Figures come from config/eval_odds.yaml (fast_pass_weekly), the
     eval target from the plan yaml. weekly_needed = target / (median_days / 5); sim_weekly = 5-year profit / 260."""
@@ -983,12 +1018,17 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
                 **({"ar_side_by_side": _ar_side_by_side(db, r, sess)} if c["key"] == "order_flow" else {}),
+                **(  # D175: Iceberg proxy greyed out, cannot be turned on (backend refuses the save, forces OFF on load)
+                    {"disabled": True, "off_for_now": "OFF for now"} if c["key"] == "order_flow_zone" else {}
+                ),
                 **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
                 **({"gala_rules": gala_rules(r)} if c["key"] == "gala_pa" else {}),
                 **({"strategy_rules": RULE_CARDS[str(c["key"])](r)} if c["key"] in RULE_CARDS else {}),
             }
             for c in CATALOG
         ],
+        "notice": request.app.state.rules.notice,  # D175: stored invalid combination loaded as MAIN only
+        "combined": _combined_view(db, r),
         "noise_warmup": {
             "sessions": len(stored),
             "needed": nc.min_history_days,

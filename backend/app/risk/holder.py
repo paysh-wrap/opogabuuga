@@ -34,6 +34,7 @@ class RulesHolder:
     plan_rules: dict[str, RulesConfig] = field(default_factory=dict)
     plan_errors: dict[str, str] = field(default_factory=dict)
     _bases: dict[str, LoadedRules] = field(default_factory=dict)
+    notice: str | None = None
 
     def __post_init__(self) -> None:
         self.rules = self.base.rules
@@ -68,6 +69,7 @@ class RulesHolder:
 
         rules, self.eval_mode_on = retire_short_modes(eff.rules), eff.eval_mode_on
         self.fast_eval_on = eff.fast_eval_on
+        self.notice = eff.notice  # D175: shown as a banner on the Strategy page (never silent)
         try:
             self.rules = self._overlay(s, rules)
         except ValueError as e:  # pydantic ValidationError: stored payout settings invalid → block trading

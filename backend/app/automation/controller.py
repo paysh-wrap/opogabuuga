@@ -64,6 +64,8 @@ from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limit
 from app.risk.fast_pass import (
     FastPassSize,
     ar_side_by_side,
+    sbs_eligible_accounts,
+    sbs_needs_more_accounts,
     ar_side_cap,
     fast_pass_day_locked,
     fast_pass_lock,
@@ -493,6 +495,11 @@ class Controller:
             )
             ar_sbs = plan0.mode == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features)  # D160
             one_acct = one_acct or ar_sbs
+            if ar_sbs and sbs_needs_more_accounts(
+                sbs_eligible_accounts({a.id: (a.selected, a.paused_reason, a.closed_by_firm) for a in all_accts})
+            ):  # D175: the combined choice needs 2+ eligible accounts: refuse loudly, never fall back to one account
+                audit.record(s, self.clock, actor, "order_flow.sbs_blocked", str(sig.id), {"reason": "SBS_NEEDS_2_ACCOUNTS"})
+                return [*out, AccountResult(0, False, "SBS_NEEDS_2_ACCOUNTS")]
             if one_acct:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
                 busy = {t.account for t in self.om.trades.values()}

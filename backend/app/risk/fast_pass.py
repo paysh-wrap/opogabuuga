@@ -126,3 +126,17 @@ def ar_side_cap(size: int, noise: FastPassSize | None) -> int:
     """D160: AR side-by-side size = min(its own size, half of the NOISE fast-pass size when one applies), at least 1.
     Tighten-only: the Lucid fit, DLL / MLL room, consistency and every other pre-trade check still shrink or skip."""
     return size if noise is None else min(size, max(1, noise.contracts // 2))
+
+
+SBS_MIN_ACCOUNTS = 2
+
+
+def sbs_eligible_accounts(accounts: Mapping[Any, tuple[bool, str | None, bool]]) -> int:
+    """D175: accounts that can take a trade for the combined MAIN + ORDER FLOW choice. Each value is
+    (selected, paused_reason, closed_by_firm); a paused / closed / unselected account is not eligible."""
+    return sum(1 for sel, paused, closed in accounts.values() if sel and paused is None and not closed)
+
+
+def sbs_needs_more_accounts(eligible: int) -> bool:
+    """D175: True = the combined choice cannot run (needs at least SBS_MIN_ACCOUNTS eligible accounts): block, no fallback."""
+    return eligible < SBS_MIN_ACCOUNTS

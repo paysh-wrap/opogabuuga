@@ -269,6 +269,7 @@ class Effective:
     eval_mode_on: bool
     verified_paths: list[str]
     fast_eval_on: bool = False
+    notice: str | None = None  # D175: banner when a stored invalid strategy combination was loaded as MAIN only
 
 
 def latest(s: Session, kind: str) -> RiskProfile | None:
@@ -317,8 +318,13 @@ def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effecti
     use_firm = firm if apply_firm else None
     fo = use_firm.body_overrides() if use_firm else {}
     cfg, _ = build(merged_raw(base, fo, mine))
+    if cfg.strategy.order_flow_cfg.zone_atr.enabled:  # D175: Iceberg proxy is OFF for now, whatever is stored
+        mine = {**mine, ZONE_KEY: False}
+        cfg, _ = build(merged_raw(base, fo, mine))
     fixed = enforce_one_choice(mine, cfg)  # D167: pre-D167 saves with 2+ choices ON load with the extras OFF
+    notice = None
     if fixed is not mine:
+        notice = fallback_notice(mine, fixed)
         mine = fixed
         cfg, _ = build(merged_raw(base, fo, mine))
     verified = list(use_firm.verified_paths) if use_firm else []
@@ -329,6 +335,7 @@ def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effecti
         bool(ev.settings.get("enabled")) if ev else False,
         verified,
         fast_eval_on=bool(fe.settings.get("enabled")) if fe else False,
+        notice=notice,
     )
 
 
@@ -348,17 +355,40 @@ STRATEGY_CHOICES: dict[str, tuple[str, ...]] = {
 }
 
 
+ZONE_KEY = "strategy.order_flow_cfg.zone_atr.enabled"  # D175: Iceberg proxy, OFF for now
+COMBINED_CHOICE = "main_fast_pass_order_flow"  # D175: the ONLY legal way MAIN and Order Flow run together
+AR_SBS_KEY = "strategy.order_flow_cfg.ar_side_by_side"
+# turning one of these ON also turns Order Flow ON in the UI (catalog "also"), so it counts as turning Order Flow ON
+ORDER_FLOW_OPTION_KEYS = (
+    "strategy.order_flow_cfg.amt.enabled",
+    "strategy.order_flow_cfg.zone_atr.enabled",
+    "strategy.order_flow_cfg.auction.enabled",
+)
+
+
 def strategy_choices_on(strategy: Any) -> list[str]:
+    """The strategy choices that are ON. MAIN (NOISE / CANDACE) + Order Flow + ar_side_by_side ON together is ONE legal
+    choice (D175 COMBINED_CHOICE, listed first); MAIN + Order Flow without it are two choices (= illegal)."""
     on = []
+    combined = (
+        bool(strategy.noise or strategy.candace_ict)
+        and bool(strategy.order_flow)
+        and bool(strategy.order_flow_cfg.ar_side_by_side)
+    )
+    if combined:
+        on.append(COMBINED_CHOICE)
     for c, attrs in STRATEGY_CHOICES.items():
+        if combined and c in ("main_noise_candace", "order_flow"):
+            continue
         if any(bool(getattr(strategy, a)) for a in attrs):
             on.append(c)
     return on
 
 
 def enforce_one_choice(mine: dict[str, Any], cfg: RulesConfig) -> dict[str, Any]:
-    """D167 for stored settings (rollback, load of pre-D167 saves): keep the first ON choice in
-    STRATEGY_CHOICES order and switch the others OFF. Tighten-only; returns `mine` unchanged when <= 1 is ON."""
+    """D167 for stored settings (rollback, load of pre-D167 saves): keep the first ON choice (the combined choice, else
+    STRATEGY_CHOICES order) and switch the others OFF. MAIN + Order Flow without the D175 combined switch falls back to
+    MAIN only. Tighten-only; returns `mine` unchanged when <= 1 is ON."""
     on = strategy_choices_on(cfg.strategy)
     if len(on) <= 1:
         return mine
@@ -367,6 +397,20 @@ def enforce_one_choice(mine: dict[str, Any], cfg: RulesConfig) -> dict[str, Any]
         for a in STRATEGY_CHOICES[c]:
             out[f"strategy.{a}"] = False
     return out
+
+
+def fallback_notice(mine: dict[str, Any], fixed: dict[str, Any]) -> str | None:
+    """Banner text when a stored invalid combination was loaded with the extras switched OFF (D167 / D175)."""
+    off = sorted(k.removeprefix("strategy.") for k, v in fixed.items() if v is False and mine.get(k) is not False)
+    return f"Stored settings had two strategy choices ON; turned OFF: {', '.join(off)} (only MAIN stays; D167/D175)." if off else None
+
+
+def _eligible_accounts(s: Session) -> int:
+    from app.models import Account
+    from app.risk.fast_pass import sbs_eligible_accounts
+
+    rows = s.execute(select(Account)).scalars()
+    return sbs_eligible_accounts({a.id: (a.selected, a.paused_reason, a.closed_by_firm) for a in rows})
 
 
 def save_my_settings(
@@ -381,14 +425,30 @@ def save_my_settings(
     bad = sorted(set(changes) - MY_SETTINGS_KEYS)
     if bad:
         raise SettingsError([f"not editable in My Settings: {', '.join(bad)}"])
+    if changes.get(ZONE_KEY) is True:
+        raise SettingsError(["Iceberg proxy is OFF for now and cannot be turned on (D175)"])
     cur = latest(s, "standard")
     firm = latest_firm(s)
     merged = {**(cur.settings if cur else {}), **{k: _norm(v) for k, v in changes.items()}}
     cfg, v = build(merged_raw(base, firm.body_overrides() if firm else {}, merged))
+    was = strategy_choices_on(effective(s, base).rules.strategy)
     touched = {a for c in STRATEGY_CHOICES.values() for a in c if changes.get(f"strategy.{a}") is True}
+    if any(changes.get(k) is True for k in ORDER_FLOW_OPTION_KEYS):
+        touched.add("order_flow")  # D175: an Order Flow option ON is Order Flow ON for the exclusivity rule
     on = strategy_choices_on(cfg.strategy)
+    if COMBINED_CHOICE in on and changes.get(AR_SBS_KEY) is not True and COMBINED_CHOICE not in was:
+        # D175: MAIN + Order Flow together only by choosing the combined button (it sets ar_side_by_side ON itself)
+        raise SettingsError([f"MAIN and Order Flow run together only as the combined choice (D175); ON: {', '.join(on)}"], v)
     if touched and len(on) > 1:
         raise SettingsError([f"only one strategy button may be ON at a time (D167); ON: {', '.join(on)}"], v)
+    if COMBINED_CHOICE in on and COMBINED_CHOICE not in was:
+        from app.risk.fast_pass import sbs_needs_more_accounts
+
+        n = _eligible_accounts(s)
+        if sbs_needs_more_accounts(n):
+            raise SettingsError(
+                [f"MAIN + ORDER FLOW needs at least 2 eligible accounts (selected, not paused, not closed); found {n} (D175)"], v
+            )
     std_over_11 = any(
         p > Decimal("0.11") for p in (cfg.internal.risk_pct_ceiling, *cfg.internal.risk_pct_by_score.values())
     )

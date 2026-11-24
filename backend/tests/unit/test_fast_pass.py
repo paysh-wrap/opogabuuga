@@ -286,3 +286,10 @@ def test_plan_files_late_day_sizes_d166():
         cfg = getattr(st, f"fast_pass_{k}k_cfg")
         assert cfg.late_contracts == n and len(cfg.late_steps) == steps
         assert st.fast_pass_late_day is False
+
+
+def test_sbs_eligible_accounts_and_minimum():
+    from app.risk.fast_pass import sbs_eligible_accounts, sbs_needs_more_accounts
+
+    n = sbs_eligible_accounts({1: (True, None, False), 2: (True, "KILL", False), 3: (False, None, False), 4: (True, None, True)})
+    assert n == 1 and sbs_needs_more_accounts(n) and not sbs_needs_more_accounts(2)
