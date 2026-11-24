@@ -48,3 +48,68 @@
   .mission main :is(section, article).bg-card::after { display: none; }
   .mission main button:active { transform: none; }
 }
+
+/* ---- batch 2: gauges, toggles, KILL SWITCH, buttons, skeleton, headings, transitions, extra luxe touches ---- */
+/* smooth eased fills + glow on the active arc/bar */
+.mission-gauge path[stroke-dasharray] { transition: stroke-dasharray .9s cubic-bezier(.2, .7, .2, 1); filter: drop-shadow(0 0 6px rgba(var(--lx-gold), .35)); }
+.mission-bar i { transition: width .8s cubic-bezier(.2, .7, .2, 1); box-shadow: 0 0 10px rgba(var(--lx-gold), .35); }
+.mission-bar u { transition: left .8s cubic-bezier(.2, .7, .2, 1); }
+
+/* radio cards and toggles: glow ON state, smooth transitions */
+.mission main [role="radio"], .mission main [aria-pressed] { transition: box-shadow .25s ease, border-color .25s ease, transform .2s ease; }
+.mission main [role="radio"][aria-checked="true"], .mission main [aria-pressed="true"] {
+  box-shadow: 0 0 0 1px rgba(var(--lx-gold), .55), 0 0 18px rgba(var(--lx-gold), .18), inset 0 1px 0 rgba(var(--lx-gold), .25); }
+.mission main [role="radio"]:hover { transform: translateY(-1px); }
+
+/* KILL SWITCH: the most prominent safety control, static double ring (no motion needed) */
+.mission .kill-switch { box-shadow: 0 0 0 2px rgba(var(--lx-gold), .25), 0 0 14px rgba(var(--lx-gold), .3); letter-spacing: .1em; }
+.mission .kill-switch:hover { box-shadow: 0 0 0 3px rgba(var(--lx-gold), .4), 0 0 22px rgba(var(--lx-gold), .45); }
+
+/* primary (gold-bordered) buttons: shimmer sweep on hover, lift (magnetic offset vars from luxe.ts) */
+.mission main button.border-gold:not(:disabled) { position: relative; overflow: hidden;
+  transform: translate(var(--lx-mx, 0), var(--lx-my, 0)); transition: transform .2s ease, box-shadow .2s ease; }
+.mission main button.border-gold:not(:disabled)::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(var(--lx-gold), .16) 50%, transparent 65%); transform: translateX(-120%); }
+.mission main button.border-gold:not(:disabled):hover::before { transform: translateX(120%); transition: transform .8s ease; }
+.mission main button.border-gold:not(:disabled):hover { box-shadow: 0 4px 16px rgba(var(--lx-gold), .18); }
+
+/* skeleton shimmer behind loading status lines (text stays solid for contrast) */
+.mission main p[role="status"] { background: linear-gradient(90deg, transparent, rgba(var(--lx-blue), .10), transparent) 0 0 / 200% 100%;
+  animation: lx-shimmer 1.4s linear infinite; border-radius: 4px; }
+@keyframes lx-shimmer { to { background-position: -200% 0; } }
+
+/* page title: subtle gold gradient, solid goldLight fallback colour kept for the contrast check */
+@supports (-webkit-background-clip: text) {
+  .mission main h1 { color: #F2D27A; background: linear-gradient(90deg, #F2D27A, #D4AF37 60%, #F2D27A); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+}
+
+/* route transition: main content fades in on each mount */
+.mission main > * { animation: lx-route .35s ease-out both; }
+@keyframes lx-route { from { opacity: .0; } to { opacity: 1; } }
+
+/* active (gold) card: slow breathing gold border glow (background untouched) */
+.mission main :is(section, article).bg-card.border-gold { animation: lx-in .5s cubic-bezier(.2, .7, .2, 1) both, lx-ring 6s ease-in-out .5s infinite; }
+@keyframes lx-ring { 50% { box-shadow: inset 0 1px 0 rgba(var(--lx-gold), .35), 0 0 0 1px rgba(var(--lx-gold), .45), 0 0 26px rgba(var(--lx-gold), .16), 0 8px 24px rgba(0, 0, 0, .25); } }
+
+/* live status dots glow (dots are small badges; glow only, colour untouched) */
+.mission header .rounded-full:is(.bg-green, .bg-red, [class*="bg-green"], [class*="bg-red"]) { box-shadow: 0 0 8px currentColor; animation: lx-glow 2.4s ease-in-out infinite; }
+@keyframes lx-glow { 50% { filter: brightness(1.35); } }
+
+/* ambient floating light on the Dashboard hero tile */
+.mission main [data-testid="tile-cushion"]::before { content: ""; position: absolute; width: 60%; height: 60%; top: -10%; right: -10%;
+  pointer-events: none; z-index: -1; background: radial-gradient(closest-side, rgba(var(--lx-gold), .08), transparent); animation: lx-float 18s ease-in-out infinite alternate; }
+@keyframes lx-float { to { transform: translate(-30%, 40%); } }
+
+/* nav + table micro-interactions */
+.mission nav a { transition: background-color .2s ease, box-shadow .2s ease; }
+.mission nav a:hover { box-shadow: inset 0 -1px 0 rgba(var(--lx-gold), .6); }
+.mission main tbody tr { transition: background-color .2s ease; }
+.mission main tbody tr:hover { background-color: rgba(var(--lx-blue), .07); }
+.mission main tbody tr.lx-new { animation: lx-flash 1.2s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-gauge path, .mission-bar i, .mission-bar u, .mission main [role="radio"], .mission main button.border-gold { transition: none !important; transform: none !important; }
+  .mission main button.border-gold::before { display: none; }
+  .mission main p[role="status"], .mission main > *, .mission main .bg-card.border-gold, .mission header .rounded-full,
+  .mission main [data-testid="tile-cushion"]::before, .mission main tbody tr.lx-new { animation: none !important; }
+}

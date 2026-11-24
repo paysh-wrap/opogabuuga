@@ -18,8 +18,27 @@ export function installLuxe(doc: Document = document): () => void {
     });
   };
   doc.addEventListener("pointermove", onMove, { passive: true });
+  // magnetic primary buttons: follow the pointer by at most 3px
+  const onBtn = (e: PointerEvent) => {
+    const b = (e.target as Element | null)?.closest?.("main button.border-gold:not(:disabled)") as HTMLElement | null;
+    if (!b) return;
+    const r = b.getBoundingClientRect();
+    b.style.setProperty("--lx-mx", `${(((e.clientX - r.left) / r.width) - 0.5) * 6}px`);
+    b.style.setProperty("--lx-my", `${(((e.clientY - r.top) / r.height) - 0.5) * 6}px`);
+  };
+  const offBtn = (e: PointerEvent) => {
+    const b = e.target as HTMLElement;
+    if (b?.matches?.("button.border-gold")) { b.style.removeProperty("--lx-mx"); b.style.removeProperty("--lx-my"); }
+  };
+  doc.addEventListener("pointermove", onBtn, { passive: true });
+  doc.addEventListener("pointerout", offBtn, { passive: true });
   const mo = new MutationObserver((muts) => {
     for (const m of muts) {
+      if (m.type === "childList") {
+        // pulse table rows added after first paint (new data)
+        m.addedNodes.forEach((n) => { if (n instanceof HTMLTableRowElement && n.parentElement?.tagName === "TBODY") n.classList.add("lx-new"); });
+        continue;
+      }
       if (m.type !== "characterData") continue;
       const el = m.target.parentElement?.closest(NUM) as HTMLElement | null;
       if (!el || m.oldValue === m.target.textContent) continue;
@@ -28,7 +47,7 @@ export function installLuxe(doc: Document = document): () => void {
       el.classList.add("lx-flash");
     }
   });
-  mo.observe(doc.body, { subtree: true, characterData: true, characterDataOldValue: true });
-  doc.addEventListener("animationend", (e) => (e.target as Element).classList?.remove("lx-flash"));
-  return () => { doc.removeEventListener("pointermove", onMove); mo.disconnect(); };
+  mo.observe(doc.body, { subtree: true, characterData: true, characterDataOldValue: true, childList: true });
+  doc.addEventListener("animationend", (e) => (e.target as Element).classList?.remove("lx-flash", "lx-new"));
+  return () => { doc.removeEventListener("pointermove", onMove); doc.removeEventListener("pointermove", onBtn); doc.removeEventListener("pointerout", offBtn); mo.disconnect(); };
 }
