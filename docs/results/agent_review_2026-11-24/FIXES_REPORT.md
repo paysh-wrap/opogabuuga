@@ -17,7 +17,7 @@ Source reviews: model_qa.md, held_out_tests/RESULTS.md, code_review.md, ux_revie
 | 6c Time exits fire on first bar at/after the time | done, 3 tests | 15895cc |
 | 6d/6e Late-day size under fast evaluation; paper_only for late-day and MGC | done, 2 tests | a86db3d |
 | 8 One API-driven UNVERIFIED badge per strategy; late-day PF from API | done (UI side) | 8253691 |
-| 10 Docs: kill switch $50 on Pro / $100 Flex+Daily; brief wording; D168-D172; HANDOFF | done | 37bd6b8, 56933b9, ac0ecd9 |
+| 10 Docs: kill switch $50 on Pro / $100 Flex+Daily; brief wording; D169-D173; HANDOFF | done | 37bd6b8, 56933b9, ac0ecd9 |
 | 11-12 "Now running" strip; NOISE+CANDACE one radio card | done, tests | b30c9aa, f309028 |
 | 13 Contrast (blueLight labels, 78% secondary, tint-aware e2e check) | done, static tests only | 343cc1a |
 | 14 Plain labels for ~130 skip codes, grouped by strategy, higher on Dashboard | done, tests | 615ae69 |

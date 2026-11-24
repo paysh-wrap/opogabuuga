@@ -98,10 +98,19 @@ def cycle_day_profits(s: Session, a: Account) -> list[Decimal]:
     return list(days.values())
 
 
+def rules_of(rules: Any, a: Account) -> Any:
+    """D168: `rules` may be a RulesHolder (→ the account's OWN plan) or a plain RulesConfig (tests, scripts)."""
+    return rules.rules_for(a) if hasattr(rules, "rules_for") else rules
+
+
+def active_rules(rules: Any) -> Any:
+    return rules.rules if hasattr(rules, "rules_for") else rules
+
+
 def payout_consistency_for(s: Session, rules: Any, a: Account) -> tuple[PayoutConsistency, bool] | None:
     """D89: (status, purchase date known) when Lucid's payout consistency rule applies to this account (FUNDED, plan has
     it), else None. Unknown purchase/reset date → the stricter legacy limit."""
-    cfg = rules.funded.payout_consistency
+    cfg = rules_of(rules, a).funded.payout_consistency
     if cfg is None or not payout_rule_applies(a.stage, True):
         return None
     limit, known = payout_limit(a.purchased_at, cfg.pct, cfg.legacy_pct, cfg.legacy_cutoff)
@@ -131,6 +140,7 @@ def consistency_view(s: Session, rules: Any, a: Account) -> dict[str, Any] | Non
 
 
 def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime) -> PayoutPlan:
+    rules = rules_of(rules, a)  # D168: the account's own plan (sweep level, caps, min cycle profit ...)
     pr, pc = rules.funded.payout, rules.payouts
     last = _last_processed(s, a)
     done = len(s.execute(select(Payout.id).where(Payout.account_id == a.id, Payout.status == "processed")).all())
@@ -181,7 +191,7 @@ async def session_check(s: Session, ctl: Any, rules: Any, now: datetime) -> list
     payouts.min_sessions_between sessions past its last processed payout (Lucid Pro: request any day once eligible)."""
     from app.clock import session_date
 
-    gap = rules.payouts.min_sessions_between
+    gap = active_rules(rules).payouts.min_sessions_between
     eligible = []
     for a in s.execute(select(Account).where(Account.stage == "FUNDED")).scalars():
         open_ = s.execute(

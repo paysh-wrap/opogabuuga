@@ -114,7 +114,7 @@ def today_plan(request: Request, _: Principal = Depends(current_user), db: Sessi
         "attested_today": stt.attested_today(db, now),
         "preflight": getattr(st, "last_preflight", None),
         "cooldowns": cds,
-        "eval_pace": [eval_pace(db, a, r) for a in accounts if a.stage == "EVAL"],
+        "eval_pace": [eval_pace(db, a, st.rules.rules_for(a)) for a in accounts if a.stage == "EVAL"],
     }
 
 
@@ -156,7 +156,6 @@ def pnl_daily(
     for dd in per.values():
         for d, v in dd.items():
             house[d] += v
-    pct = r.eval.consistency_max_day_pct
     out_accounts = []
     for aid, m in sorted(per.items()):
         a = accts.get(aid)
@@ -166,6 +165,8 @@ def pnl_daily(
             "stage": a.stage if a else None,
             **_pack(m),
         }
+        ra = request.app.state.rules.rules_for(a) if a is not None else r  # D168: the account's own plan
+        pct = ra.eval.consistency_max_day_pct
         if a is not None and a.stage == "EVAL" and pct is not None:
             best_d, best = max(m.items(), key=lambda kv: kv[1])
             total = sum(m.values(), Decimal(0))
@@ -173,7 +174,7 @@ def pnl_daily(
                 "largest_day": best_d.isoformat(),
                 "largest_pnl": str(best),
                 "limit_pct": str(pct),
-                "cap": str(r.eval.profit_target * pct / 100),
+                "cap": str(ra.eval.profit_target * pct / 100),
                 "largest_pct": str(best / total * 100) if total > 0 and best > 0 else None,
             }
         out_accounts.append(row)

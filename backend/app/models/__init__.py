@@ -63,6 +63,7 @@ class Account(_Row, Base):
     purchased_at: Mapped[datetime | None] = mapped_column(
         UTCDateTime, nullable=True
     )  # D89: bought / last reset at Lucid
+    plan: Mapped[str | None] = mapped_column(String(64), nullable=True)  # D168: rule plan file stem; NULL = inferred
 
 
 class AccountStageHistory(_Row, Base):

@@ -74,3 +74,35 @@ def test_migration_drops_stored_telegram_credential_only(tmp_path):  # D90
     alembic("head")
     con = sqlite3.connect(db)
     assert [p for (p,) in con.execute("select provider from api_credentials")] == ["discord"]
+
+
+def test_migration_adds_account_plan_column_nullable(tmp_path):  # D168
+    db = tmp_path / "p.db"
+    env = {"PAYTIENCE_DATABASE_URL": f"sqlite:///{db}", "PATH": "/usr/bin:/bin"}
+
+    def alembic(*args: str) -> None:
+        r = subprocess.run(
+            [sys.executable, "-m", "alembic", *args], cwd=BACKEND, env=env, capture_output=True, text=True, check=False
+        )
+        assert r.returncode == 0, r.stderr
+
+    alembic("upgrade", "d6e0f4a8b3c5")
+    con = sqlite3.connect(db)
+    assert "plan" not in {r[1] for r in con.execute("pragma table_info(accounts)")}
+    con.execute(
+        "insert into accounts(broker_account_id,label,stage,drawdown_type,dll_enabled,eval_mode,armed,selected,"
+        "priority,mll_locked,closed_by_firm,is_sim,created_at) "
+        "values('X','x','EVAL','eod',1,'inherit',0,0,0,0,0,1,'2026-01-01')"
+    )
+    con.commit()
+    con.close()
+    alembic("upgrade", "head")
+    con = sqlite3.connect(db)
+    cols = {r[1]: r for r in con.execute("pragma table_info(accounts)")}
+    assert cols["plan"][3] == 0  # nullable
+    assert con.execute("select plan from accounts").fetchone() == (None,)  # existing rows stay "inferred"
+    con.close()
+    alembic("downgrade", "d6e0f4a8b3c5")
+    con = sqlite3.connect(db)
+    assert "plan" not in {r[1] for r in con.execute("pragma table_info(accounts)")}
+    con.close()

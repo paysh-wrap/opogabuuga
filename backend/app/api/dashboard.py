@@ -73,6 +73,7 @@ async def dashboard(
     for a in db.execute(select(Account).order_by(Account.priority, Account.id)).scalars():
         row: dict[str, Any] = {"id": a.id, "label": a.label, "stage": a.stage, "paper": a.is_sim, "armed": a.armed}
         row["paused"] = a.paused_reason
+        row |= {"plan": st.rules.plan_for(a), "plan_error": st.rules.account_error(a)}  # D168
         try:
             if a.broker_account_id not in c.adapter.accounts:
                 raise BrokerError("broker not connected")
@@ -81,10 +82,11 @@ async def dashboard(
         except BrokerError as e:
             accounts.append({**row, "error": str(e)})
             continue
+        ra = st.rules.rules_for(a)  # D168: this account's OWN plan
         day = stt.day_state(db, a, opnl, now)
-        dll = stt.dll_for(r, a)
-        sr_ = stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled)
-        cons = stt.consistency(db, a, r)
+        dll = stt.dll_for(ra, a)
+        sr_ = stage_rules(ra, a.stage, a.drawdown_type, a.dll_enabled)
+        cons = stt.consistency(db, a, ra)
         eq = bal + opnl
         start = a.starting_balance or Decimal(0)
         row |= {
@@ -92,9 +94,9 @@ async def dashboard(
             "open_pnl": str(opnl),
             "mll": _s(a.mll),
             "to_mll": _s(eq - a.mll) if a.mll is not None else None,
-            "kill_at": str(r.internal.kill_switch_mll_distance),
-            "max_loss": str(max_loss := stage_rules(r, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
-            "cushion": _cushion(r, eq, a.mll, max_loss),  # D122
+            "kill_at": str(ra.internal.kill_switch_mll_distance),
+            "max_loss": str(max_loss := stage_rules(ra, a.stage, a.drawdown_type, a.dll_enabled).max_loss),
+            "cushion": _cushion(ra, eq, a.mll, max_loss),  # D122
             "dll_limit": _s(dll),
             "dll_scale_pct": _s(sr_.dll_scale_pct),  # LucidScale (Pro): % of peak EOD profit once the MLL is locked
             "dll_scaled": dll != sr_.dll,
@@ -103,22 +105,22 @@ async def dashboard(
             "dll_left": _s(dll_remaining(dll, day.today_pnl, day.today_peak_pnl)) if dll is not None else None,
             "consistency_cap": _s(cons.cap) if cons else None,
             "consistency_stop": _s(cons.day_stop) if cons else None,
-            "payout_consistency": consistency_view(db, r, a),  # D89 (FUNDED + Pro only)
-            "target_left": str(max(start + r.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
+            "payout_consistency": consistency_view(db, ra, a),  # D89 (FUNDED + Pro only)
+            "target_left": str(max(start + ra.eval.profit_target - bal, Decimal(0))) if a.stage == "EVAL" else None,
             "mll_locked": a.mll_locked,
-            "guard_on": guard_active(a.drawdown_type, bool(a.mll_locked), GuardCfgView(r.drawdown_guard.mode)),
+            "guard_on": guard_active(a.drawdown_type, bool(a.mll_locked), GuardCfgView(ra.drawdown_guard.mode)),
             "eval_mode_on": eval_mode_effective(a.stage, a.eval_mode, st.rules.eval_mode_on),
             "day_net_r": str(stt.day_stats(db, a, now).day_net_r),
-            "day_lockin_r": str(r.internal.day_lockin_r),
-            "day_lockin": stt.day_stats(db, a, now).day_net_r >= r.internal.day_lockin_r,
-            "fast_profit_pct": str(_fast_share(db, a, r)),
+            "day_lockin_r": str(ra.internal.day_lockin_r),
+            "day_lockin": stt.day_stats(db, a, now).day_net_r >= ra.internal.day_lockin_r,
+            "fast_profit_pct": str(_fast_share(db, a, ra)),
             "idle_days": (now - (a.last_trade_at or a.stage_started_at or now)).days,
             "never_traded": a.last_trade_at is None,  # B8: "No trades yet" instead of "Last trade 0d ago"
-            "idle_alert_days": r.behavior.inactivity_alert_days,
-            "idle_delete_days": r.behavior.firm_inactivity_delete_days,
-            "fast_warn_pct": str(r.behavior.rapid_trade_warn_pct),
-            "fast_limit_pct": str(r.behavior.firm_microscalp_pct),
-            "fast_hold_s": r.behavior.firm_microscalp_hold_seconds,
+            "idle_alert_days": ra.behavior.inactivity_alert_days,
+            "idle_delete_days": ra.behavior.firm_inactivity_delete_days,
+            "fast_warn_pct": str(ra.behavior.rapid_trade_warn_pct),
+            "fast_limit_pct": str(ra.behavior.firm_microscalp_pct),
+            "fast_hold_s": ra.behavior.firm_microscalp_hold_seconds,
         }
         accounts.append(row)
     sess = session_date(now)

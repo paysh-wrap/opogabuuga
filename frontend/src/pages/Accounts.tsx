@@ -25,7 +25,11 @@ interface Acct {
   consistency_pct?: string | null;
   purchased_at?: string | null;
   payout_consistency?: PayoutConsistencyView | null;
+  plan?: string; // D168: rule plan this account uses (explicit, else inferred from its size)
+  plan_explicit?: string | null;
+  plan_error?: string | null;
 }
+interface PlanOpt { id: string; title: string }
 interface Dash { accounts: { id: number; idle_days?: number; never_traded?: boolean; idle_alert_days?: number; cushion?: CushionView | null }[] }
 
 export const LUCID_URL = "https://lucidtrading.com/"; // opens Lucid's own site; the app never automates it (§1.3)
@@ -35,7 +39,7 @@ export default function Accounts() {
   usePageTitle("Accounts");
   const qc = useQueryClient();
   const [err, setErr] = useState("");
-  const q = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[] }>("/api/accounts"), refetchInterval: 15000 });
+  const q = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[]; plans?: PlanOpt[]; active_plan?: string }>("/api/accounts"), refetchInterval: 15000 });
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dash>("/api/dashboard"), refetchInterval: 30000 });
   const logs = useQuery({ queryKey: ["account-history"], queryFn: () => api<{ logs: { id: number; at: string; actor: string; action: string; entity: string; payload: unknown }[] }>("/api/logs?limit=500"), staleTime: 30_000 });
   const run = useMutation({
@@ -48,6 +52,7 @@ export default function Accounts() {
   if (q.error || !q.data) return <p role="alert">Cannot load accounts: {q.error instanceof Error ? q.error.message : "unknown error"}</p>;
 
   const list = q.data.accounts;
+  const plans = q.data.plans ?? [];
   const trading = list.filter((a) => a.selected).length;
   const select = (count: number, order: number[] = []) =>
     run.mutate(() => api("/api/accounts/selection", { method: "PUT", body: JSON.stringify({ count, order }) }));
@@ -113,6 +118,13 @@ export default function Accounts() {
                 <span data-testid={`cons-${a.id}`} title="Largest single day as % of total profit (Lucid consistency rule for this stage)">
                   Consistency {a.consistency_pct ? `${Number(a.consistency_pct)}% max day` : "none"}
                 </span>
+                <label className="flex items-center gap-1" title="Rule plan (size) this account follows: its own MLL, DLL, target, consistency, payouts and fast pass. Auto = from the account size.">Plan
+                  <select data-testid={`plan-${a.id}`} value={a.plan_explicit ?? ""} disabled={run.isPending}
+                    onChange={(e) => patch(a.id, { plan: e.target.value })}>
+                    <option value="">auto ({a.plan ?? q.data.active_plan})</option>
+                    {plans.map((p) => <option key={p.id} value={p.id}>{p.id}</option>)}
+                  </select>
+                </label>
                 <label className="flex items-center gap-1" title="Per-account automation: can only be stricter than the global mode">Mode
                   <select data-testid={`override-${a.id}`} value={a.mode_override ?? "inherit"} disabled={run.isPending}
                     onChange={(e) => patch(a.id, { mode_override: e.target.value })}>
@@ -158,6 +170,7 @@ export default function Accounts() {
                   </label>
                 </div>
               )}
+              {a.plan_error && <p role="alert" data-testid={`plan-error-${a.id}`} className="mt-2 text-xs text-goldLight">⚠ {a.plan_error} — new entries on this account are blocked.</p>}
               {a.drawdown_check && <p className="mt-2 text-xs text-goldLight">⚠ {a.drawdown_check}</p>}
             </li>
           );

@@ -34,6 +34,10 @@ def _ctl(request: Request) -> Any:
 def _status(request: Request, db: Session) -> dict[str, Any]:
     c = _ctl(request)
     now = request.app.state.clock.now()
+    h = request.app.state.rules
+    # D168: an account whose own rule plan is missing / invalid → banner (new entries on it are blocked)
+    bad = [f"account {b['account']}: {b['error']} (new entries blocked)" for b in h.bad_accounts(db)]
+    rules_error = "; ".join(x for x in [h.error, *bad] if x) or None
     return {
         "mode": c.mode,
         "conservative_mode": conservative_mode(c.adapter),
@@ -42,7 +46,7 @@ def _status(request: Request, db: Session) -> dict[str, Any]:
         "entries_blocked_by_time": c.entries_blocked_by_time(),
         "approvals": [{"signal_id": a.signal_id, "expires": a.expires.isoformat()} for a in c.approvals.values()],
         "notices": c.notices[-20:],
-        "rules_error": request.app.state.rules.error,
+        "rules_error": rules_error,
     }
 
 
@@ -171,6 +175,7 @@ class NewAccount(BaseModel):
     drawdown_type: str | None = None  # None → the stage default from the rules file
     balance: Decimal = Decimal(25000)
     tradovate_account: str | None = Field(default=None, max_length=64)  # set → REAL account (not paper)
+    plan: str | None = Field(default=None, max_length=64)  # D168: rule plan file stem; None → inferred from the size
 
 
 @router.post("/accounts")
@@ -188,20 +193,46 @@ def create_account(
             raise HTTPException(409, f"Lucid allows at most {beh.max_funded_per_household} funded accounts")
         if body.stage == "LIVE" and sum(a.stage == "LIVE" for a in real) >= 5:
             raise HTTPException(409, "Lucid allows at most 5 live accounts")
-    dd = body.drawdown_type or stage_rules(request.app.state.rules.rules, body.stage).drawdown_type
+    h = request.app.state.rules
+    plan = _check_plan(body.plan)
+    from app.risk.account_plan import resolve_plan
+
+    try:
+        plan_rules = h.rules_for_name(db, resolve_plan(plan, body.balance, h.plan, h.available_plans()))
+    except Exception as e:  # missing / invalid plan file → refuse (never another plan's numbers)
+        raise HTTPException(422, f"rule plan unusable: {e}") from e
+    dd = body.drawdown_type or stage_rules(plan_rules, body.stage).drawdown_type
     c = _ctl(request)
     if body.tradovate_account:
         ext = body.tradovate_account.strip().upper()
         if db.execute(select(Account).where(Account.broker_account_id == ext)).scalar_one_or_none():
             raise HTTPException(409, "account already added")
-        a = c.create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username, real_id=ext)
+        a = c.create_paper_account(
+            db, body.label, body.stage, dd, body.balance, p.user.username, real_id=ext, plan=plan
+        )
         db.commit()
+        h.ensure_account_plan(db, a)
         return {"id": a.id, "broker_account_id": ext, "paper": False}
-    a = c.create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username)
+    a = c.create_paper_account(db, body.label, body.stage, dd, body.balance, p.user.username, plan=plan)
+    db.commit()
+    h.ensure_account_plan(db, a)
     return {"id": a.id, "broker_account_id": a.broker_account_id, "paper": True}
 
 
+def _check_plan(plan: str | None) -> str | None:
+    """D168: an account's plan must be a file in config/rules (never a path)."""
+    from app.risk.holder import RulesHolder
+
+    if plan is None or plan == "":
+        return None
+    if plan not in RulesHolder.available_plans():
+        raise HTTPException(422, f"unknown rule plan {plan!r} (no such file in config/rules)")
+    return plan
+
+
 class AccountPatch(BaseModel):
+    plan: str | None = Field(default=None, max_length=64)  # D168; "" → back to inferred
+
     armed: bool | None = None
     selected: bool | None = None
     priority: int | None = None
@@ -235,10 +266,17 @@ async def patch_account(
             raise HTTPException(409, f"account is paused: {a.paused_reason}")
         if a.closed_by_firm:
             raise HTTPException(409, "account was closed by the firm — never re-enter")
+    replan = False
     if body.drawdown_type is not None and body.drawdown_type != a.drawdown_type:
         if any(t.account == a.broker_account_id for t in _ctl(request).om.trades.values()):
             raise HTTPException(409, "close the open trade before changing drawdown type")
         a.drawdown_type = body.drawdown_type
+    if body.plan is not None and (body.plan or None) != a.plan:
+        new_plan = _check_plan(body.plan)
+        if any(t.account == a.broker_account_id for t in _ctl(request).om.trades.values()):
+            raise HTTPException(409, "close the open trade before changing the account's rule plan")
+        a.plan = new_plan
+        replan = True
     if body.mode_override is not None:
         a.mode_override = None if body.mode_override == "inherit" else body.mode_override
     if body.purchased_at is not None:
@@ -268,9 +306,13 @@ async def patch_account(
             )
             c.publish("automation.changed", {"mode": c.mode})
     db.commit()
+    if replan:  # D168: load the new plan once; an unusable plan blocks this account's new entries (banner)
+        request.app.state.rules.ensure_account_plan(db, a)
     await request.app.state.hub.broadcast("account.updated", {"id": a.id})
     return {
         "id": a.id,
+        "plan": request.app.state.rules.plan_for(a),
+        "plan_error": request.app.state.rules.account_error(a),
         "armed": a.armed,
         "selected": a.selected,
         "priority": a.priority,
