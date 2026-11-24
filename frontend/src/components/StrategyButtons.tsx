@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FastPassStagePanel } from "./FastPassStagePanel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import MoreInfo from "./MoreInfo";
@@ -169,7 +170,7 @@ function FastPassSizes({ rows }: { rows: FastPassRow[] }) {
     <div className="mt-2 rounded-lg border border-border p-3" data-testid="fast-pass-sizes">
       <h4 className="font-semibold text-gold">Fast Evaluation sizes (the main strategy)</h4>
       <p className="mt-1 text-xs text-blue" data-testid="fast-pass-stage-note">
-        Applies to <b className="text-gold">EVAL accounts only</b>, of the plan's own size, while that plan's fast-pass switch is ON. FUNDED and LIVE accounts keep the Regular profile below; extending fast-pass sizing to them is a rules decision for the user and is NOT built. Every Lucid and Paytience check (daily loss limit, loss-limit room, consistency, news, flat times, hedge lock, one position per account, kill switch) still runs after the size and can only shrink or skip the trade.
+        Applies to <b className="text-gold">EVAL accounts only</b>, of the plan's own size, while that plan's fast-pass switch is ON. FUNDED and LIVE accounts only when their own switch below is ON (default OFF, UNVERIFIED); otherwise they keep the Regular profile below. Every Lucid and Paytience check (daily loss limit, loss-limit room, consistency, news, flat times, hedge lock, one position per account, kill switch) still runs after the size and can only shrink or skip the trade.
       </p>
       <div className="mt-2 grid gap-2 md:grid-cols-2">
         {rows.map((r) => (
@@ -412,7 +413,7 @@ export default function StrategyButtons() {
   const toggleCard = (t: ToggleRow) => (
     <div key={t.key} className="fp-card flex h-full flex-col rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
       <h3 className="flex flex-wrap items-center gap-2 font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}{t.weekly && !t.weekly.measured && <EvidenceBadge verified={false} text="not re-measured" testId={`weekly-unmeasured-${t.key}`} />}</h3>
-      <p className="mt-1 text-xs text-blue">Applies to: {(t.key.match(/(\d+k)$/i)?.[1] ?? "").toUpperCase()} EVAL accounts only (never FUNDED/LIVE).</p>
+      <p className="mt-1 text-xs text-blue">Applies to: {(t.key.match(/(\d+k)$/i)?.[1] ?? "").toUpperCase()} EVAL accounts, and FUNDED / LIVE accounts only with their own Fast Pass switch ON (default OFF, UNVERIFIED).</p>
       {t.weekly && (
         <div className="mt-2 text-xs text-blue" data-testid={`weekly-${t.key}`}>
           <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
@@ -486,6 +487,7 @@ export default function StrategyButtons() {
               <h4 className="font-semibold text-gold">NOISE fast-pass sizes (evaluations)</h4>
               <WeeklyCalculator toggles={fastPass} />
               <div className="mt-2 grid gap-3 md:grid-cols-2">{fastPass.map(toggleCard)}</div>
+              <FastPassStagePanel />
             </div>
           )}
         </div>
@@ -546,8 +548,9 @@ export default function StrategyButtons() {
           )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
           {d.size_profiles.fast_pass_plans && d.size_profiles.fast_pass_plans.length > 0 && <FastPassSizes rows={d.size_profiles.fast_pass_plans} />}
+          {d.size_profiles.fast_pass_plans && d.size_profiles.fast_pass_plans.length > 0 && <FastPassStagePanel />}
           <h4 className="mt-3 font-semibold text-gold" data-testid="size-fallback-title">Fallback profile: Regular / High risk</h4>
-          <p className="text-xs text-blue" data-testid="size-fallback-note">Used for every account that is NOT on a fast-pass plan above: FUNDED and LIVE accounts, EVAL accounts of another size, and any plan whose fast-pass switch is OFF.</p>
+          <p className="text-xs text-blue" data-testid="size-fallback-note">Used for every account that is NOT on a fast-pass plan above: FUNDED and LIVE accounts (unless their Fast Pass switch is ON), EVAL accounts of another size, and any plan whose fast-pass switch is OFF.</p>
           <div className="mt-2 grid gap-3 lg:grid-cols-2">
             {(["regular", "high"] as const).map((p) => {
               const on = d.size_profiles!.active === p;

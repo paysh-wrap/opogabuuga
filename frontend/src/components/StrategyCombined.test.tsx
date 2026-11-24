@@ -63,7 +63,7 @@ test("size card shows the fast-pass numbers from the API, EVAL-only note and the
   expect(row).toHaveTextContent("< $667: 1");
   expect(row).toHaveTextContent("CANDACE: 4 micros");
   expect(screen.getByTestId("fast-pass-stage-note")).toHaveTextContent("EVAL accounts only");
-  expect(screen.getByTestId("fast-pass-stage-note")).toHaveTextContent("FUNDED and LIVE accounts keep the Regular profile");
+  expect(screen.getByTestId("fast-pass-stage-note")).toHaveTextContent("FUNDED and LIVE accounts only when their own switch");
   expect(screen.getByTestId("size-fallback-title")).toHaveTextContent("Fallback profile");
   expect(screen.getByTestId("size-stop-note")).not.toHaveTextContent("$250");
 });
