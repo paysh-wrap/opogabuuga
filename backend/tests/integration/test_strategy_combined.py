@@ -106,3 +106,17 @@ def test_runtime_one_eligible_account_refuses_ar_side_by_side(authed, clock):
     st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow": True})})
     res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a]))
     assert not any(x.ok for x in res) and res[-1].reason == "SBS_NEEDS_2_ACCOUNTS"
+
+
+def test_size_card_fast_pass_rows_come_from_the_plan_yamls(authed):
+    import yaml
+    from pathlib import Path
+
+    rows = authed.get("/api/strategies").json()["size_profiles"]["fast_pass_plans"]
+    assert [r["key"] for r in rows] == [f"fast_pass_{n}k" for n in (25, 50, 100, 150)]
+    root = Path(__file__).resolve().parents[3] / "config" / "rules"
+    for r in rows:
+        n = int(float(r["account_size"])) // 1000
+        cfg = yaml.safe_load((root / f"lucid_pro_{n}k.yaml").read_text())["strategy"][f"fast_pass_{n}k_cfg"]
+        assert r["noise_contracts"] == cfg["noise_contracts"] and float(r["noise_stop_usd"]) == float(cfg["noise_stop_usd"])
+        assert r["candace_contracts"] == cfg["candace_contracts"]

@@ -1052,6 +1052,7 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             # D66 / D69 — EVAL accounts, Evaluation Mode on; D133: shown as traded (capped while eval_size_s19 is on)
             "eval_regular": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval)],
             "eval_high": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval_high)],
+            "fast_pass_plans": _fast_pass_plan_rows(r.strategy),  # D175: the Fast Evaluation sizes, read from the plan yamls
         },
         "toggles": _session20_toggles(r, plan),
         "advisor": advisor_view(db, r, sess),
@@ -1166,6 +1167,43 @@ def _fast_pass_cards(st: Any) -> list[tuple[str, Any, bool]]:
                 cfg = None
         out.append((fk, cfg, bool(getattr(st, fk))))
     return out
+
+
+def _steps(steps: Any) -> list[dict[str, Any]]:
+    return [{"cushion_usd": x.cushion_usd, "contracts": x.contracts} for x in steps]
+
+
+def _fast_pass_plan_rows(st: Any) -> list[dict[str, Any]]:
+    """D175: per plan 25K/50K/100K/150K the fast-pass numbers exactly as in config/rules/lucid_pro_*.yaml
+    (`fast_pass_*_cfg`): NOISE micros + stop $ + grow rule + brake steps, CANDACE micros + steps, day lock, late-day.
+    Nothing is hard-coded here."""
+    rows = []
+    for fk, fp, fon in _fast_pass_cards(st):
+        if fp is None:
+            continue
+        rows.append(
+            {
+                "key": fk,
+                "account_size": fp.account_size,
+                "on": fon,
+                "noise_contracts": fp.noise_contracts,
+                "noise_stop_usd": fp.noise_stop_usd,
+                "noise_steps": _steps(fp.noise_steps),
+                "noise_grow_per": fp.noise_grow_per,
+                "noise_max_contracts": fp.noise_max_contracts,
+                "noise_lock_trigger_pts": fp.noise_lock_trigger_pts,
+                "candace_contracts": fp.candace_contracts,
+                "candace_steps": _steps(fp.candace_steps),
+                "candace_grow_per": fp.candace_grow_per,
+                "candace_max_contracts": fp.candace_max_contracts,
+                "brake_inclusive": fp.brake_inclusive,
+                "day_lock_pct": fp.day_lock_pct,
+                "late_contracts": fp.late_contracts,
+                "late_steps": _steps(fp.late_steps),
+                "late_on": bool(st.fast_pass_late_day) and fp.late_contracts is not None,
+            }
+        )
+    return rows
 
 
 def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
