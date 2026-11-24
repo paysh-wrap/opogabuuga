@@ -5,7 +5,7 @@ export function useCountUp(target: number, ms = 600): number {
   const [v, setV] = useState(target);
   const from = useRef(target);
   useEffect(() => {
-    const start = from.current;
+    const start = Number.isFinite(from.current) ? from.current : target; // a NaN start never animates
     const reduce = typeof window === "undefined" || !window.matchMedia || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce || start === target || !Number.isFinite(target)) { from.current = target; setV(target); return; }
     let raf = 0; const t0 = performance.now();
@@ -17,5 +17,5 @@ export function useCountUp(target: number, ms = 600): number {
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
   }, [target, ms]);
-  return v;
+  return Number.isFinite(v) ? v : target; // never render a stale NaN
 }
