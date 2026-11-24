@@ -357,10 +357,16 @@ const CONTRAST = () => {
   const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
     .reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
   const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  // Every tinted button / glass card paints a gradient: composite its FIRST stop (top of a 180° gradient = the worst
+  // case) above the element's background colour, so translucent tints are judged, not ignored.
   const bgOf = (el) => {
     const layers = [];
     for (let e = el; e; e = e.parentElement) {
-      const c = rgb(getComputedStyle(e).backgroundColor);
+      const cs = getComputedStyle(e);
+      const g = (cs.backgroundImage || "").match(/rgba?\([^)]*\)/);
+      const gs = g ? rgb(g[0]) : [];
+      if (gs.length >= 3 && (gs[3] ?? 1) > 0) { layers.push(gs); if ((gs[3] ?? 1) >= 1) break; }
+      const c = rgb(cs.backgroundColor);
       if (c.length >= 3 && (c[3] ?? 1) > 0) { layers.push(c); if ((c[3] ?? 1) >= 1) break; }
     }
     let base = layers.length && (layers.at(-1)[3] ?? 1) >= 1 ? layers.pop() : [10, 16, 32];
@@ -383,7 +389,10 @@ const CONTRAST = () => {
     const fill = cs.webkitTextFillColor || cs.color;
     const clipText = (cs.backgroundClip || cs.webkitBackgroundClip || "").includes("text");
     const stops = clipText && rgb(fill)[3] === 0 ? [...cs.backgroundImage.matchAll(/rgba?\([^)]*\)/g)].map((m) => rgb(m[0])) : [];
-    const fgs = stops.length ? stops : [rgb(fill)];
+    // Element/ancestor opacity fades the text toward the surface: fold the product into the foreground alpha.
+    let op = 1; for (let e = el; e; e = e.parentElement) op *= Number(getComputedStyle(e).opacity);
+    const fade = (c) => { const a = (c[3] ?? 1) * op; return [0, 1, 2].map((i) => c[i] * a + bg[i] * (1 - a)); };
+    const fgs = (stops.length ? stops : [rgb(fill)]).map(fade);
     const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;
     const need = size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
     const k = Math.min(...fgs.map((fg) => ratio(fg, bg)));

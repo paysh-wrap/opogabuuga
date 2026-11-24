@@ -45,3 +45,24 @@ test("D93 mission text colours pass AA on mission tiles", () => {
   for (const fg of [theme.gold, theme.goldLight, theme.blue, theme.blueLight])
     for (const bg of [mission.bg, mission.tile, mission.tile2]) expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
 });
+
+// UI review 2026-11-24: tinted surfaces (blue/14 outline button ≈ #11224C, gold/10 pick button ≈ #1E2231, mission.navOn).
+// Plain `blue` fails AA on these, so labels on tints use blueLight and secondary prose uses blueLight at 78 %.
+const TINTS = ["#11224C", "#1E2231", mission.navOn] as const;
+test.each([["gold", theme.gold], ["goldLight", theme.goldLight], ["blueLight", theme.blueLight]])(
+  "%s (button/label text) passes AA on every tinted button surface", (_n, fg) => {
+    for (const bg of TINTS) expect(contrast(fg, bg)).toBeGreaterThanOrEqual(4.5);
+  });
+
+test("plain blue is NOT used as text on tints (it fails AA there, so CSS maps it to blueLight)", () => {
+  expect(Math.min(...TINTS.map((bg) => contrast(theme.blue, bg)))).toBeLessThan(4.5);
+});
+
+function mix(fg: string, bg: string, a: number): string {
+  const h = (s: string, i: number) => parseInt(s.slice(i, i + 2), 16);
+  return "#" + [1, 3, 5].map((i) => Math.round(h(fg, i) * a + h(bg, i) * (1 - a)).toString(16).padStart(2, "0")).join("");
+}
+test("secondary text = blueLight at 78 % passes AA on cards, tiles and the Neon card", () => {
+  for (const bg of [theme.bg, theme.card, mission.tile, mission.tile2, "#0A1230", "#11224C"])
+    expect(contrast(mix(theme.blueLight, bg, theme.secondaryAlpha), bg)).toBeGreaterThanOrEqual(4.5);
+});

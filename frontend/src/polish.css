@@ -1,0 +1,10 @@
+/* ---------- UI polish 2026-11-24 (docs/results/agent_review_2026-11-24/ui_review.md). Loaded LAST, after variants.css. ----------
+   Premium "trading cockpit" layer: same navy/blue/gold tokens (theme.ts) or alphas of them, font colours blue/gold only (§18),
+   red/green stay small dots set by components. Motion is subtle, hover/focus only, and fully off under prefers-reduced-motion. */
+
+/* ---- 1. Contrast: blue stays for borders/links/focus; text on any tint uses blueLight; secondary prose = blueLight @ 78 % ---- */
+:root { --text-2: rgba(147, 197, 253, .78); }
+.mission main button.border-blue, .mission main summary.border-blue, .mission header.bg-card button.border-blue { color: #93C5FD; }
+.mission main :is(p, li, dd, dt, span, small, td, label, div, summary).text-blue { color: var(--text-2); }
+.mission nav[aria-label="Main"] a.text-blue { color: #93C5FD; }
+.mission button:disabled { opacity: .6; }

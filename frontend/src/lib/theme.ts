@@ -9,6 +9,8 @@ export const theme = {
   border: "#1E2A4A",
   // D93: brighter gold-family highlight used ONLY for connections that are mandatory to trade EVAL/LIVE.
   mandatory: "#FFC93C",
+  // UI review 2026-11-24: secondary prose = blueLight at this alpha (≈6.3:1 on the Neon tile); labels on tints use blueLight.
+  secondaryAlpha: 0.78,
 } as const;
 
 // D93 "mission control" surfaces (tiles, hairlines). Backgrounds only, never font colours.

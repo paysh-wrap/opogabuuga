@@ -8,7 +8,8 @@ import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import "./mission.css";
 import "./finish.css"; // D117 refined finish
-import "./variants.css"; // optional style variants (html[data-style]); loaded last
+import "./variants.css"; // optional style variants (html[data-style])
+import "./polish.css"; // UI polish 2026-11-24; loaded last
 import { applyStyle } from "./style-switch";
 
 applyStyle();
