@@ -5,6 +5,7 @@ import MoreInfo from "./MoreInfo";
 import EvidenceBadge from "./EvidenceBadge";
 import { AdvisorCardLine, type AdvisorResp } from "./AdvisorCard";
 import LoadError from "./LoadError";
+import AiAdviceCard from "./AiAdvice";
 import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D55: strategy on/off buttons with the TESTED results next to each (static research facts from the server, not live
@@ -17,6 +18,7 @@ export interface Strat {
   eval_odds?: OddsView; // D137: pass / bust from config/eval_odds.yaml for the active plan, size table and EOD toggle
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
   instruments?: string[]; paper_only?: boolean; flat_at?: string; // D96: Order Flow card (plan file)
+  disabled?: boolean; off_for_now?: string; // D175: Iceberg proxy card greyed out, OFF for now
   ar_side_by_side?: ArSideBySide; // D160: AR Model beside NOISE + pre-session TradingAgents runs
   ar_layers?: { key: string; on: boolean; rule: string }[]; // D101: AR Model layers (plan file)
   amt_layers?: { key: string; on: boolean; rule: string }[]; // D110: AMT+ context / location / target layers
@@ -48,6 +50,7 @@ export interface StrategiesResp {
   ta_mgc?: TaMgcResp;
   toggles?: ToggleRow[];
   advisor?: AdvisorResp; // D151
+  notice?: string | null; combined?: Combined; ai_advice?: AiAdvice; // D175 / D176
 }
 // D132 / D133: two-way toggles (My Settings keys; each save is validated, versioned and audit-logged)
 export interface DdOdds { pass: number; bust: number; j_pass: number; j_bust: number }
@@ -73,7 +76,19 @@ export interface SizeTierRow {
   account_size: string; contracts: number; brake_below: string | null; brake_contracts: number | null;
   taper_below_remaining?: string | null; taper_contracts?: number | null; stop_usd?: string | null;
 }
-export interface SizeProfiles { active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string; odds?: Record<string, OddsView> }
+export interface FpStep { cushion_usd: string; contracts: number }
+export interface FastPassRow {
+  key: string; account_size: string; on: boolean; noise_contracts: number; noise_stop_usd: string; noise_steps: FpStep[]; noise_grow_per: string | null;
+  noise_max_contracts: number | null; noise_lock_trigger_pts: string | null; candace_contracts: number; candace_steps: FpStep[]; candace_grow_per: string | null;
+  candace_max_contracts: number | null; brake_inclusive: boolean; day_lock_pct: string | null; late_contracts: number | null; late_steps: FpStep[]; late_on: boolean;
+}
+export interface Combined {
+  key: string; title: string; enabled: boolean; setting: string; settings_on: string[]; eligible_accounts: number; min_accounts: number;
+  can_start: boolean; blocked_reason: string | null; guards: string[];
+}
+export interface AiAdviceResult { symbol: string; status: string; side?: string | null; reason?: string | null; at?: string; advice?: { main?: string; order_flow?: string; all?: string } }
+export interface AiAdvice { label: string; mode: string; session: string; runs: { minutes_before: number; at: string; results: AiAdviceResult[] }[] }
+export interface SizeProfiles { fast_pass_plans?: FastPassRow[]; active: "regular" | "high"; setting: string; regular: SizeTierRow[]; high: SizeTierRow[]; eval_regular?: SizeTierRow[]; eval_high?: SizeTierRow[]; suggested?: SizeTierRow[]; suggested_on?: boolean; suggested_setting?: string; odds?: Record<string, OddsView> }
 
 // D137: eval pass / bust text per size table comes from the server (config/eval_odds.yaml: active plan + EOD toggle)
 const oddsText = (o?: OddsView) => o?.text ?? "not measured yet";
@@ -139,10 +154,39 @@ export const choiceOf = (key: string): string | null =>
 const CHOICE_SETTINGS: Record<string, string[]> = {
   main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"],
 };
+const AR_SBS = "strategy.order_flow_cfg.ar_side_by_side"; // D175: the combined choice sets this ON; plain choices set it OFF
 const MAIN_PAIR = ["noise", "candace_ict"];
 const MAIN_SETTINGS = ["strategy.noise", "strategy.candace_ict"];
 const settingsOfChoice = (c: string) => CHOICE_SETTINGS[c] ?? [`strategy.${c}`];
 export const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c === "order_flow" ? "Order Flow" : c === "ai_duo" ? "AI Duo" : c.replace(/_/g, " ").toUpperCase());
+
+const usd = (v: string | number) => `$${Number(v).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+const stepsText = (steps: FpStep[], inclusive: boolean) => (steps.length ? steps.map((x) => `${inclusive ? "≤" : "<"} ${usd(x.cushion_usd)}: ${x.contracts}`).join(", ") : "no brake");
+
+/** D175: the Fast Evaluation sizes per plan, read from the plan yamls by the API (nothing hard-coded here). */
+function FastPassSizes({ rows }: { rows: FastPassRow[] }) {
+  return (
+    <div className="mt-2 rounded-lg border border-border p-3" data-testid="fast-pass-sizes">
+      <h4 className="font-semibold text-gold">Fast Evaluation sizes (the main strategy)</h4>
+      <p className="mt-1 text-xs text-blue" data-testid="fast-pass-stage-note">
+        Applies to <b className="text-gold">EVAL accounts only</b>, of the plan's own size, while that plan's fast-pass switch is ON. FUNDED and LIVE accounts keep the Regular profile below; extending fast-pass sizing to them is a rules decision for the user and is NOT built. Every Lucid and Paytience check (daily loss limit, loss-limit room, consistency, news, flat times, hedge lock, one position per account, kill switch) still runs after the size and can only shrink or skip the trade.
+      </p>
+      <div className="mt-2 grid gap-2 md:grid-cols-2">
+        {rows.map((r) => (
+          <div key={r.key} className="rounded border border-border p-2 text-sm" data-testid={`fp-size-${r.key}`}>
+            <b className="text-gold">{k$(r.account_size)}</b> · {r.on ? "switch ON" : "switch OFF"}
+            <p className="text-xs text-blue">NOISE: <b className="text-gold">{r.noise_contracts}</b> micro{r.noise_contracts > 1 ? "s" : ""} at a <b className="text-gold">{usd(r.noise_stop_usd)}</b> stop per micro · cushion brake {stepsText(r.noise_steps, r.brake_inclusive)}
+              {r.noise_grow_per && <> · grows +1 micro per {usd(r.noise_grow_per)} of cushion (max {r.noise_max_contracts})</>}
+              {r.noise_lock_trigger_pts && <> · profit lock at {Number(r.noise_lock_trigger_pts)} pt</>}</p>
+            <p className="text-xs text-blue">CANDACE: <b className="text-gold">{r.candace_contracts}</b> micro{r.candace_contracts > 1 ? "s" : ""} · cushion brake {stepsText(r.candace_steps, r.brake_inclusive)}
+              {r.candace_grow_per && <> · grows +1 micro per {usd(r.candace_grow_per)} of cushion (max {r.candace_max_contracts})</>}</p>
+            <p className="text-xs text-blue">{r.day_lock_pct ? `Day lock: no new NOISE entry once today's profit reaches ${Number(r.day_lock_pct) * 100}% of the target still to earn.` : "No day lock."} {r.late_contracts != null ? `Late-day option: ${r.late_contracts} micro(s) (cushion ${stepsText(r.late_steps, r.brake_inclusive)}), ${r.late_on ? "ON" : "OFF"}.` : "Late-day option: not available on this plan."}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function StrategyButtons() {
   const qc = useQueryClient();
@@ -164,7 +208,8 @@ export default function StrategyButtons() {
       const pair = !s.enabled && mine === "main" ? ["strategy.noise", "strategy.candace_ict"] : [];
       const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
       const mainOff = s.enabled && mine === "main" && MAIN_PAIR.includes(s.key) ? Object.fromEntries(MAIN_SETTINGS.map((k) => [k, false])) : {}; // one choice: never a half-on state
-      const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on, ...mainOff };
+      const sbsOff = !s.enabled && mine === "order_flow" ? { [AR_SBS]: false } : {}; // plain Order Flow is never the combined choice
+      const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on, ...mainOff, ...sbsOff };
       await api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });
       return turnedOff; // D167 note: only after the server accepted the save
     },
@@ -175,11 +220,23 @@ export default function StrategyButtons() {
     onError: (e, s) => { setExNote(null); saved.fail(s.name, e); },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
-  const sbs = useMutation({
-    mutationFn: (a: ArSideBySide) =>
-      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [a.setting]: !a.enabled }, note: `AR beside NOISE: ${a.enabled ? "off" : "on"}` }) }),
-    onSuccess: () => saved.ok(),
-    onError: (e) => saved.fail("AR Model beside NOISE", e),
+  const combo = useMutation({
+    mutationFn: async (c: Combined) => {
+      const changes: Record<string, boolean> = {};
+      if (c.enabled) {
+        for (const k of c.settings_on) changes[k] = false; // OFF: everything of the combined choice off (nothing left half-on)
+      } else {
+        // ON: turn every other strategy choice off (one choice at a time), then the 4 settings of the combined choice on
+        for (const x of q.data?.strategies ?? []) {
+          const ch = choiceOf(x.key);
+          if (x.enabled && ch && ch !== "main" && ch !== "order_flow") changes[x.setting] = false;
+        }
+        for (const k of c.settings_on) changes[k] = true;
+      }
+      await api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Combined choice: ${c.enabled ? "off" : "on"}` }) });
+    },
+    onSuccess: () => { saved.ok(); setExNote(null); },
+    onError: (e) => saved.fail("MAIN FAST PASS + ORDER FLOW", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const size = useMutation({
@@ -231,8 +288,11 @@ export default function StrategyButtons() {
   const fastPass = allToggles.filter((t) => t.key.startsWith("fast_pass_"));
   const otherToggles = allToggles.filter((t) => !t.key.startsWith("fast_pass_"));
   const stratCard = (s: Strat, bare = false) => (
-    <div key={s.key} className={bare ? "rounded-lg border border-border p-3" : "rounded-lg border border-border p-3"} data-testid={`strategy-${s.key}`}>
-      {bare ? <h4 className="font-semibold text-gold">{s.name}</h4> : <button
+    <div key={s.key} className={`rounded-lg border p-3 ${s.disabled ? "border-dashed border-border grayscale" : "border-border"}`} aria-disabled={s.disabled || undefined} data-testid={`strategy-${s.key}`}>
+      {s.disabled ? <button type="button" disabled aria-pressed={false} data-testid={`disabled-toggle-${s.key}`}
+        className="w-full cursor-not-allowed rounded-md border border-border px-3 py-2 text-left font-semibold text-blueLight">
+        {s.off_for_now ?? "OFF for now"} · {s.name} <span className="text-xs font-normal">(cannot be turned on)</span>
+      </button> : bare ? <h4 className="font-semibold text-gold">{s.name}</h4> : <button
         type="button"
         aria-pressed={s.enabled}
         disabled={toggle.isPending}
@@ -275,16 +335,7 @@ export default function StrategyButtons() {
       )}
       {s.key === "order_flow" && s.ar_side_by_side && (
         <div className="mt-2 text-xs" data-testid="ar-sbs">
-          <button
-            type="button"
-            aria-pressed={s.ar_side_by_side.enabled}
-            disabled={sbs.isPending}
-            onClick={() => sbs.mutate(s.ar_side_by_side!)}
-            className={`w-full rounded-md border px-2 py-1 text-left font-semibold ${s.ar_side_by_side.enabled ? "toggle-on border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}
-            data-testid="ar-sbs-toggle"
-          >
-            {s.ar_side_by_side.enabled ? "ON" : "OFF"} · AR Model beside NOISE (different free account)
-          </button>
+          <p className="text-blue" data-testid="ar-sbs-state">AR Model beside NOISE is now the separate choice <b className="text-gold">MAIN FAST PASS + ORDER FLOW (separate accounts)</b> above — {s.ar_side_by_side.enabled ? "it is set ON" : "it is OFF"}. Plain Order Flow and plain MAIN never run together.</p>
           <p className="mt-1 text-blue" data-testid="ar-sbs-source">Data: <b className="text-gold">{s.ar_side_by_side.data_source}</b> · bias runs {s.ar_side_by_side.runs.map((r) => `${runLabel(r.minutes_before)} before (${r.at} ET)`).join(", ")}</p>
           <ul className="mt-1 text-blue" data-testid="ar-sbs-runs">
             {s.ar_side_by_side.runs.map((r) => (
@@ -298,7 +349,7 @@ export default function StrategyButtons() {
               </li>
             ))}
           </ul>
-          <p className="mt-1 text-blue" data-testid="ar-sbs-evidence"><EvidenceBadge verified={s.ar_side_by_side.verified} /> {s.ar_side_by_side.evidence} AI bias is {s.ar_side_by_side.advisor_mode.toLowerCase()} only until its ledger is proven.</p>
+          <p className="mt-1 text-blue" data-testid="ar-sbs-evidence"><EvidenceBadge verified={s.ar_side_by_side.verified} /> {s.ar_side_by_side.evidence} TradingAgents bias is advice only and never blocks trading.</p>
         </div>
       )}
       {s.key === "order_flow_amt" && s.amt_layers && (
@@ -403,7 +454,9 @@ export default function StrategyButtons() {
         <p className="text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
       </MoreInfo>
       <SaveAlert error={saved.error} />
-      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The fast-pass plans below are independent of each other.</p>
+      {d.notice && <p role="alert" className="mt-2 rounded border border-gold p-2 text-sm text-gold" data-testid="strategy-notice">⚠ {d.notice}</p>}
+      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The one exception is the separate option MAIN FAST PASS + ORDER FLOW (separate accounts). The fast-pass plans below are independent of each other.</p>
+      <div className="mt-2"><AiAdviceCard advice={d.ai_advice} /></div>
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">
           <h3 className="text-lg font-bold text-gold">MAIN strategy — NOISE + CANDACE</h3>
@@ -436,6 +489,22 @@ export default function StrategyButtons() {
             </div>
           )}
         </div>
+        {d.combined && (
+          <div className="rounded-lg border border-border p-3" data-testid="combined-choice">
+            <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gold">OPTION — {d.combined.title} <EvidenceBadge verified={false} text="OPTION · default OFF · UNVERIFIED" testId="combined-badge" /></h3>
+            <button type="button" aria-pressed={d.combined.enabled} data-testid="combined-toggle"
+              disabled={combo.isPending || (!d.combined.enabled && !d.combined.can_start)}
+              onClick={() => combo.mutate(d.combined!)}
+              className={`mt-2 w-full rounded-md border px-3 py-2 text-left font-semibold ${d.combined.enabled ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}>
+              {d.combined.enabled ? "✓ ON" : "OFF"} · {d.combined.title}
+            </button>
+            {!d.combined.can_start && !d.combined.enabled && (
+              <p role="alert" className="mt-1 text-sm text-gold" data-testid="combined-blocked">Cannot start: {d.combined.blocked_reason}. Nothing else will run instead.</p>
+            )}
+            <p className="mt-1 text-xs text-blue" data-testid="combined-accounts">Eligible accounts: <b className="text-gold">{d.combined.eligible_accounts}</b> (needs {d.combined.min_accounts}+).</p>
+            <ul className="mt-1 list-disc pl-4 text-xs text-blue" data-testid="combined-guards">{d.combined.guards.map((g) => <li key={g}>{g}</li>)}</ul>
+          </div>
+        )}
         <div data-testid="strategy-order-flow-group">
           <h3 className="text-lg font-bold text-gold">SECONDARY strategy — ORDER FLOW (AR Model + options, UNVERIFIED)</h3>
           <div className="mt-2 grid gap-3 lg:grid-cols-3">{flowS.map((s) => stratCard(s))}</div>
@@ -476,6 +545,9 @@ export default function StrategyButtons() {
             </div>
           )}
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
+          {d.size_profiles.fast_pass_plans && d.size_profiles.fast_pass_plans.length > 0 && <FastPassSizes rows={d.size_profiles.fast_pass_plans} />}
+          <h4 className="mt-3 font-semibold text-gold" data-testid="size-fallback-title">Fallback profile: Regular / High risk</h4>
+          <p className="text-xs text-blue" data-testid="size-fallback-note">Used for every account that is NOT on a fast-pass plan above: FUNDED and LIVE accounts, EVAL accounts of another size, and any plan whose fast-pass switch is OFF.</p>
           <div className="mt-2 grid gap-3 lg:grid-cols-2">
             {(["regular", "high"] as const).map((p) => {
               const on = d.size_profiles!.active === p;
@@ -504,7 +576,7 @@ export default function StrategyButtons() {
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-blue">NOISE keeps its hourly band/VWAP trailing exit, profit lock and $250-per-micro emergency stop in both profiles.</p>
+          <p className="mt-1 text-xs text-blue" data-testid="size-stop-note">NOISE keeps its hourly band/VWAP trailing exit and profit lock in every profile. The emergency stop per micro is the plan's own stop in the Regular / High risk profiles and the stop shown in the fast-pass table above for fast-pass EVAL accounts.</p>
         </div>
       )}
       {d.ai_duo_log && d.ai_duo_log.length > 0 && (
@@ -522,7 +594,7 @@ export default function StrategyButtons() {
         {d.ai_ledger.map((l) => (
           <p key={l.proxy} className="text-blue">
             {l.symbol} ← {l.proxy}: <b className="text-gold">{l.badge}</b> · {l.stats.n} scored calls
-            {l.stats.n > 0 && ` · hit rate ${(l.stats.hit_rate * 100).toFixed(0)}% · Brier ${l.stats.brier.toFixed(2)}`} · may block only after {l.min_calls}+ calls proven ≥ {(l.required_accuracy * 100).toFixed(0)}%
+            {l.stats.n > 0 && ` · hit rate ${(l.stats.hit_rate * 100).toFixed(0)}% · Brier ${l.stats.brier.toFixed(2)}`} · advice only, never blocks trading (a record of {l.min_calls}+ calls ≥ {(l.required_accuracy * 100).toFixed(0)}% is just shown)
           </p>
         ))}
       </div>

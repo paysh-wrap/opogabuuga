@@ -31,11 +31,11 @@ test("mode control saves a versioned setting; key note and unproven gate note", 
   const calls: string[] = [];
   vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
     calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
-    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { advisor: adv({ mode: "GATE" }) } : {}));
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { advisor: adv({ mode: "ADVISORY" }) } : {}));
   });
   wrap(<AdvisorCard />);
   expect(await screen.findByTestId("advisor-no-key")).toHaveTextContent("TradingAgents key not connected: no call today");
-  expect(screen.getByTestId("advisor-gate-unproven")).toHaveTextContent("behaves like Advisory");
+  expect(screen.queryByRole("button", { name: /Gate/ })).toBeNull(); // D176: no gate mode
   await userEvent.click(screen.getByRole("button", { name: "Off" }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.advisor.mode":"OFF"'))).toBe(true));
 });
@@ -43,6 +43,6 @@ test("mode control saves a versioned setting; key note and unproven gate note", 
 test("connected without a call today says so", async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify({ advisor: adv({ connected: true, cards: { gala_pa: card } }) })));
   wrap(<AdvisorCard />);
-  expect(await screen.findByTestId("advisor-no-call")).toHaveTextContent("blocks nothing");
+  expect(await screen.findByTestId("advisor-no-call")).toHaveTextContent("nothing is blocked");
   expect(screen.queryByTestId("advisor-no-key")).toBeNull();
 });

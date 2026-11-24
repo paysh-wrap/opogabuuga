@@ -4,7 +4,9 @@ import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
+import AiAdviceCard from "../components/AiAdvice";
 import NowRunning from "../components/NowRunning";
+import type { AiAdvice } from "../components/StrategyButtons";
 import WhyNoTrade from "../components/WhyNoTrade";
 import IncomeProjection from "../components/IncomeProjection";
 import HindsightNote from "../components/HindsightNote";
@@ -26,7 +28,7 @@ interface Acct {
   guard_on?: boolean; eval_mode_on?: boolean; day_lockin?: boolean; day_net_r?: string; day_lockin_r?: string;
   cushion?: CushionView | null;
 }
-interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[] }
+interface Dash { session: string; mode: string; bias: Record<string, string>; accounts: Acct[]; ai_advice?: AiAdvice }
 
 
 function Pnl({ v }: { v?: string }) {
@@ -52,6 +54,7 @@ export default function Dashboard() {
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
       <NowRunning />
+      <AiAdviceCard advice={d.ai_advice} compact />
       <MissionBento accounts={d.accounts} mode={d.mode} />
       <WhyNoTrade />
       <MandatoryChecklist />

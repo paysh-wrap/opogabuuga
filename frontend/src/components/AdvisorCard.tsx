@@ -6,7 +6,7 @@ import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 export type Verdict = "AGREE" | "DISAGREE" | "NEUTRAL" | "NO_CALL";
 export interface AdvisorFeat { verdict: Verdict; prob_up: number | null; label: string | null; ledger_proven: boolean; mode?: string; blocks?: boolean }
 export interface AdvisorCardRow { mode: string; symbol: string; skipped: boolean; call_label: string | null; call_direction: number | null; prob_up: number | null; last_verdict: Verdict | null }
-export interface AdvisorResp { mode: "OFF" | "ADVISORY" | "GATE"; setting: string; skip_strategies: string[]; connected: boolean; ledger_proven: boolean; required_accuracy: number; cards: Record<string, AdvisorCardRow> }
+export interface AdvisorResp { mode: "OFF" | "ADVISORY"; setting: string; skip_strategies: string[]; connected: boolean; ledger_proven: boolean; required_accuracy: number; cards: Record<string, AdvisorCardRow> }
 
 const TEXT: Record<Verdict, string> = { AGREE: "AGREE", DISAGREE: "DISAGREE", NEUTRAL: "NEUTRAL", NO_CALL: "NO CALL" };
 
@@ -38,8 +38,7 @@ export function AdvisorCardLine({ adv, cardKey }: { adv: AdvisorResp; cardKey: s
 
 const MODES: { v: AdvisorResp["mode"]; label: string }[] = [
   { v: "OFF", label: "Off" },
-  { v: "ADVISORY", label: "Advisory (record + show)" },
-  { v: "GATE", label: "Gate (skip a proven DISAGREE)" },
+  { v: "ADVISORY", label: "Advice only (record + show)" },
 ];
 
 /** Strategy-page control for the advisor mode. */
@@ -59,7 +58,7 @@ export default function AdvisorCard() {
   return (
     <section className="rounded-xl border border-border bg-card p-4" data-testid="advisor-card">
       <h2 className="font-semibold text-gold">TradingAgents advisor (JJ, GALA, CONTI, OKALA, BRUNI, CANDACE, AUCTION)</h2>
-      <p className="text-xs text-blue">Runs before each of these strategies' signals using today's stored TradingAgents call. It can only skip a trade (code ADVISOR_DISAGREE), never create or enlarge one. No call today never blocks.</p>
+      <p className="text-xs text-blue">Runs before each of these strategies' signals using today's stored TradingAgents call. Advice only, never blocks trading: it cannot block, skip, shrink, delay or reverse any trade. No call today never blocks either.</p>
       <SaveAlert error={saved.error} />
       <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Advisor mode">
         {MODES.map((m) => (
@@ -69,11 +68,8 @@ export default function AdvisorCard() {
           </button>
         ))}
       </div>
-      {a.mode === "GATE" && !a.ledger_proven && (
-        <p className="mt-1 text-xs text-gold" data-testid="advisor-gate-unproven">Gate is not active yet: the AI ledger has not proven {(a.required_accuracy * 100).toFixed(0)}% accuracy, so it behaves like Advisory.</p>
-      )}
       {!a.connected && <p className="mt-1 text-xs text-gold" data-testid="advisor-no-key">TradingAgents key not connected: no call today</p>}
-      {a.connected && noCall && <p className="mt-1 text-xs text-gold" data-testid="advisor-no-call">No TradingAgents call today: the advisor records NO CALL and blocks nothing.</p>}
+      {a.connected && noCall && <p className="mt-1 text-xs text-gold" data-testid="advisor-no-call">No TradingAgents call today: the advisor records NO CALL (advice only, nothing is blocked).</p>}
     </section>
   );
 }

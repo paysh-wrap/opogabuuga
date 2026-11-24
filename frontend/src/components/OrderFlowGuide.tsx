@@ -43,7 +43,7 @@ export function OrderFlowGuide() {
   );
 }
 
-/** D109 A: TradingAgents advisor toggle + today's advice (ADVISORY — never blocks unless the plan flag + proven ledger). */
+/** D109 A: TradingAgents advisor toggle + today's advice (advice only, never blocks). */
 export function TaAdvisorPanel({ a, symbol }: { a: TaAdvisor; symbol: string }) {
   const qc = useQueryClient();
   const [err, setErr] = useState("");
@@ -62,7 +62,7 @@ export function TaAdvisorPanel({ a, symbol }: { a: TaAdvisor; symbol: string }) 
           {a.enabled ? "ON — turn off" : "OFF — turn on"}
         </button>
       </div>
-      <p className="mt-1 text-xs text-blue">Runs the daily TradingAgents bias at {a.at} ET (1 h before the first Order Flow entry window). An opposite-side alert is {a.blocks ? "skipped (OF_TA_DISAGREES) once the AI ledger is proven, else annotated" : "annotated with a warning only"}. No advice (no key / failure) never blocks trading.</p>
+      <p className="mt-1 text-xs text-blue">Runs the daily TradingAgents bias at {a.at} ET (1 h before the first Order Flow entry window). An opposite-side alert is annotated with a warning only (advice only, never skipped). No advice (no key / failure) never blocks trading.</p>
       {a.enabled && (
         <p className="mt-1" data-testid="of-ta-advice">
           {adv && adv.side ? (

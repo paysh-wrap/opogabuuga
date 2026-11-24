@@ -139,7 +139,7 @@ export function BiasAndBlackouts() {
   return (
     <section className={card} data-testid="dash-bias">
       <h2 className="font-semibold text-gold">Bias &amp; blackouts</h2>
-      {bias.data?.decisions.length === 0 && <p className="text-sm">Bias not run yet — no bias, no trading.</p>}
+      {bias.data?.decisions.length === 0 && <p className="text-sm">Bias not run yet — advice unavailable; trading is unaffected (advice only).</p>}
       {bias.data?.decisions.map((b) => <p key={b.proxy} className="text-sm">{b.proxy}: <b className="text-gold">{b.raw}</b> → {b.mapped}</p>)}
       {plan.data && !plan.data.calendar_loaded && <p className="text-sm text-goldLight">⚠ Calendar not loaded — no trading until it is.</p>}
       {plan.data?.calendar_loaded && plan.data.news.length === 0 && <p className="text-sm">No high-impact news today.</p>}

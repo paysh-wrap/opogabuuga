@@ -82,3 +82,39 @@ def test_old_saved_gate_mode_loads_as_advisory(authed):
     assert r.status_code == 200
     assert authed.app.state.rules.rules.strategy.advisor.mode == "ADVISORY"
     assert Call(-1, 0.1, True)  # a strongly-against call exists; nothing above consumes it as a gate
+
+
+# ---------- news handling is untouched by the combined option and by advice (D175 / D176) ----------
+
+
+def test_combined_mode_flattens_both_accounts_at_news_and_advice_changes_nothing(authed, clock):
+    from datetime import timedelta
+
+    from app.engine.filters import NewsEvent
+    from tests.integration.test_strategy_combined import _combined_rules
+
+    st, (a, b) = _setup(authed, clock, [("a", "25000"), ("b", "25000")], noise=True)
+    _combined_rules(st)
+    with st.sessionmaker() as s:  # a strongly-against advice row exists: it must not change news handling
+        s.add(BiasDecision(session_date=AT.date(), proxy="QQQ", raw_rating="SELL·VT SHORT 90", mapped="SHORT_ONLY", reasoning="", version=""))
+        s.commit()
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    assert asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))[0].ok
+    ev = NewsEvent(at=clock.now() + timedelta(minutes=2), title="CPI")  # event 2 min ahead: flatten before the release
+    assert asyncio.run(st.controller.news_check([ev])) == "NEWS"
+    assert all(x["positions"] == [] for x in authed.get("/api/positions").json()["accounts"])
+
+
+def test_entries_inside_the_news_window_and_without_a_calendar_are_blocked_for_every_choice(loaded_rules):
+    from datetime import timedelta
+
+    from app.engine.filters import NewsEvent
+    from app.signals.strategy_service import _gate
+
+    r = loaded_rules.rules
+    day_event = NewsEvent(at=AT, title="CPI")
+    for delta in (-r.internal.no_entry_before_news_min, 0, 1):  # from the config margins, never a literal time
+        ok, code, _ = _gate(r, "MNQ", AT + timedelta(minutes=delta), lambda _d: [day_event], True)
+        assert not ok and code == "NEWS_BLACKOUT"
+    ok, code, _ = _gate(r, "MNQ", AT, lambda _d: None, True)  # calendar failure = no trading, never blind
+    assert not ok and code == "CALENDAR_MISSING"

@@ -227,8 +227,8 @@ test("Order Flow card: AR beside NOISE toggle, pre-session bias runs, NO_CALL an
   expect(screen.getByTestId("ar-sbs-runs")).toHaveTextContent("MNQ SHORT (Sell) up 45% / down 55%");
   expect(screen.getByTestId("ar-sbs-runs")).toHaveTextContent("NO_CALL — AI key not connected");
   expect(screen.getByTestId("ar-sbs-evidence")).toHaveTextContent("session22");
-  await userEvent.click(screen.getByTestId("ar-sbs-toggle"));
-  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.order_flow_cfg.ar_side_by_side":true'))).toBe(true));
+  expect(screen.queryByTestId("ar-sbs-toggle")).toBeNull(); // D175: it is the combined choice now
+  expect(screen.getByTestId("ar-sbs-state")).toHaveTextContent("MAIN FAST PASS + ORDER FLOW");
 });
 
 test("D167: main strategy first, one strategy ON at a time, four independent fast-pass cards", async () => {
