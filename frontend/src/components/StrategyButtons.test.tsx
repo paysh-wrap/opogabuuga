@@ -232,3 +232,34 @@ test("Order Flow card: AR beside NOISE toggle, pre-session bias runs, NO_CALL an
   await userEvent.click(screen.getByTestId("ar-sbs-toggle"));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.order_flow_cfg.ar_side_by_side":true'))).toBe(true));
 });
+
+test("D167: main strategy first, one strategy ON at a time, four independent fast-pass cards", async () => {
+  const calls: string[] = [];
+  const fp = (n: string, on: boolean) => ({ key: `fast_pass_${n}`, setting: `strategy.fast_pass_${n}`, title: `${n.toUpperCase()} fast pass (evaluations)`, value: on, on_label: "on", off_label: "off", note: "n",
+    weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: true, source: "s" } });
+  const r2: StrategiesResp = { ...resp, toggles: [fp("25k", true), fp("50k", true), fp("100k", false), fp("150k", false)] };
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? r2 : {}));
+  });
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  await screen.findByTestId("strategy-main-group");
+  const main = screen.getByTestId("strategy-main-group");
+  const flow = screen.getByTestId("strategy-order-flow-group");
+  expect(main.compareDocumentPosition(flow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(main.compareDocumentPosition(screen.getByTestId("size-profiles")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const lesser = screen.getByTestId("lesser-strategies") as HTMLDetailsElement;
+  expect(flow.compareDocumentPosition(lesser) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // main → secondary → lesser
+  expect(lesser.open).toBe(false); // closed by default
+  expect(screen.getByTestId("strategy-order-flow-group")).toHaveTextContent("SECONDARY strategy — ORDER FLOW");
+  expect(lesser).toContainElement(screen.getByTestId("strategy-noise_ai_split"));
+  expect(flow).not.toContainElement(screen.getByTestId("strategy-noise_ai_split"));
+  for (const n of ["25k", "50k", "100k", "150k"]) expect(screen.getByTestId(`weekly-fast_pass_${n}`)).toHaveTextContent("Weekly target");
+  // two fast-pass plans ON together is fine (independent)
+  expect(screen.getByTestId("toggle-fast_pass_25k-on")).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByTestId("toggle-fast_pass_50k-on")).toHaveAttribute("aria-pressed", "true");
+  // NOISE is ON; turning Order Flow on turns the main pair off
+  await userEvent.click(screen.getByRole("button", { name: /OFF · Order Flow — TradingView/ }));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT") && c.includes('"strategy.noise":false') && c.includes('"strategy.candace_ict":false') && c.includes('"strategy.order_flow":true'))).toBe(true));
+  expect(await screen.findByTestId("exclusive-note")).toHaveTextContent("turned off: MAIN NOISE + CANDACE");
+});

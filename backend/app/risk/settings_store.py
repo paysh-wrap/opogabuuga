@@ -320,6 +320,33 @@ def effective(s: Session, base: LoadedRules) -> Effective:
     )
 
 
+# D167: Strategy buttons are ONE-ON-AT-A-TIME (tightening only: fewer things trade). choice -> strategy.* attributes;
+# sub-options (late-day, fast-pass sizes, pm_fade, order-flow AR/AUCTION/AMT/zone) are not choices of their own.
+STRATEGY_CHOICES: dict[str, tuple[str, ...]] = {
+    "main_noise_candace": ("noise", "candace_ict"),
+    "mgc_noise_candace": ("mgc_noise_candace",),
+    "order_flow": ("order_flow",),
+    "ai_duo": ("ai_duo", "noise_ai_split"),  # NOISE + AI Duo split: NOISE belongs to this choice while the split is ON
+    "jj_fpt": ("jj_fpt",),
+    "gala_pa": ("gala_pa",),
+    "conti_orb": ("conti_orb",),
+    "conti_vwap": ("conti_vwap",),
+    "okala_8020": ("okala_8020",),
+    "bruni_structure": ("bruni_structure",),
+}
+
+
+def strategy_choices_on(strategy: Any) -> list[str]:
+    split = bool(strategy.noise_ai_split)
+    on = []
+    for c, attrs in STRATEGY_CHOICES.items():
+        if c == "main_noise_candace" and split:
+            attrs = tuple(a for a in attrs if a != "noise")  # the split (D92) is the one choice that uses NOISE + AI Duo
+        if any(bool(getattr(strategy, a)) for a in attrs):
+            on.append(c)
+    return on
+
+
 def save_my_settings(
     s: Session,
     base: LoadedRules,
@@ -336,6 +363,10 @@ def save_my_settings(
     firm = latest_firm(s)
     merged = {**(cur.settings if cur else {}), **{k: _norm(v) for k, v in changes.items()}}
     cfg, v = build(merged_raw(base, firm.body_overrides() if firm else {}, merged))
+    touched = {a for c in STRATEGY_CHOICES.values() for a in c if changes.get(f"strategy.{a}") is True}
+    on = strategy_choices_on(cfg.strategy)
+    if touched and len(on) > 1:
+        raise SettingsError([f"only one strategy button may be ON at a time (D167); ON: {', '.join(on)}"], v)
     std_over_11 = any(
         p > Decimal("0.11") for p in (cfg.internal.risk_pct_ceiling, *cfg.internal.risk_pct_by_score.values())
     )

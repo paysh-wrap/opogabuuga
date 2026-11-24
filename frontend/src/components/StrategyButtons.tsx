@@ -128,12 +128,37 @@ function DrawdownCompareView({ c }: { c: DrawdownCompare }) {
   );
 }
 
+// D167: Strategy buttons are ONE-ON-AT-A-TIME (backend rejects two ON with 422). The main NOISE + CANDACE pair is ONE
+// choice; late-day, fast-pass sizes, fade and order-flow layers are sub-options. Fast-pass plans stay independent.
+export const choiceOf = (key: string): string | null =>
+  ["noise", "candace_ict", "pm_fade"].includes(key) ? "main"
+    : key.startsWith("order_flow") ? "order_flow"
+    : ["ai_duo", "noise_ai_split"].includes(key) ? "ai_duo"
+    : key === "ai_bias" ? null : key;
+const CHOICE_SETTINGS: Record<string, string[]> = {
+  main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"], ai_duo: ["strategy.ai_duo", "strategy.noise_ai_split"],
+};
+const settingsOfChoice = (c: string) => CHOICE_SETTINGS[c] ?? [`strategy.${c}`];
+const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c === "order_flow" ? "Order Flow" : c === "ai_duo" ? "AI Duo" : c.replace(/_/g, " ").toUpperCase());
+
 export default function StrategyButtons() {
   const qc = useQueryClient();
+  const [exNote, setExNote] = useState<string | null>(null);
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<StrategiesResp>("/api/strategies"), refetchInterval: 30000 });
   const toggle = useMutation({
-    mutationFn: (s: Strat) =>
-      api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [s.setting]: !s.enabled, ...(s.enabled ? {} : Object.fromEntries((s.also ?? []).map((k) => [k, true]))) }, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) }),
+    mutationFn: (s: Strat) => {
+      const mine = choiceOf(s.key);
+      const off: string[] = [];
+      if (!s.enabled && mine) {
+        const others = new Set((q.data?.strategies ?? []).filter((x) => x.enabled && choiceOf(x.key) && choiceOf(x.key) !== mine).map((x) => choiceOf(x.key)!));
+        others.forEach((c) => off.push(...settingsOfChoice(c)));
+        setExNote(others.size ? `${s.name} is now the only strategy ON — turned off: ${[...others].map(choiceTitle).join(", ")}.` : null);
+      } else setExNote(null);
+      const pair = !s.enabled && mine === "main" ? ["strategy.noise", "strategy.candace_ict"] : [];
+      const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || s.key === "noise_ai_split" || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
+      const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on };
+      return api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });
+    },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const sbs = useMutation({
@@ -348,9 +373,11 @@ export default function StrategyButtons() {
       <MoreInfo label="How these numbers were measured" testId="strategy-method">
         <p className="text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
       </MoreInfo>
+      {exNote && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote}</p>}
+      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The fast-pass plans below are independent of each other.</p>
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">
-          <h3 className="text-lg font-bold text-gold">MAIN strategy — NOISE (+ CANDACE partner)</h3>
+          <h3 className="text-lg font-bold text-gold">MAIN strategy — NOISE + CANDACE</h3>
           <div className="mt-2 grid gap-3 lg:grid-cols-3">{mainS.map(stratCard)}</div>
           {fastPass.length > 0 && (
             <div className="mt-3" data-testid="strategy-fast-pass">
@@ -361,7 +388,7 @@ export default function StrategyButtons() {
           )}
         </div>
         <div data-testid="strategy-order-flow-group">
-          <h3 className="text-lg font-bold text-gold">ORDER FLOW — second main option (UNVERIFIED)</h3>
+          <h3 className="text-lg font-bold text-gold">SECONDARY strategy — ORDER FLOW (AR Model + options, UNVERIFIED)</h3>
           <div className="mt-2 grid gap-3 lg:grid-cols-3">{flowS.map(stratCard)}</div>
         </div>
         <details className="rounded-lg border border-border p-3" data-testid="lesser-strategies">

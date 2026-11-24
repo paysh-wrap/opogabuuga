@@ -1108,6 +1108,26 @@ def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
     return capped_eval_table(table, r.strategy.eval_size_caps) if r.strategy.eval_size_s19 else table
 
 
+def _fast_pass_cards(st: Any) -> list[tuple[str, Any, bool]]:
+    """D167: (key, FastPassCfg, on) for 25K/50K/100K/150K. The cfg comes from config/rules/lucid_pro_{N}k.yaml (the active
+    plan's own cfg wins); the switches stay independent — several plans may be ON together."""
+    from app.config import FastPassCfg, load_yaml_decimal
+
+    root = Path(__file__).resolve().parents[3] / "config" / "rules"
+    out: list[tuple[str, Any, bool]] = []
+    for n in (25, 50, 100, 150):
+        fk = f"fast_pass_{n}k"
+        cfg = getattr(st, f"{fk}_cfg")
+        if cfg is None:
+            try:
+                raw = load_yaml_decimal((root / f"lucid_pro_{n}k.yaml").read_text(encoding="utf-8"))
+                cfg = FastPassCfg(**raw["strategy"][f"{fk}_cfg"])
+            except (OSError, KeyError, TypeError, ValueError):
+                cfg = None
+        out.append((fk, cfg, bool(getattr(st, fk))))
+    return out
+
+
 def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
     """D132 / D133: two-way Strategy-page toggles (My Settings keys; each save is validated, versioned, audited)."""
     from app.eval_odds import drawdown_compare, odds_view
@@ -1158,13 +1178,8 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "in-sample — treat as chance until paper proves it.",
             }
         )
-    for fk, fp, fon in (
-        ("fast_pass_25k", st.fast_pass_25k_cfg, st.fast_pass_25k),
-        ("fast_pass_50k", st.fast_pass_50k_cfg, st.fast_pass_50k),
-        ("fast_pass_100k", st.fast_pass_100k_cfg, st.fast_pass_100k),
-        ("fast_pass_150k", st.fast_pass_150k_cfg, st.fast_pass_150k),
-    ):
-        if fp is None:  # D156/D157: only plan files that carry the cfg show the card
+    for fk, fp, fon in _fast_pass_cards(st):  # D167: all four cards, each read from its own plan file
+        if fp is None:
             continue
         op = "≤" if fp.brake_inclusive else "<"
 
