@@ -10,9 +10,9 @@ export default function AiAdviceCard({ advice, compact = false }: { advice?: AiA
     <section className="rounded-lg border border-border p-3 text-sm" data-testid="ai-advice">
       <h3 className="font-semibold text-gold">TradingAgents advice <span className="ml-1 rounded border border-gold px-1 text-xs" data-testid="ai-advice-label">Advice only, never blocks trading</span></h3>
       {advice.mode === "OFF" ? (
-        <p className="mt-1 text-xs text-blue" data-testid="ai-advice-off">Advisor is off: no runs.</p>
+        <p className="mt-1 text-xs text-blueLight" data-testid="ai-advice-off">Advisor is off: no runs.</p>
       ) : (
-        <ul className="mt-1 text-xs text-blue" data-testid="ai-advice-runs">
+        <ul className="mt-1 text-xs text-blueLight" data-testid="ai-advice-runs">
           {advice.runs.map((r) => (
             <li key={r.minutes_before} data-testid={`ai-advice-run-${r.minutes_before}`}>
               <b className="text-gold">{runLabel(r.minutes_before)} before the open ({r.at} ET)</b>:{" "}
