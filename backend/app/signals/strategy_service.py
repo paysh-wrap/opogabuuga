@@ -341,13 +341,37 @@ def run_noise(
         max_entries=cfg.max_entries_per_day,
         allow_entry=check and not exits_only and not lock_exit and at.astimezone(ET).weekday() not in cfg.skip_weekdays,
     )
+    def entry_checks(direction: Direction, stop: Decimal) -> tuple[tuple[bool, str, str], dict[str, object]]:
+        gate = _gate(rules, cfg.symbol, at, calendar, True if mgc else None)
+        sf: dict[str, object] = {}
+        if not mgc:
+            if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, direction) is not None:
+                gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
+            gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, direction, close, stop, gate)
+        if gate[0] and not mgc:  # the AI may block only once its record is proven (>= 70% for NOISE) - else advisory
+            why = ledger.may_block(
+                s,
+                inst.bias_proxy,
+                cfg.symbol,
+                at.astimezone(ET).date(),
+                direction.sign,
+                float(rules.strategy.ai_gate_min_accuracy),
+            )
+            if why:
+                gate = (False, why, "proven AI call (both tools agree) is against this side")
+        return gate, sf
+
     # A same-direction EXIT + ENTER on one check leaves the account in the same position: with the exit fill still
-    # pending the re-entry would hit POSITION_OPEN and strand the account flat. Treat it as HOLD, count the entry.
+    # pending the re-entry would hit POSITION_OPEN and strand the account flat. Treat it as HOLD, count the entry -
+    # but only when a fresh entry would pass every check now (M1); otherwise it is a plain EXIT (flat), as before.
     merge = (
         open_sig is not None
         and any(x.kind == "EXIT" for x in actions)
         and any(x.kind == "ENTER" and x.direction is position for x in actions)
     )
+    if merge and position is not None:
+        mp = N.plan(position, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules, cfg))
+        merge = entry_checks(position, mp.stop)[0][0]
     for a in actions:
         if a.kind == "EXIT" and open_sig is not None and merge:
             continue  # same-direction EXIT + ENTER on one check = HOLD (see below)
@@ -371,23 +395,7 @@ def run_noise(
                 a.direction, close, inst.tick, cfg.emergency_stop_pct, cfg.take_profit_pct, noise_stop_pts(rules, cfg)
             )
             entries += 1
-            gate = _gate(rules, cfg.symbol, at, calendar, True if mgc else None)
-            sf: dict[str, object] = {}
-            if not mgc:
-                if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, a.direction) is not None:
-                    gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
-                gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, a.direction, close, p.stop, gate)
-            if gate[0] and not mgc:  # the AI may block only once its record is proven (≥ 70% for NOISE) — else advisory
-                why = ledger.may_block(
-                    s,
-                    inst.bias_proxy,
-                    cfg.symbol,
-                    at.astimezone(ET).date(),
-                    a.direction.sign,
-                    float(rules.strategy.ai_gate_min_accuracy),
-                )
-                if why:
-                    gate = (False, why, "proven AI call (both tools agree) is against this side")
+            gate, sf = entry_checks(a.direction, p.stop)
             new = _new_signal(
                 s,
                 clock,

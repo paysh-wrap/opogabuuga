@@ -452,6 +452,22 @@ def test_same_direction_exit_and_reentry_is_a_hold_that_still_counts_the_entry(d
         assert SS.noise_entries_today(sigs) == 2
 
 
+def test_same_direction_merge_is_a_plain_exit_when_the_gate_would_block_a_fresh_entry(db, loaded_rules):
+    """M1: a news blackout (any failing entry check) must not let EXIT+ENTER merge into a HOLD; the account goes flat."""
+    from app.engine.filters import NewsEvent
+
+    later = {k: D(20060) for k in range(30, 150)}
+    rules, today, clock, cal, sid = _noise_long_at_1000(db, loaded_rules, later)
+    news = [NewsEvent(today + timedelta(minutes=92), "CPI")]
+    with db() as s:
+        out = SS.run(
+            s, rules=rules, clock=clock, calendar=lambda _d: news, symbol="MNQ", tf="1", at=today + timedelta(minutes=90)
+        )
+        assert out.exits and out.exits[0][0] == sid
+        sig = s.get(Signal, sid)
+        assert "merged_entries" not in sig.features and sig.features["state"] != "OPEN" or "exit_requested" in sig.features
+
+
 def test_one_runner_exception_keeps_the_other_strategies_exits(db, loaded_rules, monkeypatch):
     """D (M5): a crashing runner is isolated (savepoint), reported in out.errors, and never discards NOISE's exit."""
     rules = _rules(loaded_rules, noise=True, candace_ict=True)
