@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { usePageTitle } from "../components/usePageTitle";
 import Markets from "../components/Markets";
 import MarketPanel from "../components/MarketPanel";
+import NowRunning from "../components/NowRunning";
 import WhyNoTrade from "../components/WhyNoTrade";
 import IncomeProjection from "../components/IncomeProjection";
 import HindsightNote from "../components/HindsightNote";
@@ -50,6 +51,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
+      <NowRunning />
       <MissionBento accounts={d.accounts} mode={d.mode} />
       <MandatoryChecklist />
       <Markets />

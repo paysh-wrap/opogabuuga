@@ -141,7 +141,7 @@ const CHOICE_SETTINGS: Record<string, string[]> = {
   main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"], ai_duo: ["strategy.ai_duo", "strategy.noise_ai_split"],
 };
 const settingsOfChoice = (c: string) => CHOICE_SETTINGS[c] ?? [`strategy.${c}`];
-const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c === "order_flow" ? "Order Flow" : c === "ai_duo" ? "AI Duo" : c.replace(/_/g, " ").toUpperCase());
+export const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c === "order_flow" ? "Order Flow" : c === "ai_duo" ? "AI Duo" : c.replace(/_/g, " ").toUpperCase());
 
 export default function StrategyButtons() {
   const qc = useQueryClient();

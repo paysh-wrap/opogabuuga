@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { api } from "../lib/api";
 import LoadError from "../components/LoadError";
 import { usePageTitle } from "../components/usePageTitle";
+import NowRunning from "../components/NowRunning";
 import StrategyButtons from "../components/StrategyButtons";
 import StrategyPresets from "../components/StrategyPresets";
 import TaMgcCard from "../components/TaMgcCard";
@@ -33,6 +34,7 @@ export default function Strategy() {
     <div className="space-y-5">
       <h1 className="text-2xl font-bold text-gold">Strategy</h1>
       <p className="text-xs" data-testid="real-volume-note">Strategies use real CME volume (VWAP-based ones) when the TradingView feed provides it.</p>
+      <NowRunning />
       <StrategyButtons />
       <StrategyPresets />
       <AdvisorCard />

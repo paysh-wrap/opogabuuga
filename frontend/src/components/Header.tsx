@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api, type ConnectionsResponse, type Health } from "../lib/api";
 import { useLive } from "../app/live";
 import HeaderStatus from "./HeaderStatus";
+import NowRunning from "./NowRunning";
 import { AlertsBell, JobsIndicator } from "./HeaderAlerts";
 
 function useEtClock(): string {
@@ -48,6 +49,7 @@ export default function Header() {
         <span data-testid="mode" className="rounded border border-border px-2 py-0.5 text-xs font-semibold text-goldLight">
           {health.data?.mode ?? "…"}
         </span>
+        <NowRunning compact />
         {liveOn !== undefined && (
           <a href="/risk#live-trading" data-testid="live-trade-pill" title="Live trading: checklist and switch on the Risk page"
             className="rounded-full border border-gold/50 bg-gold/10 px-2.5 py-0.5 text-xs font-semibold text-gold hover:text-goldLight">
