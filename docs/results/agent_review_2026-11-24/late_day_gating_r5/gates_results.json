@@ -1,0 +1,310 @@
+{
+ "median_vix_pick": 20.34,
+ "gate4_grid": {
+  "0.25": [
+   350,
+   1.4438671209540035
+  ],
+  "0.5": [
+   180,
+   1.2388511518015357
+  ],
+  "0.75": [
+   85,
+   1.2862922047611638
+  ]
+ },
+ "gate4_chosen": 0.25,
+ "gates": {
+  "G0 ungated": {
+   "pick": {
+    "n": 465,
+    "wr": 53.1,
+    "pf": 1.502,
+    "net": 7756,
+    "rand_p95": 1.195,
+    "p_rand": 0.0
+   },
+   "judge": {
+    "n": 602,
+    "wr": 47.7,
+    "pf": 1.121,
+    "net": 3198,
+    "rand_p95": 1.18,
+    "p_rand": 0.133
+   },
+   "corr_noise_candace_daily": 0.109,
+   "note": "all signals",
+   "net_vs_ungated_pick": 0,
+   "net_vs_ungated_judge": 0,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": true,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G0b app rule: skip if NOISE open at entry": {
+   "pick": {
+    "n": 333,
+    "wr": 51.7,
+    "pf": 1.461,
+    "net": 5248,
+    "rand_p95": 1.273,
+    "p_rand": 0.0035
+   },
+   "judge": {
+    "n": 462,
+    "wr": 47.6,
+    "pf": 1.158,
+    "net": 3222,
+    "rand_p95": 1.238,
+    "p_rand": 0.1325
+   },
+   "corr_noise_candace_daily": -0.005,
+   "note": "what the app does today",
+   "net_vs_ungated_pick": -2508,
+   "net_vs_ungated_judge": 24,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G1 skip if NOISE traded today (before entry)": {
+   "pick": {
+    "n": 261,
+    "wr": 52.9,
+    "pf": 1.524,
+    "net": 4582,
+    "rand_p95": 1.281,
+    "p_rand": 0.0025
+   },
+   "judge": {
+    "n": 352,
+    "wr": 46.3,
+    "pf": 1.071,
+    "net": 1078,
+    "rand_p95": 1.165,
+    "p_rand": 0.1685
+   },
+   "corr_noise_candace_daily": -0.011,
+   "note": "",
+   "net_vs_ungated_pick": -3174,
+   "net_vs_ungated_judge": -2120,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G2 skip if NOISE realized P&L today < 0": {
+   "pick": {
+    "n": 368,
+    "wr": 53.3,
+    "pf": 1.574,
+    "net": 6858,
+    "rand_p95": 1.245,
+    "p_rand": 0.0
+   },
+   "judge": {
+    "n": 504,
+    "wr": 46.6,
+    "pf": 1.137,
+    "net": 3016,
+    "rand_p95": 1.234,
+    "p_rand": 0.1925
+   },
+   "corr_noise_candace_daily": 0.068,
+   "note": "",
+   "net_vs_ungated_pick": -898,
+   "net_vs_ungated_judge": -182,
+   "adopt_tests": {
+    "beats_ungated_pf_both": true,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G3 NOISE flat, traded today, trend side == NOISE last side": {
+   "pick": {
+    "n": 77,
+    "wr": 44.2,
+    "pf": 1.026,
+    "net": 85,
+    "rand_p95": 1.545,
+    "p_rand": 0.4275
+   },
+   "judge": {
+    "n": 104,
+    "wr": 52.9,
+    "pf": 1.725,
+    "net": 3333,
+    "rand_p95": 1.92,
+    "p_rand": 0.1245
+   },
+   "corr_noise_candace_daily": -0.011,
+   "note": "strict: needs a NOISE trade today",
+   "net_vs_ungated_pick": -7671,
+   "net_vs_ungated_judge": 135,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G4 |move|>=0.25 x 14d range": {
+   "pick": {
+    "n": 350,
+    "wr": 53.4,
+    "pf": 1.444,
+    "net": 5211,
+    "rand_p95": 1.152,
+    "p_rand": 0.0005
+   },
+   "judge": {
+    "n": 456,
+    "wr": 46.7,
+    "pf": 1.06,
+    "net": 1254,
+    "rand_p95": 1.221,
+    "p_rand": 0.349
+   },
+   "corr_noise_candace_daily": 0.131,
+   "note": "threshold picked on pick",
+   "net_vs_ungated_pick": -2545,
+   "net_vs_ungated_judge": -1944,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G5 skip if prior-day VIX > pick median 20.34": {
+   "pick": {
+    "n": 230,
+    "wr": 52.6,
+    "pf": 1.488,
+    "net": 3064,
+    "rand_p95": 1.315,
+    "p_rand": 0.008
+   },
+   "judge": {
+    "n": 499,
+    "wr": 46.7,
+    "pf": 0.987,
+    "net": -284,
+    "rand_p95": 1.125,
+    "p_rand": 0.3635
+   },
+   "corr_noise_candace_daily": 0.1,
+   "note": "",
+   "net_vs_ungated_pick": -4692,
+   "net_vs_ungated_judge": -3482,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G6 skip Mondays": {
+   "pick": {
+    "n": 383,
+    "wr": 53.8,
+    "pf": 1.528,
+    "net": 6678,
+    "rand_p95": 1.17,
+    "p_rand": 0.0
+   },
+   "judge": {
+    "n": 493,
+    "wr": 47.5,
+    "pf": 1.117,
+    "net": 2557,
+    "rand_p95": 1.186,
+    "p_rand": 0.1325
+   },
+   "corr_noise_candace_daily": 0.121,
+   "note": "",
+   "net_vs_ungated_pick": -1078,
+   "net_vs_ungated_judge": -641,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G7a entry 14:30": {
+   "pick": {
+    "n": 465,
+    "wr": 47.7,
+    "pf": 1.272,
+    "net": 5642,
+    "rand_p95": 1.146,
+    "p_rand": 0.005
+   },
+   "judge": {
+    "n": 602,
+    "wr": 43.2,
+    "pf": 0.923,
+    "net": -2320,
+    "rand_p95": 1.068,
+    "p_rand": 0.477
+   },
+   "corr_noise_candace_daily": 0.175,
+   "note": "",
+   "net_vs_ungated_pick": -2114,
+   "net_vs_ungated_judge": -5518,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  },
+  "G7b entry 15:30": {
+   "pick": {
+    "n": 465,
+    "wr": 48.8,
+    "pf": 1.065,
+    "net": 924,
+    "rand_p95": 1.121,
+    "p_rand": 0.134
+   },
+   "judge": {
+    "n": 602,
+    "wr": 46.2,
+    "pf": 0.991,
+    "net": -202,
+    "rand_p95": 1.191,
+    "p_rand": 0.549
+   },
+   "corr_noise_candace_daily": 0.088,
+   "note": "",
+   "net_vs_ungated_pick": -6832,
+   "net_vs_ungated_judge": -3400,
+   "adopt_tests": {
+    "beats_ungated_pf_both": false,
+    "net_not_cut_both": false,
+    "judge_n_ge_60": true,
+    "beats_random_p95_judge": false
+   },
+   "ADOPT_CANDIDATE": false
+  }
+ }
+}
