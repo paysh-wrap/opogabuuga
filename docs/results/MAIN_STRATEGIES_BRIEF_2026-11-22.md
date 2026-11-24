@@ -8,7 +8,8 @@ Sources: this repo's own studies (all backtests on cached MNQ/MES 1-minute regul
 
 **Evidence (strong, the only proven edge).**
 - 7.5 years (2019-05..2026-11, Databento): 935 trades, 50.1 % win, PF 1.49, +$24.86 per trade per micro, about 2.4 trades a week.
-- Last 12 months (held out): 59.5 % win, PF 1.72.
+- Last 12 months: 59.5 % win, PF 1.72.
+- Plan on a true PF of about 1.2-1.4, not 1.72: the 12-month figure is noisy (bootstrap CI about 0.90-2.64) and the 5-year record is PF 1.52 (source docs/results/agent_review_2026-11-24/model_qa.md).
 - Beats a random-direction version (random PF about 1.0).
 - About 40 tweaks tested in sessions 19-20; only the profit lock and "skip Mondays" survived held-out testing.
 
