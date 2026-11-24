@@ -92,3 +92,27 @@ html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"
   .mission main table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } /* Today + every table scroll inside its card */
   .mission main .overflow-x-auto { -webkit-overflow-scrolling: touch; margin-inline: -.25rem; padding-inline: .25rem; }
 }
+
+/* ---- 7. Fancy touches: glass cards with soft gold/blue edge light, glow on hover/focus only, KPI spark accents, polished badges ---- */
+.mission main :is(section, article).bg-card {
+  background-image: radial-gradient(120% 80% at 0% 0%, rgba(var(--gold-a), .07), transparent 55%),
+    radial-gradient(120% 90% at 100% 0%, rgba(var(--blue-a), .08), transparent 60%), var(--glass);
+  border-color: rgba(147, 197, 253, .12);
+  transition: box-shadow var(--t) var(--ease), border-color var(--t) var(--ease);
+}
+.mission main :is(section, article).bg-card:is(:hover, :focus-within) {
+  border-color: rgba(var(--gold-a), .32);
+  box-shadow: var(--sh-card-hover), 0 0 0 1px rgba(var(--gold-a), .10), 0 0 32px -12px rgba(var(--gold-a), .45);
+}
+.mission main .stat-tile, .mission main .kpi { position: relative; overflow: hidden; }
+.mission main .stat-tile::after {
+  content: ""; position: absolute; left: .7rem; right: .7rem; bottom: .3rem; height: 10px; pointer-events: none; opacity: .55;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 10' preserveAspectRatio='none'%3E%3Cpath d='M0 8 L12 6 L24 7 L36 4 L48 5 L60 3 L72 4 L84 2 L100 3' fill='none' stroke='%23D4AF37' stroke-width='1.2' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E") no-repeat center / 100% 100%;
+  mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+}
+.mission main .mission-num, .mission main .tabular-nums { transition: color .4s var(--ease), opacity .4s var(--ease); font-variant-numeric: tabular-nums; }
+.mission main span.rounded.border, .mission main span.rounded-full.border {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, .05), transparent); letter-spacing: .04em;
+  box-shadow: 0 1px 0 rgba(242, 210, 122, .08) inset;
+}
+@media (prefers-reduced-motion: reduce) { .mission main * { transition: none !important; } }
