@@ -17,7 +17,7 @@ export default function MandatoryChecklist({ compact = false }: { compact?: bool
   const hook = useQuery({ queryKey: ["webhook-status"], queryFn: () => api<WebhookStatus>("/api/webhook/status"), refetchInterval: 15_000 });
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<PlanSlice>("/api/today/plan"), refetchInterval: 15_000 });
   const { items, ready } = buildChecklist({ conns: conns.data, webhook: hook.data, plan: plan.data });
-  const unknown = items.filter((i) => i.state === "unknown").length;
+  const unknown = items.filter((i) => i.state === "unknown" && !i.optional).length; // D178: optional items are not counted
 
   return (
     <section data-testid="mandatory-checklist" className="mission-tile mandatory-panel rounded-xl border bg-card p-4">
@@ -38,7 +38,7 @@ export default function MandatoryChecklist({ compact = false }: { compact?: bool
             <span aria-hidden className="check-dot" style={{ background: MARK[i.state].dot }} />
             <span className="min-w-0">
               <span className="text-mandatory font-semibold">{i.label}</span>{" "}
-              <span className="check-word">{MARK[i.state].word}</span>
+              <span className="check-word">{i.optional && i.state !== "ok" ? "OPTIONAL" : MARK[i.state].word}</span>
               <span className="block text-xs text-blueLight">{i.detail}</span>
             </span>
           </li>

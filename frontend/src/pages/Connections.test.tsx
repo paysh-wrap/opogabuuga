@@ -122,6 +122,17 @@ test("D93: only mandatory EVAL/LIVE connections get the standout tag; optional o
   expect(screen.getByTestId("mandatory-checklist")).toBeInTheDocument();
 });
 
+test("D178: the Cloudflare tunnel card is OPTIONAL with an informational note, not MANDATORY", async () => {
+  const p = payload("not_set");
+  p.connections = [{ ...base, id: "tunnel", name: "Public HTTPS URL (Cloudflare Tunnel)", category: "network", status: "not_set" }];
+  setup([p]);
+  const t = await screen.findByTestId("conn-tunnel");
+  expect(t).not.toHaveAttribute("data-mandatory");
+  expect(within(t).queryByTestId("mandatory-tag")).toBeNull();
+  expect(within(t).getByTestId("optional-tag")).toHaveTextContent("OPTIONAL");
+  expect(within(t).getByTestId("optional-note")).toHaveTextContent("TradingView alerts cannot reach the app without a public HTTPS URL; set it if you use TradingView webhooks");
+});
+
 test("shows the CME real-time data chip (D112)", async () => {
   setup([payload("not_set")]);
   await screen.findByTestId("cme-realtime");

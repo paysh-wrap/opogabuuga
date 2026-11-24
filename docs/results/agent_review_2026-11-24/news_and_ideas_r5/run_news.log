@@ -1,0 +1,144 @@
+## repro: NOISE n=654 net=19293 (expect 654 / 19293); CANDACE n=310 net=1844; LATE n=1067 net=9287
+
+PART B
+                      scenario strategy window  base_n  base_net  base_PF  blocked  cut_short  new_n  new_net  new_PF  d_net  d_pct  blocked_net_lost  cut_orig_net  cut_new_net
+0                 APP_INTERNAL    NOISE   pick     298      8468     1.55        1          2    297     7952    1.51   -516   -6.1               510           -48          -54
+1                 APP_INTERNAL    NOISE  judge     356     10826     1.49        6          6    350     9511    1.44  -1314  -12.1              1051           703          440
+3                 APP_INTERNAL  CANDACE   pick     160      1030     1.27        6          0    154     1225    1.34    195   18.9              -195             0            0
+4                 APP_INTERNAL  CANDACE  judge     150       814     1.18        6          0    144      900    1.21     86   10.6               -86             0            0
+6                 APP_INTERNAL     LATE   pick     465      6710     1.44        0          0    465     6710    1.44      0    0.0                 0             0            0
+7                 APP_INTERNAL     LATE  judge     602      2578     1.10        0          0    602     2578    1.10      0    0.0                 0             0            0
+9       APP_INTERNAL+ISMapprox    NOISE   pick     298      8468     1.55       11          2    287     7909    1.53   -558   -6.6               552           -48          -54
+10      APP_INTERNAL+ISMapprox    NOISE  judge     356     10826     1.49       21          6    335     9044    1.45  -1782  -16.5              1518           703          440
+12      APP_INTERNAL+ISMapprox  CANDACE   pick     160      1030     1.27       17          1    143      835    1.24   -195  -18.9               195            38           38
+13      APP_INTERNAL+ISMapprox  CANDACE  judge     150       814     1.18       19          0    131      929    1.23    116   14.2              -116             0            0
+15      APP_INTERNAL+ISMapprox     LATE   pick     465      6710     1.44        0          0    465     6710    1.44      0    0.0                 0             0            0
+16      APP_INTERNAL+ISMapprox     LATE  judge     602      2578     1.10        0          0    602     2578    1.10      0    0.0                 0             0            0
+18            HARD_BREACH_ONLY    NOISE   pick     298      8468     1.55        1          2    297     7966    1.52   -501   -5.9               510           -48          -39
+19            HARD_BREACH_ONLY    NOISE  judge     356     10826     1.49        6          6    350     9496    1.44  -1330  -12.3              1051           703          424
+21            HARD_BREACH_ONLY  CANDACE   pick     160      1030     1.27        1          3    159     1116    1.29     86    8.3               -25           -44           16
+22            HARD_BREACH_ONLY  CANDACE  judge     150       814     1.18        1          4    149      949    1.22    136   16.7               -51           -78            6
+24            HARD_BREACH_ONLY     LATE   pick     465      6710     1.44        0          0    465     6710    1.44      0    0.0                 0             0            0
+25            HARD_BREACH_ONLY     LATE  judge     602      2578     1.10        0          0    602     2578    1.10      0    0.0                 0             0            0
+27  HARD_BREACH_ONLY+ISMapprox    NOISE   pick     298      8468     1.55       11          2    287     7924    1.54   -544   -6.4               552           -48          -39
+28  HARD_BREACH_ONLY+ISMapprox    NOISE  judge     356     10826     1.49       21          6    335     9028    1.44  -1797  -16.6              1518           703          424
+30  HARD_BREACH_ONLY+ISMapprox  CANDACE   pick     160      1030     1.27        2         11    158      905    1.25   -125  -12.1                79           324          278
+31  HARD_BREACH_ONLY+ISMapprox  CANDACE  judge     150       814     1.18        2         12    148     1206    1.29    392   48.2               -75           114          431
+33  HARD_BREACH_ONLY+ISMapprox     LATE   pick     465      6710     1.44        0          0    465     6710    1.44      0    0.0                 0             0            0
+34  HARD_BREACH_ONLY+ISMapprox     LATE  judge     602      2578     1.10        0          0    602     2578    1.10      0    0.0                 0             0            0
+
+PART C
+                             0            1            2              3               4              5
+variant           V1_skip_FOMC  V2_skip_CPI  V3_skip_NFP  V4_skip_union  V5_halve_union  V6_halve_FOMC
+pick_n_days_hit             10            7           15             32              32             10
+pick_trades_hit             14            9           18             41              41             14
+pick_base_net             8468         8468         8468           8468            8468           8468
+pick_new_net              8037         9143         8620           8865            8666           8252
+pick_uplift               -430          676          152            398             199           -215
+pick_PF_base              1.55         1.55         1.55           1.55            1.55           1.55
+pick_PF_new               1.53         1.63          1.6           1.68            1.61           1.54
+pick_rand_p95              579          549          637            554             251            298
+pick_p_rand              0.553        0.027        0.178          0.069           0.061          0.567
+judge_n_days_hit            11           12           17             39              39             11
+judge_trades_hit            12           14           23             48              48             12
+judge_base_net           10826        10826        10826          10826           10826          10826
+judge_new_net            10329         9324         8229           6278            8552          10577
+judge_uplift              -496        -1501        -2596          -4548           -2274           -248
+judge_PF_base             1.49         1.49         1.49           1.49            1.49           1.49
+judge_PF_new              1.49         1.43         1.41           1.33            1.42           1.49
+judge_rand_p95             825          835          974            797             418            410
+judge_p_rand             0.565        0.876        0.958          0.971           0.971          0.566
+pass                     False        False        False          False           False          False
+
+PART A (NOISE/CAND/LATE, class rows)
+   strategy window                 cls    n  win_pct    PF     avg    net  p_vs_noevent
+0     NOISE   pick       FOMC_DECISION   14     42.9  2.06   30.75    430        0.9400
+1     NOISE   pick        FOMC_MINUTES   12     25.0  0.53  -26.75   -321        0.2564
+2     NOISE   pick                 CPI    9     33.3  0.29  -75.06   -676        0.0862
+3     NOISE   pick                 PPI   11     72.7  8.05   83.95    924        0.3874
+4     NOISE   pick                 NFP   18     38.9  0.86   -8.47   -152        0.3384
+5     NOISE   pick               JOLTS   13     46.2  3.12   79.54   1034        0.4212
+6     NOISE   pick                 GDP   13     53.8  1.66   40.38    525        0.9176
+7     NOISE   pick           ANY_EVENT   83     42.2  1.22   11.43    949        0.3262
+8     NOISE   pick            NO_EVENT  215     50.2  1.68   34.97   7518           NaN
+9     NOISE   pick  KEY3(FOMC,CPI,NFP)   41     39.0  0.84   -9.70   -398        0.1486
+10    NOISE  judge       FOMC_DECISION   12     41.7  1.61   41.38    496        0.7374
+11    NOISE  judge        FOMC_MINUTES   10     60.0  0.68  -26.65   -266        0.5090
+12    NOISE  judge                 CPI   14     85.7  4.97  107.21   1501        0.1436
+13    NOISE  judge                 PPI   22     63.6  1.10    4.39     96        0.7468
+14    NOISE  judge                 NFP   23     60.9  2.41  112.89   2596        0.0882
+15    NOISE  judge               JOLTS   22     54.5  2.65   75.52   1662        0.2672
+16    NOISE  judge                 GDP   12     41.7  0.48  -24.50   -294        0.4916
+17    NOISE  judge           ANY_EVENT  111     59.5  1.98   53.07   5890        0.2242
+18    NOISE  judge            NO_EVENT  245     51.8  1.31   20.14   4935           NaN
+19    NOISE  judge  KEY3(FOMC,CPI,NFP)   48     62.5  2.50   94.75   4548        0.0522
+20    NOISE    all       FOMC_DECISION   26     42.3  1.76   35.65    927        0.8354
+21    NOISE    all        FOMC_MINUTES   22     40.9  0.61  -26.70   -588        0.2278
+22    NOISE    all                 CPI   23     65.2  1.62   35.89    826        0.8474
+23    NOISE    all                 PPI   33     66.7  1.96   30.91   1020        0.9176
+24    NOISE    all                 NFP   41     51.2  1.83   59.61   2444        0.3750
+25    NOISE    all               JOLTS   35     51.4  2.80   77.01   2696        0.1750
+26    NOISE    all                 GDP   25     48.0  1.17    9.24    231        0.6698
+27    NOISE    all           ANY_EVENT  194     52.1  1.66   35.26   6840        0.6504
+28    NOISE    all            NO_EVENT  460     51.1  1.46   27.07  12454           NaN
+29    NOISE    all  KEY3(FOMC,CPI,NFP)   89     51.7  1.75   46.63   4150        0.4440
+30  CANDACE   pick       FOMC_DECISION    8     25.0  0.31  -16.38   -131        0.3242
+31  CANDACE   pick        FOMC_MINUTES    3     66.7  3.59   28.50     86           NaN
+32  CANDACE   pick                 CPI    5     60.0  3.74   51.60    258        0.1378
+33  CANDACE   pick                 PPI    6     50.0  2.05   19.08    114        0.6712
+34  CANDACE   pick                 NFP    7     42.9  1.68   19.36    136        0.6554
+35  CANDACE   pick               JOLTS    8     12.5  0.13  -34.06   -272        0.0818
+36  CANDACE   pick                 GDP    9     44.4  0.93   -1.44    -13        0.7084
+37  CANDACE   pick           ANY_EVENT   43     39.5  1.19    4.63    199        0.8270
+38  CANDACE   pick            NO_EVENT  117     41.0  1.30    7.10    831           NaN
+39  CANDACE   pick  KEY3(FOMC,CPI,NFP)   20     40.0  1.54   13.12    262        0.7124
+40  CANDACE  judge       FOMC_DECISION    5     60.0  2.26   17.70     88        0.8550
+41  CANDACE  judge        FOMC_MINUTES    2     50.0  2.87   14.00     28           NaN
+42  CANDACE  judge                 CPI    5      0.0  0.00  -59.90   -300        0.0630
+43  CANDACE  judge                 PPI    6     50.0  0.61  -11.92    -72        0.5680
+44  CANDACE  judge                 NFP    5      0.0  0.00  -44.50   -222        0.1692
+45  CANDACE  judge               JOLTS    7     28.6  0.38  -13.50    -94        0.5142
+46  CANDACE  judge                 GDP    8     50.0  2.51   40.31    322        0.3764
+47  CANDACE  judge           ANY_EVENT   34     29.4  0.69  -10.09   -343        0.2350
+48  CANDACE  judge            NO_EVENT  116     39.7  1.34    9.97   1156           NaN
+49  CANDACE  judge  KEY3(FOMC,CPI,NFP)   15     20.0  0.27  -28.90   -434        0.0962
+50  CANDACE    all       FOMC_DECISION   13     38.5  0.84   -3.27    -42        0.6034
+51  CANDACE    all        FOMC_MINUTES    5     60.0  3.36   22.70    114        0.6930
+52  CANDACE    all                 CPI   10     30.0  0.89   -4.15    -42        0.6204
+53  CANDACE    all                 PPI   12     50.0  1.15    3.58     43        0.8370
+54  CANDACE    all                 NFP   12     25.0  0.79   -7.25    -87        0.4878
+55  CANDACE    all               JOLTS   15     20.0  0.22  -24.47   -367        0.1100
+56  CANDACE    all                 GDP   17     47.1  1.76   18.21    310        0.6196
+57  CANDACE    all           ANY_EVENT   77     35.1  0.93   -1.87   -144        0.3076
+58  CANDACE    all            NO_EVENT  233     40.3  1.32    8.53   1988           NaN
+59  CANDACE    all  KEY3(FOMC,CPI,NFP)   35     31.4  0.84   -4.89   -171        0.3374
+60     LATE   pick       FOMC_DECISION   13     69.2  3.09   78.27   1018        0.0314
+61     LATE   pick        FOMC_MINUTES   13     46.2  1.82   27.00    351        0.6710
+62     LATE   pick                 CPI   20     50.0  1.77   21.92    438        0.7580
+63     LATE   pick                 PPI   22     59.1  2.22   35.25    776        0.3480
+64     LATE   pick                 NFP   24     37.5  0.41  -28.06   -674        0.0418
+65     LATE   pick               JOLTS   18     44.4  0.93   -2.72    -49        0.4630
+66     LATE   pick                 GDP   19     47.4  1.31   15.32    291        0.9826
+67     LATE   pick           ANY_EVENT  123     48.0  1.34   13.25   1630        0.8842
+68     LATE   pick            NO_EVENT  342     55.0  1.48   14.85   5080           NaN
+69     LATE   pick  KEY3(FOMC,CPI,NFP)   57     49.1  1.35   13.73    782        0.9426
+70     LATE  judge       FOMC_DECISION   16     31.2  1.08    5.88     94        0.7582
+71     LATE  judge        FOMC_MINUTES   15     66.7  2.61   58.33    875        0.0316
+72     LATE  judge                 CPI   29     41.4  0.85   -6.59   -191        0.8674
+73     LATE  judge                 PPI   33     48.5  1.83   30.27    999        0.0870
+74     LATE  judge                 NFP   27     44.4  1.31   13.22    357        0.4526
+75     LATE  judge               JOLTS   30     66.7  3.52   55.43   1663        0.0028
+76     LATE  judge                 GDP   20     55.0  2.47   46.48    930        0.0430
+77     LATE  judge           ANY_EVENT  164     49.4  1.60   23.85   3912        0.0090
+78     LATE  judge            NO_EVENT  438     45.9  0.93   -3.05  -1334           NaN
+79     LATE  judge  KEY3(FOMC,CPI,NFP)   71     40.8  1.11    5.38    382        0.5590
+80     LATE    all       FOMC_DECISION   29     48.3  1.67   38.33   1112        0.0988
+81     LATE    all        FOMC_MINUTES   28     57.1  2.26   43.79   1226        0.0500
+82     LATE    all                 CPI   49     44.9  1.13    5.05    248        0.9858
+83     LATE    all                 PPI   55     52.7  1.96   32.26   1774        0.0582
+84     LATE    all                 NFP   51     41.2  0.86   -6.21   -316        0.4778
+85     LATE    all               JOLTS   48     58.3  2.20   33.62   1614        0.0630
+86     LATE    all                 GDP   39     51.3  1.78   31.29   1220        0.1252
+87     LATE    all           ANY_EVENT  287     48.8  1.49   19.31   5542        0.0608
+88     LATE    all            NO_EVENT  780     49.9  1.13    4.80   3746           NaN
+89     LATE    all  KEY3(FOMC,CPI,NFP)  128     44.5  1.20    9.10   1164        0.6834

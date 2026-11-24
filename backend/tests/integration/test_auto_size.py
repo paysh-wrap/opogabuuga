@@ -106,6 +106,7 @@ def test_high_risk_profile_switches_table(authed, clock):  # D64
     # the Strategy page shows both profiles and saves the switch through versioned settings
     body = authed.get("/api/strategies").json()["size_profiles"]
     assert set(body) == {
+        "fast_pass_plans",  # D175
         "active",
         "setting",
         "regular",

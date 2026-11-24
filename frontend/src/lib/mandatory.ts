@@ -6,7 +6,7 @@
  *   broker route   – Lucid has no API; orders + position read-back go through Tradovate (CrossTrade, D-live gate)
  *   TradingView    – the only live signal source (§1.1): heartbeat must be fresh (pre-flight heartbeat_fresh)
  *   webhook secret – webhook rejects unsigned alerts; without it no signal is accepted
- *   public HTTPS   – TradingView can only reach the app over HTTPS (ngrok permanent / Cloudflare fallback)
+ *   (public HTTPS URL is OPTIONAL since D178: a plain note when not set, never counted in the ready line)
  *   calendar       – "no calendar = no trading" (§15, pre-flight calendar)
  *   attestation    – external-positions attestation each session before arming (§1.11)
  *   clock sync     – pre-flight clock drift < 2 s (§13)
@@ -19,13 +19,17 @@
 import type { ConnectionsResponse, WebhookStatus } from "./api";
 
 /** Connection ids (from /api/connections) that get the mandatory highlight. Broker and URL are either/or pairs. */
-export const MANDATORY_CONNECTION_IDS = ["tradingview", "crosstrade", "tradovate", "ngrok", "tunnel", "forexfactory"] as const;
+export const MANDATORY_CONNECTION_IDS = ["tradingview", "crosstrade", "tradovate", "forexfactory"] as const;
+/** D178 (user 2026-11-24): the public HTTPS URL connections (ngrok / Cloudflare tunnel / own domain) are OPTIONAL. */
+export const OPTIONAL_URL_CONNECTION_IDS = ["ngrok", "tunnel"] as const;
+export const PUBLIC_URL_NOTE = "TradingView alerts cannot reach the app without a public HTTPS URL; set it if you use TradingView webhooks.";
+export const isOptionalUrlConnection = (id: string): boolean => (OPTIONAL_URL_CONNECTION_IDS as readonly string[]).includes(id);
 export function isMandatoryConnection(id: string): boolean {
   return (MANDATORY_CONNECTION_IDS as readonly string[]).includes(id);
 }
 
 export type CheckState = "ok" | "fail" | "unknown";
-export interface CheckItem { id: string; label: string; state: CheckState; detail: string }
+export interface CheckItem { id: string; label: string; state: CheckState; detail: string; optional?: boolean }
 export interface PlanSlice {
   calendar_loaded?: boolean;
   attested_today?: boolean;
@@ -77,17 +81,17 @@ function secret(webhook?: WebhookStatus): CheckItem {
 }
 
 function publicUrl(conns?: ConnectionsResponse): CheckItem {
-  const label = "Public HTTPS URL for TradingView";
-  if (!conns) return { id: "public_url", label, state: "unknown", detail: NO_DATA };
+  // D178: OPTIONAL. Never "fail": not set = an informational note, and it is not counted in the ready line.
+  const label = "Public HTTPS URL for TradingView (optional)";
+  const item = (state: CheckState, detail: string): CheckItem => ({ id: "public_url", label, state, detail, optional: true });
+  if (!conns) return item("unknown", NO_DATA);
   const t = conns.connections.find((c) => c.id === "ngrok")?.tunnel;
   const manual = conns.connections.find((c) => c.id === "tunnel");
-  if (t?.mode === "ngrok") return { id: "public_url", label, state: "ok", detail: `Permanent: ${t.public_url}` };
-  if (t?.mode === "server") return { id: "public_url", label, state: "ok", detail: `Own domain: ${t.public_url}` };
-  if (manual?.status === "connected") return { id: "public_url", label, state: "ok", detail: manual.detail || "Own tunnel tested OK" };
-  if (t?.mode === "cloudflare")
-    return { id: "public_url", label, state: "ok", detail: "Temporary Cloudflare link — the webhook URL changes on every restart" };
-  if (t?.mode === "none") return { id: "public_url", label, state: "fail", detail: t.error || "No tunnel running" };
-  return { id: "public_url", label, state: "unknown", detail: "unknown — the API reports no tunnel state" };
+  if (t?.mode === "ngrok") return item("ok", `Permanent: ${t.public_url}`);
+  if (t?.mode === "server") return item("ok", `Own domain: ${t.public_url}`);
+  if (manual?.status === "connected") return item("ok", manual.detail || "Own tunnel tested OK");
+  if (t?.mode === "cloudflare") return item("ok", "Temporary Cloudflare link — the webhook URL changes on every restart");
+  return item("unknown", PUBLIC_URL_NOTE);
 }
 
 function calendar(plan?: PlanSlice): CheckItem {
@@ -134,7 +138,8 @@ export function buildChecklist(x0: ChecklistInput): { items: CheckItem[]; ready:
   };
   const items = [broker(x.conns), heartbeat(x.conns), secret(x.webhook), publicUrl(x.conns), calendar(x.plan),
     attestation(x.plan), clock(x.plan), preflight(x.plan)];
-  const ready: Readiness = items.some((i) => i.state === "fail") ? "no"
-    : items.some((i) => i.state === "unknown") ? "unconfirmed" : "yes";
+  const counted = items.filter((i) => !i.optional); // D178: optional items never decide readiness
+  const ready: Readiness = counted.some((i) => i.state === "fail") ? "no"
+    : counted.some((i) => i.state === "unknown") ? "unconfirmed" : "yes";
   return { items, ready };
 }

@@ -20,7 +20,8 @@ const goodPlan = { calendar_loaded: true, attested_today: true, preflight: { ok:
 const state = (r: ReturnType<typeof buildChecklist>, id: string) => r.items.find((i) => i.id === id)?.state;
 
 test("mandatory set: broker route, TradingView, public URL, calendar — optional ones are not highlighted", () => {
-  for (const id of ["tradingview", "crosstrade", "tradovate", "ngrok", "tunnel", "forexfactory"]) expect(isMandatoryConnection(id)).toBe(true);
+  for (const id of ["tradingview", "crosstrade", "tradovate", "forexfactory"]) expect(isMandatoryConnection(id)).toBe(true);
+  for (const id of ["ngrok", "tunnel"]) expect(isMandatoryConnection(id)).toBe(false); // D178: public HTTPS URL is optional
   for (const id of ["discord", "telegram", "tradingagents", "vibetrading", "alpha_vantage", "fred", "databento", "openbb", "lucid", "github_updates", "trading_r1"])
     expect(isMandatoryConnection(id)).toBe(false);
 });
@@ -60,7 +61,9 @@ test("broker and feed edge cases", () => {
   const cf = buildChecklist({ conns: conns([c("ngrok", "failed", { tunnel: { mode: "cloudflare", public_url: "https://x.trycloudflare.com", permanent: false, error: "" } })]) });
   expect(state(cf, "public_url")).toBe("ok");
   const none = buildChecklist({ conns: conns([c("ngrok", "not_set", { tunnel: { mode: "none", public_url: "", permanent: false, error: "" } })]) });
-  expect(state(none, "public_url")).toBe("fail");
+  expect(state(none, "public_url")).toBe("unknown"); // D178: optional, an informational note, never "fail"
+  expect(none.items.find((i) => i.id === "public_url")?.optional).toBe(true);
+  expect(none.items.find((i) => i.id === "public_url")?.detail).toContain("TradingView alerts cannot reach the app without a public HTTPS URL");
   // web server with its own domain (docs/DEPLOY.md): the domain is the public HTTPS URL
   const own = buildChecklist({ conns: conns([c("ngrok", "not_set", { tunnel: { mode: "server", public_url: "https://app.example.com", permanent: true, error: "" } })]) });
   expect(state(own, "public_url")).toBe("ok");
@@ -107,7 +110,6 @@ test("D99 every mandatory item missing alone → NO", () => {
     broker: { conns: conns(allGood.connections.filter((x) => x.id !== "crosstrade")), webhook: hook(true), plan: okPlan },
     heartbeat: { conns: conns(allGood.connections.map((x) => (x.id === "tradingview" ? c("tradingview", "waiting", { detail: "Waiting for the first TradingView heartbeat" }) : x))), webhook: hook(true), plan: okPlan },
     webhook_secret: { conns: allGood, webhook: hook(false), plan: okPlan },
-    public_url: { conns: conns(allGood.connections.map((x) => (x.id === "ngrok" ? c("ngrok", "not_set", { tunnel: { mode: "none", public_url: "", permanent: false, error: "" } }) : x))), webhook: hook(true), plan: okPlan },
     calendar: { conns: allGood, webhook: hook(true), plan: { ...okPlan, calendar_loaded: false } },
     attestation: { conns: allGood, webhook: hook(true), plan: { ...okPlan, attested_today: false } },
     preflight: { conns: allGood, webhook: hook(true), plan: { ...okPlan, preflight: { ok: false, failures: ["calendar"], at: "", checks: okPlan.preflight.checks } } },
@@ -117,4 +119,12 @@ test("D99 every mandatory item missing alone → NO", () => {
     expect([id, r.ready]).toEqual([id, "no"]);
     expect(state(r, id)).toBe("fail");
   }
+});
+
+test("D178 public HTTPS URL not set: still READY (optional), never counted as missing or unconfirmed", () => {
+  const okPlan = pfWith({ ok: true, detail: "+0.10 s (±0.50, 1 source(s))" });
+  const noUrl = conns(allGood.connections.map((x) => (x.id === "ngrok" ? c("ngrok", "not_set", { tunnel: { mode: "none", public_url: "", permanent: false, error: "" } }) : x)));
+  const r = buildChecklist({ conns: noUrl, webhook: hook(true), plan: okPlan });
+  expect(r.ready).toBe("yes");
+  expect(state(r, "public_url")).toBe("unknown");
 });

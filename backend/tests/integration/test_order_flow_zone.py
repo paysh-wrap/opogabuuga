@@ -82,16 +82,16 @@ def test_trail_exit_on_bar_and_exclusive(client, loaded_rules):
 def test_card_layers_gates(authed):
     card = next(x for x in authed.get("/api/strategies").json()["strategies"] if x["key"] == "order_flow_zone")
     assert card["setting"] == "strategy.order_flow_cfg.zone_atr.enabled" and card["zone_layers"][0]["key"] == "EVENT"
-    ch = {
-        "strategy.order_flow_cfg.zone_atr.enabled": True,
+    ch = {  # D175: the Iceberg proxy cannot be turned on (OFF for now); its other settings still save
         "strategy.order_flow_cfg.zone_atr.modes": ["POSITION", "REVERSION"],
         "strategy.order_flow": True,
     }
     r = authed.put("/api/risk/settings", json={"changes": ch})
     assert r.status_code == 200, r.text
+    assert authed.put("/api/risk/settings", json={"changes": {"strategy.order_flow_cfg.zone_atr.enabled": True}}).status_code == 422
     from app.api.strategy_gates import describe
 
     ids = [g["id"] for g in {c["key"]: c for c in describe(authed.app.state.rules.rules)}["order_flow"]["gates"]]
-    assert {"ZONE_EVENT", "ZONE_TIME", "ZONE_SETUP"} <= set(ids)
+    assert not ({"ZONE_EVENT", "ZONE_TIME", "ZONE_SETUP"} & set(ids))  # D175: zone type is OFF for now, its gates stay hidden
     of = authed.get("/api/orderflow?symbol=MNQ").json()["ar"]
-    assert of["zone_enabled"] is True and of["zone_modes"] == ["POSITION", "REVERSION"]
+    assert of["zone_enabled"] is False and of["zone_modes"] == ["POSITION", "REVERSION"]

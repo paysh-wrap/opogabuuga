@@ -99,8 +99,6 @@ def test_all_gates_pass_full_score_and_spec_plan():
         ({"calendar": None}, "G1", "CALENDAR_MISSING", "WAIT"),
         ({"cooldown_active": True}, "G1", "COOLDOWN", "SKIP"),
         ({"symbol": "MGC"}, "G1", "INSTRUMENT_DISABLED", "SKIP"),
-        ({"bias": "NO_TRADE"}, "G2", "BIAS_NO_TRADE", "SKIP"),
-        ({"bias": "SHORT_ONLY"}, "G2", "BIAS_OPPOSITE", "SKIP"),
         ({"model_traded": True}, "G3", "MODEL_ALREADY_TRADED", "SKIP"),
         ({"mso_trend": "BEAR", "mso_osc": D(30)}, "G4", "MSO_STRUCTURE_DISAGREES", "WAIT"),
         ({"mso_osc": D(50)}, "G4", "MSO_STRUCTURE_DISAGREES", "WAIT"),
@@ -382,3 +380,12 @@ def test_squeeze_switch_d45():
     assert d.outcome == "WAIT" and d.skip_reason == "TREND_AGAINST"
     d = evaluate(good(trend={}), on)
     assert d.outcome == "WAIT" and d.skip_reason == "TREND_WARMUP"
+
+
+def test_g2_bias_is_advice_only_and_never_blocks():
+    """D176: TradingAgents bias (NO_TRADE / opposite side) never fails G2."""
+    from app.engine.confluence import _bias_ok
+    from app.engine.trade_plan import Direction
+
+    assert _bias_ok("NO_TRADE", Direction.LONG) == (True, "OK", False)
+    assert _bias_ok("SHORT_ONLY", Direction.LONG) == (True, "OK", False)

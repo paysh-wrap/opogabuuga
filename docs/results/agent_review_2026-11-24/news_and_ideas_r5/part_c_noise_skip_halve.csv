@@ -1,0 +1,7 @@
+variant,pick_n_days_hit,pick_trades_hit,pick_base_net,pick_new_net,pick_uplift,pick_PF_base,pick_PF_new,pick_rand_p95,pick_p_rand,judge_n_days_hit,judge_trades_hit,judge_base_net,judge_new_net,judge_uplift,judge_PF_base,judge_PF_new,judge_rand_p95,judge_p_rand,pass
+V1_skip_FOMC,10,14,8468,8037,-430,1.55,1.53,579,0.553,11,12,10826,10329,-496,1.49,1.49,825,0.565,False
+V2_skip_CPI,7,9,8468,9143,676,1.55,1.63,549,0.027,12,14,10826,9324,-1501,1.49,1.43,835,0.876,False
+V3_skip_NFP,15,18,8468,8620,152,1.55,1.6,637,0.178,17,23,10826,8229,-2596,1.49,1.41,974,0.958,False
+V4_skip_union,32,41,8468,8865,398,1.55,1.68,554,0.069,39,48,10826,6278,-4548,1.49,1.33,797,0.971,False
+V5_halve_union,32,41,8468,8666,199,1.55,1.61,251,0.061,39,48,10826,8552,-2274,1.49,1.42,418,0.971,False
+V6_halve_FOMC,10,14,8468,8252,-215,1.55,1.54,298,0.567,11,12,10826,10577,-248,1.49,1.49,410,0.566,False

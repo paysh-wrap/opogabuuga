@@ -9,7 +9,7 @@ import TradingViewSetup from "../components/TradingViewSetup";
 import { publicBaseOf } from "../lib/orderflow";
 import TestAlert from "../components/TestAlert";
 import { etDateTime } from "../lib/time";
-import { isMandatoryConnection } from "../lib/mandatory";
+import { isMandatoryConnection, isOptionalUrlConnection, PUBLIC_URL_NOTE } from "../lib/mandatory";
 import MandatoryChecklist from "../components/MandatoryChecklist";
 
 const GROUPS: [string, string][] = [
@@ -62,6 +62,7 @@ function ConnectionCard({ c }: { c: Connection }) {
 
   const connected = c.status === "connected";
   const mandatory = isMandatoryConnection(c.id);
+  const optionalUrl = isOptionalUrlConnection(c.id); // D178: the public HTTPS URL cards are OPTIONAL
   const selectedLlm = values.llm_provider || c.hints.llm_provider;
   const llmKeyUrl = selectedLlm ? c.llm_key_urls?.[selectedLlm] : undefined;
   const busy = save.isPending || retest.isPending || remove.isPending;
@@ -77,10 +78,12 @@ function ConnectionCard({ c }: { c: Connection }) {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className={`font-semibold ${mandatory ? "text-mandatory" : "text-gold"}`}>{c.name}
           {mandatory ? <span data-testid="mandatory-tag" className="mandatory-tag ml-2">MANDATORY · EVAL/LIVE</span>
+            : optionalUrl ? <span data-testid="optional-tag" className="ml-2 rounded border border-border px-1 text-xs text-blueLight">OPTIONAL</span>
             : c.required && <span className="ml-2 text-xs text-goldLight">required</span>}</h3>
         <StatusBadge status={c.status} />
       </div>
       <p className="mt-1 text-sm">{c.purpose}</p>
+      {optionalUrl && !connected && <p data-testid="optional-note" className="mt-1 text-sm text-blueLight">{PUBLIC_URL_NOTE}</p>}
       {c.detail && <p data-testid="detail" className={`mt-1 text-sm ${connected ? "text-goldLight" : "text-blueLight"}`}>{connected ? "✓ " : ""}{c.detail}</p>}
 
       {c.id === "tradingagents" && (
