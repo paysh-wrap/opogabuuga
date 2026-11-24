@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { skipLabel } from "../lib/insights";
 import LoadError from "../components/LoadError";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
@@ -153,7 +154,7 @@ export default function Today() {
           {d.signals.map((s) => (
             <tr key={s.id} className="border-t border-border">
               <td className="py-1">{etTime(s.at)}</td><td>{s.symbol} {s.profile}</td><td>{s.direction}</td>
-              <td className={s.status === "PASS" ? "text-gold" : ""}>{s.status}</td><td>{s.skip_reason ?? ""}</td><td>{s.score ? `score ${Number(s.score).toFixed(0)}` : ""}</td>
+              <td className={s.status === "PASS" ? "text-gold" : ""}>{s.status}</td><td title={s.skip_reason ?? undefined}>{s.skip_reason ? skipLabel(s.skip_reason) : ""}</td><td>{s.score ? `score ${Number(s.score).toFixed(0)}` : ""}</td>
             </tr>
           ))}
         </tbody></table>

@@ -55,7 +55,7 @@ test("Today: blackouts, windows, pace, why-no-trade, and Ready runs attestation 
   expect(await screen.findByTestId("pace-1")).toHaveTextContent("profitable days 1/3");
   expect(screen.getByTestId("headroom-1")).toHaveTextContent("$400");
   expect(await screen.findByText("Reward:risk below minimum")).toBeInTheDocument();
-  expect(screen.getByText("WEIRD", { selector: "td" })).toBeInTheDocument();
+  expect(screen.getByText("WEIRD")).toBeInTheDocument(); // unknown code: readable label "Weird" + raw code beside it
   const btn = screen.getByRole("button", { name: "Ready to trade" });
   expect(btn).toBeDisabled();
   await userEvent.click(screen.getByRole("checkbox"));

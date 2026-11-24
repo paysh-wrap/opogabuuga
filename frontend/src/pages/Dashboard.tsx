@@ -53,6 +53,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold text-gold">Dashboard</h1>
       <NowRunning />
       <MissionBento accounts={d.accounts} mode={d.mode} />
+      <WhyNoTrade />
       <MandatoryChecklist />
       <Markets />
       <MarketPanel />
@@ -67,7 +68,6 @@ export default function Dashboard() {
       </div>
       <HindsightNote />
       <IncomeProjection />
-      <WhyNoTrade />
       {d.accounts.length === 0 && <p>No accounts yet — add one on the Automation page.</p>}
       <div className="grid gap-4 lg:grid-cols-2">
         {d.accounts.map((a) => {
