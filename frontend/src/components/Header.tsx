@@ -32,6 +32,9 @@ export default function Header() {
   // live trading is really ON (every live gate green) or OFF — never just "Live trade" next to PAPER, which would mislead
   const live = useQuery({ queryKey: ["live"], queryFn: () => api<{ live: boolean }>("/api/live"), refetchInterval: 30000 });
   const liveOn = live.data?.live;
+  // UI review 2026-11-24 (user approved): on phones the secondary chips sit behind a "Status" fold; KILL SWITCH, PAPER/LIVE,
+  // the "Now running" strip and the clock stay visible. Desktop is unchanged (CSS in polish.css).
+  const [more, setMore] = useState(false);
 
   async function logout() {
     await api("/api/auth/logout", { method: "POST" });
@@ -40,7 +43,7 @@ export default function Header() {
   }
 
   return (
-    <header className="border-b border-border bg-card">
+    <header className="border-b border-border bg-card" data-more={more ? "open" : undefined}>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
         <span data-testid="brand" className="flex items-center gap-2 text-xl font-bold tracking-wide text-gold">
           <span aria-hidden className="grid h-7 w-7 place-items-center rounded-md border border-gold/60 text-sm">P</span>
@@ -64,9 +67,11 @@ export default function Header() {
         )}
         <HeaderStatus />
         <span className="ml-auto font-mono text-sm text-goldLight" aria-label="Eastern time">{clock} ET</span>
+        <button type="button" className="hdr-more-btn rounded border border-blue px-2 py-1 text-xs" aria-expanded={more}
+          aria-controls="hdr-secondary" onClick={() => setMore((m) => !m)} data-testid="header-more">Status {more ? "▴" : "▾"}</button>
         <JobsIndicator />
         <AlertsBell />
-        <span className="text-xs text-blueLight" title="Live updates">
+        <span id="hdr-secondary" className="text-xs text-blueLight" title="Live updates">
           <span aria-hidden className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: up ? "#22C55E" : "#EF4444" }} />
           {up ? "live" : "reconnecting"}
         </span>

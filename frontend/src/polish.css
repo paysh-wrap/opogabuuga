@@ -80,3 +80,15 @@ html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"
 .mission main .fp-card, html[data-style] .mission main .fp-card { background: rgba(8, 13, 28, .35); border-color: rgba(147, 197, 253, .14); box-shadow: none; animation: none; }
 .mission main .fp-card h3 > span { box-shadow: none !important; }
 .mission main .fp-card details summary { color: #93C5FD; opacity: .85; }
+
+/* ---- 6. Phone: header collapse (secondary chips behind "Status ▾"), scroll wrappers ---- */
+.mission header.bg-card .hdr-more-btn { display: none; }
+@media (max-width: 767px) {
+  .mission header.bg-card .hdr-more-btn { display: inline-flex; order: 5; color: #93C5FD; }
+  .mission header.bg-card:not([data-more]) :is([data-testid="live-trade-pill"], [data-testid="conn-summary"], [data-testid="automation-mode"],
+    [data-testid="trading-count"], [data-testid="flatten-countdown"], [title="Live updates"], [data-testid="jobs"]),
+  .mission header.bg-card:not([data-more]) > div > button[class*="border-blue"]:not(.hdr-more-btn) { display: none !important; }
+  .mission header.bg-card span[aria-label="Eastern time"] { margin-left: 0; }
+  .mission main table { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } /* Today + every table scroll inside its card */
+  .mission main .overflow-x-auto { -webkit-overflow-scrolling: touch; margin-inline: -.25rem; padding-inline: .25rem; }
+}
