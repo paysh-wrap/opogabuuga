@@ -275,6 +275,11 @@ def structure_check(
     return gate, feats
 
 
+def noise_entries_today(sigs: list[Signal]) -> int:
+    """Entries counted toward the daily max: every signal plus the same-direction re-entries merged into a HOLD."""
+    return len(sigs) + sum(int(x.features.get("merged_entries", 0)) for x in sigs)
+
+
 def run_noise(
     s: Session,
     rules: RulesConfig,
@@ -318,10 +323,10 @@ def run_noise(
     close = today.bars[k].c if k in today.bars else None
     if close is None:
         return out
-    entries = len(sigs)
+    entries = noise_entries_today(sigs)
     lock_exit = any(x.features.get("lock_exit") for x in sigs)  # D82: a locked-stop exit ends NOISE for the day
     inst = rules.instrument(cfg.symbol)
-    for a in N.decide(
+    actions = N.decide(
         k=k,
         close=close,
         b=b,
@@ -330,11 +335,30 @@ def run_noise(
         entries_today=entries,
         max_entries=cfg.max_entries_per_day,
         allow_entry=check and not exits_only and not lock_exit and at.astimezone(ET).weekday() not in cfg.skip_weekdays,
-    ):
+    )
+    # A same-direction EXIT + ENTER on one check leaves the account in the same position: with the exit fill still
+    # pending the re-entry would hit POSITION_OPEN and strand the account flat. Treat it as HOLD, count the entry.
+    merge = (
+        open_sig is not None
+        and any(x.kind == "EXIT" for x in actions)
+        and any(x.kind == "ENTER" and x.direction is position for x in actions)
+    )
+    for a in actions:
+        if a.kind == "EXIT" and open_sig is not None and merge:
+            continue  # same-direction EXIT + ENTER on one check = HOLD (see below)
         if a.kind == "EXIT" and open_sig is not None:
             _close(s, open_sig, a.reason, at, clock)
             out.exits.append((open_sig.id, a.reason))
             open_sig = None
+        elif a.kind == "ENTER" and a.direction is not None and merge:
+            if "merged_at" not in open_sig.features or open_sig.features["merged_at"] != at.isoformat():
+                open_sig.features = {
+                    **open_sig.features,
+                    "merged_entries": int(open_sig.features.get("merged_entries", 0)) + 1,
+                    "merged_at": at.isoformat(),
+                }
+                open_sig.updated_at = clock.now()
+            entries += 1
         elif a.kind == "ENTER" and a.direction is not None:
             if any(x.bar_time == at for x in sigs):
                 continue  # this bar was already decided (replay after a crash): never a second entry for one bar

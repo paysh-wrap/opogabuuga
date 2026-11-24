@@ -1300,11 +1300,13 @@ class Controller:
     def _mark_signal_closed(self, s: Session, signal_id: int | None, reason: str) -> None:
         """A strategy signal whose exit was requested turns CLOSED only now, when its last trade is really closed."""
         sig = s.get(Signal, signal_id) if signal_id is not None else None
-        if sig is None or not (sig.features or {}).get("exit_requested") or sig.features.get("state") != "OPEN":
+        if sig is None or (sig.features or {}).get("state") != "OPEN":
             return
         if s.execute(select(Trade.id).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).first() is not None:
             return  # another account's trade of this signal is still open
-        mark = sig.features["exit_requested"]
+        # No marker = the BROKER closed it (stop / TP / D57 / kill flatten): the strategy follows with the broker
+        # reason, so a strategy never keeps a phantom position (NOISE re-entries then match the backtest).
+        mark = sig.features.get("exit_requested") or {"reason": reason}
         sig.features = {
             **sig.features,
             "state": "CLOSED",

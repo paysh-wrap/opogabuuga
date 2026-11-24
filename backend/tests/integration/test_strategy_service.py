@@ -395,3 +395,58 @@ def test_noise_skip_weekdays_blocks_new_entries(db, loaded_rules):
         assert out.updates == []
     with pytest.raises(ValueError, match="skip_weekdays"):
         type(ncfg)(skip_weekdays=[5])
+
+
+def _noise_long_at_1000(db, loaded_rules, later_closes):
+    rules = _rules(loaded_rules, noise=True)
+    days = _sessions(12)
+    today = days[-1]
+    clock = FixedClock(today + timedelta(minutes=30))
+    cal = lambda _d: []  # noqa: E731
+    with db() as s:
+        _history(s, days[:-1])
+        _add_day(s, today, {**{k: D(20200) for k in range(30)}, **later_closes})
+        s.commit()
+        at = today + timedelta(minutes=30)
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=at)
+        sig = s.get(Signal, out.updates[0].signal_id)
+    return rules, today, clock, cal, sig.id
+
+
+def test_broker_exit_closes_the_noise_signal_so_the_next_check_can_re_enter(db, loaded_rules):
+    """A (H2): a broker STOP/TP close (no exit_requested marker) must turn the signal CLOSED, else NOISE holds a phantom."""
+    from types import SimpleNamespace
+
+    from app.automation.controller import Controller
+    from app.models import Account, Trade
+
+    later = {k: D(20200) for k in range(30, 150)}
+    rules, today, clock, cal, sid = _noise_long_at_1000(db, loaded_rules, later)
+    with db() as s:
+        a = Account(broker_account_id="A", label="A", stage="EVAL", drawdown_type="eod", starting_balance=D(25000))
+        s.add(a)
+        s.flush()
+        s.add(Trade(account_id=a.id, signal_id=sid, symbol="MNQ", direction="LONG", qty=1, entry=D(1), risk_usd=D(1),
+                    opened_at=today, closed_at=today, trade_ref="P-9-1"))  # fmt: skip
+        s.flush()
+        Controller._mark_signal_closed(SimpleNamespace(clock=clock), s, sid, "STOP")
+        sig = s.get(Signal, sid)
+        assert sig.features["state"] == "CLOSED" and sig.features["exit_reason"] == "STOP"
+        s.commit()
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=today + timedelta(minutes=150))
+        assert len(out.updates) == 1 and out.updates[0].status == "PASS"  # re-entry after the broker exit
+
+
+def test_same_direction_exit_and_reentry_is_a_hold_that_still_counts_the_entry(db, loaded_rules):
+    """A: upper < close < VWAP gives EXIT then ENTER LONG; with the exit fill pending that re-entry would hit
+    POSITION_OPEN. It is merged into HOLD (no exit, no second signal) but counts toward max entries."""
+    later = {k: D(20060) for k in range(30, 150)}
+    rules, today, clock, cal, sid = _noise_long_at_1000(db, loaded_rules, later)
+    with db() as s:
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=today + timedelta(minutes=90))
+        assert out.exits == [] and out.updates == []
+        sig = s.get(Signal, sid)
+        assert sig.features["state"] == "OPEN" and "exit_requested" not in sig.features
+        assert sig.features["merged_entries"] == 1
+        sigs = SS._today_signals(s, "MNQ", "NOISE", today.astimezone(SS.ET).date().isoformat())
+        assert SS.noise_entries_today(sigs) == 2
