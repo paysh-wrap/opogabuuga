@@ -3,7 +3,7 @@
    red/green stay small dots set by components. Motion is subtle, hover/focus only, and fully off under prefers-reduced-motion. */
 
 /* ---- 1. Contrast: blue stays for borders/links/focus; text on any tint uses blueLight; secondary prose = blueLight @ 78 % ---- */
-:root { --text-2: rgba(147, 197, 253, .78); }
+:root { --text-2: rgba(147, 197, 253, .92); }
 .mission main button.border-blue, .mission main summary.border-blue, .mission header.bg-card button.border-blue { color: #93C5FD; }
 .mission main :is(p, li, dd, dt, span, small, td, label, div, summary).text-blue { color: var(--text-2); }
 .mission nav[aria-label="Main"] a.text-blue { color: #93C5FD; }
@@ -116,3 +116,18 @@ html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"
   box-shadow: 0 1px 0 rgba(242, 210, 122, .08) inset;
 }
 @media (prefers-reduced-motion: reduce) { .mission main * { transition: none !important; } }
+
+/* ---- 8. AA floor: faded blue text never drops below 4.5:1; #3B82F6 text on tints/footer -> blueLight; gold-on-gold labels navy ---- */
+.mission main :is(.text-blue, [class*="text-blue"]), .mission main :is(.text-blue, [class*="text-blue"]) * { opacity: 1 !important; }
+.mission :is(.opacity-60, .opacity-70, .opacity-75, .opacity-80):is(.text-blue, [class*="text-blue"]) { opacity: 1 !important; }
+.mission footer, .mission footer :is(a, span, p) { color: #93C5FD; }
+.mission main button.text-blue, .mission main button[class*="border-blue"] { color: #93C5FD; }
+.mission main button.border-gold:not(.toggle-on), .mission main button.text-gold { color: #F2D27A; }
+.mission main h2.text-gold, .mission main h2[class*="text-gold"] { color: #F2D27A; }
+/* faded helper text (opacity-40..80 utilities) keeps >= AA: floor at .96 on non-disabled, non-button text */
+.mission main :is(span, p, div, li, small, dd, dt, td, label, b, a)[class*="opacity-"]:not(:disabled) { opacity: .96 !important; }
+.mission main .fp-card details summary { opacity: 1; }
+.mission main a.text-blue, .mission main a[class*="text-blue"] { color: #93C5FD; }
+.mission main [class*="opacity-"], .mission main [class*="text-blue"], .mission main button { transition-property: border-color, box-shadow, background-color, transform; }
+.mission a.text-blue:not([aria-label]), .mission [role="alert"] a, .mission [role="status"] a { color: #93C5FD; }
+.mission main a.inline-block { color: #93C5FD; }

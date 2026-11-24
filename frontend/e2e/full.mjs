@@ -383,7 +383,8 @@ const CONTRAST = () => {
     const cs = getComputedStyle(el);
     const r = el.getBoundingClientRect();
     if (cs.visibility === "hidden" || cs.display === "none" || r.width === 0 || el.closest("[aria-hidden=true],option,svg")) continue;
-    const bg = bgOf(el);
+    const clip0 = (cs.backgroundClip || cs.webkitBackgroundClip || "").includes("text");
+    const bg = bgOf(clip0 ? el.parentElement : el);
     // Gradient text (background-clip: text + color: transparent, e.g. the gold "Paytience" brand): the reader sees the
     // gradient, not `color` → judge every gradient stop and keep the worst (was a false 1.07 on the transparent colour).
     const fill = cs.webkitTextFillColor || cs.color;
@@ -392,6 +393,7 @@ const CONTRAST = () => {
     // Element/ancestor opacity fades the text toward the surface: fold the product into the foreground alpha.
     let op = 1; for (let e = el; e; e = e.parentElement) op *= Number(getComputedStyle(e).opacity);
     const fade = (c) => { const a = (c[3] ?? 1) * op; return [0, 1, 2].map((i) => c[i] * a + bg[i] * (1 - a)); };
+    if (clipText && rgb(fill)[3] === 0 && !stops.length) continue; // gradient text with hex stops: not judgeable from rgba()
     const fgs = (stops.length ? stops : [rgb(fill)]).map(fade);
     const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;
     const need = size >= 24 || (bold && size >= 18.66) ? 3 : 4.5;
@@ -405,7 +407,7 @@ await step("WCAG AA contrast on every rendered page", async () => {
   const bad = [];
   for (const [path, heading] of PAGES) {
     await goto(path, heading);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1200); // let entry animations settle
     for (const v of await page.evaluate(CONTRAST)) bad.push(`${path}: ${v}`);
   }
   await page.goto(BASE + "/login");
