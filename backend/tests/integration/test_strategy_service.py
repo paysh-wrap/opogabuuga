@@ -437,6 +437,31 @@ def test_broker_exit_closes_the_noise_signal_so_the_next_check_can_re_enter(db, 
         assert len(out.updates) == 1 and out.updates[0].status == "PASS"  # re-entry after the broker exit
 
 
+def test_broker_close_keeps_the_signal_open_while_an_account_approval_is_pending(db, loaded_rules):
+    """M2: SEMI / per-account fan-out: account A's broker close must not CLOSE the signal while B's trade is still to
+    come (pending approval), else B lands on a CLOSED signal and never gets a strategy exit."""
+    from types import SimpleNamespace
+
+    from app.automation.controller import Controller
+    from app.models import Account, Trade
+
+    later = {k: D(20200) for k in range(30, 150)}
+    rules, today, clock, cal, sid = _noise_long_at_1000(db, loaded_rules, later)
+    with db() as s:
+        a = Account(broker_account_id="A", label="A", stage="EVAL", drawdown_type="eod", starting_balance=D(25000))
+        s.add(a)
+        s.flush()
+        s.add(Trade(account_id=a.id, signal_id=sid, symbol="MNQ", direction="LONG", qty=1, entry=D(1), risk_usd=D(1),
+                    opened_at=today, closed_at=today, trade_ref="P-9-2"))  # fmt: skip
+        s.flush()
+        pending = SimpleNamespace(clock=clock, approvals={sid: object()})
+        Controller._mark_signal_closed(pending, s, sid, "STOP")
+        assert s.get(Signal, sid).features["state"] == "OPEN"
+        done = SimpleNamespace(clock=clock, approvals={})
+        Controller._mark_signal_closed(done, s, sid, "STOP")
+        assert s.get(Signal, sid).features["state"] == "CLOSED"
+
+
 def test_same_direction_exit_and_reentry_is_a_hold_that_still_counts_the_entry(db, loaded_rules):
     """A: upper < close < VWAP gives EXIT then ENTER LONG; with the exit fill pending that re-entry would hit
     POSITION_OPEN. It is merged into HOLD (no exit, no second signal) but counts toward max entries."""

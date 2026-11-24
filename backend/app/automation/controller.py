@@ -1313,9 +1313,12 @@ class Controller:
             return
         if s.execute(select(Trade.id).where(Trade.signal_id == sig.id, Trade.closed_at.is_(None))).first() is not None:
             return  # another account's trade of this signal is still open
+        mark_req = sig.features.get("exit_requested")
+        if not mark_req and sig.id in getattr(self, "approvals", {}):
+            return  # M2: a later account's trade (SEMI approval / fan-out) is still to come: keep the signal OPEN
         # No marker = the BROKER closed it (stop / TP / D57 / kill flatten): the strategy follows with the broker
         # reason, so a strategy never keeps a phantom position (NOISE re-entries then match the backtest).
-        mark = sig.features.get("exit_requested") or {"reason": reason}
+        mark = mark_req or {"reason": reason}
         sig.features = {
             **sig.features,
             "state": "CLOSED",
