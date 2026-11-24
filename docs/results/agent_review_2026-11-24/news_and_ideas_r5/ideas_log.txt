@@ -1,0 +1,22 @@
+I1A_5m_filt      pick  n,PF,net,avg = (420, np.float64(1.16), 4705, np.float64(11.2))
+I1A_5m_filt      judge n,PF,net,avg = (540, np.float64(1.19), 7727, np.float64(14.3))
+I1B_15m_filt     pick  n,PF,net,avg = (416, np.float64(1.36), 11220, np.float64(27.0))
+I1B_15m_filt     judge n,PF,net,avg = (537, np.float64(1.09), 4070, np.float64(7.6))
+I1C_5m_nofilt    pick  n,PF,net,avg = (544, np.float64(1.15), 5926, np.float64(10.9))
+I1C_5m_nofilt    judge n,PF,net,avg = (702, np.float64(1.1), 5718, np.float64(8.1))
+I3A_thr0.5       pick  n,PF,net,avg = (206, np.float64(1.03), 255, np.float64(1.2))
+I3A_thr0.5       judge n,PF,net,avg = (268, np.float64(1.28), 3215, np.float64(12.0))
+I3B_thr0.35      pick  n,PF,net,avg = (286, np.float64(1.05), 695, np.float64(2.4))
+I3B_thr0.35      judge n,PF,net,avg = (372, np.float64(1.21), 3487, np.float64(9.4))
+I1A_5m_filt judge random-direction control: PF p95=1.17 net p95=7434; real PF=1.19 net=7727
+I1B_15m_filt judge random-direction control: PF p95=1.17 net p95=7326; real PF=1.09 net=4070
+I1C_5m_nofilt judge random-direction control: PF p95=1.13 net p95=7107; real PF=1.10 net=5718
+I3A_thr0.5 judge random-direction control: PF p95=1.12 net p95=1417; real PF=1.28 net=3215
+I3B_thr0.35 judge random-direction control: PF p95=1.08 net p95=1373; real PF=1.21 net=3487
+NOISE base counts by alignment: {0: 258, 1: 211, -1: 185}
+I2F1_drop_counter    pick  kept n=217/298 PF 1.49 vs 1.55; net 5110 vs 8468; rand-keep net p95=8336, p(rand>=real)=0.780
+I2F1_drop_counter    judge kept n=252/356 PF 1.69 vs 1.49; net 10873 vs 10826; rand-keep net p95=11101, p(rand>=real)=0.062
+I2F2_aligned_only    pick  kept n=102/298 PF 1.29 vs 1.55; net 1628 vs 8468; rand-keep net p95=5395, p(rand>=real)=0.806
+I2F2_aligned_only    judge kept n=109/356 PF 1.27 vs 1.49; net 2180 vs 10826; rand-keep net p95=6795, p(rand>=real)=0.694
+I2F3_counter_only    pick  kept n=81/298 PF 1.67 vs 1.55; net 3358 vs 8468; rand-keep net p95=4569, p(rand>=real)=0.224
+I2F3_counter_only    judge kept n=104/356 PF 0.99 vs 1.49; net -48 vs 10826; rand-keep net p95=6638, p(rand>=real)=0.949

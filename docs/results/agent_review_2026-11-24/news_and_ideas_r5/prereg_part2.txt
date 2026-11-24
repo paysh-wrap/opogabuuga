@@ -1,0 +1,5 @@
+PART 2 prereg (written before judge numbers): ideas tested, 1 micro, $2 RT cost + 0.25pt entry slippage, pick 2021-10..2023-12, judge 2024-01..2026-10.
+I1 ORB (Zarattini): variants A(5m OR, candle-direction filter, stop opposite OR side), B(15m OR, same), C(5m OR, no filter), exit 15:59 close. Control: random direction, same entry bar, same stop distance (2000 draws).
+I2 TTrades-style daily bias on NOISE trades: bias = prior-day close > prior-prior-day high (bull), < prior-prior low (bear), else neutral. F1 keep aligned+neutral (drop counter), F2 keep only aligned (drop neutral), F3 drop aligned keep counter-only (sanity). Control: drop same number of random NOISE trades (5000).
+I3 Valentini proxy (day-type + VWAP pullback): efficiency E=|c29-o0|/(range 09:30-10:00); imbalance if E>=thr; trade first VWAP touch 10:00-11:30 in trend direction; stop 40, target 60, else 15:59. Variants thr 0.5, 0.35. Control: random direction.
+Pass: pick-chosen variant has judge net>0, judge PF>1.15, n>=60 judge trades, beats control p95 on judge. Not tested (not codable from 1-min bars): CVD/delta aggression, Jigsaw DOM, footprint.
