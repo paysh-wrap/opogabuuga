@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import LoadError from "../components/LoadError";
 import { usePageTitle } from "../components/usePageTitle";
 import { etTime } from "../lib/time";
 import HindsightNote from "../components/HindsightNote";
@@ -102,6 +103,7 @@ export default function Today() {
   const runBias = useMutation({ mutationFn: () => api("/api/bias/run", { method: "POST" }), onSettled: () => void qc.invalidateQueries({ queryKey: ["bias"] }) });
   const plan = useQuery({ queryKey: ["plan"], queryFn: () => api<Plan>("/api/today/plan"), refetchInterval: 15000 });
   const d = q.data;
+  if (q.error && !d) return <LoadError what="today" error={q.error} onRetry={() => void q.refetch()} />;
   if (!d) return <p role="status">Loading…</p>;
   const net = d.trades.reduce((s, t) => s + Number(t.pnl ?? 0), 0);
   return (
@@ -111,6 +113,7 @@ export default function Today() {
       <p className="text-sm">{d.signals.length} signals · {d.signals.filter((s) => s.status === "PASS").length} passed · {d.trades.length} trades · net{" "}
         <b className="text-gold">{net > 0 ? "▲ +" : net < 0 ? "▼ −" : ""}${Math.abs(net).toFixed(2)}</b></p>
 
+      {plan.error && !plan.data && <LoadError what="today's plan" error={plan.error} onRetry={() => void plan.refetch()} />}
       {plan.data && <PlanPanel plan={plan.data} />}
       <WhyNoTrade />
 

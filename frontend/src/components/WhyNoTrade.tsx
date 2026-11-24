@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { skipRows } from "../lib/insights";
+import LoadError from "./LoadError";
 
 interface Skips { date: string; counts: Record<string, number>; avg_20: Record<string, number>; sessions_in_avg: number }
 
@@ -11,7 +12,8 @@ export default function WhyNoTrade() {
   return (
     <section data-testid="why-no-trade" className="rounded-xl border border-border bg-card p-4">
       <h2 className="font-semibold text-gold">Why no trade?</h2>
-      {!d && <p className="text-sm" role="status">Loading…</p>}
+      {q.error && !d && <LoadError what="skip reasons" error={q.error} onRetry={() => void q.refetch()} />}
+      {!d && !q.error && <p className="text-sm" role="status">Loading…</p>}
       {d && rows.length === 0 && <p className="text-sm">No skipped signals today.</p>}
       {rows.length > 0 && (
         <table className="mt-2 w-full text-sm">

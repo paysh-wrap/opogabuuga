@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { badge } from "../lib/theme";
 import MoreInfo from "./MoreInfo";
 import { AdvisorCardLine, type AdvisorResp } from "./AdvisorCard";
+import LoadError from "./LoadError";
 import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D55: strategy on/off buttons with the TESTED results next to each (static research facts from the server, not live
@@ -206,6 +207,7 @@ export default function StrategyButtons() {
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
+  if (q.error && !d) return <LoadError what="strategies" error={q.error} onRetry={() => void q.refetch()} />;
   if (!d) return <p role="status">Loading strategies…</p>;
   const w = d.noise_warmup;
   const MAIN = ["noise", "candace_ict"];

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import LoadError from "../components/LoadError";
 import { usePageTitle } from "../components/usePageTitle";
 import StrategyButtons from "../components/StrategyButtons";
 import StrategyPresets from "../components/StrategyPresets";
@@ -25,6 +26,7 @@ export default function Strategy() {
   const q = useQuery({ queryKey: ["strategy"], queryFn: () => api<S>("/api/strategy"), refetchInterval: 10000 });
   const runBias = useMutation({ mutationFn: () => api("/api/bias/run", { method: "POST" }), onSettled: () => void qc.invalidateQueries({ queryKey: ["strategy"] }) });
   const s = q.data;
+  if (q.error && !s) return <LoadError what="the Strategy page" error={q.error} onRetry={() => void q.refetch()} />;
   if (!s) return <p role="status">Loading…</p>;
   const ta = s.tradingagents;
   return (

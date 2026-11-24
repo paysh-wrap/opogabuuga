@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import LoadError from "./LoadError";
 
 export interface Safety {
   unmanaged: { account: string; reason: string }[];
@@ -16,6 +17,7 @@ const box = "rounded-lg border border-gold bg-card p-3 text-sm text-goldLight";
 export default function SafetyBanners() {
   const q = useQuery({ queryKey: ["safety"], queryFn: () => api<Safety>("/api/safety"), refetchInterval: 10_000 });
   const d = q.data;
+  if (q.error && !d) return <LoadError what="safety status" error={q.error} onRetry={() => void q.refetch()} hint="Treat the app as NOT safe: new entries may be blocked until this loads." />;
   if (!d) return null;
   const items: JSX.Element[] = [];
   (d.unmanaged ?? []).forEach((u) =>
