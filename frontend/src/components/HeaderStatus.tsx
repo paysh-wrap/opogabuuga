@@ -60,7 +60,7 @@ export default function HeaderStatus() {
         </span>
       )}
       <button onClick={() => setOpen((o) => !o)} aria-expanded={open}
-        className="rounded border-2 border-gold px-2 py-1 text-xs font-bold text-gold hover:text-goldLight">KILL SWITCH</button>
+        className="kill-switch rounded border-2 border-gold px-2 py-1 text-xs font-bold text-gold hover:text-goldLight">KILL SWITCH</button>
       {open && (
         <form role="dialog" aria-label="Kill switch" className="flex w-full flex-wrap items-center gap-2 rounded border border-gold p-2 text-xs"
           onSubmit={(e) => { e.preventDefault(); kill.mutate(); }}>

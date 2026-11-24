@@ -8,3 +8,58 @@
 .mission main :is(p, li, dd, dt, span, small, td, label, div, summary).text-blue { color: var(--text-2); }
 .mission nav[aria-label="Main"] a.text-blue { color: #93C5FD; }
 .mission button:disabled { opacity: .6; }
+
+/* ---- 2. Type scale + spacing rhythm (one scale, every variant). Page title h1 > section h2/h3 > card h4/h5 > chips ---- */
+:root {
+  --fs-chip: .6875rem; --fs-eyebrow: .72rem; --fs-sm: .8125rem; --fs-body: .9375rem;
+  --fs-h5: .875rem; --fs-h4: .9375rem; --fs-h3: 1.0625rem; --fs-h2: 1.1875rem; --fs-h1: 1.375rem; --fs-kpi: 2.25rem;
+  --rhythm: var(--s-4, 1rem);
+}
+.mission main h1, html[data-style] .mission main h1 {
+  font-size: var(--fs-h1); font-weight: 750; letter-spacing: .04em; text-transform: none; line-height: 1.2;
+}
+.mission main h2 { font-size: var(--fs-h2); line-height: 1.3; }
+.mission main h3, html[data-style] .mission main h3 {
+  font-size: var(--fs-h3); font-weight: 650; letter-spacing: -.005em; text-transform: none; line-height: 1.35; text-shadow: none;
+}
+.mission main h3.text-lg { font-size: var(--fs-h3); }
+.mission main h4 { font-size: var(--fs-h4); font-weight: 600; }
+.mission main h5 { font-size: var(--fs-h5); font-weight: 600; }
+/* section eyebrows (first h2 in a card) stay small caps, crisp (no glow) */
+.mission main :is(section, article).bg-card > h2:first-child, html[data-style] .mission main :is(section, article).bg-card > h2:first-child {
+  font-size: var(--fs-eyebrow); letter-spacing: .14em; text-transform: uppercase; text-shadow: none;
+}
+.mission main span.rounded.border, .mission main span.rounded-full.border { font-size: var(--fs-chip); line-height: 1.5; }
+.mission main .text-xs { line-height: 1.5; }
+/* long left-aligned toggle labels read in the body font, not mono */
+.mission main button.text-left { font-family: var(--f-body); letter-spacing: 0; }
+
+/* ---- 5. Calm Neon: no infinite spin/pulse on every card/chip; one accent (highlighted tile); KILL SWITCH unmistakable ---- */
+html[data-style="neon"] .mission main .bg-card:not(input):not(select):not(textarea) { animation: none; }
+html[data-style="neon"] .mission main :is(section, article).bg-card.border-gold { animation: v-spin 14s linear infinite; }
+html[data-style="neon"] .mission main :is(span.rounded.border, span.rounded-full.border),
+html[data-style="neon"] .mission header.bg-card [class*="rounded"][class*="border"] { animation: none; box-shadow: none; }
+html[data-style="neon"] .mission main :is(h1, h2, h3) { text-shadow: none; }
+html[data-style="neon"] .mission main h1 { text-shadow: 0 0 18px rgba(var(--gold-a), .35); }
+html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"] .mission main button.border-blue { box-shadow: none; }
+
+/* KILL SWITCH: the ONLY safety control with a strong treatment — solid gold slab, navy text, hazard edge, steady halo */
+.mission header.bg-card button.kill-switch, html[data-style] .mission header.bg-card button.kill-switch {
+  background: linear-gradient(180deg, #F2D27A, #D4AF37 62%) !important; color: #0A1020 !important;
+  border: 2px solid #F2D27A !important; border-radius: 10px; padding: .35rem .8rem; font: 800 .74rem/1 var(--f-body);
+  letter-spacing: .12em; text-transform: uppercase; text-shadow: none;
+  box-shadow: 0 0 0 2px #0A1020, 0 0 0 4px rgba(var(--gold-a), .55), 0 8px 22px -8px rgba(var(--gold-a), .85) !important;
+  position: relative; animation: kill-halo 3.2s ease-in-out infinite;
+}
+.mission header.bg-card button.kill-switch::before {
+  content: ""; display: inline-block; width: .55rem; height: .55rem; margin-right: .45rem; vertical-align: -.02rem;
+  border-radius: 2px; background: repeating-linear-gradient(135deg, #0A1020 0 2px, transparent 2px 4px); border: 1px solid #0A1020;
+}
+.mission header.bg-card button.kill-switch:hover { filter: brightness(1.06); }
+.mission header.bg-card button.kill-switch[aria-expanded="true"] { animation: none; box-shadow: 0 0 0 2px #0A1020, 0 0 0 5px #F2D27A !important; }
+@keyframes kill-halo { 50% { box-shadow: 0 0 0 2px #0A1020, 0 0 0 6px rgba(var(--gold-a), .35), 0 10px 28px -6px rgba(var(--gold-a), 1); } }
+.mission header.bg-card form[aria-label="Kill switch"] { border-width: 2px; background: rgba(var(--gold-a), .08); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-style] .mission main .bg-card, .mission header.bg-card button.kill-switch { animation: none !important; }
+}
