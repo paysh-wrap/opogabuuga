@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useCountUp } from "../lib/useCountUp";
 import { theme, mission } from "../lib/theme";
 
 /** D93 "mission control" hero for the Dashboard. Real /api/dashboard numbers only; empty states when absent. */
@@ -11,6 +12,11 @@ export interface BentoAcct {
 const money = (n: number) => `$${Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`;
 const signed = (n: number) => `${n > 0 ? "▲ +" : n < 0 ? "▼ −" : ""}${money(n)}`;
 
+function Num({ n, fmt }: { n: number; fmt: (n: number) => string }) {
+  const v = useCountUp(n);
+  return <>{fmt(Math.abs(v - n) < 0.005 ? n : Math.round(v * 100) / 100)}</>;
+}
+
 function Gauge({ value, max, label }: { value: number; max: number; label: string }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (100 * value) / max)) : 0;
   return (
@@ -21,7 +27,7 @@ function Gauge({ value, max, label }: { value: number; max: number; label: strin
       <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke={mission.navOn} strokeWidth="16" strokeLinecap="round" />
       <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke="url(#mission-g)" strokeWidth="16" strokeLinecap="round"
         pathLength={100} strokeDasharray={`${pct} 100`} />
-      <text x="110" y="100" textAnchor="middle" fill={theme.goldLight} fontSize="32" fontWeight="700" className="mission-num-svg">{money(value)}</text>
+      <text x="110" y="100" textAnchor="middle" fill={theme.goldLight} fontSize="32" fontWeight="700" className="mission-num-svg"><Num n={value} fmt={money} /></text>
       <text x="110" y="120" textAnchor="middle" fill={theme.blueLight} fontSize="10" className="mission-mono-svg">OF {money(max)}</text>
     </svg>
   );
@@ -57,7 +63,7 @@ export default function MissionBento({ accounts, mode }: { accounts: BentoAcct[]
 
       <section className="mission-tile mission-span-2 rounded-xl border bg-card p-4" data-testid="tile-dll">
         <h2 className="font-semibold text-gold">Day P&amp;L vs daily loss limit {focus && <span className="tile-aside">{focus.label}</span>}</h2>
-        <div className="mission-num">{focus ? signed(fToday) : "—"}</div>
+        <div className="mission-num">{focus ? <Num n={fToday} fmt={signed} /> : "—"}</div>
         {dllLimit ? (
           <>
             <div className="mission-bar" role="img" aria-label={`Day P&L ${signed(fToday)} against a ${money(dllLimit)} daily loss limit`}>
@@ -82,7 +88,7 @@ export default function MissionBento({ accounts, mode }: { accounts: BentoAcct[]
 
       <section className="mission-tile mission-span-2 rounded-xl border bg-card p-4" data-testid="tile-balance">
         <h2 className="font-semibold text-gold">Total balance <span className="tile-aside">{armed} / {accounts.length} armed</span></h2>
-        <div className="mission-num">{money(balance)}</div>
+        <div className="mission-num"><Num n={balance} fmt={money} /></div>
         <p className="tile-sub">{accounts.length === 0 ? "No accounts yet — add one on the Automation page." : `${accounts.length} account(s)`}</p>
       </section>
     </div>
