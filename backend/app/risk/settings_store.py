@@ -308,7 +308,12 @@ def effective(s: Session, base: LoadedRules) -> Effective:
     fe = latest(s, "fast_eval")
     lab = latest(s, "lab")  # §17: approved Lab tunables (separate layer; My Settings never contain these keys)
     mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
-    cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, mine))
+    fo = firm.body_overrides() if firm else {}
+    cfg, _ = build(merged_raw(base, fo, mine))
+    fixed = enforce_one_choice(mine, cfg)  # D167: pre-D167 saves with 2+ choices ON load with the extras OFF
+    if fixed is not mine:
+        mine = fixed
+        cfg, _ = build(merged_raw(base, fo, mine))
     verified = list(firm.verified_paths) if firm else []
     return Effective(
         cfg,
@@ -347,6 +352,19 @@ def strategy_choices_on(strategy: Any) -> list[str]:
         if any(bool(getattr(strategy, a)) for a in attrs):
             on.append(c)
     return on
+
+
+def enforce_one_choice(mine: dict[str, Any], cfg: RulesConfig) -> dict[str, Any]:
+    """D167 for stored settings (rollback, load of pre-D167 saves): keep the first ON choice in
+    STRATEGY_CHOICES order and switch the others OFF. Tighten-only; returns `mine` unchanged when <= 1 is ON."""
+    on = strategy_choices_on(cfg.strategy)
+    if len(on) <= 1:
+        return mine
+    out = dict(mine)
+    for c in on[1:]:
+        for a in STRATEGY_CHOICES[c]:
+            out[f"strategy.{a}"] = False
+    return out
 
 
 def save_my_settings(
@@ -395,7 +413,9 @@ def rollback(s: Session, base: LoadedRules, clock: Clock, author: str, version: 
     if target is None:
         raise SettingsError([f"no My Settings version {version}"])
     firm = latest_firm(s)
-    build(merged_raw(base, firm.body_overrides() if firm else {}, target.settings))  # still valid today?
+    settings = dict(target.settings)
+    cfg, _ = build(merged_raw(base, firm.body_overrides() if firm else {}, settings))  # still valid today?
+    settings = enforce_one_choice(settings, cfg)  # D167: never restore two strategy choices ON
     cur = latest(s, "standard")
     if cur:
         cur.active = False
@@ -403,7 +423,7 @@ def rollback(s: Session, base: LoadedRules, clock: Clock, author: str, version: 
     row = RiskProfile(
         kind="standard",
         version=nv,
-        settings=dict(target.settings),
+        settings=settings,
         author=author,
         note=f"rollback to v{version}",
         diff={"rollback_to": version},

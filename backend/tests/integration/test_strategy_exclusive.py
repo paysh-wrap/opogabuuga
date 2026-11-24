@@ -43,3 +43,32 @@ def test_dashboard_returns_four_fast_pass_cards(authed):
 def test_choices_on_helper(authed):
     s = authed.app.state.rules.rules.strategy
     assert strategy_choices_on(s) == []
+
+
+def _legacy_row(authed, version, settings, active):
+    from app.models import RiskProfile
+
+    with authed.app.state.sessionmaker() as s:
+        s.add(
+            RiskProfile(
+                kind="standard", version=version, settings=settings, author="legacy",
+                note="pre-D167 save", diff={}, active=active,
+            )
+        )
+        s.commit()
+
+
+def test_rollback_to_two_on_version_leaves_at_most_one_choice_on(authed):
+    _legacy_row(authed, 90, {"strategy.jj_fpt": True, "strategy.gala_pa": True}, active=False)
+    r = authed.post("/api/risk/rollback/90")
+    assert r.status_code == 200, r.text
+    assert len(strategy_choices_on(authed.app.state.rules.rules.strategy)) <= 1
+
+
+def test_loading_pre_d167_settings_with_two_on_keeps_at_most_one_choice(authed):
+    from app.risk.settings_store import effective
+
+    _legacy_row(authed, 91, {"strategy.jj_fpt": True, "strategy.gala_pa": True}, active=True)
+    with authed.app.state.sessionmaker() as s:
+        eff = effective(s, authed.app.state.rules.base)
+    assert len(strategy_choices_on(eff.rules.strategy)) <= 1
