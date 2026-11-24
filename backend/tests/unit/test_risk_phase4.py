@@ -526,3 +526,16 @@ def test_pretrade_fast_eval_early_tier_raises_pct_and_eval_only():
     assert funded.risk_usd == D(90) and not any(c["check"] == "fast_eval_early_tier" for c in funded.checks)
     dll = run(fast=(fc, fx), day=DayState(1, 1, 0, D(-500), D(0)))  # DLL room still binds
     assert not dll.ok and dll.reason == "DLL_LIMIT"
+
+
+def test_tp_fit_waiver_is_noise_only_other_fixed_size_modes_shrink_to_the_cap():
+    """B (M2): CANDACE / late-day have a real TP: `tp_fit_waiver=False` keeps the reduce-to-fit-the-cap path."""
+    plan = PLAN  # TP 70 pts = $138.50 net per micro
+    strict = _fixed(5, tp_fit_waiver=False)
+    r = run(plan=plan, lim=strict, acct_dll=None, day=DayState(1, 0, 1, D(300), D(300)))  # room $200 → 1 micro
+    assert r.ok and r.contracts == 1
+    r = run(plan=plan, lim=strict, acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))  # room $100 < 1 micro reward
+    assert not r.ok and r.reason == "CONSISTENCY_CAP"
+    # NOISE keeps the N6 waiver (live day stop instead): same day, no TP fit
+    r = run(plan=plan, lim=_fixed(5), acct_dll=None, day=DayState(1, 0, 1, D(400), D(400)))
+    assert r.ok and r.contracts == 5

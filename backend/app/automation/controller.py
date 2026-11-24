@@ -79,6 +79,8 @@ from app.risk.tiers import FloorRules, RiskCfg
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
+TP_FIT_STRATEGIES = ("CANDACE_ICT", "MGC_CANDACE", "LATE_DAY")  # real take-profits: fit contracts to the consistency cap
+
 STRATEGY_MODES = (
     "NOISE",
     "AI_BIAS",
@@ -992,6 +994,7 @@ class Controller:
             ),
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
             side_budget_left=side_left,
+            tp_fit_waiver=strategy not in TP_FIT_STRATEGIES,  # B: only NOISE-like exits keep the N6 waiver
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
         pt = pretrade(

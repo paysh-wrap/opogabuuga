@@ -115,6 +115,10 @@ class TradeLimits:
     # D92 split-risk button: this side's share of the daily loss limit still free (None = no split / no DLL). The worst
     # case of a new trade plus the DLL safety margin must fit it. Tighten-only.
     side_budget_left: Decimal | None = None
+    # N6 waiver of the "TP reward must fit the consistency cap" fit: NOISE only (its far TP is a 10% safety order and
+    # it exits by band/VWAP, flattened live at the day stop). CANDACE / late-day have real take-profits → False:
+    # they shrink contracts to fit the cap, else Skip("CONSISTENCY_CAP") (CLAUDE.md consistency guard).
+    tp_fit_waiver: bool = True
 
 
 @dataclass
@@ -259,7 +263,7 @@ def _finish(
     open_risk: Decimal = Decimal(0),
 ) -> PreTrade:
     """Checks every trade passes after sizing: consistency cap, then worst case vs DLL left / MLL distance."""
-    if consistency is not None and lim.fixed_contracts is not None:
+    if consistency is not None and lim.fixed_contracts is not None and lim.tp_fit_waiver:
         # N6 / D89: a fixed-size strategy trade exits by its own rules (NOISE: band/VWAP/hourly exits; the far TP
         # is only a 10% safety order), so "the take-profit reward must fit the cap" would reject EVERY entry. The cap is
         # enforced live instead: the controller flattens the account's strategy trades as soon as today's realised +

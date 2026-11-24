@@ -142,7 +142,10 @@ def test_inert_unless_option_fast_pass_eval_and_own_size(authed, clock, kw):
 def test_internal_max_still_shrinks(authed, clock):
     st, aid = _setup(authed, clock, internal={"internal_max_micros": 2})
     res, sz = _run(st, aid)
-    assert sz[-1]["contracts"] == 3 and res.ok and res.contracts == 2, res
+    # internal max shrinks 3 -> 2 before the consistency fit; the late leg has a real TP (B / M2), so the 100K eval
+    # cap then fits it further (to 1 micro) instead of waiving the fit as NOISE does
+    cap = next(c for c in res.checks if c["check"] == "consistency_cap")
+    assert sz[-1]["contracts"] == 3 and res.ok and cap["contracts"] == "2" and res.contracts == int(cap["fitted"]) == 1, res
 
 
 def test_one_position_per_account_and_hedge_lock(authed, clock):
