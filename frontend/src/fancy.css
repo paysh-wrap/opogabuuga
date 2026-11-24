@@ -82,3 +82,6 @@
   .mission main details[open] > *, .mission main [role="alert"], .mission-bento > * { animation: none !important; transition: none !important; transform: none !important; }
   .mission button:active { transform: none !important; }
 }
+
+/* AA: base blue text sitting on a gold tint gets the light blue token (theme.blueLight) */
+.mission main .border-gold .text-blue, .mission main [class*="bg-gold"] .text-blue, .mission [class*="bg-gold/"].text-blue, .mission [class*="bg-gold/"] :is(li, span):not([class*="text-"]) { color: #93C5FD; }

@@ -11,7 +11,7 @@ import "./finish.css"; // D117 refined finish
 import "./variants.css"; // optional style variants (html[data-style])
 import "./polish.css"; // UI polish 2026-11-24; loaded last
 import "./luxe.css"; // luxe depth + motion layer; after polish
-// import "./fancy.css"; // final polish: gradient borders, glass, nav ink, rings
+import "./fancy.css"; // final polish: gradient borders, glass, nav ink, rings
 import { installFancy } from "./fancy";
 import { installLuxe } from "./luxe";
 import { applyStyle } from "./style-switch";
