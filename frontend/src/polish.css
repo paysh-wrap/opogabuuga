@@ -63,3 +63,20 @@ html[data-style="neon"] .mission main button.border-gold, html[data-style="neon"
 @media (prefers-reduced-motion: reduce) {
   html[data-style] .mission main .bg-card, .mission header.bg-card button.kill-switch { animation: none !important; }
 }
+
+/* ---- 3. One ON/OFF toggle look (strategy buttons, pick cards, gate flags): ON = strongest (gold fill + glow), OFF = quiet neutral ---- */
+.mission main button.toggle-on, html[data-style] .mission main button.toggle-on {
+  background: linear-gradient(180deg, rgba(var(--gold-a), .22), rgba(var(--gold-a), .08)) !important;
+  border-color: #D4AF37 !important; color: #F2D27A !important;
+  box-shadow: 0 0 0 1px rgba(var(--gold-a), .45) inset, 0 6px 18px -10px rgba(var(--gold-a), .9) !important;
+}
+.mission main button.toggle-off, html[data-style] .mission main button.toggle-off {
+  background: rgba(8, 13, 28, .45) !important; border-color: rgba(147, 197, 253, .22) !important; color: #93C5FD !important;
+  box-shadow: none !important; font-weight: 500;
+}
+.mission main button.toggle-off:not(:disabled):hover { border-color: rgba(var(--blue-a), .75) !important; background: rgba(var(--blue-a), .10) !important; }
+
+/* ---- 4. Fast-pass cards: flat borders, equal height, badges in the title row ---- */
+.mission main .fp-card, html[data-style] .mission main .fp-card { background: rgba(8, 13, 28, .35); border-color: rgba(147, 197, 253, .14); box-shadow: none; animation: none; }
+.mission main .fp-card h3 > span { box-shadow: none !important; }
+.mission main .fp-card details summary { color: #93C5FD; opacity: .85; }

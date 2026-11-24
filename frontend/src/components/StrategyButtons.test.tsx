@@ -102,7 +102,9 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   // D164: weekly profit targets on the fast-pass card
   expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Weekly target: $111/week");
   expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Simulated avg: $74/week");
-  expect(screen.getByTestId("weekly-fast_pass_25k")).toHaveTextContent("Backtest estimate; accounts trade the same signals so they win and lose together.");
+  // UI review 2026-11-24: the disclaimer is shown ONCE (under the calculator), not repeated in every card
+  expect(screen.getByTestId("weekly-fast_pass_25k")).not.toHaveTextContent("same signals");
+  expect(screen.getAllByText(/accounts trade the same signals/)).toHaveLength(1);
   expect(screen.getByTestId("weekly-unmeasured-fast_pass_25k")).toBeInTheDocument();
   // D166: 3rd-edge option INSIDE the fast-pass card, gold UNVERIFIED badge, own setting key
   expect(screen.getByTestId("late-badge-fast_pass_25k")).toHaveTextContent("UNVERIFIED"); // badge is generic; the PF comes only from the API label below

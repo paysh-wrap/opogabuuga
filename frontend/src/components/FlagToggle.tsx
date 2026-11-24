@@ -20,8 +20,8 @@ export default function FlagToggle({ setting, on, unproven, label }: { setting: 
   return (
     <span className="inline-flex items-center gap-2">
       <button type="button" aria-pressed={on} disabled={m.isPending} onClick={click} data-testid={`flag-${setting}`}
-        className={`rounded border px-2 text-xs font-semibold ${on ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}>
-        {on ? "ON" : "OFF"}
+        className={`rounded border px-2 text-xs font-semibold ${on ? "toggle-on border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}>
+        {on ? "✓ ON" : "OFF"}
       </button>
       {unproven && <span className="rounded border border-gold px-1 text-xs text-gold" data-testid="unproven-badge">unproven</span>}
       <SaveAlert error={saved.error} testId={`flag-error-${setting}`} />

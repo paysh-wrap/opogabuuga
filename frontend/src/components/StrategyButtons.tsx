@@ -238,7 +238,7 @@ export default function StrategyButtons() {
         aria-pressed={s.enabled}
         disabled={toggle.isPending}
         onClick={() => toggle.mutate(s)}
-        className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${s.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+        className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${s.enabled ? "toggle-on border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}
       >
         {s.enabled ? "ON" : "OFF"} · {s.name}
       </button>}
@@ -281,7 +281,7 @@ export default function StrategyButtons() {
             aria-pressed={s.ar_side_by_side.enabled}
             disabled={sbs.isPending}
             onClick={() => sbs.mutate(s.ar_side_by_side!)}
-            className={`w-full rounded-md border px-2 py-1 text-left font-semibold ${s.ar_side_by_side.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+            className={`w-full rounded-md border px-2 py-1 text-left font-semibold ${s.ar_side_by_side.enabled ? "toggle-on border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}
             data-testid="ar-sbs-toggle"
           >
             {s.ar_side_by_side.enabled ? "ON" : "OFF"} · AR Model beside NOISE (different free account)
@@ -360,13 +360,14 @@ export default function StrategyButtons() {
     </div>
   );
   const toggleCard = (t: ToggleRow) => (
-    <div key={t.key} className="rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
-      <h3 className="font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="ml-2 rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}</h3>
+    <div key={t.key} className="fp-card flex h-full flex-col rounded-lg border border-border p-3" data-testid={`toggle-${t.key}`}>
+      <h3 className="flex flex-wrap items-center gap-2 font-semibold text-gold">{t.title}{t.note.includes("VERIFY") && <span className="rounded border border-gold px-1 text-xs" data-testid={`verify-${t.key}`}>VERIFY</span>}{t.weekly && !t.weekly.measured && <EvidenceBadge verified={false} text="not re-measured" testId={`weekly-unmeasured-${t.key}`} />}</h3>
+      <p className="mt-1 text-xs text-blue">Applies to: {(t.key.match(/(\d+k)$/i)?.[1] ?? "").toUpperCase()} EVAL accounts only (never FUNDED/LIVE).</p>
       {t.weekly && (
         <div className="mt-2 text-xs text-blue" data-testid={`weekly-${t.key}`}>
           <p>Weekly target: <b className="text-gold">${Number(t.weekly.needed_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b> to pass the ${Number(t.weekly.target).toLocaleString("en-US")} target in {t.weekly.median_days} days</p>
           <p>Simulated avg: <b className="text-gold">${Number(t.weekly.sim_week).toLocaleString("en-US", { maximumFractionDigits: 0 })}/week</b></p>
-          <p>Backtest estimate; accounts trade the same signals so they win and lose together.{!t.weekly.measured && <span className="ml-1"><EvidenceBadge verified={false} text={`not re-measured — ${t.weekly.source}`} testId={`weekly-unmeasured-${t.key}`} /></span>}</p>
+          {!t.weekly.measured && <p>Source: {t.weekly.source}</p>}
         </div>
       )}
       <div className="mt-2 grid gap-2">
@@ -375,25 +376,25 @@ export default function StrategyButtons() {
           return (
             <button key={String(v)} type="button" aria-pressed={on} disabled={flip.isPending} onClick={() => !on && flip.mutate({ t, v })}
               data-testid={`toggle-${t.key}-${v ? "on" : "off"}`}
-              className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
-              {pickLabel(on)} · {v ? t.on_label : t.off_label}
+              className={`rounded-md border px-3 py-2 text-left text-sm font-semibold ${on ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight disabled:opacity-70"}`}>
+              {(() => { const full = v ? t.on_label : t.off_label; const m = full.length > 60 ? full.match(/^([^(]*?)\s*\((.*)\)\s*$/) : null; return <>{pickLabel(on)} · {m ? m[1] : full}{m && <details className="mt-1 text-xs font-normal" onClick={(e) => e.stopPropagation()}><summary className="cursor-pointer">Formula</summary>{m[2]}</details>}</>; })()}
             </button>
           );
         })}
       </div>
       {t.late && (
-        <div className="mt-3 rounded-md border border-border p-2 text-xs" data-testid={`late-${t.key}`}>
+        <div className="mt-3 border-t border-border pt-2 text-xs" data-testid={`late-${t.key}`}>
           <span className="mr-2"><EvidenceBadge verified={t.late.verified === true} text={t.late.badge} testId={`late-badge-${t.key}`} /></span>
           <button type="button" aria-pressed={t.late.value} disabled={flip.isPending} data-testid={`late-toggle-${t.key}`}
             onClick={() => lateFlip.mutate({ late: t.late!, v: !t.late!.value })}
-            className={`rounded-md border px-2 py-1 text-left font-semibold ${t.late.value ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue"}`}>
+            className={`rounded-md border px-2 py-1 text-left font-semibold ${t.late.value ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"}`}>
             {t.late.value ? "✓ ON" : "OFF"} · {t.late.label}
           </button>
           <p className="mt-1 text-blue">{t.late.detail}</p>
         </div>
       )}
       {t.compare && <DrawdownCompareView c={t.compare} />}
-      <MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo>
+      <div className="mt-auto pt-2"><MoreInfo testId={`more-toggle-${t.key}`}><p className="text-blue">{t.note}</p></MoreInfo></div>
     </div>
   );
   return (
@@ -415,7 +416,7 @@ export default function StrategyButtons() {
               disabled={toggle.isPending || mainS.length === 0}
               onClick={() => clickMain()}
               data-testid="main-choice-radio"
-              className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${mainOn ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+              className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${mainOn ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}
             >
               {mainOn ? "✓ ON" : "OFF"} · NOISE + CANDACE <span className="text-xs font-normal">(one choice — both run together)</span>
             </button>
@@ -432,7 +433,7 @@ export default function StrategyButtons() {
             <div className="mt-3" data-testid="strategy-fast-pass">
               <h4 className="font-semibold text-gold">NOISE fast-pass sizes (evaluations)</h4>
               <WeeklyCalculator toggles={fastPass} />
-              <div className="mt-2 grid gap-3 lg:grid-cols-3">{fastPass.map(toggleCard)}</div>
+              <div className="mt-2 grid gap-3 md:grid-cols-2">{fastPass.map(toggleCard)}</div>
             </div>
           )}
         </div>
@@ -465,7 +466,7 @@ export default function StrategyButtons() {
                   return (
                     <button key={String(v)} type="button" aria-pressed={on} disabled={suggest.isPending} onClick={() => !on && suggest.mutate(v)}
                       data-testid={v ? "noise-size-suggested" : "noise-size-configured"}
-                      className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+                      className={`rounded-md border px-3 py-2 text-left font-semibold ${on ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight disabled:opacity-70"}`}>
                       {pickLabel(on)} · {v ? "Suggested — 50K 1 micro (lowest bust)" : "As configured — 50K 2 micros (how it is)"}
                     </button>
                   );
@@ -482,7 +483,7 @@ export default function StrategyButtons() {
               return (
                 <div key={p} className="rounded-lg border border-border p-3">
                   <button type="button" aria-pressed={on} disabled={size.isPending} onClick={() => !on && size.mutate(p === "high")}
-                    className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${on ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue disabled:opacity-70"}`}>
+                    className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${on ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight disabled:opacity-70"}`}>
                     {pickLabel(on)} · {p === "high" ? "High risk" : "Regular"}
                   </button>
                   <ul className="mt-2 text-sm" data-testid={`size-${p}`}>
@@ -561,8 +562,8 @@ export function WeeklyCalculator({ toggles }: { toggles: ToggleRow[] }) {
   return (
     <div className="mt-2 rounded-lg border border-border p-3 text-sm text-blue" data-testid="weekly-calc">
       <h5 className="font-semibold text-gold">Weekly target calculator</h5>
-      <table className="mt-1 w-full text-left text-xs">
-        <thead><tr><th>Plan</th><th>Accounts</th><th>Needed / week</th><th>Simulated avg / week</th></tr></thead>
+      <div className="overflow-x-auto"><table className="mt-1 w-full min-w-[20rem] text-left text-xs">
+        <thead><tr><th>Plan</th><th>Accounts</th><th>Need / wk</th><th>Sim / wk</th></tr></thead>
         <tbody>
           {rows.map((t) => (
             <tr key={t.key} data-testid={`calc-row-${t.key}`}>
@@ -574,7 +575,7 @@ export function WeeklyCalculator({ toggles }: { toggles: ToggleRow[] }) {
           ))}
         </tbody>
         <tfoot><tr data-testid="calc-total"><th>Total</th><th /><th className="text-gold">{usd0(need)}</th><th className="text-gold">{usd0(sim)}</th></tr></tfoot>
-      </table>
+      </table></div>
       <p className="mt-1 text-xs">Backtest estimate; accounts trade the same signals so they win and lose together.</p>
     </div>
   );
