@@ -36,9 +36,13 @@ def fast_pass_size(
     account_size: Decimal,
     strategy: str,
     cushion: Decimal,
+    stage_on: bool = False,
 ) -> FastPassSize | None:
-    """The fast-pass starting size, or None when the feature does not apply (then today's sizing is used unchanged)."""
-    if not enabled or cfg is None or stage != "EVAL" or account_size != cfg.account_size:
+    """The fast-pass starting size, or None when the feature does not apply (then today's sizing is used unchanged).
+    D180: FUNDED / LIVE accounts only get it when their own stage switch (`stage_on`) is ON; never EVAL-only again."""
+    if not enabled or cfg is None or account_size != cfg.account_size:
+        return None
+    if stage != "EVAL" and not (stage in ("FUNDED", "LIVE") and stage_on):
         return None
     if strategy not in FAST_PASS_STRATEGIES:
         return None
@@ -47,6 +51,27 @@ def fast_pass_size(
         return FastPassSize(n, cfg.noise_stop_usd, braked)
     n, braked = _step_size(cfg, cfg.candace_steps, _candace_base(cfg, cushion), cushion)
     return FastPassSize(n, None, braked)
+
+
+def stage_switch_on(stage: str, funded_on: bool, live_on: bool) -> bool:
+    """D180: the per-stage switch that applies to this account's stage (EVAL needs none)."""
+    return funded_on if stage == "FUNDED" else live_on if stage == "LIVE" else False
+
+
+def funded_day_stop_hit(
+    on: bool,
+    pct: Decimal,
+    cfg: FastPassCfg | None,
+    stage: str,
+    stage_on: bool,
+    eval_target: Decimal,
+    day_profit: Decimal,
+) -> bool:
+    """D180 (UNVERIFIED, funded study): 150K only, FUNDED / LIVE with its switch ON: no new entry once today's profit
+    reached `pct` of the eval target. Own sub-setting, default OFF. Only ever skips."""
+    if not on or cfg is None or cfg.account_size != Decimal(150000) or stage not in ("FUNDED", "LIVE") or not stage_on:
+        return False
+    return day_profit >= pct / Decimal(100) * eval_target
 
 
 def late_day_size(

@@ -24,6 +24,8 @@ class RulesHolder:
     rules: RulesConfig = field(init=False)
     eval_mode_on: bool = False
     fast_eval_on: bool = False  # D87 (EVAL stage only; pure check in risk/fast_eval)
+    fast_pass_funded_on: bool = False  # D180 (default OFF, UNVERIFIED)
+    fast_pass_live_on: bool = False  # D180 (default OFF; can only be turned on while every live gate passes)
     standard_version: int = 0
     firm_version: int = 0
     verified_paths: list[str] = field(default_factory=list)
@@ -69,6 +71,7 @@ class RulesHolder:
 
         rules, self.eval_mode_on = retire_short_modes(eff.rules), eff.eval_mode_on
         self.fast_eval_on = eff.fast_eval_on
+        self.fast_pass_funded_on, self.fast_pass_live_on = eff.fast_pass_funded_on, eff.fast_pass_live_on
         self.notice = eff.notice  # D175: shown as a banner on the Strategy page (never silent)
         try:
             self.rules = self._overlay(s, rules)

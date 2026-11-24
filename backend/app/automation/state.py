@@ -14,7 +14,7 @@ from app.config import RulesConfig
 from app.models import Account, AppSetting, Attestation, DailyAccountStats, Payout, Trade, TradePlanRow
 from app.phases.phase_engine import stage_rules
 from app.risk.checks import DayLimits, DayState
-from app.risk.consistency import ConsistencyLimits, eval_limits, funded_limits
+from app.risk.consistency import ConsistencyLimits, eval_limits, funded_limits, payout_limit
 from app.risk.fast_eval import FastCtx
 from app.risk.lucid_scale import effective_dll
 from app.risk.tiers import RiskCtx
@@ -188,7 +188,9 @@ def day_limits(rules: RulesConfig, stage: str) -> DayLimits:
     return DayLimits(rules.internal.max_trades_per_day, rules.internal.max_consecutive_losses_per_day)
 
 
-def consistency(s: Session, acct: Account, rules: RulesConfig) -> ConsistencyLimits | None:
+def consistency(
+    s: Session, acct: Account, rules: RulesConfig, fast_funded: bool = False
+) -> ConsistencyLimits | None:
     i = rules.internal
     if acct.stage == "EVAL":
         if rules.eval.consistency_max_day_pct is None:
@@ -196,7 +198,7 @@ def consistency(s: Session, acct: Account, rules: RulesConfig) -> ConsistencyLim
         return eval_limits(
             rules.eval.profit_target, rules.eval.consistency_max_day_pct, i.consistency_day_stop_buffer_pct
         )
-    if acct.stage == "FUNDED" and i.consistency_on_funded:
+    if acct.stage == "FUNDED" and (i.consistency_on_funded or fast_funded):
         last_payout = s.execute(
             select(Payout.processed_at)
             .where(Payout.account_id == acct.id, Payout.status == "processed")
@@ -207,9 +209,11 @@ def consistency(s: Session, acct: Account, rules: RulesConfig) -> ConsistencyLim
         if last_payout is not None:
             q = q.where(Trade.closed_at > last_payout)
         cycle = sum((x or Decimal(0) for x in s.execute(q).scalars()), Decimal(0))
-        return funded_limits(
-            cycle, i.funded_consistency_reference_min, i.funded_consistency_pct, i.consistency_day_stop_buffer_pct
-        )
+        pct = i.funded_consistency_pct
+        pc = rules.funded.payout_consistency
+        if fast_funded and pc is not None:  # D180: 35 % unless the purchase date is known, then the yaml value (never looser)
+            pct = min(pct, payout_limit(acct.purchased_at, pc.pct, pc.legacy_pct, pc.legacy_cutoff)[0])
+        return funded_limits(cycle, i.funded_consistency_reference_min, pct, i.consistency_day_stop_buffer_pct)
     return None
 
 

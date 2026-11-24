@@ -1384,6 +1384,10 @@ class StrategyCfg(_M):
     # D166: option INSIDE the fast-pass cards (default OFF, UNVERIFIED): late-day momentum as a 3rd edge. Active only
     # while that plan's fast pass is ON, EVAL stage and own size; sizes in fast_pass_*_cfg.late_contracts/late_steps.
     fast_pass_late_day: bool = False
+    # D180 (user 2026-11-24): optional 150K-only funded / live day stop at this % of the eval target (UNVERIFIED, funded
+    # study 30-33 %), default OFF. The two stage switches themselves are risk profiles (typed phrase), not plan keys.
+    fast_pass_funded_day_stop: bool = False
+    fast_pass_funded_day_stop_pct: D = D(30)
     late_day_cfg: LateDayCfg = LateDayCfg()
     # D133 / I1 (user 2026-11-12): Evaluation-Mode size toggle. On (default) = each eval-table row is capped at
     # eval_size_caps (session 19, Mondays off, 7.5 yr: 150K×3 pass/bust 83/15 vs ×4 75/24; 100K×2 83/15 vs ×3 69/31,

@@ -70,6 +70,8 @@ from app.risk.fast_pass import (
     fast_pass_day_locked,
     fast_pass_lock,
     fast_pass_size,
+    funded_day_stop_hit,
+    stage_switch_on,
     late_day_size,
     plan_fast_pass,
     sbs_eligible_accounts,
@@ -658,7 +660,9 @@ class Controller:
         big = duo is not None and acct_size >= duo.big_account_size  # D85: 150K accounts only
         # D156 "150K fast pass": EVAL-stage accounts of the plan's size only (pure check); None = today's sizing
         fp_on, fp_cfg = plan_fast_pass(r.strategy, acct_size)  # D157: 25K / 100K / 150K, own size only
-        fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base)
+        sw_on = stage_switch_on(a.stage, self.rules.fast_pass_funded_on, self.rules.fast_pass_live_on)  # D180
+        fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base, sw_on)
+        funded_fp = fp is not None and a.stage != "EVAL"  # D180: funded / live guards stay on top of the same size
         late = None
         if strategy == "LATE_DAY":  # D166: only with the plan's fast pass ON + the late option ON, EVAL, own size
             late = late_day_size(r.strategy.fast_pass_late_day, fp_on, fp_cfg, a.stage, acct_size, base)
@@ -734,7 +738,7 @@ class Controller:
             fixed = auto_contracts(acct_size, base, [tier]).contracts
         if fixed is not None and strategy == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features):
             # D160: AR beside NOISE — never above half the NOISE fast-pass size (tighten-only; every check still runs)
-            fixed = ar_side_cap(fixed, fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base))
+            fixed = ar_side_cap(fixed, fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base, sw_on))
         if jj is not None:  # JJ #28 + #29 same dollars on every stop size; D143: his 3-loss session fits Lucid's limits
             slip = inst.slippage_ticks or r.trade_plan.slippage_ticks
             jday = st.day_state(s, a, opnl, now)
@@ -912,7 +916,17 @@ class Controller:
                 },
             )
         if strategy == "NOISE" and fp is not None:  # D156: fixed size + $ emergency stop per micro (never wider)
-            if fp_cfg is not None and fp_cfg.day_lock_pct is not None:  # D162 day lock (EVAL only, only ever skips)
+            if funded_fp and funded_day_stop_hit(
+                r.strategy.fast_pass_funded_day_stop,
+                r.strategy.fast_pass_funded_day_stop_pct,
+                fp_cfg,
+                a.stage,
+                sw_on,
+                r.eval.profit_target,
+                st.day_stats(s, a, now).day_profit,
+            ):
+                return AccountResult(a.id, False, "FUNDED_DAY_STOP")  # D180 (150K only, own sub-setting, UNVERIFIED)
+            if a.stage == "EVAL" and fp_cfg is not None and fp_cfg.day_lock_pct is not None:  # D162 day lock (EVAL only, only ever skips)
                 fday = st.day_stats(s, a, now).day_profit
                 fremaining = r.eval.profit_target - (bal - fday - (a.starting_balance or r.account_size))
                 if fast_pass_day_locked(fp_cfg, fday, fremaining):
@@ -932,7 +946,7 @@ class Controller:
         # D87 Fast Evaluation — EVAL stage only (pure check in risk/fast_eval); every other check below still runs
         fast_cfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
         fast_pair = None
-        consistency_lim = st.consistency(s, a, r)
+        consistency_lim = st.consistency(s, a, r, funded_fp)
         if fast_cfg is not None:
             fctx = st.fast_ctx(s, a, base, r, now, bal)
             skip = quality_day_block(fast_cfg, st.prior_day_pnls(s, a, now, fast_cfg.quality_day.trailing_days))
@@ -1001,7 +1015,7 @@ class Controller:
                 r.strategy.max_trade_risk_usd if strategy else None,
             ),
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
-            tp_fit_waiver=strategy not in TP_FIT_STRATEGIES,  # B: only NOISE-like exits keep the N6 waiver
+            tp_fit_waiver=strategy not in TP_FIT_STRATEGIES and not funded_fp,  # D180: funded never waives the cap fit  # B: only NOISE-like exits keep the N6 waiver
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)
         pt = pretrade(
@@ -1615,7 +1629,11 @@ class Controller:
             if opnl > 0 and any(t.account == a.broker_account_id and t.strategy for t in self.om.trades.values()):
                 # N6: fixed-size strategy trades are not fitted to the consistency cap before entry, so the day stop is
                 # enforced here, live: flatten once today's realised + open profit reaches it (protective, never waits)
-                clim = st.consistency(s, a, r)
+                fpo, fpc = plan_fast_pass(r.strategy, a.starting_balance or r.account_size)
+                clim = st.consistency(
+                    s, a, r,
+                    fpo and a.stage == "FUNDED" and self.rules.fast_pass_funded_on and fpc is not None,
+                )  # fmt: skip
                 fcfg = effective_fast_cfg(a.stage, self.rules.fast_eval_on, r.fast_eval)
                 if clim is not None and fcfg is not None:
                     clim = harvest_limits(clim, fcfg, r.eval.profit_target)

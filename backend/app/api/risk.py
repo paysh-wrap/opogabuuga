@@ -479,3 +479,82 @@ async def put_low_risk(
     st.rules.refresh(db)
     await st.hub.broadcast("risk.settings_changed", {"low_risk": body.enabled})
     return get_low_risk(request, p)
+
+
+# ---------- D180: Fast Pass on FUNDED / LIVE (per-stage switch, default OFF, UNVERIFIED) ----------
+FAST_PASS_WARNING = (
+    "Funded study (docs/results): evaluation sizes still earned about $300-1,560 per account per 120 days in "
+    "2024-26, but 20-43% of 25K/50K/100K funded accounts were lost within 120 days; funded sizing is UNVERIFIED."
+)
+FAST_PASS_GUARDS = [
+    "Daily loss limit (plan value; LucidScale 60% of peak end-of-day profit where configured)",
+    "Max loss limit with end-of-day trail and lock",
+    "Kill switch ($50 from the limit on Pro)",
+    "Funded payout consistency (largest day / cycle profit, 35% unless the purchase date is known)",
+    "News hard breach: flat 1 min before to 1 min after, no entry across a release, calendar failure blocks entries",
+    "Early-close days: no entries 45 min and flat 20 min before the close",
+    "Flat 16:40 / 16:44 ET, one position per account, household hedge lock, max trades per day",
+    "$6,000-day live-move rule and the hold rule",
+    "Sizes only shrink or skip: never larger than the evaluation setup or any funded / live cap",
+]
+
+
+def _fp_accounts(db: Session, stage: str) -> list[Account]:
+    return list(db.execute(select(Account).where(Account.stage == stage)).scalars())
+
+
+async def _fp_view(request: Request, db: Session) -> dict[str, Any]:
+    from app.api.live import live_inputs
+    from app.risk.live_gate import live_allowed
+
+    h = request.app.state.rules
+    live_ok = live_allowed(await live_inputs(request, db))
+    return {
+        "warning": FAST_PASS_WARNING,
+        "guards": FAST_PASS_GUARDS,
+        "unverified": True,
+        "applies": "next NEW trade only",
+        "stages": {
+            "FUNDED": {
+                "enabled": h.fast_pass_funded_on,
+                "accounts": len(_fp_accounts(db, "FUNDED")),
+                "confirm_phrase": ss.FAST_PASS_PHRASES["FUNDED"],
+                "blocked": None,
+            },
+            "LIVE": {
+                "enabled": h.fast_pass_live_on,
+                "accounts": len(_fp_accounts(db, "LIVE")),
+                "confirm_phrase": ss.FAST_PASS_PHRASES["LIVE"],
+                "blocked": None if live_ok else "LIVE gates are not all passing (Live-Readiness Checklist)",
+            },
+        },
+    }
+
+
+@router.get("/risk/fast-pass-stage")
+async def get_fast_pass_stage(
+    request: Request, _: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    return await _fp_view(request, db)
+
+
+@router.put("/risk/fast-pass-stage/{stage}")
+async def put_fast_pass_stage(
+    stage: str, body: EvalModeIn, request: Request, p: Principal = Depends(current_user), db: Session = Depends(get_db)
+) -> dict[str, Any]:
+    from app.api.live import live_inputs
+    from app.risk.live_gate import live_allowed
+
+    st = request.app.state
+    stage = stage.upper()
+    live_ok = bool(body.enabled and stage == "LIVE" and live_allowed(await live_inputs(request, db)))
+    try:
+        ss.set_fast_pass_stage(
+            db, st.clock, p.user.username, stage, body.enabled, body.confirm, bool(_fp_accounts(db, stage)), live_ok
+        )
+    except ss.SettingsError as e:
+        raise _err(e) from e
+    db.commit()
+    st.rules.refresh(db)
+    await st.hub.broadcast("risk.fast_pass_stage.changed", {"stage": stage, "enabled": body.enabled})
+    return await _fp_view(request, db)

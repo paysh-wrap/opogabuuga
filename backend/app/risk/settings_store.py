@@ -160,6 +160,8 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.fast_pass_25k",  # D157: 25K fast pass (same rules)
         "strategy.fast_pass_100k",  # D157: 100K fast pass (same rules)
         "strategy.fast_pass_50k",  # D162: 50K fast pass (same rules)
+        "strategy.fast_pass_funded_day_stop",  # D180: 150K funded/live day stop (default off)
+        "strategy.fast_pass_funded_day_stop_pct",  # D180: 30-33 % of the eval target
         "strategy.fast_pass_late_day",  # D166: 3rd edge (late-day momentum) inside the fast-pass cards
         "strategy.pm_fade_cfg.eval_off",  # D132 / I3: afternoon fade off on EVAL accounts (default on)
         "strategy.eval_size_s19",  # D133 / I1: Evaluation-Mode sizes capped at the session-19 lowest-bust sizes
@@ -215,6 +217,7 @@ FIRM_KEYS_PREFIXES = ("purchase", "max_contracts", "eval.", "funded.", "live", "
 FIRM_PHRASE = "UPDATE FIRM RULES"
 EVAL_MODE_PHRASE = "ENABLE EVALUATION MODE"
 FAST_EVAL_PHRASE = "ENABLE FAST EVALUATION"
+FAST_PASS_PHRASES = {"FUNDED": "ENABLE FAST PASS FUNDED", "LIVE": "ENABLE FAST PASS LIVE"}  # D180
 
 
 class SettingsError(ValueError):
@@ -269,6 +272,8 @@ class Effective:
     eval_mode_on: bool
     verified_paths: list[str]
     fast_eval_on: bool = False
+    fast_pass_funded_on: bool = False  # D180
+    fast_pass_live_on: bool = False  # D180
     notice: str | None = None  # D175: banner when a stored invalid strategy combination was loaded as MAIN only
 
 
@@ -313,6 +318,7 @@ def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effecti
     account is built from its own yaml + the household My Settings / Lab layers."""
     std, firm, ev = latest(s, "standard"), latest_firm(s), latest(s, "evaluation")
     fe = latest(s, "fast_eval")
+    fpf, fpl = latest(s, "fast_pass_funded"), latest(s, "fast_pass_live")
     lab = latest(s, "lab")  # §17: approved Lab tunables (separate layer; My Settings never contain these keys)
     mine = {**(lab.settings if lab else {}), **(std.settings if std else {})}
     use_firm = firm if apply_firm else None
@@ -335,6 +341,8 @@ def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effecti
         bool(ev.settings.get("enabled")) if ev else False,
         verified,
         fast_eval_on=bool(fe.settings.get("enabled")) if fe else False,
+        fast_pass_funded_on=bool(fpf.settings.get("enabled")) if fpf else False,
+        fast_pass_live_on=bool(fpl.settings.get("enabled")) if fpl else False,
         notice=notice,
     )
 
@@ -556,6 +564,39 @@ def set_fast_eval(
     )
     s.add(row)
     audit.record(s, clock, author, "risk.fast_eval", "global", {"enabled": enabled})
+    s.flush()
+    return row
+
+
+def set_fast_pass_stage(
+    s: Session, clock: Clock, author: str, stage: str, enabled: bool, phrase: str, has_accounts: bool, live_gates_ok: bool
+) -> RiskProfile:
+    """D180: per-stage fast-pass switch (FUNDED / LIVE), default OFF. Typed phrase to enable, one click to disable.
+    LIVE can only be turned on while every live gate already passes (live_gates_ok); it never bypasses one."""
+    if stage not in FAST_PASS_PHRASES:
+        raise SettingsError(["stage must be FUNDED or LIVE"])
+    if enabled and not has_accounts:
+        raise SettingsError([f"no {stage} accounts - this switch applies to {stage} accounts only"])
+    if enabled and stage == "LIVE" and not live_gates_ok:
+        raise SettingsError(["LIVE gates are not all passing (Live-Readiness Checklist): Fast Pass LIVE stays OFF"])
+    if enabled and phrase != FAST_PASS_PHRASES[stage]:
+        raise SettingsError([f'type "{FAST_PASS_PHRASES[stage]}" to enable'])
+    kind = f"fast_pass_{stage.lower()}"
+    cur = latest(s, kind)
+    if cur:
+        cur.active = False
+    nv = (s.execute(select(func.max(RiskProfile.version)).where(RiskProfile.kind == kind)).scalar() or 0) + 1
+    row = RiskProfile(
+        kind=kind,
+        version=nv,
+        settings={"enabled": enabled},
+        author=author,
+        note="enable" if enabled else "disable",
+        diff={"enabled": enabled},
+        active=True,
+    )
+    s.add(row)
+    audit.record(s, clock, author, f"risk.{kind}", "global", {"enabled": enabled, "applies_to": "next NEW trade only"})
     s.flush()
     return row
 
