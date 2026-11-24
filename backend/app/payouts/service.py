@@ -14,6 +14,7 @@ from app import audit
 from app.clock import ET, to_et
 from app.execution.adapters.base import BrokerError
 from app.models import Account, Payout, Trade
+from app.phases.on_demand import OnDemand, on_demand_offer
 from app.phases.payout_plan import PayoutPlan, plan_payout
 from app.risk.consistency import (
     PayoutConsistency,
@@ -83,7 +84,10 @@ def cycle_start(s: Session, a: Account) -> datetime | None:
     return _last_processed(s, a) or a.stage_started_at
 
 
-def cycle_day_profits(s: Session, a: Account) -> list[Decimal]:
+NO_CAP = Decimal(10**9)  # a plan without a payout cap
+
+
+def cycle_day_map(s: Session, a: Account) -> dict[str, Decimal]:
     from app.clock import session_date
 
     q = select(Trade).where(Trade.account_id == a.id, Trade.closed_at.is_not(None))
@@ -95,7 +99,11 @@ def cycle_day_profits(s: Session, a: Account) -> list[Decimal]:
         assert t.closed_at is not None
         k = session_date(t.closed_at).isoformat()
         days[k] = days.get(k, Decimal(0)) + (t.pnl_usd or Decimal(0))
-    return list(days.values())
+    return days
+
+
+def cycle_day_profits(s: Session, a: Account) -> list[Decimal]:
+    return list(cycle_day_map(s, a).values())
 
 
 def rules_of(rules: Any, a: Account) -> Any:
@@ -137,6 +145,45 @@ def consistency_view(s: Session, rules: Any, a: Account) -> dict[str, Any] | Non
         if known
         else "Purchase / last reset date unknown: the stricter legacy limit is used. Enter it on the Accounts page.",
     }
+
+
+def on_demand_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime) -> OnDemand:
+    """D182: what an on-demand (intraday) payout would be RIGHT NOW (CONFIRMED rules, phases/on_demand.py). Session profit =
+    the realised profit of today's session; the cycle's earlier days come from the closed trades since the last payout."""
+    from app.clock import session_date
+
+    r = rules_of(rules, a)
+    pr = r.funded.payout
+    today = session_date(now).isoformat()
+    days = cycle_day_map(s, a)
+    done = len(s.execute(select(Payout.id).where(Payout.account_id == a.id, Payout.status == "processed")).all())
+    open_ = s.execute(select(Payout.id).where(Payout.account_id == a.id, Payout.status.in_(("ready", "submitted")))).first()
+    sent = s.execute(select(Payout.submitted_at).where(Payout.account_id == a.id, Payout.submitted_at.is_not(None))).scalars()
+    pc = r.funded.payout_consistency
+    limit = payout_limit(a.purchased_at, pc.pct, pc.legacy_pct, pc.legacy_cutoff)[0] if pc is not None else None
+    plan = rules.plan_for(a) if hasattr(rules, "plan_for") else getattr(rules, "plan", "")
+    return on_demand_offer(
+        stage=a.stage,
+        plan=plan,
+        dll_enabled=a.dll_enabled,
+        hedging_violation=a.hedging_violation,
+        now_et=to_et(now).time(),
+        open_payout=open_ is not None,
+        requested_this_session=any(t is not None and session_date(t).isoformat() == today for t in sent),
+        payouts_done=done,
+        max_payouts=pr.max_payouts,
+        balance=balance,
+        session_profit=days.get(today, Decimal(0)),
+        prior_day_profits=[v for k, v in days.items() if k != today],
+        buffer=pr.buffer,
+        min_request=pr.min_request,
+        min_cycle_profit=pr.min_cycle_profit,
+        min_profitable_days=pr.min_profitable_days,
+        cap_first=pr.max_first if pr.max_first is not None else NO_CAP,
+        cap_next=pr.max_next if pr.max_next is not None else NO_CAP,
+        consistency_pct=limit,
+        split=pr.split,
+    )
 
 
 def plan_for(s: Session, rules: Any, a: Account, balance: Decimal, now: datetime) -> PayoutPlan:

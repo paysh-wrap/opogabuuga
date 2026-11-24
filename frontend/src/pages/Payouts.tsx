@@ -5,6 +5,7 @@ import { usePageTitle } from "../components/usePageTitle";
 import PnlCalendar from "../components/PnlCalendar";
 import { PayoutSettings, PlanTracker } from "../components/PayoutPlan";
 import { PayoutConsistencyCard } from "../components/PayoutConsistency";
+import OnDemandCard from "../components/OnDemandPayouts";
 
 interface P { id: number; label: string; week: string; kind: string; amount: string; balance_before: string; status: string }
 const btn = "rounded-md border px-3 py-1 text-sm font-semibold disabled:opacity-50";
@@ -17,7 +18,7 @@ export default function Payouts() {
   const run = useMutation({
     mutationFn: (f: () => Promise<unknown>) => f(),
     onMutate: () => setErr(""),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["payouts"] }),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ["payouts"] }); void qc.invalidateQueries({ queryKey: ["payouts-on-demand"] }); },
     onError: (e) => setErr(e instanceof ApiError ? e.message : "Request failed"),
   });
   const set = (id: number, status: string) =>
@@ -29,6 +30,7 @@ export default function Payouts() {
         While a payout is <b>submitted</b>, that account doesn't trade. The balance never goes below the $26,100 buffer.</p>
       {err && <p role="alert" className="rounded-lg border border-gold p-3 text-sm text-goldLight">⚠ {err}</p>}
       <button className={`${btn} border-blue text-blue`} onClick={() => run.mutate(() => api("/api/payouts/check", { method: "POST" }))}>Check now</button>
+      <OnDemandCard run={(f) => run.mutate(f)} />
       <section className="rounded-xl border border-border bg-card p-4">
         {q.data?.payouts.length === 0 && <p className="text-sm">No payouts yet.</p>}
         <table className="w-full text-sm"><tbody>

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal as D
 
 from app.models import Account
@@ -124,3 +124,85 @@ def test_session_check_every_2_sessions_lucid_pro(authed, clock):  # D65
         "/api/payouts/settings", json={"skim_mode": "half", "frequency": "every_n_sessions", "min_pct_of_cap": None}
     )
     assert r.json()["min_pct_of_cap"] is None
+
+
+# ---------- D182: on-demand payouts (CONFIRMED, Lucid help center 2026-11-24) ----------
+MON = datetime(2026, 11, 23, 15, 0, tzinfo=UTC)  # Mon 10:00 ET, inside the session
+
+
+def _fund_pro(authed, clock, bal="54000"):
+    from tests.conftest import PASSWORD
+
+    clock.set(MON)
+    r = authed.post("/api/auth/login", json={"username": "admin", "password": PASSWORD})
+    authed.headers["x-csrf-token"] = r.json()["csrf"]
+    aid = authed.post("/api/accounts", json={"label": "P1", "stage": "FUNDED", "balance": bal, "plan": "lucid_pro_50k"}).json()["id"]
+    with authed.app.state.sessionmaker() as s:
+        from app.models import Trade
+
+        for i, (days_ago, pnl) in enumerate(((3, 500), (2, 450), (1, 400), (0, 600))):
+            t = MON - timedelta(days=days_ago)
+            s.add(Trade(account_id=aid, symbol="MNQ", direction="LONG", qty=1, entry=D(1), exit=D(2), pnl_usd=D(pnl), risk_usd=D(70), opened_at=t, closed_at=t, trade_ref=f"OD{i}"))
+        a = s.get(Account, aid)
+        a.stage_started_at = MON - timedelta(days=10)
+        s.commit()
+    return aid
+
+
+def test_on_demand_available_amount_is_session_profit_limited(authed, clock):
+    aid = _fund_pro(authed, clock)
+    j = authed.get("/api/payouts/on-demand").json()
+    assert j["status"] == "CONFIRMED (Lucid help center)" and "until the end of the trading day" in j["pause_rule"]
+    row = [x for x in j["accounts"] if x["account_id"] == aid][0]
+    assert row["available"], (row["reason"], row["message"])
+    assert row["amount"] == "600.00" and row["net"] == "540.00" and row["limited_by"] == "session_profit"
+    assert not row["paused"] and row["dll_enabled"]
+
+
+def test_on_demand_blocked_by_hedging_violation_and_dll_off(authed, clock):
+    aid = _fund_pro(authed, clock)
+    assert authed.patch(f"/api/accounts/{aid}", json={"hedging_violation": True}).status_code == 200
+    row = [x for x in authed.get("/api/payouts/on-demand").json()["accounts"] if x["account_id"] == aid][0]
+    assert not row["available"] and row["reason"] == "HEDGING_VIOLATION" and row["hedging_violation"]
+    assert authed.post(f"/api/payouts/on-demand/{aid}/plan").status_code == 409
+    assert authed.get("/api/accounts").json()["accounts"][0]["hedging_violation"] is True
+    authed.patch(f"/api/accounts/{aid}", json={"hedging_violation": False})
+    with authed.app.state.sessionmaker() as s:
+        s.get(Account, aid).dll_enabled = False
+        s.commit()
+    row = [x for x in authed.get("/api/payouts/on-demand").json()["accounts"] if x["account_id"] == aid][0]
+    assert row["reason"] == "DLL_OFF"
+
+
+def test_on_demand_request_pauses_account_until_end_of_trading_day_and_is_never_auto_submitted(authed, clock):
+    from app.automation.state import payout_pending
+
+    aid = _fund_pro(authed, clock)
+    made = authed.post(f"/api/payouts/on-demand/{aid}/plan")
+    assert made.status_code == 200 and made.json()["kind"] == "ondem" and made.json()["status"] == "ready"
+    pid = made.json()["id"]
+    with authed.app.state.sessionmaker() as s:  # planned only: nothing was sent, trading is NOT blocked yet
+        assert not payout_pending(s, s.get(Account, aid), clock.now())
+    assert authed.post(f"/api/payouts/on-demand/{aid}/plan").status_code == 409  # one open request at a time
+    assert authed.post(f"/api/payouts/{pid}/status", json={"status": "submitted"}).status_code == 200  # the user requested it
+    with authed.app.state.sessionmaker() as s:
+        a = s.get(Account, aid)
+        assert payout_pending(s, a, clock.now())
+        assert authed.post(f"/api/payouts/{pid}/status", json={"status": "processed"}).status_code == 200
+        assert payout_pending(s, a, clock.now())  # processed within minutes, but trading stays paused until the end of the day
+        assert payout_pending(s, a, MON + timedelta(hours=5))  # still the same session (15:00 ET)
+        assert not payout_pending(s, a, MON + timedelta(hours=9))  # 19:00 ET = the next session
+        assert not payout_pending(s, a)  # without a clock only an open "submitted" payout counts
+    assert [x for x in authed.get("/api/payouts/on-demand").json()["accounts"] if x["account_id"] == aid][0]["reason"] == "PAUSED_UNTIL_EOD"
+
+
+def test_pretrade_blocks_new_entry_after_payout_request(authed, clock):
+    """The controller feeds payout_pending(now) into the pre-trade check: PAYOUT_PENDING blocks the entry."""
+    aid = _fund_pro(authed, clock)
+    pid = authed.post(f"/api/payouts/on-demand/{aid}/plan").json()["id"]
+    authed.post(f"/api/payouts/{pid}/status", json={"status": "submitted"})
+    authed.post(f"/api/payouts/{pid}/status", json={"status": "processed"})
+    from app.automation import state as stt
+
+    with authed.app.state.sessionmaker() as s:
+        assert stt.payout_pending(s, s.get(Account, aid), authed.app.state.clock.now())

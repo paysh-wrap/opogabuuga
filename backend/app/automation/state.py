@@ -225,11 +225,17 @@ def payouts_processed(s: Session, acct: Account) -> int:
     return len(s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "processed")).all())
 
 
-def payout_pending(s: Session, acct: Account) -> bool:
-    return (
-        s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "submitted")).first()
-        is not None
-    )
+def payout_pending(s: Session, acct: Account, now: datetime | None = None) -> bool:
+    """Trading on the account is blocked while a payout is `submitted` (until processed), and (D182, CONFIRMED Lucid help
+    center) after ANY payout request until the end of that trading day: a payout submitted in the current session blocks
+    new entries until the next session opens, even if it is already processed."""
+    if s.execute(select(Payout.id).where(Payout.account_id == acct.id, Payout.status == "submitted")).first() is not None:
+        return True
+    if now is None:
+        return False
+    today = session_date(now)
+    sent = s.execute(select(Payout.submitted_at).where(Payout.account_id == acct.id, Payout.submitted_at.is_not(None))).scalars()
+    return any(t is not None and session_date(t) == today for t in sent)
 
 
 def stage_sessions(s: Session, acct: Account) -> int:

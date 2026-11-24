@@ -64,6 +64,9 @@ class Account(_Row, Base):
         UTCDateTime, nullable=True
     )  # D89: bought / last reset at Lucid
     plan: Mapped[str | None] = mapped_column(String(64), nullable=True)  # D168: rule plan file stem; NULL = inferred
+    hedging_violation: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="0"
+    )  # D182: Lucid flagged a Hedging Violation -> no on-demand (intraday) payouts
 
 
 class AccountStageHistory(_Row, Base):
@@ -256,7 +259,7 @@ class Payout(_Row, Base):
     __tablename__ = "payouts"
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id"))
     week: Mapped[str] = mapped_column(String(10))  # ISO week, e.g. 2026-W45
-    kind: Mapped[str] = mapped_column(String(6))  # sweep | skim
+    kind: Mapped[str] = mapped_column(String(6))  # sweep | skim | max | ondem
     amount: Mapped[Decimal] = mapped_column(DecimalType)
     balance_before: Mapped[Decimal] = mapped_column(DecimalType)
     status: Mapped[str] = mapped_column(String(10), default="ready")  # ready|submitted|processed

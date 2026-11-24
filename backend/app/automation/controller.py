@@ -691,7 +691,7 @@ class Controller:
             a.armed,
             True,
             st.attested_today(s, now),
-            st.payout_pending(s, a),
+            st.payout_pending(s, a, now),
             any(p.account == a.broker_account_id for p in positions)
             or any(t.account == a.broker_account_id and self.om.has_unfilled(t) for t in self.om.trades.values()),
             a.paused_reason,

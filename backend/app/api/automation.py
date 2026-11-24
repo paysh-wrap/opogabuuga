@@ -237,6 +237,7 @@ class AccountPatch(BaseModel):
     clear_pause: str | None = None  # typed "RESUME" to clear a pause that never auto-resumes
     drawdown_type: Literal["eod", "intraday"] | None = None  # must match the account at Lucid
     mode_override: Literal["inherit", "SEMI", "OFF"] | None = None  # §13: only more restrictive than global
+    hedging_violation: bool | None = None  # D182: Lucid flagged a Hedging Violation (blocks on-demand payouts)
     purchased_at: datetime | None = (
         None  # D89: when the Lucid account was bought / last reset (consistency limit 40 vs 35)
     )
@@ -282,7 +283,7 @@ async def patch_account(
         a.purchased_at = body.purchased_at
     elif body.clear_purchased_at:
         a.purchased_at = None
-    for k in ("armed", "selected", "priority", "label"):
+    for k in ("armed", "selected", "priority", "label", "hedging_violation"):
         v = getattr(body, k)
         if v is not None:
             setattr(a, k, v)
@@ -427,7 +428,7 @@ def _payout(request: Request, db: Session, a: Account, bal: Decimal, opnl: Decim
         "eligible": str(c.eligible) if funded else None,
         "needed": str(c.needed) if funded else None,
         "live_trigger_left": str(c.live_trigger_left) if c.live_trigger_left is not None else None,
-        "pending": stt.payout_pending(db, a),
+        "pending": stt.payout_pending(db, a, now),
         "payouts_done": (done := stt.payouts_processed(db, a)),
         "payouts_to_live": r.funded.payouts_to_live if funded else None,
         "payouts_live_review": r.funded.payouts_live_review if funded else None,

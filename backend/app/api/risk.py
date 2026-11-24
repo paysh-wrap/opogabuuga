@@ -353,6 +353,7 @@ def list_accounts(
                 "paused_reason": a.paused_reason,
                 "mode_override": a.mode_override or "inherit",
                 "consistency_pct": _consistency_pct(h.rules_for(a), a.stage),
+                "hedging_violation": a.hedging_violation,  # D182
                 "purchased_at": a.purchased_at.isoformat() if a.purchased_at else None,  # D89
                 "payout_consistency": consistency_view(db, h, a),
             }

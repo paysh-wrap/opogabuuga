@@ -22,7 +22,7 @@ def test_selection_selects_first_n_in_priority_order(authed):
 def test_selection_validation(authed):
     ids = _mk(authed, 1)
     assert authed.put("/api/accounts/selection", json={"count": 0}).status_code == 422
-    assert authed.put("/api/accounts/selection", json={"count": 6}).status_code == 422
+    assert authed.put("/api/accounts/selection", json={"count": 11}).status_code == 422
     assert authed.put("/api/accounts/selection", json={"count": 1, "order": [999]}).status_code == 422
     assert authed.put("/api/accounts/selection", json={"count": 1, "order": [ids[0], ids[0]]}).status_code == 422
 
