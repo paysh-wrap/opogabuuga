@@ -96,6 +96,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                 )
 
         exits: list[tuple[int, str]] = []
+        errors: list[tuple[str, str, str]] = []
         stop_moves: list[tuple[int, Any, str]] = []  # D152 GALA runner stops (signal_id, price, reason)
         try:
             updates: list[SignalUpdate] = []
@@ -106,6 +107,7 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
                 updates = [*updates, *strat.updates]
                 exits = strat.exits
                 stop_moves = strat.stop_moves
+                errors = strat.errors
         except Exception as e:  # §1.9: never silent — log + banner; entries stay blocked because nothing passed
             log.error("signal.process_failed", key=key, error=type(e).__name__, detail=str(e)[:300])
             await st.hub.broadcast(
@@ -124,6 +126,13 @@ async def _process(app: Any, acc: Accepted, replay: bool) -> None:
         st.ws_throttle[key] = now
         await st.hub.broadcast("connection.updated", {"id": "tradingview", "symbol": acc.symbol, "profile": p.profile})
     ctl = st.controller
+    for runner, etype, detail in errors:  # D (M5): one runner failed; the others ran. Never silent (§1.8)
+        log.error("strategy.runner_failed", key=key, runner=runner, error=etype)
+        await st.hub.broadcast(
+            "risk.alert",
+            {"level": "error", "title": "Strategy runner failed", "detail": f"{key} {runner}: {etype}"},
+        )
+        ctl.notify("error", "Strategy runner failed", f"{key} {runner}: {etype} {detail}", "risk")
     for sid, why in exits:  # D55 strategy exits (trailing / 16:00 flat / time stop) before any new entry
         try:
             n = await ctl.strategy_exit(sid, why)

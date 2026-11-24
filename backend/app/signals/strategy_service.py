@@ -14,6 +14,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
+import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -50,11 +51,15 @@ from app.signals.service import CalendarProvider, SignalUpdate
 HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing days
 
 
+log = structlog.get_logger()
+
+
 @dataclass
 class StrategyOutput:
     updates: list[SignalUpdate] = field(default_factory=list)
     exits: list[tuple[int, str]] = field(default_factory=list)  # (signal_id, reason)
     stop_moves: list[tuple[int, Decimal, str]] = field(default_factory=list)  # (signal_id, runner stop, reason)
+    errors: list[tuple[str, str, str]] = field(default_factory=list)  # (runner, exception type, detail): never silent
 
 
 @dataclass(frozen=True)
@@ -1684,6 +1689,19 @@ def run_order_flow_auction(
     return out
 
 
+def _iso(out: StrategyOutput, name: str, fn: Any, s: Session, *args: Any) -> StrategyOutput:
+    """Run ONE strategy runner inside its own savepoint. An exception rolls back only that runner's writes, is
+    recorded in `out.errors` (the webhook raises the banner + notification: no silent failure) and logged; the other
+    runners' exits and signals are kept and committed. Returns an empty output for the failed runner."""
+    try:
+        with s.begin_nested():
+            return fn(s, *args)
+    except Exception as e:
+        log.error("strategy.runner_failed", runner=name, error=type(e).__name__, detail=str(e)[:300])
+        out.errors.append((name, type(e).__name__, str(e)[:200]))
+        return StrategyOutput()
+
+
 def run(
     s: Session,
     *,
@@ -1702,72 +1720,84 @@ def run(
         return out
     st = rules.strategy
     if st.noise and symbol == st.noise_cfg.symbol:
-        r = run_noise(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_noise", run_noise, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.pm_fade and symbol == st.pm_fade_cfg.symbol:
-        r = run_pm_fade(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_pm_fade", run_pm_fade, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.ai_bias and symbol == st.ai_bias_cfg.symbol:
-        r = run_ai_bias(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_ai_bias", run_ai_bias, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.jj_fpt and symbol == st.jj_fpt_cfg.symbol:
-        r = run_jj_fpt(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_jj_fpt", run_jj_fpt, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.order_flow and st.order_flow_cfg.auction.enabled and symbol == st.order_flow_cfg.auction.symbol:
-        r = run_order_flow_auction(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_order_flow_auction", run_order_flow_auction, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
     if st.candace_ict and symbol == st.candace_ict_cfg.symbol:
-        r = run_candace_ict(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_candace_ict", run_candace_ict, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.fast_pass_late_day and symbol == st.late_day_cfg.symbol:  # D166: the controller gates it per account
-        r = run_late_day(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_late_day", run_late_day, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.mgc_noise_candace:  # D165: the MGC pair — own market switch, fixed 1 micro, no AI advisor
         mc = st.mgc_noise_candace_cfg
         if symbol == mc.noise.symbol:
-            r = run_noise(s, rules, clock, calendar, at, exits_only, mc.noise, "MGC_NOISE")
+            r = _iso(out, "run_noise", run_noise, s, rules, clock, calendar, at, exits_only, mc.noise, "MGC_NOISE")
             out.updates += r.updates
             out.exits += r.exits
         if symbol == mc.candace.symbol:
-            r = run_candace_ict(s, rules, clock, calendar, at, exits_only, mc.candace, "MGC_CANDACE")
+            r = _iso(
+                out,
+                "run_candace_ict",
+                run_candace_ict,
+                s,
+                rules,
+                clock,
+                calendar,
+                at,
+                exits_only,
+                mc.candace,
+                "MGC_CANDACE",
+            )
             out.updates += r.updates
             out.exits += r.exits
     if st.bruni_structure and symbol == st.bruni_structure_cfg.symbol:
-        r = run_bruni_structure(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_bruni_structure", run_bruni_structure, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.okala_8020 and symbol == st.okala_8020_cfg.symbol:
-        r = run_okala_8020(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_okala_8020", run_okala_8020, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.conti_vwap and symbol == st.conti_vwap_cfg.symbol:
-        r = run_conti_vwap(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_conti_vwap", run_conti_vwap, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.conti_orb and symbol == st.conti_orb_cfg.symbol:
-        r = run_conti_orb(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_conti_orb", run_conti_orb, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
     if st.gala_pa and symbol == st.gala_pa_cfg.symbol:
-        r = run_gala_pa(s, rules, clock, calendar, at, exits_only)
+        r = _iso(out, "run_gala_pa", run_gala_pa, s, rules, clock, calendar, at, exits_only)
         out.updates += r.updates
         out.exits += r.exits
         out.stop_moves += r.stop_moves
     if st.ai_duo and symbol in st.ai_duo_cfg.markets:  # after NOISE: on a same-bar tie NOISE wins (D83)
-        r = run_ai_duo(s, rules, clock, calendar, at, symbol, exits_only)
+        r = _iso(out, "run_ai_duo", run_ai_duo, s, rules, clock, calendar, at, symbol, exits_only)
         out.updates += r.updates
         out.exits += r.exits
-    out.exits += order_flow_exits(s, rules, clock, symbol, at).exits
+    out.exits += _iso(out, "order_flow_exits", order_flow_exits, s, rules, clock, symbol, at).exits
     bar = s.execute(
         select(Bar).where(Bar.symbol == symbol, Bar.tf == "1", Bar.close_time <= at).order_by(Bar.close_time.desc())
     ).first()
     if bar is not None:  # D111: ZONE trail line (new same-direction event), checked on the closed bar
-        out.exits += zone_trail_exits(s, symbol, bar[0].c, at, clock).exits
+        out.exits += _iso(out, "zone_trail_exits", zone_trail_exits, s, symbol, bar[0].c, at, clock).exits
     s.commit()
     return out

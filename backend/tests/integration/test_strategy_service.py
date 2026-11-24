@@ -450,3 +450,36 @@ def test_same_direction_exit_and_reentry_is_a_hold_that_still_counts_the_entry(d
         assert sig.features["merged_entries"] == 1
         sigs = SS._today_signals(s, "MNQ", "NOISE", today.astimezone(SS.ET).date().isoformat())
         assert SS.noise_entries_today(sigs) == 2
+
+
+def test_one_runner_exception_keeps_the_other_strategies_exits(db, loaded_rules, monkeypatch):
+    """D (M5): a crashing runner is isolated (savepoint), reported in out.errors, and never discards NOISE's exit."""
+    rules = _rules(loaded_rules, noise=True, candace_ict=True)
+    days = _sessions(12)
+    today = days[-1]
+    clock = FixedClock(today + timedelta(minutes=30))
+    cal = lambda _d: []  # noqa: E731
+    with db() as s:
+        _history(s, days[:-1])
+        _add_day(s, today, {k: D(20000) + 3 * k for k in range(30)})
+        s.commit()
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=today + timedelta(minutes=30))
+        sig = s.get(Signal, out.updates[0].signal_id)
+        for b in (
+            s.query(Bar)
+            .filter(Bar.close_time > today + timedelta(minutes=30), Bar.close_time <= today + timedelta(minutes=90))
+            .all()
+        ):
+            b.c = b.o = D(19990)
+            b.h, b.l = D(19991), D(19989)
+        s.commit()
+
+        def boom(*_a, **_k):
+            raise RuntimeError("candace exploded")
+
+        monkeypatch.setattr(SS, "run_candace_ict", boom)
+        out = SS.run(s, rules=rules, clock=clock, calendar=cal, symbol="MNQ", tf="1", at=today + timedelta(minutes=90))
+        assert out.exits == [(sig.id, "NOISE_TRAIL")]
+        assert [(e[0], e[1]) for e in out.errors] == [("run_candace_ict", "RuntimeError")]
+        s.refresh(sig)
+        assert sig.features["state"] == "CLOSED"  # the NOISE exit marker was committed
