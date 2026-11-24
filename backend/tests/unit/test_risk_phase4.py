@@ -363,6 +363,16 @@ def run(**over):
     return pretrade(**args)
 
 
+def test_dormant_side_budget_check_still_blocks_when_set():
+    """D174: the split button is gone and no caller sets side_budget_left, but the tighten-only check is kept."""
+    from dataclasses import replace
+
+    assert run().ok
+    r = run(lim=replace(LIM, side_budget_left=D(1)))
+    assert not r.ok and r.reason == "SPLIT_BUDGET_EXCEEDED"
+    assert run(lim=replace(LIM, side_budget_left=D(100000))).ok
+
+
 def test_pretrade_ok_logs_values():
     r = run()
     assert r.ok and r.contracts == 2 and r.risk_usd == D(90) and r.worst_case_usd == D(84)

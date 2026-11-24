@@ -16,7 +16,7 @@ from app.models import AuditLog, BiasDecision
 from app.signals import strategy_service as SS
 from tests.integration.test_bias_job import FakeTA, save_creds
 from tests.integration.test_order_flow import _rules
-from tests.integration.test_split_risk import AT, PLAN, _ext, _qty, _setup, _sig
+from tests.integration.trade_helpers import AT, PLAN, _ext, _qty, _setup, _sig
 
 
 def _on(st, **cfg):

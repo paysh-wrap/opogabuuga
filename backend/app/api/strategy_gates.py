@@ -22,7 +22,6 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import Principal, current_user, get_db
 from app.models import AuditLog, Signal
-from app.risk.split_risk import split_active
 
 router = APIRouter(prefix="/api")
 
@@ -39,7 +38,6 @@ PLAN_CODES = (
 )
 # model_key tag of each strategy's signals: "{symbol}-{TAG}-{day}…" (strategy_service._today_signals)
 TAGS = {"noise": "NOISE", "pm_fade": "FADE", "ai_bias": "AI", "ai_duo": "DUO", "order_flow": "OF"}
-SPLIT_SIDES = {"NOISE": "SIDE_NOISE", "DUO": "SIDE_DUO"}  # D92 split card: one row per side
 
 
 def _g(id_: str, name: str, text: str, codes: tuple[str, ...] = (), kind: str = "entry") -> dict[str, Any]:
@@ -310,33 +308,6 @@ def describe(r: Any) -> list[dict[str, Any]]:
             "symbols": list(of.instruments),
             "gates": flow,
         },
-        {
-            "key": "noise_ai_split",
-            "name": "NOISE + AI Duo — 50/50 risk split",
-            "on": split_active(st.noise_ai_split, st.noise, st.ai_duo),
-            "symbols": sorted({nc.symbol, *du.markets}),
-            "gates": split_gates(noise, duo, st.noise_ai_split_share),
-        },
-    ]
-
-
-def _codes(gates: list[dict[str, Any]]) -> tuple[str, ...]:
-    return tuple(c for g in gates if g["id"] != LUCID for c in g["codes"])
-
-
-def split_gates(noise: list[dict[str, Any]], duo: list[dict[str, Any]], share: Any) -> list[dict[str, Any]]:
-    """D92: the split button runs BOTH sides unchanged; it only adds the half-size / half-DLL budget (tighten-only)."""
-    pct = f"{float(share):.0%}"
-    return [
-        _g("SIDE_NOISE", "NOISE side", "Every NOISE gate (see the NOISE card), at half size.", _codes(noise)),
-        _g("SIDE_DUO", "AI Duo side", "Every AI Duo gate (see the AI Duo card), at half size.", _codes(duo)),
-        _g(
-            "SPLIT",
-            "50/50 risk budget",
-            f"Each side trades {pct} of its size (round down, min 1 micro) and may use {pct} of the DLL.",
-            ("SPLIT_BUDGET_EXCEEDED",),
-        ),
-        _lucid_step(),
     ]
 
 
@@ -458,15 +429,6 @@ def strategy_gates(request: Request, _: Principal = Depends(current_user), db: S
     r = request.app.state.rules.rules
     rows = []
     for s in describe(r):
-        if s["key"] == "noise_ai_split":  # D92: the later of the two sides' decisions; the other side shows no data
-            sides = [(t, x) for t in SPLIT_SIDES if (x := _latest_signal(db, t)) is not None]
-            tag, last = max(sides, key=lambda p: p[1]["at"] or "") if sides else (None, None)
-            ev = evaluate(s["gates"], last)
-            for g in ev["gates"]:
-                if g["id"] in SPLIT_SIDES.values() and tag is not None and g["id"] != SPLIT_SIDES[tag]:
-                    g["status"] = None
-            rows.append({**{k: v for k, v in s.items() if k != "gates"}, **ev})
-            continue
         last = _latest_signal(db, TAGS[s["key"]])
         if s["key"] == "order_flow":  # an AR/plan skip makes no signal row — it is audited instead
             skip = _latest_of_skip(db)

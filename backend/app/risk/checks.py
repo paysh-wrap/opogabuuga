@@ -112,8 +112,9 @@ class TradeLimits:
     # D85 (user 2026-11-10, AI Duo): a total per-trade risk cap in $ (stop distance × qty + fees + slippage). The fixed
     # size is reduced to what fits; if not even one contract fits → STOP_TOO_WIDE. None = off (every other strategy).
     max_risk_usd: Decimal | None = None
-    # D92 split-risk button: this side's share of the daily loss limit still free (None = no split / no DLL). The worst
-    # case of a new trade plus the DLL safety margin must fit it. Tighten-only.
+    # D92 side budget: this side's share of the daily loss limit still free (None = off / no DLL). The worst case of a
+    # new trade plus the DLL safety margin must fit it. Tighten-only. D174: the split button that set it was removed;
+    # no caller passes it now, the check is kept (dormant) for safety.
     side_budget_left: Decimal | None = None
     # N6 waiver of the "TP reward must fit the consistency cap" fit: NOISE only (its far TP is a 10% safety order and
     # it exits by band/VWAP, flattened live at the day stop). CANDACE / late-day have real take-profits → False:

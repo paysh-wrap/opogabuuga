@@ -74,7 +74,6 @@ from app.risk.fast_pass import (
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
-from app.risk.split_risk import SPLIT_STRATEGIES, side_budget_left, split_active, split_budget, split_contracts
 from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size, plan_contracts, risk_cap
 from app.risk.tiers import FloorRules, RiskCfg
 
@@ -950,32 +949,6 @@ class Controller:
                 fixed = sized
             fast_pair = (fast_cfg, fctx)
             consistency_lim = harvest_limits(consistency_lim, fast_cfg, r.eval.profit_target)
-        side_left: Decimal | None = None
-        if strategy in SPLIT_STRATEGIES and split_active(
-            r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo
-        ):  # D92: half size (down, min 1) + half the daily loss budget for this side; only ever tightens
-            share = r.strategy.noise_ai_split_share
-            if fixed is not None:
-                fixed = split_contracts(fixed, share)
-            budget = split_budget(st.dll_for(r, a), share)
-            if budget is not None:
-                side_open = sum(
-                    (
-                        self._open_risk(t)
-                        for t in self.om.trades.values()
-                        if t.account == a.broker_account_id and t.strategy == strategy
-                    ),
-                    Decimal(0),
-                )
-                side_left = side_budget_left(budget, st.strategy_day_pnl(s, a, now, strategy), side_open)
-            audit.record(
-                s,
-                self.clock,
-                actor,
-                "trade.split_risk",
-                a.broker_account_id,
-                {"signal": sig.id, "strategy": strategy, "contracts": fixed, "budget_left": str(side_left)},
-            )
         cush_k = Decimal(0)
         cc = r.strategy.cushion
         if strategy and fixed is not None and getattr(cc, strategy.lower(), False):
@@ -1023,7 +996,6 @@ class Controller:
                 r.strategy.max_trade_risk_usd if strategy else None,
             ),
             shrink_min_pct=r.strategy.drawdown_min_stop_pct,
-            side_budget_left=side_left,
             tp_fit_waiver=strategy not in TP_FIT_STRATEGIES,  # B: only NOISE-like exits keep the N6 waiver
         )
         rcfg = effective_risk_cfg(a.stage, a.eval_mode, self.rules.eval_mode_on, std, evm)

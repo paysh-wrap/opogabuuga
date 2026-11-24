@@ -37,7 +37,6 @@ from app.engine.noise import stop_pts_for_usd
 from app.engine.trade_plan import Direction
 from app.models import Account
 from app.phases.phase_engine import firm_max_micros, stage_rules
-from app.risk.split_risk import split_contracts
 from app.settings import REPO_ROOT
 from app.signals import strategy_service as SS
 
@@ -65,8 +64,6 @@ SPECS = [  # D105: LunqFX removed
     Spec("NOISE", "NOISE", "MNQ", {"noise": True}),
     Spec("AI_DUO_MNQ", "AI_DUO", "MNQ", {"ai_duo": True}),
     Spec("AI_DUO_MGC", "AI_DUO", "MGC", {"ai_duo": True}),
-    Spec("SPLIT_NOISE", "NOISE", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
-    Spec("SPLIT_AI_DUO", "AI_DUO", "MNQ", {"noise": True, "ai_duo": True, "noise_ai_split": True}),
     Spec("ORDER_FLOW_MNQ", "ORDER_FLOW", "MNQ", {"order_flow": True}),
     Spec("ORDER_FLOW_MGC", "ORDER_FLOW", "MGC", {"order_flow": True}),
     Spec("AI_BIAS", "AI_BIAS", "MNQ", {"ai_bias": True}),  # D115: per-plan size now > 1 on 50K+
@@ -99,8 +96,6 @@ def strategy_cap(r: RulesConfig, spec: Spec) -> int:
         cap = st.ai_bias_cfg.contracts
     else:  # STANDARD (LunqFX): sized by the risk engine, bounded only by the firm and internal caps
         cap = min(r.max_contracts.micros, r.internal.internal_max_micros)
-    if "noise_ai_split" in spec.flags and spec.mode in ("NOISE", "AI_DUO"):
-        cap = split_contracts(cap, st.noise_ai_split_share)
     return cap
 
 

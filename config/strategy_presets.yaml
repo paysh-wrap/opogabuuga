@@ -42,25 +42,6 @@ presets:
         - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
       size_table_high:
         - {account_size: 50000, mll: 2000, contracts: 2, brake_below: 0.5, brake_contracts: 1}
-  pro25k_classic:
-    label: "Pro 25K classic"
-    summary: "NOISE $250 stop + afternoon fade ON, 1 micro"
-    account: "Pro 25K"
-    study: "Session 10"
-    odds_plan: lucid_pro_25k   # D137: pass / bust come from config/eval_odds.yaml (plan x table x EOD toggle)
-    odds_table: regular_fade_on
-    held_out: false
-    recommended: false
-    superseded: true   # D134: superseded by "Pro 25K session 19" (still selectable)
-    warning: "SUPERSEDED by Pro 25K session 19 — older, likely optimistic (the fade was measured with hindsight)"
-    overlay:
-      noise: true
-      pm_fade: true
-      noise_cfg: {emergency_stop_usd: 250, profit_lock_trigger_pts: null, profit_lock_pts: null, profit_lock_trigger_alt_pts: null}
-      size_table:
-        - {account_size: 25000, mll: 1000, contracts: 1}
-      size_table_high:
-        - {account_size: 25000, mll: 1000, contracts: 1}
   pro100k_low_risk:   # D125 (user 2026-11-12 "bust numbers wrong"): re-based on the session-19 study (docs/results/session19/refine/RESULTS.md §4)
     label: "Pro 100K low risk"
     summary: "NOISE + profit lock (+100 pt -> stop to entry +10), Mondays off, fade OFF, 2 micros, 1 micro while the cushion is under $900"

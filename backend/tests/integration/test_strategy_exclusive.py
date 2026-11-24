@@ -17,13 +17,14 @@ def test_two_strategy_buttons_on_is_rejected(authed):
     assert _put(authed, {"strategy.gala_pa": False}).status_code == 200  # everything off is allowed
 
 
-def test_main_pair_is_one_choice_and_split_is_one_choice(authed):
+def test_main_pair_is_one_choice(authed):
     assert _put(authed, {"strategy.noise": True, "strategy.candace_ict": True}).status_code == 200
     assert _put(authed, {"strategy.order_flow": True}).status_code == 422
     assert _put(authed, {"strategy.ai_duo": True}).status_code == 422
-    r = _put(authed, {"strategy.candace_ict": False, "strategy.noise_ai_split": True, "strategy.ai_duo": True})
-    assert r.status_code == 200  # NOISE + AI Duo split = the one choice that uses both
+    r = _put(authed, {"strategy.noise": False, "strategy.candace_ict": False, "strategy.ai_duo": True})
+    assert r.status_code == 200
     assert _put(authed, {"strategy.candace_ict": True}).status_code == 422
+    assert _put(authed, {"strategy.noise_ai_split": True}).status_code == 422  # D174: the split button no longer exists
 
 
 def test_fast_pass_plans_are_independent_and_late_day_is_a_sub_option(authed):
@@ -72,3 +73,20 @@ def test_loading_pre_d167_settings_with_two_on_keeps_at_most_one_choice(authed):
     with authed.app.state.sessionmaker() as s:
         eff = effective(s, authed.app.state.rules.base)
     assert len(strategy_choices_on(eff.rules.strategy)) <= 1
+
+
+def test_old_saved_settings_with_removed_toggles_still_load(authed, loaded_rules):
+    """D174: stored keys of the removed D92 split button and the removed classic preset are ignored, never a crash."""
+    from app.config import RulesConfig, load_yaml_decimal
+    from app.risk.settings_store import build, merged_raw
+
+    mine = {
+        "strategy.noise": True, "strategy.candace_ict": True, "strategy.noise_ai_split": True,
+        "strategy.noise_ai_split_share": "0.5", "strategy.preset": "pro25k_classic",
+    }  # fmt: skip
+    cfg, _ = build(merged_raw(loaded_rules, {}, mine))
+    assert cfg.strategy.noise and cfg.strategy.candace_ict and cfg.strategy.preset is None
+    assert not hasattr(cfg.strategy, "noise_ai_split")
+    raw = load_yaml_decimal(loaded_rules.source_text)
+    raw["strategy"]["noise_ai_split"] = True  # an old plan file carrying the key
+    assert RulesConfig.model_validate(raw).strategy.noise is not None

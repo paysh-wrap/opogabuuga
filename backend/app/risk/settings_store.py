@@ -82,7 +82,6 @@ MY_SETTINGS_KEYS: frozenset[str] = frozenset(
         "strategy.order_flow_cfg.zone_atr.last_minutes_filter",
         "strategy.order_flow_cfg.zone_atr.price_change_confirm",
         "strategy.order_flow_cfg.zone_atr.tick_filter",
-        "strategy.noise_ai_split",  # D92: split risk button (share lives in the plan file)
         "strategy.ai_duo_cfg.markets",
         "strategy.ai_duo_cfg.windows",
         "strategy.ai_duo_cfg.accounts",
@@ -285,9 +284,14 @@ def latest_firm(s: Session) -> RuleProfile | None:
     return s.execute(select(RuleProfile).order_by(RuleProfile.version.desc()).limit(1)).scalar_one_or_none()
 
 
+REMOVED_SETTING_KEYS = frozenset({"strategy.noise_ai_split", "strategy.noise_ai_split_share"})  # D174
+
+
 def merged_raw(base: LoadedRules, firm: dict[str, Any], mine: dict[str, Any]) -> dict[str, Any]:
     raw = copy.deepcopy(load_yaml_decimal(base.source_text))
     for k, v in {**firm, **mine}.items():
+        if k in REMOVED_SETTING_KEYS:
+            continue  # D174: saved toggles of removed strategies are ignored, never a crash
         _set(raw, k, _denorm(v))
     return raw
 
@@ -334,7 +338,7 @@ STRATEGY_CHOICES: dict[str, tuple[str, ...]] = {
     "main_noise_candace": ("noise", "candace_ict"),
     "mgc_noise_candace": ("mgc_noise_candace",),
     "order_flow": ("order_flow",),
-    "ai_duo": ("ai_duo", "noise_ai_split"),  # NOISE + AI Duo split: NOISE belongs to this choice while the split is ON
+    "ai_duo": ("ai_duo",),
     "jj_fpt": ("jj_fpt",),
     "gala_pa": ("gala_pa",),
     "conti_orb": ("conti_orb",),
@@ -345,13 +349,8 @@ STRATEGY_CHOICES: dict[str, tuple[str, ...]] = {
 
 
 def strategy_choices_on(strategy: Any) -> list[str]:
-    split = bool(strategy.noise_ai_split)
     on = []
     for c, attrs in STRATEGY_CHOICES.items():
-        if c == "main_noise_candace" and split:
-            attrs = tuple(
-                a for a in attrs if a != "noise"
-            )  # the split (D92) is the one choice that uses NOISE + AI Duo
         if any(bool(getattr(strategy, a)) for a in attrs):
             on.append(c)
     return on

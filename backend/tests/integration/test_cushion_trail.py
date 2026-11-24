@@ -6,7 +6,7 @@ from decimal import Decimal as D
 
 from app.config import CushionCfg, DynamicTrailCfg
 from app.models import Account, AuditLog
-from tests.integration.test_split_risk import AT, _ext, _qty, _setup, _sig
+from tests.integration.trade_helpers import AT, _ext, _qty, _setup, _sig
 
 
 def _set_mll(st, aid, mll):

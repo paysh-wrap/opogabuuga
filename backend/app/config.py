@@ -1219,7 +1219,11 @@ class CushionCfg(_M):
 
 
 # D105 (LunqFX) + D107 (Opening drive): removed strategies - their keys in old plan files / stored settings are ignored
-LEGACY_LUNQFX_KEYS = ("lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg")
+LEGACY_LUNQFX_KEYS = (
+    "lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg",
+    "noise_ai_split", "noise_ai_split_share",  # D174: the D92 NOISE + AI Duo split button was removed; old saves ignore it
+)  # fmt: skip
+REMOVED_PRESETS = ("pro25k_classic",)  # D174: the superseded NOISE preset was removed; a save naming it loads as "custom"
 
 
 def capped_eval_table(table: list[SizeTierCfg], caps: list[EvalCapCfg]) -> list[SizeTierCfg]:
@@ -1305,11 +1309,6 @@ class StrategyCfg(_M):
     conti_vwap: bool = False  # D147 CONTI VWAP button (docs/CONTI_RULES.md C), default OFF
     conti_orb: bool = False  # D146 CONTI ORB button (docs/CONTI_RULES.md B), default OFF
     gala_pa: bool = False  # D144 GALA PRICE ACTION button (docs/GALA_RULES.md), default OFF
-    # D92: "NOISE + AI Duo — 50/50 risk split" button (default OFF): with NOISE and AI Duo both on, each side
-    # trades half size (rounded down, min 1) and may use half of the daily loss limit (D102: no forced paper-only).
-    # Tighten-only.
-    noise_ai_split: bool = False
-    noise_ai_split_share: D = Field(default=D("0.5"), gt=D(0), le=D("0.5"))
     # D115 (user 2026-11-11): the plan's per-trade worst-case cap for EVERY fixed-size strategy (qty × (stop ticks ×
     # tick value + fee + slippage)); the size is reduced to fit, 0 contracts → STOP_TOO_WIDE. None = off.
     max_trade_risk_usd: D | None = Field(default=None, gt=D(0))
@@ -1400,6 +1399,8 @@ class StrategyCfg(_M):
             data = {
                 k: v for k, v in data.items() if k not in LEGACY_LUNQFX_KEYS
             }  # D105/D107: removed strategies, ignored
+        if isinstance(data, dict) and data.get("preset") in REMOVED_PRESETS:
+            data = {**data, "preset": None}
         if not isinstance(data, dict) or not data.get("preset"):
             return data
         presets = load_presets()

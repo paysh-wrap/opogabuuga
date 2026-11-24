@@ -92,25 +92,6 @@ CATALOG: list[dict[str, object]] = [
         "tie → NOISE wins). Every day logs a decision with a reason code. Unverified (not back-testable).",
     },
     {
-        "key": "noise_ai_split",
-        "name": "NOISE + AI Duo — 50/50 risk split",
-        "source": "D92: with NOISE and AI Duo both on, each side trades half size (rounded down, minimum 1 micro) "
-        "and may use half of the daily loss limit",
-        "verified": False,
-        "status": "UNVERIFIED",
-        "win_pct": None,
-        "profit_factor": None,
-        "usd_per_trade": None,
-        "trades_per_week": None,
-        "held_out_trades": 0,
-        "pro25k_pass_pct": None,
-        "pro25k_bust_pct": None,
-        "period": "NOT measured: the AI Duo half cannot be back-tested. NOISE alone stays the main strategy.",
-        "note": "Default OFF. Turns NOISE and AI Duo on together. Only tightens: every other size, DLL, MLL, "
-        "consistency and hedge-lock check still applies.",
-        "also": ["strategy.noise", "strategy.ai_duo"],
-    },
-    {
         "key": "order_flow",
         "name": "Order Flow — TradingView order-flow alerts (MNQ + MGC) — UNVERIFIED",
         "source": "D101 AR Model (main teacher, D100): ENVIRONMENT (expansion / rotation; compression = no trade) → "

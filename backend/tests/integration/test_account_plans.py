@@ -9,7 +9,7 @@ import pytest
 
 from app.models import Account
 from app.risk.fast_pass import plan_fast_pass
-from tests.integration.test_split_risk import _ext, _sig
+from tests.integration.trade_helpers import _ext, _sig
 
 AT = datetime(2026, 10, 13, 15, 0, tzinfo=UTC)
 SHORT = (D(20000), D(20020), D(19900), D(20), D(5))

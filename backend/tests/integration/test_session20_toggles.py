@@ -4,7 +4,7 @@ import asyncio
 from decimal import Decimal as D
 
 from app.models import Account
-from tests.integration.test_split_risk import _ext, _setup, _sig, _strategy
+from tests.integration.trade_helpers import _ext, _setup, _sig, _strategy
 
 
 def test_fade_is_skipped_on_eval_accounts_only_while_the_toggle_is_on(authed, clock):

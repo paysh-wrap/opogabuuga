@@ -80,7 +80,6 @@ def test_strategies_endpoint(authed):
         "noise",
         "ai_bias",
         "ai_duo",
-        "noise_ai_split",
         "order_flow",
         "order_flow_amt",
         "order_flow_zone",

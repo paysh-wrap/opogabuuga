@@ -23,7 +23,6 @@ from app.risk.checks import dll_remaining
 from app.risk.cushion import cushion_level, cushion_share
 from app.risk.eval_mode import eval_mode_effective
 from app.risk.risk_base import money
-from app.risk.split_risk import split_active
 from app.signals.service import today_bias
 
 router = APIRouter(prefix="/api")
@@ -966,7 +965,6 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
         "candace_ict": r.strategy.candace_ict,
         "mgc_noise_candace": r.strategy.mgc_noise_candace,  # D165
         "order_flow_auction": r.strategy.order_flow and r.strategy.order_flow_cfg.auction.enabled,  # D150
-        "noise_ai_split": split_active(r.strategy.noise_ai_split, r.strategy.noise, r.strategy.ai_duo),  # D92
     }
     nc = r.strategy.noise_cfg
     stored = [

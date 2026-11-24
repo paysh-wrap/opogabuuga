@@ -7,7 +7,7 @@ from datetime import timedelta
 from decimal import Decimal as D
 
 from app.engine.trade_plan import Direction
-from tests.integration.test_split_risk import AT, _ext, _setup, _sig
+from tests.integration.trade_helpers import AT, _ext, _setup, _sig
 
 SHORT = (D(20000), D(20020), D(19900), D(20), D(5))
 

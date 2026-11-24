@@ -13,7 +13,7 @@ from app.signals import strategy_service as SS
 from tests.integration.test_restart_recovery import open_trade
 from tests.integration.test_strategy_service import _add_day, _history, _rules, _sessions
 
-KEYS = ("pro25k_s19", "pro50k_s19", "pro25k_classic", "pro100k_low_risk", "pro150k_low_risk")
+KEYS = ("pro25k_s19", "pro50k_s19", "pro100k_low_risk", "pro150k_low_risk")
 
 
 def _with_preset(loaded_rules, key):
@@ -25,31 +25,19 @@ def _with_preset(loaded_rules, key):
 def test_preset_file_has_the_three_user_approved_presets():
     p = load_presets()
     assert list(p) == list(KEYS)
-    assert [p[k]["recommended"] for k in KEYS] == [False, False, False, False, True]
-    assert [p[k].get("superseded", False) for k in KEYS] == [
-        False,
-        False,
-        True,
-        False,
-        False,
-    ]  # D134: classic kept, labelled
+    assert [p[k]["recommended"] for k in KEYS] == [False, False, False, True]
+    assert not any(p[k].get("superseded", False) for k in KEYS)  # D174: the superseded classic preset was removed
     # D137: pass / bust are no longer stored in the preset file: each preset maps to a plan + size table of
     # config/eval_odds.yaml (numbers come from there, shown with the current EOD toggle)
     assert all("pass_pct" not in p[k] and "bust_pct" not in p[k] for k in KEYS)
     assert [(p[k]["odds_plan"], p[k]["odds_table"]) for k in KEYS] == [
         ("lucid_pro_25k", "regular"),
         ("lucid_pro_50k", "regular"),
-        ("lucid_pro_25k", "regular_fade_on"),
         ("lucid_pro_100k", "regular"),
         ("lucid_pro_150k", "regular"),
     ]
     assert p["pro25k_s19"]["warning"] is None and "1 micro on 50K" in p["pro50k_s19"]["warning"]
-    assert (
-        p["pro25k_classic"]["warning"]
-        and p["pro100k_low_risk"]["warning"] is None
-        and p["pro150k_low_risk"]["warning"] is None
-    )
-    assert "hindsight" in p["pro25k_classic"]["warning"]
+    assert p["pro100k_low_risk"]["warning"] is None and p["pro150k_low_risk"]["warning"] is None
 
 
 @pytest.mark.parametrize("key,size,n", [("pro25k_s19", D(25000), 1), ("pro50k_s19", D(50000), 2)])
@@ -60,12 +48,9 @@ def test_session19_presets(loaded_rules, key, size, n):  # D134 / I2
     assert [(t.account_size, t.contracts) for t in st.size_table] == [(size, n)] and st.size_table_high == st.size_table
 
 
-def test_preset_a_classic(loaded_rules):
+def test_removed_classic_preset_loads_as_custom(loaded_rules):  # D174: old saves naming it must still load
     st = _with_preset(loaded_rules, "pro25k_classic").strategy
-    assert st.noise and st.pm_fade and st.noise_cfg.emergency_stop_usd == D(250)
-    assert st.noise_cfg.profit_lock_pts is None
-    assert [(t.account_size, t.contracts, t.brake_below) for t in st.size_table] == [(D(25000), 1, None)]
-    assert st.size_table_high == st.size_table
+    assert st.preset is None and "pro25k_classic" not in load_presets()
 
 
 def test_preset_b_low_risk_100k(loaded_rules):
