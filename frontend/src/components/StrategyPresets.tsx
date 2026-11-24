@@ -2,6 +2,7 @@ import { useState } from "react";
 import MoreInfo from "./MoreInfo";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 import { badge } from "../lib/theme";
 import type { PresetRow, StrategiesResp } from "./StrategyButtons";
 
@@ -19,11 +20,14 @@ function sizeText(p: PresetRow): string {
 
 export default function StrategyPresets() {
   const qc = useQueryClient();
+  const saved = useSaveAlert();
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<StrategiesResp>("/api/strategies"), refetchInterval: 30000 });
   const [pick, setPick] = useState<string | null>(null);
   const apply = useMutation({
     mutationFn: (p: PresetRow | null) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.preset": p ? p.key : null }, note: p ? `Strategy preset: ${p.label}` : "Strategy preset: custom (plan file values)" }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Strategy preset", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data?.presets;
@@ -32,6 +36,7 @@ export default function StrategyPresets() {
   return (
     <section className={card} data-testid="strategy-presets">
       <h2 className="font-semibold text-gold">Strategy preset — NOISE on MNQ</h2>
+      <SaveAlert error={saved.error} />
       <MoreInfo testId="more-presets"><p className="text-blue">
         A preset sets only the NOISE settings, the afternoon-fade button and the size table. Every preset keeps a stop loss on every trade, the hourly band/VWAP exits and the 16:00 flat, and none changes the kill switch, loss limits or any risk check. It applies to the next NEW trade; the mode stays PAPER until you change it.
       </p></MoreInfo>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D122: dynamic trailing stop + cushion level controls — per-strategy toggles and the level editor. Every save is a new
 // versioned My Settings entry, validated by the server (rollback on the Risk page). UNVERIFIED: no backtest.
@@ -39,11 +40,14 @@ export function levelErrors(v: Record<string, string>): string[] {
 
 export default function TrailCushionCard() {
   const qc = useQueryClient();
+  const saved = useSaveAlert();
   const q = useQuery({ queryKey: ["risk-settings"], queryFn: () => api<SettingsResp>("/api/risk/settings") });
   const [draft, setDraft] = useState<Record<string, string> | null>(null);
   const save = useMutation({
     mutationFn: (changes: Record<string, unknown>) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: "Strategy page: dynamic trail / cushion (D122)" }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Trail / cushion setting", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["risk-settings"] }),
   });
   const s = q.data?.settings;
@@ -102,7 +106,7 @@ export default function TrailCushionCard() {
         </button>
       </div>
       {errs.length > 0 && <p role="alert" className="mt-1 text-xs text-goldLight">⚠ {errs.join(" · ")}</p>}
-      {save.isError && <p role="alert" className="mt-1 text-xs text-goldLight">⚠ Not saved — the server refused these values.</p>}
+      <SaveAlert error={saved.error} />
     </section>
   );
 }

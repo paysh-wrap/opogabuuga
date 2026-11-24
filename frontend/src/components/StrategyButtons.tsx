@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { badge } from "../lib/theme";
 import MoreInfo from "./MoreInfo";
 import { AdvisorCardLine, type AdvisorResp } from "./AdvisorCard";
+import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D55: strategy on/off buttons with the TESTED results next to each (static research facts from the server, not live
 // data). Each click saves a new versioned My Settings entry (rollback on the Risk page).
@@ -143,47 +144,65 @@ const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c ==
 
 export default function StrategyButtons() {
   const qc = useQueryClient();
-  const [exNote, setExNote] = useState<string | null>(null);
+  const [exNote, setExNote] = useState<{ key: string; text: string } | null>(null);
+  const saved = useSaveAlert();
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<StrategiesResp>("/api/strategies"), refetchInterval: 30000 });
   const toggle = useMutation({
-    mutationFn: (s: Strat) => {
+    mutationFn: async (s: Strat) => {
       const mine = choiceOf(s.key);
       const off: string[] = [];
+      let turnedOff: string[] = [];
       if (!s.enabled && mine) {
         const others = new Set((q.data?.strategies ?? []).filter((x) => x.enabled && choiceOf(x.key) && choiceOf(x.key) !== mine).map((x) => choiceOf(x.key)!));
         others.forEach((c) => off.push(...settingsOfChoice(c)));
-        setExNote(others.size ? `${s.name} is now the only strategy ON — turned off: ${[...others].map(choiceTitle).join(", ")}.` : null);
-      } else setExNote(null);
+        turnedOff = [...others].map(choiceTitle);
+      }
       const pair = !s.enabled && mine === "main" ? ["strategy.noise", "strategy.candace_ict"] : [];
       const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || s.key === "noise_ai_split" || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
       const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on };
-      return api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });
+      await api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });
+      return turnedOff; // D167 note: only after the server accepted the save
     },
+    onSuccess: (turnedOff, s) => {
+      saved.ok();
+      setExNote(turnedOff.length ? { key: s.key, text: `${s.name} is now the only strategy ON — turned off: ${turnedOff.join(", ")}.` } : null);
+    },
+    onError: (e, s) => { setExNote(null); saved.fail(s.name, e); },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const sbs = useMutation({
     mutationFn: (a: ArSideBySide) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [a.setting]: !a.enabled }, note: `AR beside NOISE: ${a.enabled ? "off" : "on"}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("AR Model beside NOISE", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const size = useMutation({
     mutationFn: (high: boolean) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.high_risk": high }, note: `Size profile: ${high ? "high risk" : "regular"}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Size profile", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const suggest = useMutation({
     mutationFn: (on: boolean) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.suggested_size": on }, note: `NOISE size: ${on ? "suggested" : "as configured"}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("NOISE size", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const flip = useMutation({
     mutationFn: ({ t, v }: { t: ToggleRow; v: boolean }) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [t.setting]: v }, note: `${t.title}: ${v ? t.on_label : t.off_label}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Toggle", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const lateFlip = useMutation({
     mutationFn: ({ late, v }: { late: LateOption; v: boolean }) =>
       api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [late.setting]: v }, note: `${late.label}: ${v ? "on" : "off"}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Late-day option", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const d = q.data;
@@ -325,6 +344,7 @@ export default function StrategyButtons() {
           </MoreInfo>
         </div>
       )}
+      {exNote?.key === s.key && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote.text}</p>}
       {s.key === "noise" && !w.ready && (
         <p className="mt-1 text-xs text-gold" data-testid="noise-warmup">Warm-up: {w.sessions}/{w.needed} sessions of TradingView 1-minute MNQ bars stored — NOISE starts trading after that.</p>
       )}
@@ -373,7 +393,7 @@ export default function StrategyButtons() {
       <MoreInfo label="How these numbers were measured" testId="strategy-method">
         <p className="text-blue">Results are from the study on real MNQ data (2019-05 → 2026-11, NOISE with the profit lock and Mondays off, 1 micro, costs included; AI / Order Flow cards: their own notes). Eval pass / bust = share of simulated evaluations that passed / busted for your active plan, size table and EOD toggle (\"not measured yet\" until the study is run). Past results do not guarantee future results.</p>
       </MoreInfo>
-      {exNote && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote}</p>}
+      <SaveAlert error={saved.error} />
       <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The fast-pass plans below are independent of each other.</p>
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">

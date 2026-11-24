@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D151: TradingAgents ADVISOR in front of the D142-D150 strategies (verdict recorded on every signal).
 export type Verdict = "AGREE" | "DISAGREE" | "NEUTRAL" | "NO_CALL";
@@ -44,9 +45,12 @@ const MODES: { v: AdvisorResp["mode"]; label: string }[] = [
 /** Strategy-page control for the advisor mode. */
 export default function AdvisorCard() {
   const qc = useQueryClient();
+  const saved = useSaveAlert();
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<{ advisor?: AdvisorResp }>("/api/strategies"), refetchInterval: 30000 });
   const save = useMutation({
     mutationFn: (m: string) => api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { "strategy.advisor.mode": m }, note: `TradingAgents advisor: ${m}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Advisor mode", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const a = q.data?.advisor;
@@ -56,6 +60,7 @@ export default function AdvisorCard() {
     <section className="rounded-xl border border-border bg-card p-4" data-testid="advisor-card">
       <h2 className="font-semibold text-gold">TradingAgents advisor (JJ, GALA, CONTI, OKALA, BRUNI, CANDACE, AUCTION)</h2>
       <p className="text-xs text-blue">Runs before each of these strategies' signals using today's stored TradingAgents call. It can only skip a trade (code ADVISOR_DISAGREE), never create or enlarge one. No call today never blocks.</p>
+      <SaveAlert error={saved.error} />
       <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Advisor mode">
         {MODES.map((m) => (
           <button key={m.v} type="button" aria-pressed={a.mode === m.v} disabled={save.isPending} onClick={() => save.mutate(m.v)}

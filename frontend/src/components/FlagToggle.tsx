@@ -1,12 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { SaveAlert, useSaveAlert } from "./useSaveAlert";
 
 // D80: one validated My Settings toggle (same PUT /api/risk/settings flow as the strategy buttons). Unproven flags
 // carry a gold badge and ask for a confirmation before they are switched ON.
 export default function FlagToggle({ setting, on, unproven, label }: { setting: string; on: boolean; unproven?: boolean; label: string }) {
   const qc = useQueryClient();
+  const saved = useSaveAlert();
   const m = useMutation({
     mutationFn: () => api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes: { [setting]: !on }, note: `Gate toggle: ${setting} ${on ? "off" : "on"}` }) }),
+    onSuccess: () => saved.ok(),
+    onError: (e) => saved.fail("Gate toggle", e),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
   });
   const click = () => {
@@ -20,6 +24,7 @@ export default function FlagToggle({ setting, on, unproven, label }: { setting: 
         {on ? "ON" : "OFF"}
       </button>
       {unproven && <span className="rounded border border-gold px-1 text-xs text-gold" data-testid="unproven-badge">unproven</span>}
+      <SaveAlert error={saved.error} testId={`flag-error-${setting}`} />
     </span>
   );
 }
