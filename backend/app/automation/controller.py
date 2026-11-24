@@ -551,6 +551,11 @@ class Controller:
             "ORDER_FLOW": r.strategy.order_flow_cfg.paper_only,
             "JJ_FPT": r.strategy.jj_fpt_cfg.paper_only,
         }
+        mgc_pair = r.strategy.mgc_noise_candace_cfg
+        paper_only["LATE_DAY"] = r.strategy.late_day_cfg.paper_only  # F: these had the value but never read it
+        paper_only["MGC_CANDACE"] = mgc_pair.candace.paper_only
+        paper_only["MGC_NOISE"] = mgc_pair.noise.paper_only
+        paper_only["NOISE"] = r.strategy.noise_cfg.paper_only
         fit = fit_cfg(r.strategy, strategy)
         if fit is not None:
             paper_only[strategy] = fit[1].paper_only
@@ -910,8 +915,9 @@ class Controller:
                 return AccountResult(a.id, False, skip)
             if fixed is not None:
                 sized = fast_contracts(fast_cfg, fctx, fixed)
-                if fp is not None:  # D156: the fast-pass size is the most this trade may use
-                    sized = min(sized, fp.contracts)
+                cap_size = fp or late  # D156 fast-pass size / D166 late size (late_contracts + late_steps brake)
+                if cap_size is not None:  # the strategy's own plan-file size is the most this trade may use
+                    sized = min(sized, cap_size.contracts)
                 if sized != fixed:
                     audit.record(
                         s, self.clock, actor, "trade.fast_eval", a.broker_account_id,

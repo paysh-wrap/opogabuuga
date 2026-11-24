@@ -182,3 +182,51 @@ def test_listed_as_active_strategy(loaded_rules):
 
     assert "LATE_DAY" not in active_strategies(_rules(loaded_rules, on=False))
     assert "LATE_DAY" in active_strategies(_rules(loaded_rules, on=True))
+
+
+def _fast_eval_early(st, extra=2):
+    from app.config import FastEarlyCfg
+
+    h = st.controller.rules
+    fe = h.rules.fast_eval.model_copy(update={"early": FastEarlyCfg(enabled=True, first_trades=10, extra_contracts=extra,
+                                                                    cushion_frac=D("0.05"))})  # fmt: skip
+    h.rules = h.rules.model_copy(update={"fast_eval": fe})
+    h.fast_eval_on = True
+
+
+def test_fast_evaluation_never_lifts_the_braked_late_size(authed, clock):
+    """F (M3): D87 early extras must not raise the late leg above late_contracts / the late_steps brake."""
+    st, aid = _setup(authed, clock, cushion=D(999))  # brake: 1 micro
+    _fast_eval_early(st)
+    res, sz = _run(st, aid)
+    assert sz[-1]["contracts"] == 1 and sz[-1]["braked"] is True
+    assert res.ok and res.contracts == 1, res
+
+
+def test_paper_only_applies_to_late_day_and_mgc_strategies(authed, clock):
+    """F (nit): the plan file's paper_only opt-in was ignored for LATE_DAY, MGC_NOISE and MGC_CANDACE."""
+    st, aid = _setup(authed, clock)
+    h = st.controller.rules
+    s_ = h.rules.strategy
+    mc = s_.mgc_noise_candace_cfg
+    for mode, upd in (
+        ("LATE_DAY", {"late_day_cfg": s_.late_day_cfg.model_copy(update={"paper_only": True})}),
+        ("MGC_NOISE", {"mgc_noise_candace_cfg": mc.model_copy(update={"noise": mc.noise.model_copy(update={"paper_only": True})})}),
+        ("MGC_CANDACE", {"mgc_noise_candace_cfg": mc.model_copy(update={"candace": mc.candace.model_copy(update={"paper_only": True})})}),
+    ):  # fmt: skip
+        h.rules = h.rules.model_copy(update={"strategy": s_.model_copy(update=upd)})
+        with st.sessionmaker() as s:
+            a = s.get(Account, aid)
+            a.is_sim = False
+            s.commit()
+        sym = "MGC" if mode.startswith("MGC") else "MNQ"
+        with st.sessionmaker() as s:
+            x = SS._new_signal(
+                s, FixedClock(AT), symbol=sym, key=f"{sym}-{mode}-po", direction=Direction.LONG, at=AT,
+                gate=(True, "OK", ""), features={},
+                plan=(mode, D(20000), D(19940), D(20180), D(60), D(3)),
+            )  # fmt: skip
+            s.commit()
+            sid = x.id
+        [res] = asyncio.run(st.controller.execute(sid, "automation", only=[aid]))
+        assert not res.ok and res.reason == "PAPER_ONLY_STRATEGY", (mode, res)

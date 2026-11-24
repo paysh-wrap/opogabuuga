@@ -299,6 +299,7 @@ class NoiseCfg(_M):
     # (80 pt in the plans — EXPERIMENTAL, likely chance: session19/more/RESULTS.md 6a J PF 1.89, IS-neutral).
     # The lock distance (profit_lock_pts, entry +10) is the same either way.
     profit_lock_trigger_alt_pts: D | None = None
+    paper_only: bool = False  # plan-file opt-in (tighten-only, like every strategy); not a NOISE parameter
 
     @model_validator(mode="after")
     def _lock_valid(self) -> NoiseCfg:
