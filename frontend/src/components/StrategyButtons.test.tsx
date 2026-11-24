@@ -81,7 +81,7 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   await userEvent.click(screen.getByRole("button", { name: /OFF · AMT\+ Order Flow/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.order_flow_cfg.amt.enabled":true,"strategy.order_flow":true'))).toBe(true));
   // D58: NOISE is the first card; the MAIN fade card now sits under Lesser strategies
-  expect(screen.getAllByRole("button")[0]).toHaveTextContent("NOISE");
+  expect(screen.getAllByRole("radio")[0]).toHaveTextContent("NOISE + CANDACE"); // one MAIN radio card (NOISE + CANDACE), not two buttons
   expect(screen.getByTestId("pass-pm_fade")).toHaveTextContent("65.7%");
   await userEvent.click(screen.getByRole("button", { name: /OFF · MAIN/ }));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.pm_fade":true,"strategy.noise":true'))).toBe(true));
@@ -181,7 +181,7 @@ test("MGC NOISE + CANDACE card shows its own gold evidence badge", async () => {
   expect(setup).not.toHaveTextContent("rules from one transcript");
 });
 
-test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"], ["okala_8020", "OKALA 8020"], ["bruni_structure", "BRUNI STRUCTURE"], ["candace_ict", "CANDACE ICT SCALP"]])("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
+test.each([["conti_orb", "CONTI ORB"], ["conti_vwap", "CONTI VWAP"], ["okala_8020", "OKALA 8020"], ["bruni_structure", "BRUNI STRUCTURE"]]) ("%s card lists its rule sheet and turns on through its own setting", async (key, name) => {
   const g = { key, name, source: "transcript", verified: false, status: "UNVERIFIED", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "Not back-tested yet.", note: "n", enabled: false, setting: `strategy.${key}`,
     strategy_rules: [{ key: "ENTRY", on: true, rule: "the entry rule" }, { key: "EXTRA", on: false, rule: "an optional rule" }] };
   const calls: string[] = [];
@@ -261,5 +261,5 @@ test("D167: main strategy first, one strategy ON at a time, four independent fas
   // NOISE is ON; turning Order Flow on turns the main pair off
   await userEvent.click(screen.getByRole("button", { name: /OFF · Order Flow — TradingView/ }));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT") && c.includes('"strategy.noise":false') && c.includes('"strategy.candace_ict":false') && c.includes('"strategy.order_flow":true'))).toBe(true));
-  expect(await screen.findByTestId("exclusive-note")).toHaveTextContent("turned off: MAIN NOISE + CANDACE");
+  expect(await screen.findByTestId("exclusive-note")).toHaveTextContent("turned off: NOISE + CANDACE");
 });

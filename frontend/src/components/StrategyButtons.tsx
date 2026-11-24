@@ -140,6 +140,8 @@ export const choiceOf = (key: string): string | null =>
 const CHOICE_SETTINGS: Record<string, string[]> = {
   main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"], ai_duo: ["strategy.ai_duo", "strategy.noise_ai_split"],
 };
+const MAIN_PAIR = ["noise", "candace_ict"];
+const MAIN_SETTINGS = ["strategy.noise", "strategy.candace_ict"];
 const settingsOfChoice = (c: string) => CHOICE_SETTINGS[c] ?? [`strategy.${c}`];
 export const choiceTitle = (c: string) => (c === "main" ? "MAIN NOISE + CANDACE" : c === "order_flow" ? "Order Flow" : c === "ai_duo" ? "AI Duo" : c.replace(/_/g, " ").toUpperCase());
 
@@ -147,26 +149,29 @@ export default function StrategyButtons() {
   const qc = useQueryClient();
   const [exNote, setExNote] = useState<{ key: string; text: string } | null>(null);
   const saved = useSaveAlert();
+  const [lesserOpen, setLesserOpen] = useState(false);
   const q = useQuery({ queryKey: ["strategies"], queryFn: () => api<StrategiesResp>("/api/strategies"), refetchInterval: 30000 });
   const toggle = useMutation({
     mutationFn: async (s: Strat) => {
       const mine = choiceOf(s.key);
       const off: string[] = [];
+      const offName = (c: string) => c === "main" ? "NOISE + CANDACE" : c === "order_flow" || c === "ai_duo" ? choiceTitle(c) : (q.data?.strategies ?? []).find((x) => x.enabled && choiceOf(x.key) === c)?.name.split(" — ")[0] ?? choiceTitle(c);
       let turnedOff: string[] = [];
       if (!s.enabled && mine) {
         const others = new Set((q.data?.strategies ?? []).filter((x) => x.enabled && choiceOf(x.key) && choiceOf(x.key) !== mine).map((x) => choiceOf(x.key)!));
         others.forEach((c) => off.push(...settingsOfChoice(c)));
-        turnedOff = [...others].map(choiceTitle);
+        turnedOff = [...others].map((c) => offName(c));
       }
       const pair = !s.enabled && mine === "main" ? ["strategy.noise", "strategy.candace_ict"] : [];
       const on = s.enabled ? {} : Object.fromEntries([...(s.also ?? []).filter((k) => !mine || s.key === "noise_ai_split" || choiceOf(k.replace(/^strategy\./, "")) === mine), ...pair].map((k) => [k, true]));
-      const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on };
+      const mainOff = s.enabled && mine === "main" && MAIN_PAIR.includes(s.key) ? Object.fromEntries(MAIN_SETTINGS.map((k) => [k, false])) : {}; // one choice: never a half-on state
+      const changes = { ...Object.fromEntries(off.filter((k) => k !== s.setting && !(k in on)).map((k) => [k, false])), [s.setting]: !s.enabled, ...on, ...mainOff };
       await api("/api/risk/settings", { method: "PUT", body: JSON.stringify({ changes, note: `Strategy button: ${s.key} ${s.enabled ? "off" : "on"}` }) });
       return turnedOff; // D167 note: only after the server accepted the save
     },
     onSuccess: (turnedOff, s) => {
       saved.ok();
-      setExNote(turnedOff.length ? { key: s.key, text: `${s.name} is now the only strategy ON — turned off: ${turnedOff.join(", ")}.` } : null);
+      setExNote(turnedOff.length ? { key: MAIN_PAIR.includes(s.key) ? "main" : s.key, text: `${MAIN_PAIR.includes(s.key) ? "NOISE + CANDACE" : s.name} is now the only strategy ON — turned off: ${turnedOff.join(", ")}.` } : null);
     },
     onError: (e, s) => { setExNote(null); saved.fail(s.name, e); },
     onSettled: () => void qc.invalidateQueries({ queryKey: ["strategies"] }),
@@ -214,13 +219,21 @@ export default function StrategyButtons() {
   const isFlow = (k: string) => k.startsWith("order_flow");
   const mainS = MAIN.map((k) => d.strategies.find((s) => s.key === k)).filter((s): s is Strat => !!s);
   const flowS = d.strategies.filter((s) => isFlow(s.key));
+  const mainOn = mainS.some((x) => x.enabled);
+  const mainPartial = mainOn && mainS.some((x) => !x.enabled);
+  // one choice: ON turns NOISE + CANDACE both ON (and the other choices off); OFF turns both OFF. A half-on state is re-set to both ON.
+  const clickMain = () => {
+    const noise = mainS.find((x) => x.key === "noise") ?? mainS[0];
+    if (noise) toggle.mutate(mainOn && !mainPartial ? { ...noise, enabled: true } : { ...noise, enabled: false });
+  };
   const lesserS = d.strategies.filter((s) => !MAIN.includes(s.key) && !isFlow(s.key));
+  const lesserOn = lesserS.filter((x) => x.enabled).map((x) => x.name.split(" — ")[0] ?? x.name);
   const allToggles = d.toggles ?? [];
   const fastPass = allToggles.filter((t) => t.key.startsWith("fast_pass_"));
   const otherToggles = allToggles.filter((t) => !t.key.startsWith("fast_pass_"));
-  const stratCard = (s: Strat) => (
-    <div key={s.key} className="rounded-lg border border-border p-3" data-testid={`strategy-${s.key}`}>
-      <button
+  const stratCard = (s: Strat, bare = false) => (
+    <div key={s.key} className={bare ? "rounded-lg border border-border p-3" : "rounded-lg border border-border p-3"} data-testid={`strategy-${s.key}`}>
+      {bare ? <h4 className="font-semibold text-gold">{s.name}</h4> : <button
         type="button"
         aria-pressed={s.enabled}
         disabled={toggle.isPending}
@@ -228,7 +241,7 @@ export default function StrategyButtons() {
         className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${s.enabled ? "border-gold text-gold" : "border-blue text-blue"} disabled:opacity-50`}
       >
         {s.enabled ? "ON" : "OFF"} · {s.name}
-      </button>
+      </button>}
       <p className="mt-2 text-xs"><span aria-hidden style={{ color: s.verified ? badge.ok : badge.bad }}>●</span> <b className="text-gold">{s.status}</b> <span className="text-blue">{s.period}</span></p>
       <dl className="mt-2 grid grid-cols-2 gap-x-2 text-sm">
         <dt>Win rate</dt><dd className="text-gold" data-testid={`win-${s.key}`}>{pct(s.win_pct)}</dd>
@@ -346,7 +359,7 @@ export default function StrategyButtons() {
           </MoreInfo>
         </div>
       )}
-      {exNote?.key === s.key && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote.text}</p>}
+      {exNote?.key === s.key && !bare && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote.text}</p>}
       {s.key === "noise" && !w.ready && (
         <p className="mt-1 text-xs text-gold" data-testid="noise-warmup">Warm-up: {w.sessions}/{w.needed} sessions of TradingView 1-minute MNQ bars stored — NOISE starts trading after that.</p>
       )}
@@ -400,7 +413,27 @@ export default function StrategyButtons() {
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">
           <h3 className="text-lg font-bold text-gold">MAIN strategy — NOISE + CANDACE</h3>
-          <div className="mt-2 grid gap-3 lg:grid-cols-3">{mainS.map(stratCard)}</div>
+          <div role="radiogroup" aria-label="Main strategy choice" className="mt-2" data-testid="strategy-main-choice">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mainOn}
+              disabled={toggle.isPending || mainS.length === 0}
+              onClick={() => clickMain()}
+              data-testid="main-choice-radio"
+              className={`w-full rounded-md border px-3 py-2 text-left font-semibold ${mainOn ? "pick-in-use border-gold bg-gold/10 text-gold" : "border-blue text-blue"} disabled:opacity-50`}
+            >
+              {mainOn ? "✓ ON" : "OFF"} · NOISE + CANDACE <span className="text-xs font-normal">(one choice — both run together)</span>
+            </button>
+            {mainPartial && (
+              <p className="mt-1 text-xs text-goldLight" data-testid="main-choice-partial">
+                {mainS.filter((x) => !x.enabled).map((x) => x.key === "candace_ict" ? "CANDACE" : "NOISE").join(" + ")} is off in your settings. Press the button above to run both.
+              </p>
+            )}
+            <p className="mt-1 text-xs text-blue" data-testid="main-choice-hint">Only one choice can be ON at a time: turning this on turns off every other strategy below; turning it off turns off NOISE and CANDACE together.</p>
+            {exNote?.key === "main" && <p className="mt-2 rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note">{exNote.text}</p>}
+            <div className="mt-2 grid gap-3 lg:grid-cols-3">{mainS.map((s) => stratCard(s, true))}</div>
+          </div>
           {fastPass.length > 0 && (
             <div className="mt-3" data-testid="strategy-fast-pass">
               <h4 className="font-semibold text-gold">NOISE fast-pass sizes (evaluations)</h4>
@@ -411,12 +444,16 @@ export default function StrategyButtons() {
         </div>
         <div data-testid="strategy-order-flow-group">
           <h3 className="text-lg font-bold text-gold">SECONDARY strategy — ORDER FLOW (AR Model + options, UNVERIFIED)</h3>
-          <div className="mt-2 grid gap-3 lg:grid-cols-3">{flowS.map(stratCard)}</div>
+          <div className="mt-2 grid gap-3 lg:grid-cols-3">{flowS.map((s) => stratCard(s))}</div>
         </div>
-        <details className="rounded-lg border border-border p-3" data-testid="lesser-strategies">
-          <summary className="more-info-btn inline-flex cursor-pointer select-none items-center gap-1 rounded-md border border-blue px-2 py-0.5 font-semibold text-blue">Lesser strategies</summary>
-          <div className="mt-3 grid gap-3 lg:grid-cols-3">{lesserS.map(stratCard)}</div>
+        <details className="rounded-lg border border-border p-3" data-testid="lesser-strategies" onToggle={(e) => setLesserOpen((e.currentTarget as HTMLDetailsElement).open)}>
+          <summary className="more-info-btn inline-flex cursor-pointer select-none items-center gap-1 rounded-md border border-blue px-2 py-0.5 font-semibold text-blue" data-testid="lesser-summary">Lesser strategies ({lesserS.length}) · {lesserOn.length ? `${lesserOn.join(", ")} ON` : "none ON"}</summary>
+          <p className="mt-2 text-xs text-blue" data-testid="lesser-hint">Only one choice can be ON at a time: turning one of these on turns off the MAIN choice and every other strategy.</p>
+          <div className="mt-3 grid gap-3 lg:grid-cols-3">{lesserS.map((s) => stratCard(s))}</div>
         </details>
+        {!lesserOpen && exNote && lesserS.some((x) => x.key === exNote.key) && (
+          <p className="rounded border border-gold p-2 text-sm text-gold" role="status" data-testid="exclusive-note-closed">{exNote.text}</p>
+        )}
       </div>
       {otherToggles.length > 0 && (
         <div className="mt-4 grid gap-3 lg:grid-cols-3" data-testid="strategy-toggles">
