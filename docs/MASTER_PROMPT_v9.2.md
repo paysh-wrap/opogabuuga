@@ -217,7 +217,7 @@ def size_contracts(risk_usd, stop_ticks, tick_value, fee_rt, slip_ticks,
 ```
 Stop for the day: 2 consecutive losses | risk + dll_safety_margin > DLL remaining | max_trades_per_day | (EVAL) today's profit ≥ consistency day stop (§11C).
 Pause account: risk_base < $500 (manual review).
-Kill switch: within $100 of MLL or any limit breach → flatten + disarm. With EOD drawdown the MLL is static intraday, but intraday equity touching it is still a breach — distance checked on every P&L update.
+Kill switch: within $50 of MLL on Pro plans (D71) and $100 on Flex/Daily (`internal.kill_switch_mll_distance`), or any limit breach → flatten + disarm. With EOD drawdown the MLL is static intraday, but intraday equity touching it is still a breach — distance checked on every P&L update.
 Pre-trade checks (logged with values): selected/armed/connected/mode; window/news; cooldown; size; worst case vs min(DLL remaining, MLL distance); internal stop; hedge lock; 1 open position; eval consistency cap; payout pending; external-positions attestation; active risk profile (STANDARD/EVALUATION).
 Rapid-trade metric: % of profit from trades held ≤5 s; warn at 20% (firm limit 50%, VERIFY); strategy exits wait 6 s.
 

@@ -53,7 +53,7 @@ stop = invalid − sign×buffer, tick-rounded away from entry; skip STOP_INVALID
 - Force floor: losses_today>0 | today_net_r ≥ 2R | dd_from_peak_base ≥ 20% | in warmup | after 4 consecutive losses (until 2 wins).
 - size_contracts: per = stop_ticks×tick_value + fee_rt + slip_ticks×tick_value; n = min(risk//per, firm_max, internal_max); < min_qty → STOP_TOO_WIDE.
 - Day stop: 2 consecutive losses | risk + margin > DLL remaining | max trades | (EVAL) today's profit ≥ consistency day stop.
-- Pause account: risk_base < $500. Kill switch: within $100 of MLL or any breach (checked every P&L update, incl. intraday on EOD accounts).
+- Pause account: risk_base < $500. Kill switch: within $50 of MLL on Pro plans (D71; `internal.kill_switch_mll_distance` 50 in lucid_pro_{25k,50k,100k,150k}.yaml) and $100 on Flex/Daily (rule files), or any breach (checked every P&L update, incl. intraday on EOD accounts).
 - Hold rule (D8): app-initiated exits wait ≥ 6 s; protective exits (stop, TP leg, kill switch, breach, news, flat) never wait. Warn at 20% of profit from ≤ 5 s holds (Lucid limit 50%).
 
 ## Phase engine + MLL (§10)
