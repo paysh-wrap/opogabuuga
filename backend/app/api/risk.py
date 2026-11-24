@@ -13,6 +13,7 @@ from app.api.deps import Principal, current_user, get_db
 from app.models import Account, RiskProfile, RuleProfile
 from app.payouts.service import consistency_view
 from app.phases.phase_engine import stage_rules
+from app.risk import household
 from app.risk import settings_store as ss
 from app.risk.eval_mode import eval_mode_effective
 from app.risk.fast_eval import fast_eval_effective
@@ -316,8 +317,14 @@ def list_accounts(
 ) -> dict[str, Any]:
     h = request.app.state.rules
     on = h.eval_mode_on
-    rows = db.execute(select(Account).order_by(Account.priority, Account.id)).scalars()
+    rows = list(db.execute(select(Account).order_by(Account.priority, Account.id)).scalars())
+    lim = household.load_limits()
+    real = [(a.stage, a.closed_by_firm) for a in rows if not a.is_sim]
     return {
+        "household": {  # CONFIRMED limits (config/household.yaml): counts are real Lucid accounts, not closed by the firm
+            "max_active_funded": lim.max_active_funded, "max_active_live": lim.max_active_live,
+            "max_total": lim.max_total_real, "status": lim.status, "source": lim.source, "active": household.counts(real),
+        },
         "active_plan": h.plan,  # D168: the plan the Risk page edits
         "plans": list_plans(request, _)["plans"],  # D168: dropdown options (files in config/rules)
         "accounts": [

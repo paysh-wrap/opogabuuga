@@ -1,0 +1,10 @@
+# Lucid household limits. Plan-independent, loaded by app/risk/household.py (nothing is hard-coded in the app).
+# CONFIRMED - source: Lucid help center, user screenshot 2026-11-24.
+#   (A) up to 5 active FUNDED accounts per household, all funded plan types combined (3 LucidDirect => only 2 LucidPro);
+#       up to 5 active LucidLive accounts per household. Evaluation accounts are NOT counted by these two limits.
+max_active_funded: 5
+max_active_live: 5
+# Existing limit (VERIFY, kept): evaluation + funded + live accounts in total.
+max_total_real: 10
+status: CONFIRMED
+source: "Lucid help center, user screenshot 2026-11-24"

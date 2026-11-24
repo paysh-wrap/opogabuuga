@@ -17,8 +17,8 @@ class Candidate:
 
 
 def select(cands: list[Candidate], n: int, any_live: bool) -> list[Candidate]:
-    """Priority order, max N (1–5). If any household account is LIVE, sim accounts are blocked (§10)."""
-    n = max(1, min(5, n))
+    """Priority order, max N (1–10: up to 5 funded + 5 live). If any household account is LIVE, sim accounts are blocked (§10)."""
+    n = max(1, min(10, n))
     ok = [c for c in cands if c.selected and c.armed and not c.paused and not (any_live and c.sim)]
     return sorted(ok, key=lambda c: (c.priority, c.id))[:n]
 

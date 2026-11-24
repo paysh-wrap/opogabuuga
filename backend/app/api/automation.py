@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.api.deps import Principal, current_user, get_db
 from app.automation import state as stt
+from app.risk import household
 from app.automation.preflight import PreflightInput
 from app.automation.preflight import run as run_preflight
 from app.clock import session_date
@@ -184,15 +185,11 @@ def create_account(
 ) -> dict[str, Any]:
     if body.stage not in ("EVAL", "FUNDED", "LIVE") or body.drawdown_type not in (None, "eod", "intraday"):
         raise HTTPException(422, "stage EVAL/FUNDED/LIVE and drawdown eod/intraday")
-    beh = request.app.state.rules.rules.behavior
     real = [a for a in db.execute(select(Account).where(Account.is_sim.is_(False))).scalars()]
-    if body.tradovate_account:  # Lucid household limits apply to real Lucid accounts (11404617)
-        if len(real) >= beh.max_total_accounts:
-            raise HTTPException(409, f"Lucid allows at most {beh.max_total_accounts} evaluation + funded accounts")
-        if body.stage == "FUNDED" and sum(a.stage == "FUNDED" for a in real) >= beh.max_funded_per_household:
-            raise HTTPException(409, f"Lucid allows at most {beh.max_funded_per_household} funded accounts")
-        if body.stage == "LIVE" and sum(a.stage == "LIVE" for a in real) >= 5:
-            raise HTTPException(409, "Lucid allows at most 5 live accounts")
+    if body.tradovate_account:  # Lucid household limits (config/household.yaml, CONFIRMED) apply to real Lucid accounts
+        why = household.refusal(household.load_limits(), body.stage, [(a.stage, a.closed_by_firm) for a in real])
+        if why:
+            raise HTTPException(409, why)
     h = request.app.state.rules
     plan = _check_plan(body.plan)
     from app.risk.account_plan import resolve_plan
@@ -322,7 +319,7 @@ async def patch_account(
 
 
 class SelectionIn(BaseModel):
-    count: int = Field(ge=1, le=5)
+    count: int = Field(ge=1, le=10)
     order: list[int] = Field(default_factory=list)
 
 

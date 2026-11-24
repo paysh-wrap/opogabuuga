@@ -29,6 +29,7 @@ interface Acct {
   plan_explicit?: string | null;
   plan_error?: string | null;
 }
+interface Household { max_active_funded: number; max_active_live: number; max_total: number; status: string; source: string; active: { FUNDED: number; LIVE: number; EVAL: number } }
 interface PlanOpt { id: string; title: string }
 interface Dash { accounts: { id: number; idle_days?: number; never_traded?: boolean; idle_alert_days?: number; cushion?: CushionView | null }[] }
 
@@ -39,7 +40,7 @@ export default function Accounts() {
   usePageTitle("Accounts");
   const qc = useQueryClient();
   const [err, setErr] = useState("");
-  const q = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[]; plans?: PlanOpt[]; active_plan?: string }>("/api/accounts"), refetchInterval: 15000 });
+  const q = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[]; plans?: PlanOpt[]; active_plan?: string; household?: Household }>("/api/accounts"), refetchInterval: 15000 });
   const dash = useQuery({ queryKey: ["dashboard"], queryFn: () => api<Dash>("/api/dashboard"), refetchInterval: 30000 });
   const logs = useQuery({ queryKey: ["account-history"], queryFn: () => api<{ logs: { id: number; at: string; actor: string; action: string; entity: string; payload: unknown }[] }>("/api/logs?limit=500"), staleTime: 30_000 });
   const run = useMutation({
@@ -75,7 +76,7 @@ export default function Accounts() {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span data-testid="trading-n">Trading <b className="text-gold">{trading} of {list.length}</b></span>
           <span className="inline-flex gap-1" role="group" aria-label="Accounts to trade">
-            {[1, 2, 3, 4, 5].map((n) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
               <button key={n} data-testid={`sel-${n}`} disabled={run.isPending || list.length === 0}
                 className={`${btn} ${trading === n ? "border-gold bg-gold/15 text-gold" : "border-blue text-blue"}`}
                 onClick={() => select(n)}>{n}</button>
@@ -83,6 +84,9 @@ export default function Accounts() {
           </span>
           <a href={LUCID_URL} target="_blank" rel="noreferrer" className="ml-auto text-blue underline">Open Lucid dashboard ↗</a>
         </div>
+        {q.data?.household && (
+          <p className="mt-2 text-xs" data-testid="household-limits">Household (Lucid, {q.data.household.status}, {q.data.household.source}): funded {q.data.household.active.FUNDED} of {q.data.household.max_active_funded} (all funded plan types combined) · live {q.data.household.active.LIVE} of {q.data.household.max_active_live} · evaluation {q.data.household.active.EVAL} (not counted by those two) · up to {q.data.household.max_total} accounts in all. A 6th funded or live account is refused.</p>
+        )}
         <p className="mt-2 text-xs">The first N accounts in priority order are selected. An account trades only if selected AND armed AND passing every check.
           {trading > 1 && ` ${trading} accounts on one signal = ${trading}× correlated exposure.`}</p>
       </section>

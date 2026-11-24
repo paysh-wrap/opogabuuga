@@ -15,7 +15,7 @@ function mock(calls: string[], attested = false) {
       approvals: [{ signal_id: 9, expires: "2026-11-06T15:00:00+00:00" }] });
     if (u === "/api/automation/preflight") return j({ ok: false, checks: [{ check: "attested", ok: false, detail: "not attested" }] });
     if (u === "/api/positions") return j({ accounts: [{ account_id: 1, label: "E1", balance: "25000", open_pnl: "-12.5", mll: "24000", positions: [{ symbol: "MNQ", qty: -2, avg: "20000", exit_pending: "NOISE_TRAIL" }] }] });
-    if (u === "/api/accounts") return j({ accounts: [
+    if (u === "/api/accounts") return j({ household: { max_active_funded: 5, max_active_live: 5, max_total: 10, status: "CONFIRMED", source: "Lucid help center, user screenshot 2026-11-24", active: { FUNDED: 2, LIVE: 1, EVAL: 3 } }, accounts: [
       { id: 1, broker_account_id: "P1", label: "E1", stage: "EVAL", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: true, priority: 0, mll_locked: false, paused_reason: null, mode_override: "inherit", consistency_pct: "40", plan: "lucid_pro_25k", plan_explicit: null },
       { id: 2, broker_account_id: "P2", label: "F1", stage: "FUNDED", paper: true, drawdown_type: "eod", drawdown_check: null, dll_enabled: true, eval_mode: "inherit", eval_mode_effective: false, armed: false, selected: false, priority: 1, mll_locked: false, paused_reason: null, plan: "lucid_pro_150k", plan_explicit: "lucid_pro_150k", plan_error: "rule plan 'lucid_pro_150k' not found" }],
       active_plan: "lucid_pro_25k", plans: [{ id: "lucid_pro_25k", title: "25K" }, { id: "lucid_pro_150k", title: "150K" }] });
@@ -75,6 +75,9 @@ test("Accounts: selector, priority, drawdown, eval override (EVAL only), inactiv
   expect(await screen.findByTestId("idle-1")).toHaveTextContent("inactivity alert");
   expect(screen.getByTestId("eval-1")).toBeInTheDocument();
   expect(screen.queryByTestId("eval-2")).toBeNull();
+  expect(screen.getByTestId("household-limits")).toHaveTextContent("funded 2 of 5");
+  expect(screen.getByTestId("household-limits")).toHaveTextContent("live 1 of 5");
+  expect(screen.getByTestId("sel-10")).toBeInTheDocument();
   await userEvent.click(screen.getByTestId("sel-2"));
   expect(calls).toContain('PUT /api/accounts/selection {"count":2,"order":[]}');
   await userEvent.click(screen.getByRole("button", { name: "Move E1 down" }));

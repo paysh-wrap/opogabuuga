@@ -1741,7 +1741,7 @@ class AutoResume(_M):
 
 class AutomationCfg(_M):
     default_mode: Literal["OFF", "SEMI", "FULL"]
-    accounts_to_trade: int = Field(ge=1, le=5)
+    accounts_to_trade: int = Field(ge=1, le=10)  # household = up to 5 funded + 5 live (config/household.yaml)
     selection_mode: Literal["priority", "manual"]
     semi_auto_sessions_per_stage: int
     auto_arm_new_accounts: bool

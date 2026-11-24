@@ -174,7 +174,7 @@ def test_lucid_account_limits(authed):
         r = authed.post("/api/accounts", json={"label": f"F{i}", "stage": "FUNDED", "tradovate_account": f"LT{i}"})
         assert r.status_code == 200, r.text
     r = authed.post("/api/accounts", json={"label": "F6", "stage": "FUNDED", "tradovate_account": "LT6"})
-    assert r.status_code == 409 and "5 funded" in r.text
+    assert r.status_code == 409 and "5 active funded" in r.text
     for i in range(5):
         authed.post("/api/accounts", json={"label": f"E{i}", "stage": "EVAL", "tradovate_account": f"LE{i}"})
     r = authed.post("/api/accounts", json={"label": "E9", "stage": "EVAL", "tradovate_account": "LE9"})
