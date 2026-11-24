@@ -27,6 +27,7 @@ function Gauge({ value, max, label }: { value: number; max: number; label: strin
       <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke={mission.navOn} strokeWidth="16" strokeLinecap="round" />
       <path d="M25 125 A85 85 0 0 1 195 125" fill="none" stroke="url(#mission-g)" strokeWidth="16" strokeLinecap="round"
         pathLength={100} strokeDasharray={`${pct} 100`} />
+      <g className="lx-needle" style={{ transform: `rotate(${-90 + 1.8 * pct}deg)` }}><line x1="110" y1="30" x2="110" y2="52" stroke={theme.goldLight} strokeWidth="3" strokeLinecap="round" /></g>
       <text x="110" y="100" textAnchor="middle" fill={theme.goldLight} fontSize="32" fontWeight="700" className="mission-num-svg"><Num n={value} fmt={money} /></text>
       <text x="110" y="120" textAnchor="middle" fill={theme.blueLight} fontSize="10" className="mission-mono-svg">OF {money(max)}</text>
     </svg>

@@ -1,0 +1,11 @@
+# D179: CME equity-index early closes (ET). THIRD-PARTY dates, UNVERIFIED (check the CME holiday calendar); editable.
+# On a listed day: no new entries from (close - no_entry_before_min), every open position is flattened at
+# (close - flatten_before_min). A date that is missing changes nothing. "closed" days take no entries at all.
+unverified: true
+no_entry_before_min: 45
+flatten_before_min: 20
+days:
+  "2026-11-26": {close_et: "13:00", note: "Thanksgiving, equity halt 12:00 CT"}
+  "2026-11-27": {close_et: "13:15", note: "day after Thanksgiving, equity index early close"}
+  "2026-12-24": {close_et: "13:15", note: "Christmas Eve, equity index early close"}
+  "2026-12-25": {close_et: "closed", note: "Christmas Day, CME closed"}

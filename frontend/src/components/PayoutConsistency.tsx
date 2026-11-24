@@ -1,3 +1,4 @@
+import { Ring } from "./Ring";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 
@@ -10,7 +11,9 @@ export interface PayoutConsistencyView {
 /** Gold VERIFY badge while the purchase / reset date is unknown (the stricter limit is used until it is entered). */
 export function PayoutConsistencyNote({ v, id }: { v: PayoutConsistencyView; id: number | string }) {
   return (
-    <div data-testid={`pcons-${id}`} className="text-sm">
+    <div data-testid={`pcons-${id}`} className="flex items-start gap-3 text-sm">
+      {v.pct != null && Number(v.limit) > 0 && <Ring pct={(100 * Number(v.pct)) / Number(v.limit)} label="Largest day vs consistency limit" />}
+      <div>
       <p>
         <span className={`mr-2 rounded border px-1.5 text-[11px] font-semibold ${v.eligible ? "border-blue text-blueLight" : "border-gold text-gold"}`}>
           {v.eligible ? "✔ PAYOUT CONSISTENCY MET" : "PAYOUT CONSISTENCY NOT MET"}
@@ -20,6 +23,7 @@ export function PayoutConsistencyNote({ v, id }: { v: PayoutConsistencyView; id:
       </p>
       <p className="mt-0.5 text-xs">{v.text}</p>
       {v.verify && <p className="mt-0.5 text-xs text-goldLight">{v.verify}</p>}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,84 @@
+/* ---------- Fancy layer 2026-11-24 (final polish). Loaded after luxe.css. Theme tokens only; paint/transform-only; off under reduced motion. ---------- */
+@property --fx-a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+:root { --fx-gold: 212, 175, 55; --fx-blue: 59, 130, 246; }
+
+/* animated gold gradient border: active strategy card + Now-running strip (mask ring, no layout change) */
+.mission main :is(section, article, div).bg-card.border-gold:not([role="alert"]), .mission main [data-testid="now-running"].bg-card:not([role="alert"]) { position: relative; }
+.mission main :is(section, article).bg-card.border-gold:not([role="alert"])::before, .mission main div[data-testid="now-running"]::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; z-index: 1;
+  background: conic-gradient(from var(--fx-a), rgba(var(--fx-gold), .95), rgba(var(--fx-blue), .35) 30%, rgba(var(--fx-gold), .95) 55%, rgba(var(--fx-blue), .35) 80%, rgba(var(--fx-gold), .95));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: fx-spin 8s linear infinite;
+}
+@keyframes fx-spin { to { --fx-a: 360deg; } }
+
+/* glass depth: layered shadows + hover lift on cards, glass modals */
+.mission main :is(section, article).bg-card {
+  box-shadow: inset 0 1px 0 rgba(var(--fx-gold), .22), inset 0 0 24px rgba(var(--fx-blue), .05), 0 1px 2px rgba(0,0,0,.3), 0 6px 14px rgba(0,0,0,.22), 0 18px 36px -12px rgba(0,0,0,.4);
+  transition: transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease;
+}
+@media (hover: hover) { .mission main :is(section, article).bg-card:hover { transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(var(--fx-gold), .3), 0 2px 4px rgba(0,0,0,.3), 0 12px 24px rgba(0,0,0,.3), 0 28px 48px -14px rgba(0,0,0,.5); } }
+.mission [role="dialog"], .mission dialog { backdrop-filter: blur(14px) saturate(1.2); box-shadow: 0 2px 4px rgba(0,0,0,.4), 0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(var(--fx-gold), .25); animation: fx-pop .22s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes fx-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* sticky header: blur + gold underline that slides between nav items */
+.mission .app-chrome { backdrop-filter: blur(12px) saturate(1.15); background: rgba(8, 13, 28, .78); border-bottom: 1px solid rgba(var(--fx-gold), .18); }
+.mission nav[aria-label="Main"] { position: relative; }
+.mission nav[aria-label="Main"] .nav-ink { position: absolute; left: 0; top: 0; height: 2px; border-radius: 2px; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, rgb(var(--fx-gold)), #F2D27A); box-shadow: 0 0 10px rgba(var(--fx-gold), .6);
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), width .35s cubic-bezier(.2,.7,.2,1), opacity .2s; }
+
+/* gauge needle + rings */
+.lx-needle { transform-origin: 110px 125px; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+.lx-ring { flex: none; filter: drop-shadow(0 0 5px rgba(var(--fx-gold), .3)); }
+.lx-ring circle + circle { transition: stroke-dasharray .9s cubic-bezier(.2,.7,.2,1); }
+.lx-spark { display: block; margin-top: .4rem; }
+
+/* chips / badges micro-interaction */
+.mission main :is(span.rounded.border, span.rounded-full.border) { transition: transform .15s ease, box-shadow .2s ease; }
+.mission main :is(span.rounded.border, span.rounded-full.border):hover { transform: translateY(-1px); box-shadow: 0 2px 10px rgba(var(--fx-gold), .2); }
+
+/* smooth details/accordion */
+.mission main details > summary { cursor: pointer; transition: background-color .2s ease; }
+.mission main details[open] > *:not(summary) { animation: fx-open .25s ease-out both; }
+@keyframes fx-open { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* toast-style entrance for alerts */
+.mission main [role="alert"] { animation: fx-toast .35s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes fx-toast { from { opacity: 0; transform: translateY(-8px) scale(.985); } to { opacity: 1; transform: none; } }
+
+/* empty states: gold glyph on tile sub-lines with no data */
+.mission main .tile-sub:only-of-type:not(:has(b)):not(:has(a))::before { content: "◇"; color: #F2D27A; margin-right: .4rem; text-shadow: 0 0 8px rgba(var(--fx-gold), .5); }
+
+/* pressed state for all buttons, KILL SWITCH stays the loudest header control */
+.mission button:not(:disabled):active { transform: translateY(1px) scale(.985); }
+.mission header button.kill-switch { box-shadow: 0 0 0 2px rgba(var(--fx-gold), .35), 0 0 20px rgba(var(--fx-gold), .45), 0 4px 12px rgba(0,0,0,.5); }
+
+/* scrollbar + selection */
+.mission { scrollbar-color: #2F4585 #080D1C; scrollbar-width: thin; }
+.mission ::-webkit-scrollbar { width: 10px; height: 10px; }
+.mission ::-webkit-scrollbar-thumb { background: #2F4585; border-radius: 8px; border: 2px solid #080D1C; }
+.mission ::-webkit-scrollbar-thumb:hover { background: #D4AF37; }
+.mission ::selection { background: rgba(var(--fx-gold), .35); color: #fff; }
+
+/* page-load stagger for grid children */
+.mission-bento > * { animation: lx-in .3s cubic-bezier(.2,.7,.2,1) both; }
+.mission-bento > :nth-child(2) { animation-delay: 40ms; } .mission-bento > :nth-child(3) { animation-delay: 80ms; }
+.mission-bento > :nth-child(4) { animation-delay: 120ms; } .mission-bento > :nth-child(n+5) { animation-delay: 160ms; }
+
+[data-fx-tilt], [data-fx-mag] { transition: transform .18s ease-out; will-change: transform; }
+/* ring + gauge arc draw-in */
+.lx-ring circle + circle, .mission-bento svg path[pathLength] { animation: fx-draw 1s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes fx-draw { from { stroke-dasharray: 0 100; } }
+/* skeleton shimmer for loading status lines */
+.mission main p[role="status"] { background: linear-gradient(90deg, transparent, rgba(var(--fx-gold), .12), transparent) 0 0 / 200% 100% no-repeat; animation: fx-shim 1.4s linear infinite; border-radius: 6px; }
+@keyframes fx-shim { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .lx-ring circle + circle, .mission-bento svg path[pathLength], .mission main p[role="status"] { animation: none !important; }
+  .mission main :is(section, article).bg-card::before, .mission main div[data-testid="now-running"]::before { animation: none !important; }
+  .mission main :is(section, article).bg-card, .mission main :is(section, article).bg-card:hover, .lx-needle, .lx-ring circle,
+  .mission nav[aria-label="Main"] .nav-ink, .mission main :is(span.rounded.border, span.rounded-full.border), .mission [role="dialog"], .mission dialog,
+  .mission main details[open] > *, .mission main [role="alert"], .mission-bento > * { animation: none !important; transition: none !important; transform: none !important; }
+  .mission button:active { transform: none !important; }
+}

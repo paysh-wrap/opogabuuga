@@ -23,6 +23,7 @@ from app.automation.account_selector import Candidate
 from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
 from app.clock import Clock, parse_hhmm, session_date, to_et
+from app.early_close import table as early_table
 from app.engine.filters import news_flatten_due
 from app.engine.jj_fpt import contracts_for as jj_contracts
 from app.engine.jj_fpt import trade_risk_usd as jj_trade_risk
@@ -57,6 +58,8 @@ from app.risk.cushion import (
     cushion_level,
     cushion_share,
 )
+from app.risk.early_close import entries_blocked as early_entries_blocked
+from app.risk.early_close import flatten_due
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
 from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limits, quality_day_block
@@ -1765,10 +1768,12 @@ class Controller:
         flatten is retried; failing at the hard flat pauses the account (never auto-resumes) + banner (§1.8)."""
         r = self.rules.rules
         t = to_et(self.clock.now()).time()
-        if not parse_hhmm(r.internal.auto_flatten) <= t < parse_hhmm(r.session.reopen):
+        early = flatten_due(early_table(), to_et(self.clock.now()).date(), t)  # D179: before the early-close halt
+        if not early and not parse_hhmm(r.internal.auto_flatten) <= t < parse_hhmm(r.session.reopen):
             return None
-        hard = t >= parse_hhmm(r.internal.hard_flat)
-        reason = "HARD_FLAT" if hard else "FLAT_TIME"
+        hard = not early and t >= parse_hhmm(r.internal.hard_flat)
+        early = early and not parse_hhmm(r.internal.auto_flatten) <= t
+        reason = "HARD_FLAT" if hard else "EARLY_CLOSE" if early else "FLAT_TIME"
         hit = None
         async with self.lock:
             with self.sessionmaker() as s:
@@ -2152,4 +2157,6 @@ class Controller:
     def entries_blocked_by_time(self) -> bool:
         r = self.rules.rules
         t = to_et(self.clock.now()).time()
+        if early_entries_blocked(early_table(), to_et(self.clock.now()).date(), t):
+            return True  # D179
         return parse_hhmm(r.internal.auto_flatten) <= t < parse_hhmm(r.session.reopen)

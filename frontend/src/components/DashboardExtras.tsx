@@ -1,3 +1,4 @@
+import { Ring } from "./Ring";
 import { money } from "../lib/money";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -68,12 +69,15 @@ export function EvalPaceCard({ id }: { id: number }) {
   if (q.error || !q.data) return <p role="alert" className="text-xs text-goldLight">⚠ Eval pace unavailable{q.error instanceof ApiError ? `: ${q.error.message}` : ""}</p>;
   const p = q.data;
   return (
-    <div className="mt-3 rounded-lg border border-border p-2 text-xs" data-testid={`pace-${id}`}>
+    <div className="mt-3 flex items-start gap-3 rounded-lg border border-border p-2 text-xs" data-testid={`pace-${id}`}>
+      {Number(p.target) > 0 && <Ring pct={(100 * Number(p.profit)) / Number(p.target)} label="Progress to eval target" />}
+      <div>
       <b className="text-gold">Eval pace</b> · profit {signedUsd(Number(p.profit))} of {usd(p.target)} (left {usd(p.target_left)})
       · profitable days <b className="text-gold">{p.profitable_days}/{p.min_profitable_days}</b> · sessions {p.sessions_used} (target {p.target_sessions}, max {p.max_sessions})
       {p.consistency_cap && (
         <span data-testid={`headroom-${id}`}> · {p.consistency_pct}% consistency: largest day {usd(p.largest_day)} of cap {usd(p.consistency_cap)} → headroom <b className="text-gold">{usd(p.consistency_headroom)}</b> (day stop {usd(p.consistency_day_stop)})</span>
       )}
+      </div>
     </div>
   );
 }

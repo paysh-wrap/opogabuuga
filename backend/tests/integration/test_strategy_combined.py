@@ -179,3 +179,13 @@ def test_combined_never_two_positions_or_opposite_directions(authed, clock):
         per_acct[t.account] = per_acct.get(t.account, 0) + 1
         assert t.d is Direction.LONG
     assert max(per_acct.values()) == 1
+
+
+def test_leftover_ar_switch_cannot_make_main_plus_plain_order_flow_legal(authed):
+    """The combined choice must be picked explicitly: a stored ar_side_by_side=True from earlier never turns
+    'plain Order Flow' + 'turn MAIN on' into the combined choice."""
+    _accounts(authed, 2)
+    assert _put(authed, {"strategy.order_flow": True, SBS: True}).status_code == 200  # plain Order Flow + leftover switch
+    assert _on_now(authed) == ["order_flow"]
+    r = _put(authed, MAIN)
+    assert r.status_code == 422 and "only as the combined choice" in str(r.json())

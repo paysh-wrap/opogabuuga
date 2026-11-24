@@ -26,6 +26,7 @@ from app.bias import ta_mgc_research as TR
 from app.bias.policy import LedgerStats, Policy, combine
 from app.clock import ET, Clock, session_date
 from app.config import ADVISED_MODES, CandaceIctCfg, NoiseCfg, RulesConfig
+from app.early_close import table as early_table
 from app.engine import ai_duo as DU
 from app.engine import auction_imre as AU
 from app.engine import bruni_structure as BR
@@ -46,6 +47,7 @@ from app.engine.filters import in_windows, news_block
 from app.engine.trade_plan import Direction
 from app.indicators.bars import Bar as IBar
 from app.models import Bar, BiasDecision, Signal, SignalGate, Trade, TradePlanRow
+from app.risk.early_close import entries_blocked as early_entries_blocked
 from app.signals.service import CalendarProvider, SignalUpdate
 
 HISTORY_CALENDAR_DAYS = 40  # enough for 14 RTH sessions plus holidays / missing days
@@ -108,6 +110,8 @@ def _gate(
     cal = calendar(at.astimezone(ET).date())
     if cal is None:
         return False, "CALENDAR_MISSING", "no calendar data = no trading"
+    if early_entries_blocked(early_table(), at.astimezone(ET).date(), at.astimezone(ET).time()):
+        return False, "EARLY_CLOSE", "early-close day: no new entries from 45 min before the close (D179)"
     # D143: tighten-only — the wider of the EVAL and FUNDED news windows (funded news = hard breach), one gate for both
     firm_after = max(rules.eval.news_breach_min_after, rules.funded.news_breach_min_after)
     after = inst.news_after_min if inst.news_after_min is not None else firm_after
