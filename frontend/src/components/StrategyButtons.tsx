@@ -84,8 +84,7 @@ export interface FastPassRow {
   candace_max_contracts: number | null; brake_inclusive: boolean; day_lock_pct: string | null; late_contracts: number | null; late_steps: FpStep[]; late_on: boolean;
 }
 export interface Combined {
-  key: string; title: string; enabled: boolean; setting: string; settings_on: string[]; eligible_accounts: number; min_accounts: number;
-  can_start: boolean; blocked_reason: string | null; guards: string[];
+  key: string; title: string; enabled: boolean; setting: string; settings_on: string[]; guards: string[];
 }
 export interface AiAdviceResult { symbol: string; status: string; side?: string | null; reason?: string | null; at?: string; advice?: { main?: string; order_flow?: string; all?: string } }
 export interface AiAdvice { label: string; mode: string; session: string; runs: { minutes_before: number; at: string; results: AiAdviceResult[] }[] }
@@ -336,7 +335,7 @@ export default function StrategyButtons() {
       )}
       {s.key === "order_flow" && s.ar_side_by_side && (
         <div className="mt-2 text-xs" data-testid="ar-sbs">
-          <p className="text-blue" data-testid="ar-sbs-state">AR Model beside NOISE is now the separate choice <b className="text-gold">MAIN FAST PASS + ORDER FLOW (separate accounts)</b> above — {s.ar_side_by_side.enabled ? "it is set ON" : "it is OFF"}. Plain Order Flow and plain MAIN never run together.</p>
+          <p className="text-blue" data-testid="ar-sbs-state">AR Model beside NOISE is now the separate choice <b className="text-gold">MAIN FAST PASS + ORDER FLOW (same account)</b> above — {s.ar_side_by_side.enabled ? "it is set ON" : "it is OFF"}. Plain Order Flow and plain MAIN never run together.</p>
           <p className="mt-1 text-blue" data-testid="ar-sbs-source">Data: <b className="text-gold">{s.ar_side_by_side.data_source}</b> · bias runs {s.ar_side_by_side.runs.map((r) => `${runLabel(r.minutes_before)} before (${r.at} ET)`).join(", ")}</p>
           <ul className="mt-1 text-blue" data-testid="ar-sbs-runs">
             {s.ar_side_by_side.runs.map((r) => (
@@ -456,7 +455,7 @@ export default function StrategyButtons() {
       </MoreInfo>
       <SaveAlert error={saved.error} />
       {d.notice && <p role="alert" className="mt-2 rounded border border-gold p-2 text-sm text-gold" data-testid="strategy-notice">⚠ {d.notice}</p>}
-      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The one exception is the separate option MAIN FAST PASS + ORDER FLOW (separate accounts). The fast-pass plans below are independent of each other.</p>
+      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The one exception is the separate option MAIN FAST PASS + ORDER FLOW (same account). The fast-pass plans below are independent of each other.</p>
       <div className="mt-2"><AiAdviceCard advice={d.ai_advice} /></div>
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">
@@ -495,15 +494,12 @@ export default function StrategyButtons() {
           <div className="rounded-lg border border-border p-3" data-testid="combined-choice">
             <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gold">OPTION — {d.combined.title} <EvidenceBadge verified={false} text="OPTION · default OFF · UNVERIFIED" testId="combined-badge" /></h3>
             <button type="button" aria-pressed={d.combined.enabled} data-testid="combined-toggle"
-              disabled={combo.isPending || (!d.combined.enabled && !d.combined.can_start)}
+              disabled={combo.isPending}
               onClick={() => combo.mutate(d.combined!)}
               className={`mt-2 w-full rounded-md border px-3 py-2 text-left font-semibold ${d.combined.enabled ? "toggle-on pick-in-use border-gold bg-gold/10 text-gold" : "toggle-off border-border text-blueLight"} disabled:opacity-50`}>
               {d.combined.enabled ? "✓ ON" : "OFF"} · {d.combined.title}
             </button>
-            {!d.combined.can_start && !d.combined.enabled && (
-              <p role="alert" className="mt-1 text-sm text-gold" data-testid="combined-blocked">Cannot start: {d.combined.blocked_reason}. Nothing else will run instead.</p>
-            )}
-            <p className="mt-1 text-xs text-blue" data-testid="combined-accounts">Eligible accounts: <b className="text-gold">{d.combined.eligible_accounts}</b> (needs {d.combined.min_accounts}+).</p>
+            <p className="mt-1 text-xs text-blue" data-testid="combined-accounts">Same account, same direction only, total contracts within the account cap. One account is enough.</p>
             <ul className="mt-1 list-disc pl-4 text-xs text-blue" data-testid="combined-guards">{d.combined.guards.map((g) => <li key={g}>{g}</li>)}</ul>
           </div>
         )}
@@ -549,6 +545,7 @@ export default function StrategyButtons() {
           <h3 className="font-semibold text-gold">Size per account (automatic by account size, drawdown brake always on)</h3>
           {d.size_profiles.fast_pass_plans && d.size_profiles.fast_pass_plans.length > 0 && <FastPassSizes rows={d.size_profiles.fast_pass_plans} />}
           {d.size_profiles.fast_pass_plans && d.size_profiles.fast_pass_plans.length > 0 && <FastPassStagePanel />}
+          <p className="mt-2 text-xs text-blue" data-testid="size-combined-note">Option MAIN FAST PASS + ORDER FLOW (same account): the main strategy keeps the sizes above; Order Flow adds at most 2 micros on the same account, same direction, and the total never goes above the account cap.</p>
           <h4 className="mt-3 font-semibold text-gold" data-testid="size-fallback-title">Fallback profile: Regular / High risk</h4>
           <p className="text-xs text-blue" data-testid="size-fallback-note">Used for every account that is NOT on a fast-pass plan above: FUNDED and LIVE accounts (unless their Fast Pass switch is ON), EVAL accounts of another size, and any plan whose fast-pass switch is OFF.</p>
           <div className="mt-2 grid gap-3 lg:grid-cols-2">

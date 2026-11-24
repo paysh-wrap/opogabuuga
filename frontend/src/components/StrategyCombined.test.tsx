@@ -6,7 +6,7 @@ import AiAdviceCard from "./AiAdvice";
 import { runningNames } from "./NowRunning";
 
 const st = (key: string, enabled: boolean, extra: Partial<Strat> = {}): Strat => ({ key, name: `${key} name`, source: "", verified: false, status: "", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "", note: "n", enabled, setting: `strategy.${key}`, ...extra });
-const combined = (over = {}) => ({ key: "main_fast_pass_order_flow", title: "MAIN FAST PASS + ORDER FLOW (separate accounts)", enabled: false, setting: "strategy.order_flow_cfg.ar_side_by_side", settings_on: ["strategy.noise", "strategy.candace_ict", "strategy.order_flow", "strategy.order_flow_cfg.ar_side_by_side"], eligible_accounts: 2, min_accounts: 2, can_start: true, blocked_reason: null, guards: ["Order Flow trades only on a DIFFERENT free account than NOISE / CANDACE (one account per trade)."], ...over });
+const combined = (over = {}) => ({ key: "main_fast_pass_order_flow", title: "MAIN FAST PASS + ORDER FLOW (same account)", enabled: false, setting: "strategy.order_flow_cfg.ar_side_by_side", settings_on: ["strategy.noise", "strategy.candace_ict", "strategy.order_flow", "strategy.order_flow_cfg.ar_side_by_side"], guards: ["Same account, same direction only."], ...over });
 const base = (over: Partial<StrategiesResp> = {}): StrategiesResp => ({
   strategies: [st("noise", true), st("candace_ict", true), st("order_flow", false), st("order_flow_zone", false, { setting: "strategy.order_flow_cfg.zone_atr.enabled", disabled: true, off_for_now: "OFF for now" })],
   noise_warmup: { sessions: 10, needed: 10, ready: true }, ai_ledger: [], markets: { MNQ: true },
@@ -30,15 +30,16 @@ test("combined option: labelled option, guards in plain words, turns the 4 setti
   const card = await screen.findByTestId("combined-choice");
   expect(card).toHaveTextContent("OPTION");
   expect(card).toHaveTextContent("default OFF");
-  expect(screen.getByTestId("combined-guards")).toHaveTextContent("DIFFERENT free account");
+  expect(screen.getByTestId("combined-guards")).toHaveTextContent("Same account, same direction only");
   await userEvent.click(screen.getByTestId("combined-toggle"));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.jj_fpt":false') && c.includes('"strategy.order_flow_cfg.ar_side_by_side":true') && c.includes('"strategy.noise":true'))).toBe(true));
 });
 
-test("combined option with fewer than 2 eligible accounts is blocked and says why", async () => {
-  mount(base({ combined: combined({ can_start: false, eligible_accounts: 1, blocked_reason: "needs at least 2 eligible accounts (selected, not paused, not closed); found 1" }) }));
-  expect(await screen.findByTestId("combined-blocked")).toHaveTextContent("found 1");
-  expect(screen.getByTestId("combined-toggle")).toBeDisabled();
+test("combined option needs no minimum of 2 accounts and says same account", async () => {
+  mount(base({ combined: combined() }));
+  expect(await screen.findByTestId("combined-accounts")).toHaveTextContent("total contracts within the account cap");
+  expect(screen.queryByTestId("combined-blocked")).toBeNull();
+  expect(screen.getByTestId("combined-toggle")).not.toBeDisabled();
 });
 
 test("Iceberg proxy card is greyed out, disabled and says OFF for now", async () => {
@@ -75,7 +76,7 @@ test("a stored-combination fallback shows a banner", async () => {
 
 test("Now running names the combined choice once, never MAIN + Order Flow separately", () => {
   const s = [st("noise", true), st("candace_ict", true), st("order_flow", true)];
-  expect(runningNames(s, { enabled: true, title: "MAIN FAST PASS + ORDER FLOW (separate accounts)" })).toEqual(["MAIN FAST PASS + ORDER FLOW (separate accounts)"]);
+  expect(runningNames(s, { enabled: true, title: "MAIN FAST PASS + ORDER FLOW (same account)" })).toEqual(["MAIN FAST PASS + ORDER FLOW (same account)"]);
 });
 
 test("TradingAgents advice card: advice only label, run times, NO_CALL reason", () => {
