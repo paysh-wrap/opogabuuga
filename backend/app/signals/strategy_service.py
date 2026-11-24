@@ -133,8 +133,8 @@ def advise(
     gate: tuple[bool, str, str],
 ) -> tuple[tuple[bool, str, str], dict[str, object] | None]:
     """D151 hook: the TradingAgents advisor in front of the D142-D150 strategies. Reads today's STORED BiasDecision
-    and the ledger (DB only, never a network call). Tighten-only: may turn a PASS into SKIP ADVISOR_DISAGREE (GATE
-    mode + proven ledger + DISAGREE), never the reverse. OFF / opted-out strategy → no field, nothing changes."""
+    and the ledger (DB only, never a network call). D176: ADVICE ONLY - the gate is always returned unchanged (no
+    ADVISOR_DISAGREE skip). OFF / opted-out strategy → no field, nothing changes."""
     cfg = rules.strategy.advisor
     if cfg.mode == "OFF" or mode not in ADVISED_MODES or mode in cfg.skip_strategies:
         return gate, None
@@ -149,10 +149,7 @@ def advise(
         st = LedgerStats(**ledger.ledger(s, proxy, symbol, today, pol)["stats"])
     params = ADV.AdvisorParams(cfg.mode, float(rules.strategy.ai_gate_min_accuracy), pol.min_calls)
     v = ADV.advisor_verdict(call, direction.sign, st, params)
-    blocked = v.blocks and gate[0]
-    if blocked:
-        gate = (False, "ADVISOR_DISAGREE", f"proven TradingAgents call ({label}) is against this side")
-    feat = {**v.as_features(label, cfg.mode), "blocks": blocked}
+    feat = {**v.as_features(label, cfg.mode), "blocks": False}  # D176: advice only, the gate is returned unchanged
     audit.record(s, clock, "engine", "signal.advisor", key, {"strategy": mode, **feat})
     return gate, feat
 
@@ -341,6 +338,7 @@ def run_noise(
         max_entries=cfg.max_entries_per_day,
         allow_entry=check and not exits_only and not lock_exit and at.astimezone(ET).weekday() not in cfg.skip_weekdays,
     )
+
     def entry_checks(direction: Direction, stop: Decimal) -> tuple[tuple[bool, str, str], dict[str, object]]:
         gate = _gate(rules, cfg.symbol, at, calendar, True if mgc else None)
         sf: dict[str, object] = {}
@@ -348,17 +346,7 @@ def run_noise(
             if gate[0] and hedge_lock_vs(s, cfg.symbol, "DUO", day, direction) is not None:
                 gate = (False, "HEDGE_LOCK", "AI Duo holds the opposite side today (first position keeps the lock)")
             gate, sf = structure_check(s, rules, cfg.symbol, at, today.bars, k, direction, close, stop, gate)
-        if gate[0] and not mgc:  # the AI may block only once its record is proven (>= 70% for NOISE) - else advisory
-            why = ledger.may_block(
-                s,
-                inst.bias_proxy,
-                cfg.symbol,
-                at.astimezone(ET).date(),
-                direction.sign,
-                float(rules.strategy.ai_gate_min_accuracy),
-            )
-            if why:
-                gate = (False, why, "proven AI call (both tools agree) is against this side")
+        # D176: the AI call never blocks NOISE (no BIAS_PROVEN_AGAINST gate); TradingAgents is advice only
         return gate, sf
 
     # A same-direction EXIT + ENTER on one check leaves the account in the same position: with the exit fill still

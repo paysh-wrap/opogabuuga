@@ -124,7 +124,13 @@ async def dashboard(
         accounts.append(row)
     sess = session_date(now)
     bias = {sym: today_bias(db, sess, i.bias_proxy) for sym, i in r.instruments.items() if i.enabled}
-    return {"session": sess.isoformat(), "mode": c.mode, "bias": bias, "accounts": accounts}
+    return {
+        "session": sess.isoformat(),
+        "mode": c.mode,
+        "bias": bias,
+        "accounts": accounts,
+        "ai_advice": _ai_advice(db, r, sess),
+    }
 
 
 @router.get("/today")
@@ -903,6 +909,19 @@ def _ar_side_by_side(db: Session, r: Any, sess: Any) -> dict[str, Any]:
     }
 
 
+def _ai_advice(db: Session, r: Any, sess: Any) -> dict[str, Any]:
+    """D176: TradingAgents advice for every strategy: the 3 pre-open runs (timestamps, per-market advice or NO_CALL with
+    the reason). ADVICE ONLY, it never blocks, skips, shrinks, delays or reverses a trade."""
+    from app.bias import ar_pre_session as arp
+
+    return {
+        "label": arp.ADVICE_LABEL,
+        "mode": r.strategy.advisor.mode,
+        "runs": arp.view(db, r, sess) if arp.enabled(r) else [],
+        "session": sess.isoformat(),
+    }
+
+
 def _combined_view(db: Session, r: Any) -> dict[str, Any]:
     """D175: the ONE choice that runs MAIN (Fast Evaluation NOISE + CANDACE) and Order Flow AR together, with its guard
     parameters in plain words and whether it can start (needs 2+ eligible accounts, otherwise blocked, no fallback)."""
@@ -917,7 +936,12 @@ def _combined_view(db: Session, r: Any) -> dict[str, Any]:
         "title": "MAIN FAST PASS + ORDER FLOW (separate accounts)",
         "enabled": COMBINED_CHOICE in strategy_choices_on(r.strategy),
         "setting": "strategy.order_flow_cfg.ar_side_by_side",
-        "settings_on": ["strategy.noise", "strategy.candace_ict", "strategy.order_flow", "strategy.order_flow_cfg.ar_side_by_side"],
+        "settings_on": [
+            "strategy.noise",
+            "strategy.candace_ict",
+            "strategy.order_flow",
+            "strategy.order_flow_cfg.ar_side_by_side",
+        ],
         "eligible_accounts": n,
         "min_accounts": SBS_MIN_ACCOUNTS,
         "can_start": not blocked,
@@ -927,11 +951,11 @@ def _combined_view(db: Session, r: Any) -> dict[str, Any]:
             else None
         ),
         "guards": [
-            "Order Flow trades only on a DIFFERENT free account than NOISE / CANDACE (one account per trade, never copy trading).",
+            "Order Flow trades only on a DIFFERENT free account than NOISE / CANDACE (one account per trade).",
             "One direction for the whole household: an opposite-side signal is skipped (HEDGE_LOCK). Never a hedge.",
             "At most 1 open position per account.",
-            "Every account keeps its own loss limit, daily loss limit, consistency day stop, kill switch, news and flat rules.",
-            f"Order Flow size = the smallest of its own size ({of.contracts}), the Lucid fit and half of the NOISE fast-pass size (at least 1).",
+            "Every account keeps its own loss limit, daily loss limit, day stop, kill switch, news and flat rules.",
+            f"Order Flow size = the smallest of its own size ({of.contracts}), the Lucid fit and half the NOISE size.",
             "Fast-pass sizes follow the stage rules shown in the size card; Evaluation Mode stays EVAL only.",
             "Plain MAIN and plain Order Flow stay mutually exclusive; this is the only way both run.",
         ],
@@ -1018,15 +1042,15 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
                 "setting": str(c.get("setting_key") or f"strategy.{c['key']}"),
                 **_order_flow_markets(c, r),
                 **({"ar_side_by_side": _ar_side_by_side(db, r, sess)} if c["key"] == "order_flow" else {}),
-                **(  # D175: Iceberg proxy greyed out, cannot be turned on (backend refuses the save, forces OFF on load)
-                    {"disabled": True, "off_for_now": "OFF for now"} if c["key"] == "order_flow_zone" else {}
-                ),
+                # D175: Iceberg proxy greyed out, cannot be turned on (backend refuses the save, forces OFF on load)
+                **({"disabled": True, "off_for_now": "OFF for now"} if c["key"] == "order_flow_zone" else {}),
                 **({"jj_rules": jj_rules(r)} if c["key"] == "jj_fpt" else {}),
                 **({"gala_rules": gala_rules(r)} if c["key"] == "gala_pa" else {}),
                 **({"strategy_rules": RULE_CARDS[str(c["key"])](r)} if c["key"] in RULE_CARDS else {}),
             }
             for c in CATALOG
         ],
+        "ai_advice": _ai_advice(db, r, sess),
         "notice": request.app.state.rules.notice,  # D175: stored invalid combination loaded as MAIN only
         "combined": _combined_view(db, r),
         "noise_warmup": {
@@ -1052,7 +1076,9 @@ def strategies(request: Request, _: Principal = Depends(current_user), db: Sessi
             # D66 / D69 — EVAL accounts, Evaluation Mode on; D133: shown as traded (capped while eval_size_s19 is on)
             "eval_regular": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval)],
             "eval_high": [_tier(t) for t in _eval_rows(r, r.strategy.size_table_eval_high)],
-            "fast_pass_plans": _fast_pass_plan_rows(r.strategy),  # D175: the Fast Evaluation sizes, read from the plan yamls
+            "fast_pass_plans": _fast_pass_plan_rows(
+                r.strategy
+            ),  # D175: the Fast Evaluation sizes, read from the plan yamls
         },
         "toggles": _session20_toggles(r, plan),
         "advisor": advisor_view(db, r, sess),

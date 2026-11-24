@@ -22,7 +22,6 @@ from app.automation import state as st
 from app.automation.account_selector import Candidate
 from app.automation.account_selector import select as select_accounts
 from app.automation.preflight import allowed_mode
-from app.bias import ledger as bias_ledger
 from app.clock import Clock, parse_hhmm, session_date, to_et
 from app.engine.filters import news_flatten_due
 from app.engine.jj_fpt import contracts_for as jj_contracts
@@ -64,26 +63,30 @@ from app.risk.fast_eval import effective_fast_cfg, fast_contracts, harvest_limit
 from app.risk.fast_pass import (
     FastPassSize,
     ar_side_by_side,
-    sbs_eligible_accounts,
-    sbs_needs_more_accounts,
     ar_side_cap,
     fast_pass_day_locked,
     fast_pass_lock,
     fast_pass_size,
     late_day_size,
     plan_fast_pass,
+    sbs_eligible_accounts,
+    sbs_needs_more_accounts,
 )
 from app.risk.hedge_lock import OpenPosition, hedge_conflict
 from app.risk.holder import RulesHolder
 from app.risk.risk_base import money, risk_base
-from app.risk.strategy_sizing import SizeTier, auto_contracts, bias_size, plan_contracts, risk_cap
+from app.risk.strategy_sizing import SizeTier, auto_contracts, plan_contracts, risk_cap
 from app.risk.tiers import FloorRules, RiskCfg
 
 log = structlog.get_logger()
 
 MODES = ("OFF", "SEMI", "FULL")
 APPROVAL_SECONDS = 90
-TP_FIT_STRATEGIES = ("CANDACE_ICT", "MGC_CANDACE", "LATE_DAY")  # real take-profits: fit contracts to the consistency cap
+TP_FIT_STRATEGIES = (
+    "CANDACE_ICT",
+    "MGC_CANDACE",
+    "LATE_DAY",
+)  # real take-profits: fit contracts to the consistency cap
 
 STRATEGY_MODES = (
     "NOISE",
@@ -498,7 +501,9 @@ class Controller:
             if ar_sbs and sbs_needs_more_accounts(
                 sbs_eligible_accounts({a.id: (a.selected, a.paused_reason, a.closed_by_firm) for a in all_accts})
             ):  # D175: the combined choice needs 2+ eligible accounts: refuse loudly, never fall back to one account
-                audit.record(s, self.clock, actor, "order_flow.sbs_blocked", str(sig.id), {"reason": "SBS_NEEDS_2_ACCOUNTS"})
+                audit.record(
+                    s, self.clock, actor, "order_flow.sbs_blocked", str(sig.id), {"reason": "SBS_NEEDS_2_ACCOUNTS"}
+                )
                 return [*out, AccountResult(0, False, "SBS_NEEDS_2_ACCOUNTS")]
             if one_acct:
                 # JJ #30: one account per trade, never copy trading — a layered entry goes to the next FREE account
@@ -862,17 +867,7 @@ class Controller:
             )
             fixed = auto.contracts
             row = next((t for t in table if t.account_size == auto.tier), None)
-            ai_call = 0
-            if r.strategy.ai_sizing and row is not None and size >= r.strategy.ai_sizing_min_account:
-                ai_call = bias_ledger.sizing_call(
-                    s,
-                    inst.bias_proxy,
-                    sig.symbol,
-                    to_et(now).date(),
-                    float(r.strategy.ai_sizing_min_accuracy),
-                    r.strategy.ai_sizing_min_calls,
-                )
-                fixed = bias_size(fixed, row.contracts, plan.direction.sign, ai_call)  # D74 (proven record only)
+            # D176: no AI-call sizing (D74 removed): TradingAgents never shrinks or grows a trade
             if (
                 row is not None and row.stop_usd is not None
             ):  # D70: row-specific emergency stop (e.g. 25K high-risk eval)
@@ -900,7 +895,7 @@ class Controller:
                 {
                     "signal": sig.id,
                     "contracts": auto.contracts,
-                    "ai_call": ai_call,
+                    "ai_call": 0,
                     "contracts_final": fixed,
                     "tier": str(auto.tier),
                     "braked": auto.braked,

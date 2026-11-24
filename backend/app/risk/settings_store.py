@@ -402,7 +402,11 @@ def enforce_one_choice(mine: dict[str, Any], cfg: RulesConfig) -> dict[str, Any]
 def fallback_notice(mine: dict[str, Any], fixed: dict[str, Any]) -> str | None:
     """Banner text when a stored invalid combination was loaded with the extras switched OFF (D167 / D175)."""
     off = sorted(k.removeprefix("strategy.") for k, v in fixed.items() if v is False and mine.get(k) is not False)
-    return f"Stored settings had two strategy choices ON; turned OFF: {', '.join(off)} (only MAIN stays; D167/D175)." if off else None
+    return (
+        f"Stored settings had two strategy choices ON; turned OFF: {', '.join(off)} (only MAIN stays; D167/D175)."
+        if off
+        else None
+    )
 
 
 def _eligible_accounts(s: Session) -> int:
@@ -438,7 +442,9 @@ def save_my_settings(
     on = strategy_choices_on(cfg.strategy)
     if COMBINED_CHOICE in on and changes.get(AR_SBS_KEY) is not True and COMBINED_CHOICE not in was:
         # D175: MAIN + Order Flow together only by choosing the combined button (it sets ar_side_by_side ON itself)
-        raise SettingsError([f"MAIN and Order Flow run together only as the combined choice (D175); ON: {', '.join(on)}"], v)
+        raise SettingsError(
+            [f"MAIN and Order Flow run together only as the combined choice (D175); ON: {', '.join(on)}"], v
+        )
     if touched and len(on) > 1:
         raise SettingsError([f"only one strategy button may be ON at a time (D167); ON: {', '.join(on)}"], v)
     if COMBINED_CHOICE in on and COMBINED_CHOICE not in was:
@@ -447,7 +453,11 @@ def save_my_settings(
         n = _eligible_accounts(s)
         if sbs_needs_more_accounts(n):
             raise SettingsError(
-                [f"MAIN + ORDER FLOW needs at least 2 eligible accounts (selected, not paused, not closed); found {n} (D175)"], v
+                [
+                    "MAIN + ORDER FLOW needs at least 2 eligible accounts (selected, not paused, "
+                    f"not closed); found {n} (D175)"
+                ],
+                v,
             )
     std_over_11 = any(
         p > Decimal("0.11") for p in (cfg.internal.risk_pct_ceiling, *cfg.internal.risk_pct_by_score.values())

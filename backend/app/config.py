@@ -1223,7 +1223,9 @@ LEGACY_LUNQFX_KEYS = (
     "lunqfx", "lunqfx_structure", "open_drive", "open_drive_cfg",
     "noise_ai_split", "noise_ai_split_share",  # D174: the D92 NOISE + AI Duo split button was removed; old saves ignore it
 )  # fmt: skip
-REMOVED_PRESETS = ("pro25k_classic",)  # D174: the superseded NOISE preset was removed; a save naming it loads as "custom"
+REMOVED_PRESETS = (
+    "pro25k_classic",
+)  # D174: the superseded NOISE preset was removed; a save naming it loads as "custom"
 
 
 def capped_eval_table(table: list[SizeTierCfg], caps: list[EvalCapCfg]) -> list[SizeTierCfg]:
@@ -1262,10 +1264,10 @@ ADVISED_MODES = (
 
 
 class AdvisorCfg(_M):
-    """D151: TradingAgents advisor before the D142-D150 strategies. OFF | ADVISORY (record + show, default) | GATE
-    (a DISAGREE skips the signal ADVISOR_DISAGREE, only while the AI ledger is proven). Tighten-only."""
+    """D151 / D176: TradingAgents is an ADVISOR ONLY for every strategy and NEVER a gate: OFF | ADVISORY (default).
+    It can not block, skip, shrink, delay or reverse a trade. An old saved GATE loads as ADVISORY."""
 
-    mode: Literal["OFF", "ADVISORY", "GATE"] = "ADVISORY"
+    mode: Literal["OFF", "ADVISORY"] = "ADVISORY"
     skip_strategies: list[str] = []
     # D160: TradingAgents bias runs this many minutes before each session start (earliest entry window, ET), shown on
     # the Order Flow card when AR side-by-side is on. Advisory; the ledger rules above are unchanged.
@@ -1275,7 +1277,8 @@ class AdvisorCfg(_M):
     @classmethod
     def _upper(cls, v: Any) -> Any:
         if isinstance(v, dict) and isinstance(v.get("mode"), str):
-            v = {**v, "mode": v["mode"].strip().upper()}
+            m = v["mode"].strip().upper()
+            v = {**v, "mode": "ADVISORY" if m == "GATE" else m}  # D176: GATE no longer exists
         return v
 
     @model_validator(mode="after")

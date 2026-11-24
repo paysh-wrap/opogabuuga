@@ -51,10 +51,8 @@ def test_ledger_scores_and_proves(client):
         s.commit()
         st = L.status(s, "QQQ", "MNQ", today, 0.70)
         assert st["stats"]["n"] == 40 and st["stats"]["hit_rate"] == 0.9 and st["state"] == "PROVEN"
-        assert st["badge"] == "MAY BLOCK (proven)"
-        assert L.may_block(s, "QQQ", "MNQ", today, +1, 0.70) == "BIAS_PROVEN_AGAINST"  # long blocked
-        assert L.may_block(s, "QQQ", "MNQ", today, -1, 0.70) is None  # short agrees with the call
-        assert L.may_block(s, "QQQ", "MNQ", today, +1, 0.95) is None  # not proven at 95%
+        assert st["badge"] == "PROVEN (advice only)"  # D176: a proven record never blocks anything
+        assert not hasattr(L, "may_block") and not hasattr(L, "sizing_call")
 
 
 def test_ledger_warmup_and_unscored_days(client):
@@ -65,8 +63,6 @@ def test_ledger_warmup_and_unscored_days(client):
         s.commit()
         st = L.status(s, "QQQ", "MNQ", today, 0.70)
         assert st["state"] == "WARMUP" and st["badge"] == "ADVISORY" and st["stats"]["n"] == 0
-        assert L.may_block(s, "QQQ", "MNQ", today, +1, 0.70) is None
-        assert L.may_block(s, "QQQ", "MNQ", today - timedelta(days=5), +1, 0.70) is None  # no call that day
         assert L.proven(L.LedgerStats(30, 0.8, 0.30, 0.75), Policy(True), 0.7) is False  # Brier too high
 
 

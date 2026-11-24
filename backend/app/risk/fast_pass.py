@@ -138,5 +138,5 @@ def sbs_eligible_accounts(accounts: Mapping[Any, tuple[bool, str | None, bool]])
 
 
 def sbs_needs_more_accounts(eligible: int) -> bool:
-    """D175: True = the combined choice cannot run (needs at least SBS_MIN_ACCOUNTS eligible accounts): block, no fallback."""
+    """D175: True = the combined choice cannot run (needs SBS_MIN_ACCOUNTS eligible accounts): block, no fallback."""
     return eligible < SBS_MIN_ACCOUNTS

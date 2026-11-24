@@ -239,8 +239,8 @@ async def _of_ta_advisor(app: FastAPI, s: Session, now: datetime) -> None:
 
 
 async def _ar_pre_session(app: FastAPI, s: Session, now: datetime) -> None:
-    """D160: TradingAgents bias runs 4 h / 1 h / 30 min (plan file) before the session start while the AR side-by-side
-    option is on. Reuses the bias job (ledger rows); no key = NO_CALL; advisory only, never blocks."""
+    """D160 / D176: TradingAgents bias runs 4 h / 1 h / 30 min (plan file) before the 09:30 ET open for every strategy
+    (advice only, never a gate). Reuses the bias job (ledger rows); no key / failure = NO_CALL shown as advice status."""
     from app.automation import state as stt
     from app.bias import ar_pre_session as arp
     from app.bias import service as bias
@@ -258,20 +258,23 @@ async def _ar_pre_session(app: FastAPI, s: Session, now: datetime) -> None:
         s.commit()
         failed = None
         try:
-            await bias.run_bias(
-                s,
-                st.ta,
-                Vault(st.settings.master_key.get_secret_value()),
-                r,
-                st.clock,
-                sess,
-                st.controller.notify,
-                vt_root=st.settings.vt_root,
-                context=bias.openbb_context(st),
-                only=sorted({r.instrument(x).bias_proxy for x in r.strategy.order_flow_cfg.instruments}),
-                refresh=True,
+            await asyncio.wait_for(
+                bias.run_bias(
+                    s,
+                    st.ta,
+                    Vault(st.settings.master_key.get_secret_value()),
+                    r,
+                    st.clock,
+                    sess,
+                    st.controller.notify,
+                    vt_root=st.settings.vt_root,
+                    context=bias.openbb_context(st),
+                    only=sorted({r.instrument(x).bias_proxy for x in arp.markets(r)}),
+                    refresh=True,
+                ),
+                timeout=arp.RUN_TIMEOUT_S,
             )
-        except Exception as e:  # advisory only (§1.8: logged + notified); the card shows NO_CALL
+        except (TimeoutError, Exception) as e:  # advisory only (§1.8: logged + notified); the card shows NO_CALL
             s.rollback()
             failed = f"run failed ({type(e).__name__})"
             log.warning("ar_pre_session.failed", error=type(e).__name__)

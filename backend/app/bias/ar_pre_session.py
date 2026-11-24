@@ -1,10 +1,10 @@
-"""D160: TradingAgents bias runs before each session for the AR Model beside NOISE (pure helpers + audit rows).
+"""D160 / D176: TradingAgents bias runs before each session for EVERY strategy (pure helpers + audit rows).
 
-`strategy.advisor.pre_session_runs_min` (plan file, default 240 / 60 / 30) = minutes before the session start (the
-earliest Order Flow entry window, ET). Each run reuses the existing bias job (bias/service.run_bias, TradingAgents
-subprocess, ledger rows) and stores one audit row per market and run (`order_flow.ar_bias_run`, code AR_BIAS_RUN):
-rating + probabilities, or NO_CALL (AI key not connected / run failed). Advisory only: this module never blocks a
-trade; blocking stays with the D151 advisor GATE on a proven ledger (tighten-only)."""
+`strategy.advisor.pre_session_runs_min` (plan file, default 240 / 60 / 30) = minutes before the 09:30 ET market open
+(05:30, 08:30, 09:00 ET). Each run reuses the existing bias job (bias/service.run_bias, TradingAgents subprocess,
+ledger rows) and stores one audit row per market and run (`order_flow.ar_bias_run`, code AR_BIAS_RUN): rating +
+probabilities + advice text per strategy, or NO_CALL (AI key not connected / run failed / slow). ADVICE ONLY, NEVER A
+GATE (D176): nothing here can block, skip, shrink, delay or reverse a trade; a failed run is shown as advice status."""
 
 from __future__ import annotations
 
@@ -16,10 +16,13 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import ledger as L
-from app.bias.of_advisor import SIDE, _latest_bias, session_start_min
+from app.bias.of_advisor import SIDE, _latest_bias
 from app.bias.policy import Policy, combine
 from app.models import AuditLog
 
+MARKET_OPEN_MIN = 9 * 60 + 30  # D176: runs are timed from the 09:30 ET open (US index futures RTH open)
+RUN_TIMEOUT_S = 900  # D176: a slow TradingAgents run is cut off and shown as NO_CALL; it never holds other jobs
+ADVICE_LABEL = "Advice only, never blocks trading"
 CODE = "AR_BIAS_RUN"
 ACTION = "order_flow.ar_bias_run"
 SOURCE = "ESTIMATED delta (online data)"
@@ -30,13 +33,34 @@ EVIDENCE = (
 
 
 def enabled(rules: Any) -> bool:
-    st = rules.strategy
-    return bool(st.order_flow and st.order_flow_cfg.ar_side_by_side and st.advisor.mode != "OFF")
+    """D176: every strategy is advised while the advisor is not OFF (ADVISORY is the default)."""
+    return rules.strategy.advisor.mode != "OFF"
+
+
+def markets(rules: Any) -> list[str]:
+    """Markets advised: every enabled instrument plus the Order Flow markets, stable order."""
+    syms = [s for s, i in rules.instruments.items() if i.enabled]
+    return syms + [s for s in rules.strategy.order_flow_cfg.instruments if s not in syms]
+
+
+def advice_text(side: str | None, prob_up: float | None) -> dict[str, str]:
+    """Plain-words advice per strategy from the day's call. Never an instruction the engine obeys."""
+    if side is None:
+        return {"all": "No call today (advice unavailable). Trading is unaffected."}
+    lean = {"LONG": "leans LONG", "SHORT": "leans SHORT", "NEUTRAL": "sees no clear side"}.get(side, "no view")
+    pct = "" if prob_up is None else f" (up {round(prob_up * 100)}% / down {round((1 - prob_up) * 100)}%)"
+    caution = "consider normal caution" if side == "NEUTRAL" else f"a trade against {side} deserves extra caution"
+    fit = "mean-reversion / fade setups fit today" if side == "NEUTRAL" else "trend-following setups fit today"
+    return {
+        "main": f"TradingAgents {lean}{pct}; {caution}. NOISE + CANDACE trade unchanged; {fit}.",
+        "order_flow": f"TradingAgents {lean}{pct}; Order Flow AR trades both sides as its rules say.",
+        "all": f"TradingAgents {lean}{pct}; {caution}. Size and parameters stay as configured.",
+    }
 
 
 def run_times(rules: Any) -> list[tuple[int, str]]:
     """[(minutes before, ET HH:MM)] for every configured run, earliest first. Times never go before 00:00."""
-    start = session_start_min(rules)
+    start = MARKET_OPEN_MIN
     out = []
     for m in sorted(rules.strategy.advisor.pre_session_runs_min, reverse=True):
         t = max(0, start - m)
@@ -61,7 +85,7 @@ def due(now: datetime, rules: Any, minutes: int, last: str | None, sess: date) -
 
     if any(mins(t) > mins(at) and mins(t) <= cur for t in times.values()):
         return False  # a later run is already due: no stale catch-up of an earlier one
-    return _due(now, at, last, sess) and cur < session_start_min(rules)
+    return _due(now, at, last, sess) and cur < MARKET_OPEN_MIN
 
 
 def entity(symbol: str, day: date, minutes: int) -> str:
@@ -70,7 +94,7 @@ def entity(symbol: str, day: date, minutes: int) -> str:
 
 def record_run(s: Session, rules: Any, clock: Any, sess: date, minutes: int, failed: str | None = None) -> None:
     """One audit row per Order Flow market for this run, from the latest bias row (NO_CALL when none is usable)."""
-    for sym in rules.strategy.order_flow_cfg.instruments:
+    for sym in markets(rules):
         proxy = rules.instrument(sym).bias_proxy
         row = _latest_bias(s, sess, proxy)
         side = SIDE.get(row.mapped) if row is not None and failed is None else None
@@ -100,6 +124,8 @@ def record_run(s: Session, rules: Any, clock: Any, sess: date, minutes: int, fai
                 "prob_up": None if p is None else round(p, 4),
                 "prob_down": None if p is None else round(1 - p, 4),
                 "reason": reason,
+                "advice": advice_text(side, p),
+                "advice_only": ADVICE_LABEL,
                 "at": clock.now().isoformat(),
             },
         )
@@ -107,8 +133,8 @@ def record_run(s: Session, rules: Any, clock: Any, sess: date, minutes: int, fai
 
 
 def view(s: Session, rules: Any, day: date) -> list[dict[str, Any]]:
-    """The Order Flow card: every configured run with its time and the latest stored result per market."""
-    syms = list(rules.strategy.order_flow_cfg.instruments)
+    """The advice cards: every configured run with its time and the latest stored result per market."""
+    syms = markets(rules)
     out = []
     for m, at in run_times(rules):
         results = []

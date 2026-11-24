@@ -96,10 +96,7 @@ class Decision:
 
 
 def _bias_ok(bias: Bias, d: Direction) -> tuple[bool, str, bool]:
-    if bias == "NO_TRADE":
-        return False, "BIAS_NO_TRADE", True
-    if (bias == "LONG_ONLY" and d is Direction.SHORT) or (bias == "SHORT_ONLY" and d is Direction.LONG):
-        return False, "BIAS_OPPOSITE", True
+    """D176: G2 is advice only - TradingAgents bias never blocks (NO_TRADE / NO_CALL / opposite side all pass)."""
     return True, "OK", False
 
 

@@ -97,16 +97,11 @@ def test_opposite_signal_annotated_skipped_only_with_blocks_and_proven_ledger(cl
         assert s.query(AuditLog).filter_by(action="order_flow.ta_disagrees").count() == 1
         sig.features = {**sig.features, "state": "CLOSED"}
         s.commit()
-        blocks = _rules(loaded_rules.rules, ta_advisor_blocks=True)
-        u = _run(s, blocks, _p(ms=_p()["bar_time_ms"] + 60000)).updates[0]  # ledger not proven → still advisory
-        assert u.status == "PASS"
-        s.get(Signal, u.signal_id).features = {**s.get(Signal, u.signal_id).features, "state": "CLOSED"}
-        s.commit()
+        blocks = _rules(loaded_rules.rules, ta_advisor_blocks=True)  # old saves carry it: D176 ignores it
         monkeypatch.setattr(OFA.L, "proven", lambda *_a: True)
         u = _run(s, blocks, _p(ms=_p()["bar_time_ms"] + 120000)).updates[0]
-        assert (u.status, u.reason) == ("SKIP", "OF_TA_DISAGREES")
-        same = _run(s, blocks, _p(ms=_p()["bar_time_ms"] + 180000, direction="SHORT"))  # agrees → no skip code
-        assert all(x.reason != "OF_TA_DISAGREES" for x in same.updates)
+        assert u.status == "PASS" and u.reason != "OF_TA_DISAGREES"  # a proven DISAGREE never skips
+        assert OFA.SKIP == "OF_TA_DISAGREES" and OFA.verdict(s, blocks, "MNQ", AT.date(), "LONG")[1] is None
 
 
 def test_toggle_via_settings_and_pine_download(authed):

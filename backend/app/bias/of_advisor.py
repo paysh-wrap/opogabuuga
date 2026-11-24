@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 
 from app import audit
 from app.bias import ledger as L
-from app.bias.policy import LedgerStats, Policy, combine
+from app.bias.policy import Policy, combine
 from app.models import AuditLog, BiasDecision
 
 CODE = "OF_TA_ADVICE"
@@ -102,7 +102,7 @@ def advice(s: Session, symbol: str, day: date) -> dict[str, Any] | None:
 
 
 def verdict(s: Session, rules: Any, symbol: str, day: date, direction: str) -> tuple[dict[str, Any] | None, str | None]:
-    """(annotation for the signal or None, skip code or None). Skip only with ta_advisor_blocks AND a proven ledger."""
+    """(annotation for the signal or None, skip code). D176: the skip code is ALWAYS None - advice only."""
     cfg = rules.strategy.order_flow_cfg
     if not cfg.ta_advisor:
         return None, None
@@ -111,13 +111,7 @@ def verdict(s: Session, rules: Any, symbol: str, day: date, direction: str) -> t
         return {"side": None, "agrees": None, "advisory": True}, None
     agrees = adv["side"] in ("NEUTRAL", direction)
     note = {"side": adv["side"], "confidence": adv.get("confidence"), "agrees": agrees, "advisory": True}
-    if agrees or not cfg.ta_advisor_blocks:
-        return note, None
-    proxy = rules.instrument(symbol).bias_proxy
-    st = LedgerStats(**L.ledger(s, proxy, symbol, day, Policy(bias_matters=True))["stats"])
-    if L.proven(st, Policy(bias_matters=True), float(rules.strategy.ai_gate_min_accuracy)):
-        return note | {"advisory": False}, SKIP
-    return note, None
+    return note, None  # D176: advice only - `ta_advisor_blocks` (old saves) is ignored, never a skip
 
 
 def due(now: datetime, rules: Any, last: str | None, sess: date) -> bool:

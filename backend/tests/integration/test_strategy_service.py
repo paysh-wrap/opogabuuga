@@ -490,7 +490,7 @@ def test_same_direction_merge_is_a_plain_exit_when_the_gate_would_block_a_fresh_
         )
         assert out.exits and out.exits[0][0] == sid
         sig = s.get(Signal, sid)
-        assert "merged_entries" not in sig.features and sig.features["state"] != "OPEN" or "exit_requested" in sig.features
+        assert ("merged_entries" not in sig.features and sig.features["state"] != "OPEN") or "exit_requested" in sig.features
 
 
 def test_one_runner_exception_keeps_the_other_strategies_exits(db, loaded_rules, monkeypatch):

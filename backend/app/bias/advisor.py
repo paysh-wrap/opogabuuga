@@ -1,8 +1,7 @@
 """D151: TradingAgents ADVISOR in front of the D142-D150 strategies (pure, no I/O, no network).
 
 The day's call is the stored BiasDecision (bias/ledger.py reads it, bias/policy.combine turns it into a Call); this
-module only compares that call with a signal's side. GATE may block only a DISAGREE while the ledger is proven
-(bias/ledger.proven: ≥ min_calls scored calls, Wilson lower bound ≥ the threshold, Brier < 0.25). Tighten-only."""
+module only compares that call with a signal's side. D176: advice only - a DISAGREE is shown, never blocks."""
 
 from __future__ import annotations
 
@@ -27,7 +26,7 @@ class AdvisorVerdict:
     prob_up: float | None
     call_direction: int  # +1 / −1 / 0 (0 also for NO_CALL)
     ledger_proven: bool
-    blocks: bool  # True only for GATE + proven + DISAGREE
+    blocks: bool  # D176: always False (TradingAgents never gates)
 
     def as_features(self, label: str | None, mode: str) -> dict[str, object]:
         return {
@@ -57,5 +56,4 @@ def advisor_verdict(
         v = "AGREE"
     else:
         v = "DISAGREE"
-    blocks = v == "DISAGREE" and cfg.mode == "GATE" and proven
-    return AdvisorVerdict(v, call.prob_up, call.direction, proven, blocks)
+    return AdvisorVerdict(v, call.prob_up, call.direction, proven, False)  # D176: advice only, never blocks

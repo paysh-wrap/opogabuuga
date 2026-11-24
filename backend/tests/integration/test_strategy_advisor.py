@@ -69,25 +69,26 @@ def test_advisory_records_and_never_blocks(client, loaded_rules, monkeypatch, mo
 
 
 @pytest.mark.parametrize("mode", ADVISED_MODES)
-def test_gate_blocks_only_a_proven_disagree(client, loaded_rules, monkeypatch, mode):
+def test_old_gate_mode_loads_as_advisory_and_a_proven_disagree_never_blocks(client, loaded_rules, monkeypatch, mode):
+    """D176: a stored mode GATE loads as ADVISORY; a proven DISAGREE is shown but the decision does not change."""
     r = _rules(loaded_rules.rules, mode="gate")
+    assert r.strategy.advisor.mode == "ADVISORY"
     with client.app.state.sessionmaker() as s:
         _call(s)
-        _proven(monkeypatch, False)
-        assert _sig(s, r, mode).status == "PASS"  # not proven → behaves like ADVISORY
-        _proven(monkeypatch, True)
-        blocked = _sig(s, r, mode)
-        assert blocked.status == "SKIP" and blocked.skip_reason == "ADVISOR_DISAGREE"
-        assert blocked.features["advisor"]["blocks"] is True
+        for proven in (False, True):
+            _proven(monkeypatch, proven)
+            sig = _sig(s, r, mode)
+            assert sig.status == "PASS" and sig.skip_reason != "ADVISOR_DISAGREE"
+            assert sig.features["advisor"]["verdict"] == "DISAGREE" and sig.features["advisor"]["blocks"] is False
         agree = _sig(s, r, mode, Direction.SHORT)
         assert agree.status == "PASS" and agree.features["advisor"]["verdict"] == "AGREE"
-        skip = _sig(s, r, mode, Direction.LONG, ok=False)  # already a SKIP: keeps its own code (tighten-only)
+        skip = _sig(s, r, mode, Direction.LONG, ok=False)  # already a SKIP: keeps its own code
         assert skip.skip_reason == "OUTSIDE_WINDOW" and skip.features["advisor"]["blocks"] is False
 
 
 def test_no_call_and_neutral_never_block(client, loaded_rules, monkeypatch):
     _proven(monkeypatch, True)
-    r = _rules(loaded_rules.rules, mode="GATE")
+    r = _rules(loaded_rules.rules, mode="ADVISORY")
     with client.app.state.sessionmaker() as s:
         sig = _sig(s, r, "GALA_PA")
         assert sig.status == "PASS" and sig.features["advisor"]["verdict"] == "NO_CALL"
@@ -102,12 +103,12 @@ def test_off_and_opt_out_change_nothing(client, loaded_rules, monkeypatch):
         _call(s)
         off = _sig(s, _rules(loaded_rules.rules, mode="OFF"), "JJ_FPT")
         assert off.status == "PASS" and "advisor" not in off.features
-        opt = _sig(s, _rules(loaded_rules.rules, mode="GATE", skip_strategies=["OKALA_8020"]), "OKALA_8020")
+        opt = _sig(s, _rules(loaded_rules.rules, mode="ADVISORY", skip_strategies=["OKALA_8020"]), "OKALA_8020")
         assert opt.status == "PASS" and "advisor" not in opt.features
         noise = SS._new_signal(
             s, FixedClock(AT), symbol="MNQ", key="n", direction=Direction.LONG, at=AT, gate=(True, "OK", ""),
             features={}, plan=("NOISE", D(100), D(99), D(102), D(1), D(2)),
-            rules=_rules(loaded_rules.rules, mode="GATE"),
+            rules=_rules(loaded_rules.rules, mode="ADVISORY"),
         )  # fmt: skip
         assert "advisor" not in noise.features  # NOISE keeps its own D77 gate
         assert s.query(AuditLog).filter_by(action="signal.advisor").count() == 0
@@ -123,7 +124,7 @@ def test_config_validation():
 
 def test_settings_and_api(authed, monkeypatch):
     _proven(monkeypatch, True)
-    r = authed.put("/api/risk/settings", json={"changes": {"strategy.advisor.mode": "GATE"}, "note": "advisor gate"})
+    r = authed.put("/api/risk/settings", json={"changes": {"strategy.advisor.mode": "GATE"}, "note": "old gate"})
     assert r.status_code == 200, r.text
     bad = authed.put("/api/risk/settings", json={"changes": {"strategy.advisor.skip_strategies": ["X"]}, "note": "x"})
     assert bad.status_code >= 400
@@ -133,7 +134,7 @@ def test_settings_and_api(authed, monkeypatch):
         s.commit()
         sid = sig.id
     adv = authed.get("/api/strategies").json()["advisor"]
-    assert adv["mode"] == "GATE" and adv["connected"] is False and set(adv["cards"]) >= {"jj_fpt", "order_flow_auction"}
+    assert adv["mode"] == "ADVISORY" and adv["connected"] is False and set(adv["cards"]) >= {"jj_fpt", "order_flow_auction"}
     assert adv["cards"]["gala_pa"]["call_label"] is None
     row = next(x for x in authed.get("/api/signals").json()["signals"] if x["id"] == sid)
     assert row["advisor"]["verdict"] == "NO_CALL"

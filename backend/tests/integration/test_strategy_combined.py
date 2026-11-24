@@ -41,7 +41,7 @@ def test_ar_toggle_alone_never_makes_plain_main_plus_order_flow_legal(authed):
     _accounts(authed, 2)
     assert _put(authed, {**MAIN}).status_code == 200
     r = _put(authed, {"strategy.order_flow": True})  # no combined switch: refused
-    assert r.status_code == 422 and "combined" in str(r.json()) or "one strategy" in str(r.json())
+    assert (r.status_code == 422 and "combined" in str(r.json())) or "one strategy" in str(r.json())
 
 
 def test_combined_is_a_legal_third_choice_with_two_accounts(authed):
@@ -109,8 +109,9 @@ def test_runtime_one_eligible_account_refuses_ar_side_by_side(authed, clock):
 
 
 def test_size_card_fast_pass_rows_come_from_the_plan_yamls(authed):
-    import yaml
     from pathlib import Path
+
+    import yaml
 
     rows = authed.get("/api/strategies").json()["size_profiles"]["fast_pass_plans"]
     assert [r["key"] for r in rows] == [f"fast_pass_{n}k" for n in (25, 50, 100, 150)]
@@ -120,3 +121,61 @@ def test_size_card_fast_pass_rows_come_from_the_plan_yamls(authed):
         cfg = yaml.safe_load((root / f"lucid_pro_{n}k.yaml").read_text())["strategy"][f"fast_pass_{n}k_cfg"]
         assert r["noise_contracts"] == cfg["noise_contracts"] and float(r["noise_stop_usd"]) == float(cfg["noise_stop_usd"])
         assert r["candace_contracts"] == cfg["candace_contracts"]
+
+
+def _combined_rules(st, **cfg):
+    _on(st, ar_side_by_side=True, **cfg)
+    r = st.rules.rules
+    st.rules.rules = r.model_copy(update={"strategy": r.strategy.model_copy(update={"order_flow": True})})
+
+
+def test_combined_noise_size_is_identical_to_main_only_and_order_flow_is_capped(authed, clock):
+    from decimal import Decimal as D
+
+    from app.config import FastPassCfg
+    from tests.integration.trade_helpers import _ext, _flat, _qty
+
+    st, (a, b) = _setup(authed, clock, [("a", "25000"), ("b", "25000")], noise=True)
+    fp = FastPassCfg(
+        account_size=D(25000), noise_contracts=4, noise_stop_usd=D(75), candace_contracts=2,
+        brake_cushion_usd=D(333), brake_inclusive=False, candace_brake_contracts=1,
+    )  # fmt: skip
+    r = st.rules.rules
+    st.rules.rules = r.model_copy(
+        update={"strategy": r.strategy.model_copy(update={"fast_pass_25k": True, "fast_pass_25k_cfg": fp})}
+    )
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    main_only = _qty(st, _ext(st, a))
+    _flat(st, a)
+    _combined_rules(st, contracts=9)  # Order Flow own cap deliberately large
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N2"), "automation", only=[a]))[0].ok
+    noise_qty = _qty(st, _ext(st, a))
+    assert noise_qty == main_only  # combined mode never changes the NOISE size
+    res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))
+    assert [x.account_id for x in res] == [b] and res[0].ok
+    of_qty = _qty(st, _ext(st, b))
+    assert 1 <= of_qty <= max(1, noise_qty // 2) and of_qty <= 9  # never above half the NOISE size / its own cap
+
+
+def test_combined_never_two_positions_or_opposite_directions(authed, clock):
+    from decimal import Decimal as D
+
+    from app.engine.trade_plan import Direction
+
+    st, (a, b) = _setup(authed, clock, [("a", "25000"), ("b", "25000")], noise=True)
+    _combined_rules(st)
+    assert asyncio.run(st.controller.execute(_sig(st, "NOISE", "N1"), "automation", only=[a]))[0].ok
+    assert asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", "O1"), "automation", only=[a, b]))[0].ok
+    for i in range(2):  # both accounts busy: no second position anywhere
+        res = asyncio.run(st.controller.execute(_sig(st, "ORDER_FLOW", f"O{i + 2}"), "automation", only=[a, b]))
+        assert not any(x.ok for x in res)
+    short = (D(20000), D(20020), D(19900), D(20), D(5))
+    res = asyncio.run(
+        st.controller.execute(_sig(st, "NOISE", "N9", Direction.SHORT, short), "automation", only=[a, b])
+    )
+    assert not any(x.ok for x in res)  # opposite side anywhere in the household: skipped, never hedged
+    per_acct = {}
+    for t in st.controller.om.trades.values():
+        per_acct[t.account] = per_acct.get(t.account, 0) + 1
+        assert t.d is Direction.LONG
+    assert max(per_acct.values()) == 1

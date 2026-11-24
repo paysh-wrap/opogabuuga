@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from app.bias.policy import Call, LedgerStats, Policy, combine, ledger_stats, score, wilson_lower
+from app.bias.policy import LedgerStats, Policy, combine, ledger_stats, score, wilson_lower
 from app.clock import ET
 from app.models import Bar, BiasDecision
 
@@ -95,36 +95,6 @@ def proven(st: LedgerStats, pol: Policy, min_acc: float) -> bool:
     return st.n >= pol.min_calls and st.wilson_lb >= min_acc and st.brier < 0.25
 
 
-def may_block(s: Session, proxy: str, symbol: str, today: date, direction: int, min_acc: float) -> str | None:
-    """Reason string when today's proven, strongly-agreed AI call is AGAINST `direction` (+1/−1); else None."""
-    pol = Policy(bias_matters=True)
-    calls = _calls(s, proxy, today, today)
-    if not calls:
-        return None
-    ta, vd, vc = parse_label(calls[-1].raw_rating)
-    call: Call = combine(ta, vd, vc, pol)
-    if not call.agree_strong or call.direction in (0, direction):
-        return None
-    led = ledger(s, proxy, symbol, today, pol)
-    st = LedgerStats(**led["stats"])
-    return "BIAS_PROVEN_AGAINST" if proven(st, pol, min_acc) else None
-
-
-def sizing_call(s: Session, proxy: str, symbol: str, today: date, min_acc: float, min_calls: int) -> int:
-    """D74: today's AI call direction (+1/−1) for SIZING, only when the live record is proven
-    (≥ min_calls scored calls, observed hit rate ≥ min_acc, Brier < 0.25); else 0 (no effect)."""
-    pol = Policy(bias_matters=True)
-    calls = _calls(s, proxy, today, today)
-    if not calls:
-        return 0
-    ta, vd, vc = parse_label(calls[-1].raw_rating)
-    call = combine(ta, vd, vc, pol)
-    st = LedgerStats(**ledger(s, proxy, symbol, today, pol)["stats"])
-    if st.n < min_calls or st.hit_rate < min_acc or st.brier >= 0.25:
-        return 0
-    return call.direction
-
-
 def calls_needed(st: LedgerStats, min_calls: int, min_acc: float) -> dict[str, int | None]:
     """D78: how many MORE scored calls until the proof, (a) if future calls keep today's hit rate, (b) best case (all
     hits). None = cannot get there that way. Window = the newest 60 scored calls (ledger_stats)."""
@@ -150,7 +120,7 @@ def status(
     led["min_calls"] = pol.min_calls
     led["calls_needed"] = calls_needed(st, pol.min_calls, min_acc)
     led["state"] = "PROVEN" if ok else ("WARMUP" if st.n < pol.min_calls else "UNPROVEN")
-    led["badge"] = "MAY BLOCK (proven)" if ok else "ADVISORY"
+    led["badge"] = "PROVEN (advice only)" if ok else "ADVISORY"
     return led
 
 

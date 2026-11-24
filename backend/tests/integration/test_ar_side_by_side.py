@@ -105,7 +105,7 @@ def _et(h, m):  # Monday 2026-10-12 is EDT (UTC-4)
 
 def test_run_times_and_due(loaded_rules):
     r = _rules(loaded_rules)
-    assert not ARP.enabled(r)  # default OFF
+    assert ARP.enabled(r)  # D176: advice for every strategy while the advisor is not OFF
     r = r.model_copy(
         update={
             "strategy": r.strategy.model_copy(
@@ -145,14 +145,19 @@ def test_scheduler_runs_three_times_stores_probabilities_and_card(authed, clock)
 
     st = authed.app.state
     st.rules.rules = _rules(st.rules)
+    r0 = st.rules.rules
+    st.rules.rules = r0.model_copy(  # advisor OFF = nothing runs
+        update={"strategy": r0.strategy.model_copy(update={"advisor": r0.strategy.advisor.model_copy(update={"mode": "OFF"})})}
+    )
     ta = FakeTA({"QQQ": RunnerResult(True, {"rating": "Sell", "decision": "x", "version": "0.7.1"})})
     st.ta = ta
     save_creds(authed)
     for t in (_et(5, 30), _et(8, 30), _et(9, 0)):
         clock.set(t)
         with st.sessionmaker() as s:
-            asyncio.run(_ar_pre_session(authed.app, s, clock.now()))  # option OFF → nothing
+            asyncio.run(_ar_pre_session(authed.app, s, clock.now()))  # advisor OFF → nothing
     assert ta.calls == []
+    st.rules.rules = r0  # ADVISORY (default): every strategy is advised, no Order Flow option needed
     _on(st, ar_side_by_side=True)
     for t in (_et(5, 30), _et(8, 30), _et(9, 0), _et(9, 0)):
         clock.set(t)
