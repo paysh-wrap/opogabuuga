@@ -46,8 +46,14 @@ def build_days(S, c, news):
     return [by.get(d, ()) for d in S.DATES], st
 
 
-def life(S, k, days, di0, c, cap, ds_frac, horizon=250, eval_mode=False):
-    """one funded account from day index di0. returns dict(status, sessions, pays=[(session, gross)], dll, dstop, maxdd, blocked_days, maxday, big6k)"""
+def life(S, k, days, di0, c, cap, ds_frac, horizon=250, eval_mode=False, cad=0, od=False, pause=True):
+    """one funded account from day index di0. returns dict(status, sessions, pays=[(session, gross)], dll, dstop, maxdd, blocked_days, maxday, big6k, lost)
+    Payout timing (r9, 2026-11-24): od=False: a payout is requested at the END of a session, only on sessions divisible by `cad` (cad 0 = every session).
+    od=True = Lucid ON-DEMAND (CONFIRMED, help center user screenshot 2026-11-24; needs DLL ON, which this sim always has): the payout is requested
+    INTRADAY as soon as the session profit makes the account eligible (min request $500, cycle profit >= plan minimum, 3 profitable days incl. today as in
+    the weekly model, consistency incl. today's partial day <= cap, amount = min(balance - buffer, plan cap, SESSION profit)). After the request the account
+    trades no more that day (pause=True, the real rule); remaining trades are counted in `lost`. pause=False = research counterfactual (NOT allowed by Lucid):
+    keep trading after the request (one request per day). A hedging violation (not modelled: the app never hedges) would block it."""
     SIZE, TARGET, MLL, LT, LL, DLL0 = S.SIZE, S.TARGET, S.MLL, S.LOCK_TRIG, S.LOCK_LVL, S.DLL0
     CAPT, KILL, MG, SH, PV, FEE, TV, SLIP, MINPCT = S.CAP_TRADE, S.KILL, S.MARGIN, S.SHRINK, S.PV, S.FEE, S.TV, S.SLIP, S.MINPCT
     mincyc, mfirst, mnext = PAY[k]; buffer = LT; COST1 = S.COST1
@@ -56,15 +62,15 @@ def life(S, k, days, di0, c, cap, ds_frac, horizon=250, eval_mode=False):
     gper, gmax = c["grow"] if c["grow"] else (None, None)
     bal = SIZE; floor = bal - MLL; peak = bal; locked = False; peak_e = bal
     cyc = []; pays = []; dllh = dsh = 0; maxdd = 0.0; blocked = 0; maxday = 0.0; big6k = 0; pdays = 0; best = 0.0
-    status = "OPEN"; s = 0; eq_hi = SIZE
+    status = "OPEN"; s = 0; eq_hi = SIZE; lost = 0; od_pause_days = 0; base_today = 0.0
     for di in range(di0, len(days)):
         s += 1
         if s > horizon: break
-        tl = days[di]; today = 0.0; stop = False; peak_day = 0.0; free = -1.0; last = -1; lockday = False; dead_ = False
+        tl = days[di]; today = 0.0; stop = False; paid_today = 0.0; od_done = False; peak_day = 0.0; free = -1.0; last = -1; lockday = False; dead_ = False
         dll = DLL0
         if locked: dll = 0.6 * (peak_e - SIZE)
         rem0 = TARGET - (bal - SIZE)
-        for (m_in, m_out, kind, a, b, cc, d) in tl:
+        for ti, (m_in, m_out, kind, a, b, cc, d) in enumerate(tl):
             if stop: break
             if m_in <= free and not (kind == KN and last == KN): continue
             if kind == KN:
@@ -120,15 +126,24 @@ def life(S, k, days, di0, c, cap, ds_frac, horizon=250, eval_mode=False):
             today += pq; bal += pq
             if today > peak_day: peak_day = today
             if dead or bal <= floor + KILL: dead_ = True; break
+            if od and not od_done and today > 0 and len(pays) < 5:
+                cp = sum(cyc) + today
+                if cp >= mincyc and (sum(1 for x in cyc if x > 0) + 1) >= 3 and max(max(cyc, default=0.0), today) <= cap * cp:
+                    amt = min(bal - buffer, mfirst if not pays else mnext, today if od != "bal" else 1e18)  # od="bal": SENSITIVITY only (amount not limited to session profit, an unconfirmed reading)
+                    if amt >= 500:
+                        assert bal - amt >= buffer - 1e-9 and bal - amt > floor
+                        bal -= amt; paid_today += amt; pays.append((s, amt)); od_done = True; cyc = []; base_today = today
+                        if pause: lost += len(tl) - ti - 1; od_pause_days += 1; break
         if status == "STUCK": break
         if dead_: status = "BUST"; break
-        cyc.append(today)
+        cyc.append(today - base_today if (od and od_done) else today)
         if today > 0: pdays += 1; best = max(best, today)
         maxday = max(maxday, today)
         if today >= 6000: big6k += 1
-        if bal > peak_e: peak_e = bal
-        if bal > peak and not locked:
-            peak = bal
+        eod_bal = bal + paid_today  # an intraday payout does not lower the EOD high that trails the MLL (conservative: same floor as the weekly model)
+        if eod_bal > peak_e: peak_e = eod_bal
+        if eod_bal > peak and not locked:
+            peak = eod_bal
             if peak >= LT: locked = True; floor = LL
             else: floor = peak - MLL
         eq_hi = max(eq_hi, bal + sum(g for _, g in pays)); maxdd = max(maxdd, eq_hi - (bal + sum(g for _, g in pays)))
@@ -136,15 +151,16 @@ def life(S, k, days, di0, c, cap, ds_frac, horizon=250, eval_mode=False):
             prof = bal - SIZE
             if prof >= TARGET and pdays >= 1 and best <= 0.40 * prof: status = "PASS"; break
             continue
+        if od: continue
         cp = sum(cyc)
-        if cp > 0 and cp >= mincyc and sum(1 for x in cyc if x > 0) >= 3 and bal - buffer >= 500:
+        if (cad == 0 or s % cad == 0) and cp > 0 and cp >= mincyc and sum(1 for x in cyc if x > 0) >= 3 and bal - buffer >= 500:
             amt = min(bal - buffer, mfirst if not pays else mnext)
             if max(cyc) > cap * cp: blocked += 1                          # eligible except consistency: waits
             elif amt >= 500:
                 assert max(cyc) <= cap * cp + 1e-9 and bal - amt >= buffer - 1e-9 and bal - amt > floor
                 bal -= amt; pays.append((s, amt)); cyc = []
                 if len(pays) >= 5: status = "MAXPAY"; break
-    return dict(status=status, sessions=s, pays=pays, dll=dllh, dstop=dsh, maxdd=maxdd, blocked=blocked, maxday=maxday, big6k=big6k)
+    return dict(status=status, sessions=s, pays=pays, dll=dllh, dstop=dsh, maxdd=maxdd, blocked=blocked, maxday=maxday, big6k=big6k, lost=lost, od_pause_days=od_pause_days)
 
 
 def run(k, c, cap=0.35, ds_frac=0.38, news=True, cost=False, horizon=250):

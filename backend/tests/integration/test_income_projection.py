@@ -109,10 +109,10 @@ def test_income_endpoint(authed):
 
     data = json.loads(CALC_PATH.read_text())
     cell = data["plans"]["lucid_pro_25k"]["cells"]["m9|g0|c10"]
-    r = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "accounts": 5, "micros": 9})
+    r = authed.get("/api/income/projection", params={"plan": "lucid_pro_25k", "funded": 5, "micros": 9, "cadence": 10})
     assert r.status_code == 200, r.text
     b = r.json()
-    assert b["micros"] == 9 and b["accounts"] == 5 and "lucid_pro_50k" in b["plans"]
+    assert b["micros"] == 9 and b["accounts"] == 5 and b["funded"] == 5 and b["live"] == 0 and "lucid_pro_50k" in b["plans"]
     assert D(b["year_mean"]) == D(str(cell["paid_year_mean"])) * 5  # same trades on every account -> N x one account
     assert b["bust_pct"] == str(cell["bust_pct"]) and b["median_sessions_to_first"] == cell["median_sessions_to_first"]
     assert "UNVERIFIED" in b["basis"] and "NOISE" in b["basis"] and "CANDACE" in b["basis"] and "$250" not in b["basis"]
@@ -121,15 +121,19 @@ def test_income_endpoint(authed):
         assert authed.get("/api/income/projection", params={"micros": m}).status_code == 200
     assert authed.get("/api/income/projection", params={"micros": 10}).status_code == 422
     assert authed.get("/api/income/projection", params={"plan": "../../etc/passwd"}).status_code == 422
-    assert authed.get("/api/income/projection", params={"accounts": 9}).status_code == 422
+    assert authed.get("/api/income/projection", params={"funded": 6}).status_code == 422  # household: at most 5 funded
+    assert authed.get("/api/income/projection", params={"live": 6}).status_code == 422  # and at most 5 live
+    assert authed.get("/api/income/projection", params={"funded": 0, "live": 0}).status_code == 422
     assert authed.get("/api/income/projection", params={"cadence": 7}).status_code == 422
     assert authed.get("/api/income/projection", params={"grow": 123, "micros": 2}).status_code == 422
     assert authed.get("/api/income/projection").status_code == 200  # current plan, auto
     h = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "profile": "high"}).json()
-    hc = data["plans"]["lucid_pro_150k"]["cells"]["auto-high|c10"]
+    hc = data["plans"]["lucid_pro_150k"]["cells"][f"auto-high|c{data['meta']['default_cadence']}"]
     assert h["profile"] == "high" and h["auto"]["contracts"] == 5 and h["year_median"] == str(D(str(hc["paid_year_median"])) * 5)
+    assert h["cadence_sessions"] == data["meta"]["default_cadence"] == 1  # r9 study: every session at the close is the best payout timing
     od = authed.get("/api/income/projection", params={"cadence": 0, "micros": 3}).json()
-    assert od["cadence_sessions"] == 0 and "VERIFY" in od["on_demand_note"] and "no fixed payout window" in od["on_demand_note"]
+    assert od["cadence_sessions"] == 0 and od["on_demand_status"] == "CONFIRMED (Lucid help center)"
+    assert "paused until the end of the trading day" in od["on_demand_note"] and "Hedging Violation" in od["on_demand_note"]
     assert authed.get("/api/income/projection", params={"profile": "max"}).status_code == 422
 
 
@@ -209,7 +213,7 @@ def test_income_invariants_all_cells():
 
 
 def test_income_endpoint_units_and_note(authed):
-    b = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "accounts": 5, "micros": 9, "cadence": 10}).json()
+    b = authed.get("/api/income/projection", params={"plan": "lucid_pro_150k", "funded": 5, "micros": 9, "cadence": 10}).json()
     assert b["scenario"] == "paid" and b["net_of_split"] is True
     assert D(b["max_possible_year"]) == D(b["max_possible_account"]) * 5 == (D(b["cap_first_net"]) + 4 * D(b["cap_next_net"])) * 5
     assert "5 accounts" in b["max_possible_formula"]
@@ -227,3 +231,33 @@ def test_income_150k_9_micros_matches_sim_distribution():
     c = json.loads(CALC_PATH.read_text())["plans"]["lucid_pro_150k"]["cells"]["m9|g0|c10"]
     assert c["starts"] > 500 and c["paid_year_mean"] >= c["year_mean"]
     assert abs(c["paid_year_mean"] * c["any_payout_pct"] / 100 - c["year_mean"]) <= 0.002 * c["paid_year_mean"] + 1  # (pct rounded to 0.1) mixture identity: mean = share paid x paid mean
+
+
+def test_funded_live_household_totals(authed):
+    """3 funded + 2 live: per account / funded / live / household totals, net and gross (live = funded rules, VERIFY)."""
+    b = authed.get("/api/income/projection", params={"plan": "lucid_pro_50k", "funded": 3, "live": 2, "micros": 2, "cadence": 5}).json()
+    t = b["totals"]
+    assert b["accounts"] == 5 and b["funded"] == 3 and b["live"] == 2 and b["live_status"] == "VERIFY"
+    for k in ("week", "year_mean", "year_median", "year_p25", "year_p75"):
+        one = D(t["per_account"][k]["net"])
+        assert D(t["funded"][k]["net"]) == one * 3 and D(t["live"][k]["net"]) == one * 2 and D(t["household"][k]["net"]) == one * 5
+        assert abs(D(t["household"][k]["gross"]) * D("0.9") - D(t["household"][k]["net"])) <= D("0.01")
+    assert D(b["year_mean"]) == D(t["household"]["year_mean"]["net"])
+    only_live = authed.get("/api/income/projection", params={"funded": 0, "live": 1, "micros": 2}).json()
+    assert D(only_live["totals"]["funded"]["year_mean"]["net"]) == 0 and D(only_live["totals"]["live"]["year_mean"]["net"]) > 0
+
+
+def test_on_demand_cells_are_session_limited_and_report_pause(authed):
+    import json
+
+    from app.api.income import CALC_PATH
+
+    d = json.loads(CALC_PATH.read_text())
+    assert d["meta"]["cadences"] == [5, 10, 1, 0] and "CONFIRMED" in d["meta"]["on_demand"]
+    for p in d["plans"].values():
+        for m in range(1, 10):
+            od, wk = p["cells"][f"m{m}|g0|c0"], p["cells"][f"m{m}|g0|c5"]
+            assert od["lost_trades_year"] >= 0 and od["pause_days_year"] >= 0 and wk["pause_days_year"] == 0
+            assert od["per_payout_max"] <= p["cap_next_net"] + 0.01
+    b = authed.get("/api/income/projection", params={"cadence": 0, "micros": 3}).json()
+    assert float(b["pause_days_year_account"]) >= 0

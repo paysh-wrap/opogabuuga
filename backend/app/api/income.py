@@ -31,6 +31,18 @@ def _scale(v: float | None, n: int) -> str | None:
     return None if v is None else str(Decimal(str(v)) * n)
 
 
+FIGS = {"week": "paid_week_mean", "year_mean": "paid_year_mean", "year_median": "paid_year_median", "year_p25": "paid_year_p25", "year_p75": "paid_year_p75"}
+
+
+def _figs(c: dict[str, Any], n: int) -> dict[str, dict[str, str]]:
+    """Profit-scenario figures for n accounts: {name: {net, gross}}. Gross = net / 0.9 (Lucid keeps 10%)."""
+    out = {}
+    for k, f in FIGS.items():
+        net = Decimal(str(c[f])) * n
+        out[k] = {"net": str(net), "gross": str((net / Decimal("0.9")).quantize(Decimal("0.01")))}
+    return out
+
+
 def _basis(meta: dict[str, Any], plan: dict[str, Any], micros: int, profile: str, grow: int, a: dict[str, Any] | None) -> str:
     if micros:
         size = f"NOISE {micros} + CANDACE {micros} micros each, stop ${meta['fixed_stop_usd']}, profit lock 100 pt to entry +10"
@@ -57,14 +69,18 @@ def income_projection(
     request: Request,
     _: Principal = Depends(current_user),
     plan: str | None = None,
-    accounts: int = Query(5, ge=1, le=5),
+    funded: int = Query(5, ge=0, le=5),  # household: up to 5 active funded accounts (config/household.yaml, CONFIRMED)
+    live: int = Query(0, ge=0, le=5),  # and up to 5 active LucidLive accounts; 10 in all
     micros: int = Query(0, ge=0, le=9),  # 0 = the plan's own fast-pass size + brakes
-    cadence: int = Query(10, ge=0, le=20),  # sessions between payouts; 0 = on-demand (UNVERIFIED model)
+    cadence: int | None = Query(None, ge=0, le=20),  # sessions between payouts; 0 = on-demand (CONFIRMED, intraday); None = the study's best (meta.default_cadence)
     grow: int = Query(0, ge=0, le=10000),
     profile: str | None = Query(None, pattern="^(regular|high)$"),
 ) -> dict[str, Any]:
     d = calc_data()
     meta, plans = d["meta"], d["plans"]
+    if funded + live < 1:
+        raise HTTPException(422, "choose at least one funded or live account")
+    cadence = meta["default_cadence"] if cadence is None else cadence
     st = request.app.state
     name = plan or (st.rules.plan if st.rules.plan in plans else sorted(plans)[0])
     if name not in plans:  # whitelist: only plans present in the data file
@@ -82,10 +98,16 @@ def income_projection(
         a = p["auto"][prof]
         key = f"auto-{prof}|c{cadence}"
     c = p["cells"][key]
-    n = accounts
+    n = funded + live
+    per = _figs(c, 1)
     return {
         "plan": name, "plans": sorted(plans), "current_plan": st.rules.plan, "grow": grow, "profile": prof,
-        "accounts": n, "micros": micros or a["noise"], "cadence_sessions": cadence, "starts": c["starts"],
+        "accounts": n, "funded": funded, "live": live, "default_cadence": meta["default_cadence"], "cadence_labels": meta["cadence_labels"],
+        "live_status": meta["live"]["status"], "live_basis": meta["live"]["basis"], "household": meta["household"],
+        # Totals: per ONE account / funded accounts / live accounts / whole household; each with net (after the 10% split) and gross. Same trades on every account.
+        "totals": {"per_account": per, "funded": _figs(c, funded), "live": _figs(c, live), "household": _figs(c, n)},
+        "on_demand_status": "CONFIRMED (Lucid help center)", "lost_trades_year_account": str(c.get("lost_trades_year", 0)), "pause_days_year_account": str(c.get("pause_days_year", 0)),
+        "micros": micros or a["noise"], "cadence_sessions": cadence, "starts": c["starts"],
         "horizon_sessions": meta["horizon_sessions"], "status": meta["status"], "caveat": meta["caveat"],
         "on_demand_note": meta["on_demand"], "max_micros": meta["max_micros"], "cadences": meta["cadences"],
         # HEADLINE = PROFIT SCENARIO: only the simulated starts that got >= 1 payout, scaled to all N accounts (all N assumed paid).

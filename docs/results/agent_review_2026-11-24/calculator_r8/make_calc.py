@@ -3,20 +3,17 @@ MAIN strategy = Fast Evaluation NOISE + CANDACE (fast-pass setups) replayed thro
 (EOD MLL + lock, DLL + LucidScale, payout consistency 40%, kill $50, news hard breach, $2/micro RT) on /home/user/days.pkl (MNQ 1-min RTH).
 Micros 1..9 = NOISE and CANDACE both at N micros (stop $100, profit lock 100/10), optional growth (+1 micro per $g of cushion, cap 9).
 Auto = the plan's own fast_pass_*_cfg sizes+brakes (profile high = r6 candidate a) or the lowest brake step (profile regular = r6 candidate b / b2).
-Payout cadence: 5 / 10 sessions = a payout is requested only on those days; 0 = on-demand (whenever eligible; UNVERIFIED model). Per account, first 250 sessions."""
+Payout timing: 5 / 10 sessions = a payout is requested at the end of those sessions; 0 = Lucid ON-DEMAND (CONFIRMED, help center 2026-11-24): requested intraday as soon as session profit makes the account eligible, trading stops for the rest of that day. Per account, first 250 sessions."""
 import sys
 sys.path[:0] = ["/home/user/paytience/docs/results/agent_review_2026-11-24/pass_faster_r4", "/home/user/paytience/docs/results/agent_review_2026-11-24/refine_round3"]
 import json, types, multiprocessing as mp, numpy as np
 R6 = "/home/user/paytience/docs/results/agent_review_2026-11-24/funded_payout_r6/"
-src = open(R6 + "fsim.py").read()
-src = src.replace("horizon=250, eval_mode=False):", "horizon=250, eval_mode=False, cad=0):")
-a = "        if cp > 0 and cp >= mincyc"
-assert src.count(a) == 1
-src = src.replace(a, "        if (cad == 0 or s % cad == 0) and cp > 0 and cp >= mincyc")
-fsim = types.ModuleType("fsim_r8"); fsim.__file__ = R6 + "fsim.py"; exec(compile(src, fsim.__file__, "exec"), fsim.__dict__)
+sys.path.insert(0, R6)
+import fsim  # r9: native payout timing (cad sessions, or od=True = Lucid on-demand, CONFIRMED)
 import harness as H, h4
 PLANS = {25: "lucid_pro_25k", 50: "lucid_pro_50k", 100: "lucid_pro_100k", 150: "lucid_pro_150k"}
-GROWS = [0, 500, 1000, 1500, 2000, 3000]; CADS = [5, 10, 0]; HZ = 250; CAP = 0.40; MAXM = 9
+GROWS = [0, 500, 1000, 1500, 2000, 3000]; HZ = 250; CAP = 0.40; MAXM = 9
+CADS = [5, 10, 1, 0]  # 5 weekly, 10 every 2 weeks, 1 = every session at close (any day once eligible), 0 = Lucid on-demand (intraday, CONFIRMED)
 REG = {25: dict(stop=75, N=1, nc=1), 50: dict(stop=75, N=1, nc=3, lock=80), 100: dict(stop=100, N=2, nc=2),
        150: dict(stop=100, N=2, nc=4, nb=((1500, 1),), cb=((1500, 1),))}
 _cache = {}
@@ -25,8 +22,9 @@ def prep(k, c):
     if key not in _cache:
         S = h4.sim(k, ds=0.38); cc = S.mk(**c); days, st = fsim.build_days(S, cc, True); _cache.clear(); _cache[key] = (S, cc, days)
     return _cache[key]
-def cell(S, cc, days, k, cad):
-    L = S.L; ix = range(0, L - HZ + 1); res = [fsim.life(S, k, days, i, cc, CAP, 0.38, HZ, False, cad) for i in ix]
+def cell(S, cc, days, k, cad, od=None, pause=True):
+    od = (cad == 0) if od is None else od
+    L = S.L; ix = range(0, L - HZ + 1); res = [fsim.life(S, k, days, i, cc, CAP, 0.38, HZ, False, cad, od, pause) for i in ix]
     net = np.array([0.9 * sum(g for _, g in r["pays"]) for r in res]); npay = np.array([len(r["pays"]) for r in res])
     first = [r["pays"][0][0] for r in res if r["pays"]]
     pn = net[npay > 0]  # PROFIT SCENARIO: only starts whose account got >= 1 payout (all N accounts take the same trades)
@@ -42,7 +40,8 @@ def cell(S, cc, days, k, cad):
                 per_payout_max=round(float(max([0.9 * g for r in res for _, g in r["pays"]], default=0.0)), 2),
                 any_payout_pct=round(100 * float((npay > 0).mean()), 1), max_payouts_pct=round(100 * float((npay >= 5).mean()), 1),
                 bust_pct=round(100 * float(np.mean([r["status"] in ("BUST", "STUCK") for r in res])), 1),
-                median_sessions_to_first=int(np.median(first)) if first else None, starts=len(res))
+                median_sessions_to_first=int(np.median(first)) if first else None, mean_sessions_to_first=round(float(np.mean(first)), 1) if first else None,
+                lost_trades_year=round(float(np.mean([r["lost"] for r in res])), 1), pause_days_year=round(float(np.mean([r["od_pause_days"] for r in res])), 1), starts=len(res))
 def job(a):
     k, mode, m, g = a
     if mode == "fixed": c = H.cfg(k, stop=100, N=m, nc=m, grow=(float(g), MAXM) if g else None, cgrow=(g, MAXM) if g else None)
@@ -60,7 +59,11 @@ if __name__ == "__main__":
         payout_consistency_pct=int(CAP * 100), net_split=0.9, cost_per_micro_rt_usd=2, news="hard breach: flat 1 min before, no entry until 1 min after (VERIFY window)",
         setups="NOISE (profit lock +100 pt, stop moves to entry +10) + CANDACE ICT scalp, same trades on every account; micros = size of each strategy",
         fixed_stop_usd=100, max_micros=MAXM, grows=GROWS, cadences=CADS, caveat="Funded accounts are lost often: 20-43% lost within 120 days on 25K/50K/100K (funded_payout_r6/RESULTS.md); open-trade drawdown only through the stop, eval fees and resets not subtracted.",
-        on_demand="Lucid help center (on_demand_payouts_r8/RESULTS.md) CONFIRMS LucidPro has no fixed payout window: a payout may be requested any day once eligible (min $500, min cycle profit, consistency 40%, buffer). Intraday timing, DLL-on requirement and trading pause after a request are third-party only, and the app's '3 profitable days' rule is not on the official page: all VERIFY. Modelled as a payout whenever eligible, same-evening, trading not blocked."), plans={})
+        default_cadence=1, default_cadence_why="r9 study (on_demand_r9/RESULTS.md): requesting at the close of every session once eligible took the most net out per year (best on 11 of 20 plan x setup rows, +2% vs weekly, first payout 3 sessions sooner); on-demand takes about 65% LESS because each request is limited to that session's profit.",
+        cadence_labels={"5": "weekly", "10": "every 2 weeks", "1": "every session at the close (Lucid: no fixed payout window, request any day once eligible)", "0": "on-demand (intraday)"},
+        on_demand="Lucid On-Demand payouts - CONFIRMED (Lucid help center, user screenshots 2026-11-24): with the Daily Loss Limit ON a funded LucidPro account can request a payout DURING the session (6:00 PM to 3:45 PM ET) from the profit made that session; min $500; per-plan cap; consistency 40%; buffer = initial MLL + $100; after an intraday request trading on that account is paused until the end of the trading day; an account with a Hedging Violation is not eligible; with DLL OFF payouts follow the regular end-of-day schedule. Modelled: request as soon as the session profit makes the account eligible, amount = min(balance - buffer, cap, session profit), the account then stops trading for the day (lost trades counted). The '3 profitable days' rule is kept from the weekly model (unconfirmed, VERIFY).",
+        live=dict(status="VERIFY", basis="LucidLive accounts are modelled with the SAME rules as the funded account of the plan: the repo knows only the live MLL (1000, lock 1100 -> 100) and no live payout rules, so the live total is a placeholder until Lucid's live payout rules are confirmed."),
+        household=dict(max_active_funded=5, max_active_live=5, status="CONFIRMED", source="Lucid help center, user screenshot 2026-11-24")), plans={})
     for k, n in PLANS.items():
         P = fsim.PAY[k]; data["plans"][n] = dict(account_size=k * 1000, max_possible_year=round(0.9 * (P[1] + 4 * P[2]), 2), payout_events_max=5, cap_first_net=round(0.9 * P[1], 2), cap_next_net=round(0.9 * P[2], 2), cells={},
             auto={md: dict(setup=("fast-pass sizes + brakes (r6 candidate a)" if md == "auto-high" else "lowest brake step (r6 candidate b)"), cfg={x: (list(v) if isinstance(v, tuple) else v) for x, v in (H.BUILT[k] if md == "auto-high" else REG[k]).items()}) for md in ("high", "regular")} if False else {})
