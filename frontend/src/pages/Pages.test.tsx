@@ -57,7 +57,8 @@ test("Header status shows mode, eval mode, trading count, countdown; kill needs 
   mock(calls);
   wrap(<HeaderStatus />);
   expect(await screen.findByTestId("automation-mode")).toHaveTextContent("SEMI");
-  expect(await screen.findByTestId("eval-mode")).toHaveTextContent("EVAL MODE ON");
+  expect(await screen.findByTestId("automation-mode")).toBeInTheDocument();
+  expect(screen.queryByTestId("eval-mode")).toBeNull(); // D167: no EVAL MODE pill in the header (control lives on the Risk page)
   expect(await screen.findByTestId("trading-count")).toHaveTextContent("1 of 2");
   expect(await screen.findByTestId("flatten-countdown")).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "KILL SWITCH" }));

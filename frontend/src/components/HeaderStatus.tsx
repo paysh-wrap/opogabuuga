@@ -20,12 +20,11 @@ function modeLabel(m: string): string {
   return m.startsWith("SEMI") ? "SEMI" : m.startsWith("FULL") ? "FULL" : "OFF";
 }
 
-/** §18 header extras: Automation mode, Eval Mode, "Trading N of M", flatten countdown, KILL SWITCH. */
+/** §18 header extras: Automation mode, "Trading N of M", flatten countdown, KILL SWITCH. */
 export default function HeaderStatus() {
   const qc = useQueryClient();
   const now = useNow();
   const auto = useQuery({ queryKey: ["automation"], queryFn: () => api<{ mode: string }>("/api/automation"), refetchInterval: 10_000 });
-  const ev = useQuery({ queryKey: ["eval-mode"], queryFn: () => api<{ enabled: boolean }>("/api/risk/eval-mode") });
   const accts = useQuery({ queryKey: ["accounts"], queryFn: () => api<{ accounts: Acct[] }>("/api/accounts"), refetchInterval: 15_000 });
   const rules = useQuery({ queryKey: ["rules"], queryFn: () => api<{ rules: { internal: { auto_flatten: string } } }>("/api/rules"), staleTime: 300_000 });
   const [open, setOpen] = useState(false);
@@ -48,11 +47,6 @@ export default function HeaderStatus() {
       {auto.data && (
         <Link to="/automation" data-testid="automation-mode" title="Automation mode" className={chip}>
           Automation {modeLabel(auto.data.mode)}
-        </Link>
-      )}
-      {ev.data && (
-        <Link to="/risk" data-testid="eval-mode" title="Evaluation Mode (change on the Risk page)" className={chip}>
-          EVAL MODE {ev.data.enabled ? "ON" : "OFF"}
         </Link>
       )}
       {list && (

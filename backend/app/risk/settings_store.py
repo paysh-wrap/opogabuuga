@@ -341,7 +341,9 @@ def strategy_choices_on(strategy: Any) -> list[str]:
     on = []
     for c, attrs in STRATEGY_CHOICES.items():
         if c == "main_noise_candace" and split:
-            attrs = tuple(a for a in attrs if a != "noise")  # the split (D92) is the one choice that uses NOISE + AI Duo
+            attrs = tuple(
+                a for a in attrs if a != "noise"
+            )  # the split (D92) is the one choice that uses NOISE + AI Duo
         if any(bool(getattr(strategy, a)) for a in attrs):
             on.append(c)
     return on

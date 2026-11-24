@@ -1109,7 +1109,7 @@ def _eval_rows(r: Any, table: list[Any]) -> list[Any]:
 
 
 def _fast_pass_cards(st: Any) -> list[tuple[str, Any, bool]]:
-    """D167: (key, FastPassCfg, on) for 25K/50K/100K/150K. The cfg comes from config/rules/lucid_pro_{N}k.yaml (the active
+    """D167: (key, FastPassCfg, on) for 25K/50K/100K/150K. Cfg from config/rules/lucid_pro_{N}k.yaml (the active
     plan's own cfg wins); the switches stay independent — several plans may be ON together."""
     from app.config import FastPassCfg, load_yaml_decimal
 
