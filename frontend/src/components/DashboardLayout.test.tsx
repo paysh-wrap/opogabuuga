@@ -22,15 +22,18 @@ test("next payout time shows the ET suffix exactly once", async () => {
   expect(el.textContent).not.toMatch(/ET\s*ET/);
 });
 
-test("projection grid is two columns: every label sits directly before its own value", async () => {
+test("projection is a table: every row has a label cell then per-account, all-accounts net and gross values", async () => {
   vi.spyOn(globalThis, "fetch").mockImplementation(async () => new Response(JSON.stringify(inc)));
   render(<QueryClientProvider client={new QueryClient()}><IncomeProjection /></QueryClientProvider>);
   await screen.findByTestId("income-week");
-  const dl = document.querySelector("dl") as HTMLElement;
-  expect(dl.className).not.toMatch(/sm:grid-cols-3|\bgrid-cols-3\b/); // label+value pairs need exactly 2 columns
-  const kids = Array.from(dl.children).map((c) => c.tagName);
-  expect(kids.length % 2).toBe(0);
-  kids.forEach((t, i) => expect(t).toBe(i % 2 === 0 ? "DT" : "DD"));
-  expect(dl.children[0]?.textContent).toBe("Per week (average)");
-  expect(dl.children[1]?.textContent).toContain("$202");
+  const table = screen.getByTestId("income-table");
+  expect(table.querySelectorAll("thead th").length).toBe(4);
+  const rows = Array.from(table.querySelectorAll("tbody tr"));
+  expect(rows.length).toBeGreaterThan(0);
+  rows.forEach((r) => {
+    expect(r.children[0]?.tagName).toBe("TH");
+    expect(Array.from(r.children).slice(1).map((c) => c.tagName)).toEqual(["TD", "TD", "TD"]);
+  });
+  expect(rows[0]?.children[0]?.textContent).toContain("Per week");
+  expect(screen.getByTestId("income-week").textContent).toContain("$202");
 });
