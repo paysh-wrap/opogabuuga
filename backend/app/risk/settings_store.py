@@ -351,7 +351,6 @@ def effective(s: Session, base: LoadedRules, apply_firm: bool = True) -> Effecti
 # sub-options (late-day, fast-pass sizes, pm_fade, order-flow AR/AUCTION/AMT/zone) are not choices of their own.
 STRATEGY_CHOICES: dict[str, tuple[str, ...]] = {
     "main_noise_candace": ("noise", "candace_ict"),
-    "mgc_noise_candace": ("mgc_noise_candace",),
     "order_flow": ("order_flow",),
     "ai_duo": ("ai_duo",),
     "jj_fpt": ("jj_fpt",),

@@ -324,6 +324,9 @@ CATALOG: list[dict[str, object]] = [
         "guess. MGC is the METALS group; fixed 1 micro; every Lucid rule and safety check still applies. "
         "Needs 10 stored MGC sessions from the feed.",
         "setting_key": "strategy.mgc_noise_candace",
+        "addon": True,  # D184: runs BESIDE the main MNQ strategy (not one of the one-at-a-time choices)
+        "addon_title": "Also trade MGC (NOISE + CANDACE on micro gold)",
+        "addon_sizes": "MGC 1/1/1 · MNQ 4/4/4",
     },
     {
         "key": "order_flow_auction",

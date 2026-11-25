@@ -36,3 +36,8 @@ test("a failed load says so instead of showing nothing", async () => {
   wrap({ detail: "down" }, 500);
   expect(await screen.findByTestId("now-running-error")).toHaveTextContent("Strategy status unavailable: down");
 });
+
+test("the MGC add-on shows as + MGC beside MAIN and is not a choice of its own", () => {
+  expect(runningNames([s("noise", "NOISE — x", true), s("candace_ict", "CANDACE — y", true), s("mgc_noise_candace", "NOISE + CANDACE · MGC", true)])).toEqual(["MAIN NOISE + CANDACE", "MGC"]);
+  expect(runningNames([s("mgc_noise_candace", "NOISE + CANDACE · MGC", false)])).toEqual([]);
+});

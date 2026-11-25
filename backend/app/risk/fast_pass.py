@@ -37,6 +37,7 @@ def fast_pass_size(
     strategy: str,
     cushion: Decimal,
     stage_on: bool = False,
+    mgc_on: bool = False,
 ) -> FastPassSize | None:
     """The fast-pass starting size, or None when the feature does not apply (then today's sizing is used unchanged).
     D180: FUNDED / LIVE accounts only get it when their own stage switch (`stage_on`) is ON; never EVAL-only again."""
@@ -46,10 +47,13 @@ def fast_pass_size(
         return None
     if strategy not in FAST_PASS_STRATEGIES:
         return None
+    wm = cfg.with_mgc if mgc_on else None  # D184: fixed MNQ sizes beside the MGC add-on, no grow, brakes still shrink
     if strategy == "NOISE":
-        n, braked = _step_size(cfg, cfg.noise_steps, _noise_base(cfg, cushion), cushion)
+        n, braked = _step_size(cfg, cfg.noise_steps, wm.noise_contracts if wm else _noise_base(cfg, cushion), cushion)
         return FastPassSize(n, cfg.noise_stop_usd, braked)
-    n, braked = _step_size(cfg, cfg.candace_steps, _candace_base(cfg, cushion), cushion)
+    n, braked = _step_size(
+        cfg, cfg.candace_steps, wm.candace_contracts if wm else _candace_base(cfg, cushion), cushion
+    )
     return FastPassSize(n, None, braked)
 
 
@@ -81,6 +85,7 @@ def late_day_size(
     stage: str,
     account_size: Decimal,
     cushion: Decimal,
+    mgc_on: bool = False,
 ) -> FastPassSize | None:
     """D166: starting size of the late-day momentum leg, or None = not active (then NO trade is taken). Needs the
     option AND this plan's fast pass ON, EVAL stage, own account size and a `late_contracts` in the plan file; below a
@@ -89,7 +94,8 @@ def late_day_size(
         return None
     if stage != "EVAL" or account_size != cfg.account_size:
         return None
-    n, braked = _step_size(cfg, cfg.late_steps, cfg.late_contracts, cushion)
+    base = cfg.with_mgc.late_contracts if mgc_on and cfg.with_mgc else cfg.late_contracts  # D184
+    n, braked = _step_size(cfg, cfg.late_steps, base, cushion)
     return FastPassSize(n, None, braked)
 
 
@@ -126,7 +132,7 @@ def fast_pass_lock(cfg: FastPassCfg | None, lock: tuple[Decimal, Decimal] | None
 def _step_size(cfg: FastPassCfg, steps: tuple[FastPassStep, ...], normal: int, cushion: Decimal) -> tuple[int, bool]:
     """D161: the smallest applicable brake step wins (strict < unless cfg.brake_inclusive); none → the normal size."""
     hit = [x.contracts for x in steps if (cushion <= x.cushion_usd if cfg.brake_inclusive else cushion < x.cushion_usd)]
-    return (min(hit), True) if hit else (normal, False)
+    return (min(min(hit), normal), True) if hit else (normal, False)  # a brake never raises the size
 
 
 def plan_fast_pass(st: StrategyCfg, account_size: Decimal) -> tuple[bool, FastPassCfg | None]:

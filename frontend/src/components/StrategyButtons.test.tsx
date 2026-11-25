@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import StrategyButtons, { type StrategiesResp } from "./StrategyButtons";
@@ -259,4 +259,24 @@ test("D167: main strategy first, one strategy ON at a time, four independent fas
   await userEvent.click(screen.getByRole("button", { name: /OFF · Order Flow — TradingView/ }));
   await waitFor(() => expect(calls.some((c) => c.startsWith("PUT") && c.includes('"strategy.noise":false') && c.includes('"strategy.candace_ict":false') && c.includes('"strategy.order_flow":true'))).toBe(true));
   expect(await screen.findByTestId("exclusive-note")).toHaveTextContent("turned off: NOISE + CANDACE");
+});
+
+test("MGC add-on panel: fixed sizes, plain-words guards, UNVERIFIED, turning it on leaves MAIN ON", async () => {
+  const g = { key: "mgc_noise_candace", name: "NOISE + CANDACE · MGC", source: "30-day test", verified: false, status: "UNVERIFIED", badge: "UNVERIFIED · 30-day yfinance test only", win_pct: null, profit_factor: null, usd_per_trade: null, trades_per_week: null, held_out_trades: 0, pro25k_pass_pct: null, pro25k_bust_pct: null, period: "30 days.", note: "n", enabled: false, setting: "strategy.mgc_noise_candace", addon: true, addon_title: "Also trade MGC (NOISE + CANDACE on micro gold)", addon_sizes: "MGC 1/1/1 · MNQ 4/4/4", strategy_rules: [] };
+  const calls: string[] = [];
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    calls.push(`${init?.method ?? "GET"} ${String(url)} ${init?.body ? String(init.body) : ""}`);
+    return new Response(JSON.stringify(String(url) === "/api/strategies" ? { ...resp, strategies: [...resp.strategies, g] } : {}));
+  });
+  render(<QueryClientProvider client={new QueryClient()}><StrategyButtons /></QueryClientProvider>);
+  const box = await screen.findByTestId("mgc-addon");
+  expect(box).toHaveTextContent("Also trade MGC (NOISE + CANDACE on micro gold)");
+  expect(screen.getByTestId("mgc-addon-sizes")).toHaveTextContent("MGC 1/1/1 · MNQ 4/4/4");
+  expect(screen.getByTestId("mgc-addon-guards")).toHaveTextContent("kill switch, the daily loss limit and the loss-limit room stop and flatten MNQ and MGC together");
+  expect(box).toHaveTextContent("30-day Yahoo test only");
+  expect(screen.getByTestId("lesser-summary")).not.toHaveTextContent("MGC");
+  await userEvent.click(within(box).getByRole("button", { name: /NOISE \+ CANDACE · MGC/ }));
+  await waitFor(() => expect(calls.some((c) => c.startsWith("PUT /api/risk/settings") && c.includes('"strategy.mgc_noise_candace":true'))).toBe(true));
+  const put = calls.find((c) => c.startsWith("PUT /api/risk/settings"))!;
+  expect(put).not.toContain('"strategy.noise":false'); // MAIN stays ON
 });

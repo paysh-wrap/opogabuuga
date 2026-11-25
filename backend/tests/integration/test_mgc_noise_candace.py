@@ -108,7 +108,7 @@ def test_strategy_card_and_toggle(authed):
     card = next(c for c in d["strategies"] if c["key"] == "mgc_noise_candace")
     assert card["enabled"] is False and card["setting"] == "strategy.mgc_noise_candace"
     assert card["badge"] == "UNVERIFIED · 30-day yfinance test only" and "PF 1.97" in card["note"]
-    assert [x["key"] for x in card["strategy_rules"]] == ["NOISE", "CANDACE", "SIZE", "DATA"]
+    assert [x["key"] for x in card["strategy_rules"]] == ["NOISE", "CANDACE", "LATE", "SIZE", "DATA"]
     r = authed.put("/api/risk/settings", json={"changes": {"strategy.mgc_noise_candace": True}, "note": "mgc"})
     assert r.status_code == 200, r.text
     d = authed.get("/api/strategies").json()

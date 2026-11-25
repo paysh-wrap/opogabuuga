@@ -935,30 +935,6 @@ class CandaceIctCfg(_M):
     paper_only: bool = False
 
 
-class MgcNoiseCandaceCfg(_M):
-    """D165 (user 2026-11-23): NOISE + CANDACE on MGC (gold, METALS group) — the SAME engines as the MNQ cards,
-    parameters
-    from the 30-day Yahoo test (docs/results/yf30/RESULTS.md). UNVERIFIED: ~20 sessions, 2-minute continuous contracts.
-    Fixed 1 micro; every Lucid check still only shrinks / skips. The bar-count CANDACE settings keep their defaults."""
-
-    noise: NoiseCfg = NoiseCfg(symbol="MGC", skip_weekdays=[])
-    candace: CandaceIctCfg = CandaceIctCfg(
-        symbol="MGC",
-        ny_window="08:20-11:00",
-        ny_max_stop_pts=D("6"),
-        ny_max_hold_minutes=30,
-        gap_level_tol_pts=D("0.7"),
-    )
-    contracts: int = Field(default=1, ge=1, le=1)  # fixed 1 micro
-
-
-class EvalCapCfg(_M):
-    """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
-
-    account_size: D
-    max_contracts: int = Field(ge=1)
-
-
 class LateDayCfg(_M):
     """D166 (user 2026-11-23) "late-day momentum" 3rd edge of the fast pass, from the new_edge study
     (docs/results/new_edge: lastmom239, MNQ 2021-10..2026-10, held-out 2024+ PF 1.12 — UNVERIFIED):
@@ -982,11 +958,48 @@ class LateDayCfg(_M):
     paper_only: bool = False
 
 
+class MgcNoiseCandaceCfg(_M):
+    """D165 (user 2026-11-23): NOISE + CANDACE on MGC (gold, METALS group) — the SAME engines as the MNQ cards,
+    parameters
+    from the 30-day Yahoo test (docs/results/yf30/RESULTS.md). UNVERIFIED: ~20 sessions, 2-minute continuous contracts.
+    Fixed 1 micro; every Lucid check still only shrinks / skips. The bar-count CANDACE settings keep their defaults."""
+
+    noise: NoiseCfg = NoiseCfg(symbol="MGC", skip_weekdays=[])
+    candace: CandaceIctCfg = CandaceIctCfg(
+        symbol="MGC",
+        ny_window="08:20-11:00",
+        ny_max_stop_pts=D("6"),
+        ny_max_hold_minutes=30,
+        gap_level_tol_pts=D("0.7"),
+    )
+    contracts: int = Field(default=1, ge=1, le=1)  # fixed 1 micro
+    # D184 (user 2026-11-25): late-day momentum on MGC, same rules as the MNQ one, fixed 1 micro, UNVERIFIED: the yf30
+    # test (23 trades, 8 pt stop scaled to price) gave PF 0.84, win 43.5 %, -$110 per micro. Runs only while the
+    # late-day option (strategy.fast_pass_late_day) AND the MGC add-on are ON.
+    late: LateDayCfg = LateDayCfg(symbol="MGC", stop_pts=D(8))
+
+
+class EvalCapCfg(_M):
+    """D133 / I1: the most micros an Evaluation-Mode size-table row may use (session-19 lowest bust)."""
+
+    account_size: D
+    max_contracts: int = Field(ge=1)
+
+
 class FastPassStep(_M):
     """D161: one brake step: at / below (or strictly below, see FastPassCfg.brake_inclusive) `cushion_usd`."""
 
     cushion_usd: D = Field(gt=D(0))
     contracts: int = Field(ge=1)
+
+
+class WithMgcCfg(_M):
+    """D184 (user 2026-11-25): the MNQ starting sizes of this plan while the MGC add-on is ON (MGC itself is always
+    1 / 1 / 1). No grow; the plan's brakes (steps) still shrink these, never raise them. Editable in the plan file."""
+
+    noise_contracts: int = Field(ge=1)
+    candace_contracts: int = Field(ge=1)
+    late_contracts: int = Field(ge=1)
 
 
 class FastPassCfg(_M):
@@ -1023,6 +1036,7 @@ class FastPassCfg(_M):
     # strictness as the other steps; contracts <= late_contracts, tighten-only).
     late_contracts: int | None = Field(default=None, ge=1)
     late_steps: tuple[FastPassStep, ...] = ()
+    with_mgc: WithMgcCfg | None = None  # D184: sizes while the MGC add-on is ON (None = this plan keeps its own)
 
     @model_validator(mode="before")
     @classmethod

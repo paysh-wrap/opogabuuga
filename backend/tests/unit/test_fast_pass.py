@@ -6,7 +6,7 @@ from decimal import Decimal as D
 
 import pytest
 
-from app.config import FastPassCfg, FastPassStep, StrategyCfg, load_rules
+from app.config import FastPassCfg, FastPassStep, StrategyCfg, WithMgcCfg, load_rules
 from app.risk.fast_pass import (
     FastPassSize,
     fast_pass_day_locked,
@@ -155,7 +155,8 @@ def test_plan_files():
             update={"late_contracts": 2, "late_steps": (FastPassStep(cushion_usd=D(1000), contracts=1),)}
         ),
         "lucid_pro_150k.yaml": CFG150_NEW.model_copy(
-            update={"late_contracts": 4, "late_steps": (FastPassStep(cushion_usd=D(2250), contracts=1),)}
+            update={"late_contracts": 4, "late_steps": (FastPassStep(cushion_usd=D(2250), contracts=1),),
+                    "with_mgc": WithMgcCfg(noise_contracts=4, candace_contracts=4, late_contracts=4)}  # D184
         ),
     }  # fmt: skip
     for f in sorted((REPO_ROOT / "config" / "rules").glob("*.yaml")):

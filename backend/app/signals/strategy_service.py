@@ -1614,11 +1614,18 @@ def run_candace_ict(
 
 
 def run_late_day(
-    s: Session, rules: RulesConfig, clock: Clock, calendar: CalendarProvider, at: datetime, exits_only: bool = False
+    s: Session,
+    rules: RulesConfig,
+    clock: Clock,
+    calendar: CalendarProvider,
+    at: datetime,
+    exits_only: bool = False,
+    cfg: Any = None,
+    mode: str = "LATE_DAY",
 ) -> StrategyOutput:
     """D166 LATE-DAY MOMENTUM (3rd edge of the fast pass): trend of the session so far, followed at 15:00 with a 60 pt
     stop, flat at 15:59. One entry a day; the controller decides per account whether the plan's fast pass applies."""
-    cfg = rules.strategy.late_day_cfg
+    cfg = cfg or rules.strategy.late_day_cfg  # D184: the MGC add-on passes its own cfg and mode "MGC_LATE_DAY"
     out = StrategyOutput()
     day = at.astimezone(ET).date().isoformat()
     if LD.is_flat_time(at, cfg):
@@ -1644,9 +1651,9 @@ def run_late_day(
         return out
     new = _new_signal(
         s, clock, symbol=cfg.symbol, key=key, direction=x.direction, at=at,
-        gate=_gate(rules, cfg.symbol, at, calendar),
+        gate=_gate(rules, cfg.symbol, at, calendar, True if mode == "MGC_LATE_DAY" else None),
         features={"trend_pts": str(x.trend_pts), "atr": str(x.atr), "paper_only": cfg.paper_only},
-        plan=("LATE_DAY", x.entry, x.stop, x.take_profit, x.risk_pts, x.rr), rules=rules,
+        plan=(mode, x.entry, x.stop, x.take_profit, x.risk_pts, x.rr), rules=rules,
     )  # fmt: skip
     out.updates.append(SignalUpdate(new.id, new.model_key, new.status, new.skip_reason, None))
     return out
@@ -1755,6 +1762,10 @@ def run(
         mc = st.mgc_noise_candace_cfg
         if symbol == mc.noise.symbol:
             r = _iso(out, "run_noise", run_noise, s, rules, clock, calendar, at, exits_only, mc.noise, "MGC_NOISE")
+            out.updates += r.updates
+            out.exits += r.exits
+        if st.fast_pass_late_day and symbol == mc.late.symbol:  # D184: same option switch as the MNQ late-day leg
+            r = _iso(out, "run_late_day", run_late_day, s, rules, clock, calendar, at, exits_only, mc.late, "MGC_LATE_DAY")
             out.updates += r.updates
             out.exits += r.exits
         if symbol == mc.candace.symbol:

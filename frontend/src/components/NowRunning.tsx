@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { choiceOf, choiceTitle, type StrategiesResp, type Strat } from "./StrategyButtons";
+import { choiceOf, choiceTitle, MGC_KEY, type StrategiesResp, type Strat } from "./StrategyButtons";
 
 /** Names of the strategies that are ON, one entry per choice (NOISE + CANDACE is one MAIN choice). Pure, from /api/strategies. */
 export function runningNames(strategies: Strat[], combined?: { enabled: boolean; title: string }): string[] {
@@ -9,6 +9,7 @@ export function runningNames(strategies: Strat[], combined?: { enabled: boolean;
   if (both) names.push(combined!.title);
   for (const s of strategies.filter((x) => x.enabled)) {
     const c = choiceOf(s.key);
+    if (s.key === MGC_KEY) { names.push("MGC"); continue; } // D184: shows as "+ MGC" beside the main strategy
     if (both && (c === "main" || c === "order_flow")) continue;
     const label = c === "main" || c === "order_flow" || c === "ai_duo" ? choiceTitle(c) : s.name.split(" — ")[0] ?? s.name;
     if (!names.includes(label)) names.push(label);

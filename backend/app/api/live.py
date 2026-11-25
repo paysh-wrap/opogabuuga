@@ -49,6 +49,7 @@ def active_strategies(r: RulesConfig) -> set[str]:
     on["CANDACE_ICT"] = st.candace_ict
     on["MGC_NOISE"] = on["MGC_CANDACE"] = st.mgc_noise_candace  # D165
     on["LATE_DAY"] = st.fast_pass_late_day  # D166
+    on["MGC_LATE_DAY"] = st.mgc_noise_candace and st.fast_pass_late_day  # D184
     on["ORDER_FLOW_AUCTION"] = st.order_flow and st.order_flow_cfg.auction.enabled
     return {k for k, v in on.items() if v}
 

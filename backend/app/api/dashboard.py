@@ -835,6 +835,7 @@ def mgc_nc_rules(r: Any) -> list[dict[str, object]]:
     """D165 NOISE + CANDACE · MGC card: the same engines as the MNQ cards on MGC, with the 30-day picks."""
     m = r.strategy.mgc_noise_candace_cfg
     n, c = m.noise, m.candace
+    wm = r.strategy.fast_pass_150k_cfg.with_mgc if r.strategy.fast_pass_150k_cfg else None
     return [
         {
             "key": "NOISE",
@@ -850,10 +851,25 @@ def mgc_nc_rules(r: Any) -> list[dict[str, object]]:
             f"stop cap {c.ny_max_stop_pts} pt, hold {c.ny_max_hold_minutes} min, min {c.min_rr}R",
         },
         {
+            "key": "LATE",
+            "on": True,
+            "rule": f"late-day momentum on MGC (same rules as the MNQ one, needs the late-day option ON, EVAL only): "
+            f"decided {m.late.entry_at} ET, {m.late.stop_pts} pt stop, flat {m.late.flat_at}. UNVERIFIED: the 30-day "
+            "test gave PF 0.84 over 23 trades (-$110 per micro)",
+        },
+        {
             "key": "SIZE",
             "on": True,
-            "rule": f"fixed {m.contracts} micro; METALS group (no equity hedge lock); "
-            "one position per account; DLL / MLL / consistency / news checks only shrink or skip",
+            "rule": f"MGC {m.contracts}/{m.contracts}/{m.contracts} (NOISE / CANDACE / late-day, fixed micro) "
+            + (
+                f"· MNQ {wm.noise_contracts}/{wm.candace_contracts}/{wm.late_contracts} on the 150K fast-pass plan while this is ON "
+                "(brakes still shrink) "
+                if wm
+                else ""
+            )
+            + "· no shared or split risk. Lucid account stops still apply to everything: kill switch, daily loss limit "
+            "and loss-limit room stop and flatten both instruments, and a trade that could breach them by itself is "
+            "skipped. One MGC position per account; METALS group (gold direction lock across accounts, no equity hedge lock)",
         },
         {
             "key": "DATA",

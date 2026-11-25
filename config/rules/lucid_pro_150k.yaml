@@ -178,6 +178,7 @@ strategy:   # D63: per-account auto size (size_table). Previous: D62b (user 2026
     late_contracts: 4    #   D166 3rd edge late-day momentum (option strategy.fast_pass_late_day, UNVERIFIED): 4 micro(s) (new_edge/late_leg_sizes/RESULTS.md)
     late_steps:
       - {cushion_usd: 2250, contracts: 1}   #   1 micro while cushion is below $2,250
+    with_mgc: {noise_contracts: 4, candace_contracts: 4, late_contracts: 4}   # D184 (user 2026-11-25): MNQ 4/4/4 while the MGC add-on is ON (MGC 1/1/1); brakes still shrink
   eval_size_s19: true   # D133 (I1): Evaluation-Mode size rows capped at eval_size_caps (session 19 lowest bust); false = tables as written
   eval_size_caps:
     - {account_size: 100000, max_contracts: 2}   # 100K x2 pass/bust 83/15 vs x3 69/31, x4 58/42 (7.5 yr, Mondays off)

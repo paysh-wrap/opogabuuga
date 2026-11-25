@@ -15,6 +15,7 @@ export interface Strat {
   key: string; name: string; source: string; verified: boolean; status: string;
   win_pct: number | null; profit_factor: number | null; usd_per_trade: number | null; trades_per_week: number | null; held_out_trades: number;
   pro25k_pass_pct: number | null; pro25k_bust_pct: number | null; period: string; note: string;
+  addon?: boolean; addon_title?: string; addon_sizes?: string; // D184 MGC add-on card
   enabled: boolean; setting: string; badge?: string; // D165: gold evidence badge text (default: rules from one transcript)
   eval_odds?: OddsView; // D137: pass / bust from config/eval_odds.yaml for the active plan, size table and EOD toggle
   also?: string[]; // D58: settings switched ON together with this one (MAIN card: NOISE + fade)
@@ -147,10 +148,11 @@ function DrawdownCompareView({ c }: { c: DrawdownCompare }) {
 
 // D167: Strategy buttons are ONE-ON-AT-A-TIME (backend rejects two ON with 422). The main NOISE + CANDACE pair is ONE
 // choice; late-day, fast-pass sizes, fade and order-flow layers are sub-options. Fast-pass plans stay independent.
+export const MGC_KEY = "mgc_noise_candace";
 export const choiceOf = (key: string): string | null =>
   ["noise", "candace_ict", "pm_fade"].includes(key) ? "main"
     : key.startsWith("order_flow") ? "order_flow"
-    : key === "ai_bias" ? null : key;
+    : key === "ai_bias" || key === MGC_KEY ? null : key; // D184: the MGC add-on is no choice: it runs beside the main strategy
 const CHOICE_SETTINGS: Record<string, string[]> = {
   main: ["strategy.noise", "strategy.candace_ict"], order_flow: ["strategy.order_flow"],
 };
@@ -282,7 +284,8 @@ export default function StrategyButtons() {
     const noise = mainS.find((x) => x.key === "noise") ?? mainS[0];
     if (noise) toggle.mutate(mainOn && !mainPartial ? { ...noise, enabled: true } : { ...noise, enabled: false });
   };
-  const lesserS = d.strategies.filter((s) => !MAIN.includes(s.key) && !isFlow(s.key));
+  const mgcS = d.strategies.find((s) => s.key === MGC_KEY);
+  const lesserS = d.strategies.filter((s) => !MAIN.includes(s.key) && !isFlow(s.key) && s.key !== MGC_KEY);
   const lesserOn = lesserS.filter((x) => x.enabled).map((x) => x.name.split(" — ")[0] ?? x.name);
   const allToggles = d.toggles ?? [];
   const fastPass = allToggles.filter((t) => t.key.startsWith("fast_pass_"));
@@ -455,7 +458,7 @@ export default function StrategyButtons() {
       </MoreInfo>
       <SaveAlert error={saved.error} />
       {d.notice && <p role="alert" className="mt-2 rounded border border-gold p-2 text-sm text-gold" data-testid="strategy-notice">⚠ {d.notice}</p>}
-      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The one exception is the separate option MAIN FAST PASS + ORDER FLOW (same account). The fast-pass plans below are independent of each other.</p>
+      <p className="mt-2 text-xs text-blue" data-testid="exclusive-hint">Only one strategy button can be ON at a time — turning one on turns the others off. The exceptions are the separate option MAIN FAST PASS + ORDER FLOW (same account) and the MGC add-on (a different market, below). The fast-pass plans below are independent of each other.</p>
       <div className="mt-2"><AiAdviceCard advice={d.ai_advice} /></div>
       <div className="mt-3 space-y-4">
         <div data-testid="strategy-main-group">
@@ -490,6 +493,20 @@ export default function StrategyButtons() {
             </div>
           )}
         </div>
+        {mgcS && (
+          <div className="rounded-lg border border-border p-3" data-testid="mgc-addon">
+            <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gold">ADD-ON — {mgcS.addon_title ?? "Also trade MGC (NOISE + CANDACE on micro gold)"}</h3>
+            <p className="mt-1 text-sm font-semibold text-gold" data-testid="mgc-addon-sizes">{mgcS.addon_sizes ?? "MGC 1/1/1 · MNQ 4/4/4"} <span className="text-xs font-normal text-blue">(NOISE / CANDACE / late-day micros; default OFF)</span></p>
+            <ul className="mt-1 list-disc pl-4 text-xs text-blue" data-testid="mgc-addon-guards">
+              <li>Runs at the same time as the main MNQ strategy, in addition to it. One MGC position per account, never opposite gold directions across accounts.</li>
+              <li>No shared or split risk: MGC is always 1 micro, MNQ keeps its own size (4 while this is ON on the 150K plan; the plan's brakes can only make it smaller).</li>
+              <li>Lucid stops cover the whole account: the kill switch, the daily loss limit and the loss-limit room stop and flatten MNQ and MGC together, and a trade that could break them by itself is skipped.</li>
+              <li>News, early closes and the 16:40 / 16:44 flats close MGC too. Never held overnight. Late-day on MGC needs the late-day option ON (EVAL only).</li>
+              <li>UNVERIFIED: 30-day Yahoo test only (late-day on MGC: PF 0.84 over 23 trades). Never treat this as verified.</li>
+            </ul>
+            <div className="mt-2">{stratCard(mgcS)}</div>
+          </div>
+        )}
         {d.combined && (
           <div className="rounded-lg border border-border p-3" data-testid="combined-choice">
             <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold text-gold">OPTION — {d.combined.title} <EvidenceBadge verified={false} text="OPTION · default OFF · UNVERIFIED" testId="combined-badge" /></h3>

@@ -59,6 +59,7 @@ from app.risk.cushion import (
     cushion_share,
 )
 from app.risk.early_close import entries_blocked as early_entries_blocked
+from app.risk.mgc_addon import is_mgc_mode, is_mgc_symbol, other_instrument_ok
 from app.risk.early_close import flatten_due
 from app.risk.eod_balance import watched_equity
 from app.risk.eval_mode import effective_risk_cfg, eval_mode_effective, one_to_one_for
@@ -90,6 +91,7 @@ APPROVAL_SECONDS = 90
 TP_FIT_STRATEGIES = (
     "CANDACE_ICT",
     "MGC_CANDACE",
+    "MGC_LATE_DAY",
     "LATE_DAY",
 )  # real take-profits: fit contracts to the consistency cap
 
@@ -109,6 +111,7 @@ STRATEGY_MODES = (
     "ORDER_FLOW_AUCTION",
     "MGC_NOISE",  # D165: NOISE / CANDACE on MGC, fixed 1 micro; every pre-trade check only shrinks / skips
     "MGC_CANDACE",
+    "MGC_LATE_DAY",  # D184: late-day momentum on the MGC add-on, fixed 1 micro, EVAL only like the MNQ one
     "LATE_DAY",  # D166: late-day momentum, 3rd edge of the fast pass (sized only by fast_pass cfg late_contracts)
 )  # D55: TradePlan modes of the fixed-size strategies (D107: OPEN_DRIVE removed -> its plans are NO_PLAN)
 # D144+: strategies sized by the Lucid fit (engine/lucid_fit): mode → (reason/audit tag, cfg, max losses a day)
@@ -586,6 +589,7 @@ class Controller:
         paper_only["LATE_DAY"] = r.strategy.late_day_cfg.paper_only  # F: these had the value but never read it
         paper_only["MGC_CANDACE"] = mgc_pair.candace.paper_only
         paper_only["MGC_NOISE"] = mgc_pair.noise.paper_only
+        paper_only["MGC_LATE_DAY"] = mgc_pair.late.paper_only
         paper_only["NOISE"] = r.strategy.noise_cfg.paper_only
         fit = fit_cfg(r.strategy, strategy)
         if fit is not None:
@@ -652,11 +656,13 @@ class Controller:
         # D156 "150K fast pass": EVAL-stage accounts of the plan's size only (pure check); None = today's sizing
         fp_on, fp_cfg = plan_fast_pass(r.strategy, acct_size)  # D157: 25K / 100K / 150K, own size only
         sw_on = stage_switch_on(a.stage, self.rules.fast_pass_funded_on, self.rules.fast_pass_live_on)  # D180
-        fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base, sw_on)
+        fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, strategy, base, sw_on, r.strategy.mgc_noise_candace)
         funded_fp = fp is not None and a.stage != "EVAL"  # D180: funded / live guards stay on top of the same size
         late = None
+        if strategy == "MGC_LATE_DAY" and (a.stage != "EVAL" or not r.strategy.fast_pass_late_day):
+            return AccountResult(a.id, False, "LATE_DAY_NOT_ACTIVE")  # D184: same gate as the MNQ late-day leg
         if strategy == "LATE_DAY":  # D166: only with the plan's fast pass ON + the late option ON, EVAL, own size
-            late = late_day_size(r.strategy.fast_pass_late_day, fp_on, fp_cfg, a.stage, acct_size, base)
+            late = late_day_size(r.strategy.fast_pass_late_day, fp_on, fp_cfg, a.stage, acct_size, base, r.strategy.mgc_noise_candace)
             if late is None:
                 return AccountResult(a.id, False, "LATE_DAY_NOT_ACTIVE")
         mine = [t for t in self.om.trades.values() if t.account == a.broker_account_id]
@@ -665,6 +671,16 @@ class Controller:
         except BrokerError as e:  # review fix: was an unhandled exception that aborted the whole signal silently
             return AccountResult(a.id, False, f"BROKER_ERROR: {e}")
         n_open = max(sum(1 for p in positions if p.account == a.broker_account_id), len(mine))
+        mgc_mode = is_mgc_mode(strategy)
+        xlegs = [t for t in mine if is_mgc_mode(t.strategy) != mgc_mode]
+        if xlegs:
+            # D184 (user 2026-11-25): the MGC add-on beside the main MNQ position (one position per INSTRUMENT, never
+            # hedged: the METALS / EQUITY_INDEX locks below are unchanged). No shared or split budget: each instrument
+            # has its own fixed size; the account-level Lucid checks (DLL, MLL room, kill switch) run on every trade
+            if len(mine) < n_open or not other_instrument_ok(strategy, sig.symbol, [(t.strategy, t.symbol) for t in xlegs]):
+                return AccountResult(a.id, False, "POSITION_OPEN")
+            mine = [t for t in mine if t not in xlegs]
+            n_open -= len(xlegs)
         add_legs: list[OpenLeg] | None = None
         if strategy == ADD_MODE and n_open > 0:  # D145: the single add-to-winners exception (OKALA 8020 only)
             if len(mine) < n_open:
@@ -692,8 +708,11 @@ class Controller:
             True,
             st.attested_today(s, now),
             st.payout_pending(s, a, now),
-            any(p.account == a.broker_account_id for p in positions)
-            or any(t.account == a.broker_account_id and self.om.has_unfilled(t) for t in self.om.trades.values()),
+            any(p.account == a.broker_account_id and (not xlegs or is_mgc_symbol(p.symbol) == mgc_mode) for p in positions)
+            or any(
+                t.account == a.broker_account_id and self.om.has_unfilled(t)
+                for t in (self.om.trades.values() if not xlegs else mine)
+            ),
             a.paused_reason,
             equity,
             mll.mll,
@@ -743,10 +762,10 @@ class Controller:
         open_usd = sum((self._open_risk(t) for t in sbs_legs), Decimal(0)) if sbs_legs else Decimal(0)
         if fixed is not None and strategy == "ORDER_FLOW" and ar_side_by_side(r.strategy, sig.features):
             # D160: AR beside NOISE — never above half the NOISE fast-pass size (tighten-only; every check still runs)
-            noise_fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base, sw_on)
+            noise_fp = fast_pass_size(fp_on, fp_cfg, a.stage, acct_size, "NOISE", base, sw_on, r.strategy.mgc_noise_candace)
             fixed = ar_side_cap(fixed, noise_fp)
             fixed = combined_of_size(
-                fixed, firm_cap, r.internal.internal_max_micros, open_qty if sbs_legs else 0
+                fixed, firm_cap, r.internal.internal_max_micros, open_qty
             )  # D181: at most 2, total micros on the account never above its cap
             if fixed < 1:
                 return AccountResult(a.id, False, "SBS_NO_HEADROOM")
