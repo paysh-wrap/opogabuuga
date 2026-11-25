@@ -49,21 +49,23 @@ def test_noise_trade_gets_the_chosen_lock_trigger(authed, clock):
 
 def test_strategy_page_lists_the_session20_toggles_and_saves_are_versioned(authed):
     got = {t["key"]: t for t in authed.get("/api/strategies").json()["toggles"]}
-    assert got["fade_eval_off"]["setting"] == "strategy.pm_fade_cfg.eval_off" and got["fade_eval_off"]["value"] is True
+    assert "fade_eval_off" not in got and "eval_size_s19" not in got  # D183: cards removed, settings kept
     assert got["noise_lock_alt"]["value"] is False and "80 pt" in got["noise_lock_alt"]["on_label"]
-    assert "100 pt" in got["noise_lock_alt"]["off_label"] and got["eval_size_s19"]["value"] is True
+    assert "100 pt" in got["noise_lock_alt"]["off_label"]
     v0 = authed.get("/api/risk/settings").json()["version"]
     for key, setting, new in (
-        ("fade_eval_off", "strategy.pm_fade_cfg.eval_off", False),
         ("noise_lock_alt", "strategy.noise_lock_alt", True),
-        ("eval_size_s19", "strategy.eval_size_s19", False),
     ):
         r = authed.put("/api/risk/settings", json={"changes": {setting: new}, "note": "toggle"})
         assert r.status_code == 200, r.text
         assert {t["key"]: t for t in authed.get("/api/strategies").json()["toggles"]}[key]["value"] is new
-    assert authed.get("/api/risk/settings").json()["version"] == v0 + 3  # each save is a new version
+    assert authed.get("/api/risk/settings").json()["version"] == v0 + 1  # each save is a new version
     st = authed.app.state.rules.rules.strategy
-    assert st.noise_profit_lock() == (D(80), D(10)) and not st.eval_size_s19 and not st.pm_fade_cfg.eval_off
+    assert st.noise_profit_lock() == (D(80), D(10))
+    for setting in ("strategy.pm_fade_cfg.eval_off", "strategy.eval_size_s19"):  # still saveable through the API (D183)
+        assert authed.put("/api/risk/settings", json={"changes": {setting: False}, "note": "t"}).status_code == 200
+    st = authed.app.state.rules.rules.strategy
+    assert not st.eval_size_s19 and not st.pm_fade_cfg.eval_off
 
 
 def test_b8_plain_text_payout_cadence_consistency_and_never_traded(authed, loaded_rules):

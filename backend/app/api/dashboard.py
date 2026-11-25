@@ -1229,19 +1229,8 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
     st, nc = r.strategy, r.strategy.noise_cfg
     eod = st.eod_closed_balance
     ov = {t: odds_view(plan, t, eod)["text"] for t in ("regular", "high", "regular_fade_on")}
-    caps = ", ".join(f"{int(c.account_size) // 1000}K ≤ {c.max_contracts}" for c in st.eval_size_caps)
-    out: list[dict[str, Any]] = [
-        {
-            "key": "fade_eval_off",
-            "setting": "strategy.pm_fade_cfg.eval_off",
-            "title": "Afternoon fade during evaluations",
-            "value": st.pm_fade_cfg.eval_off,
-            "on_label": "Off on EVAL accounts (default — better pass/bust)",
-            "off_label": "On everywhere",
-            "note": f"EVAL stage only; funded accounts keep the fade. This plan, fade off: {ov['regular']}. "
-            f"Fade on: {ov['regular_fade_on']}.",
-        }
-    ]
+    # D183: the Evaluation-Mode size and Afternoon-fade-during-evaluations cards are no longer shown; their settings stay stored.
+    out: list[dict[str, Any]] = []
     out.append(
         {
             "key": "eod_closed_balance",
@@ -1320,19 +1309,6 @@ def _session20_toggles(r: Any, plan: str = "") -> list[dict[str, Any]]:
                 "consistency, hedge lock, news/flat) still shrinks or skips. "
                 "Numbers and pass figures: docs/results/pass_fastest/ (smaller_plans/, beat109/RESULTS.md, passfloor/ "
                 "RESULTS.md, pass70/RESULTS.md; not repeated here).",
-            }
-        )
-    if st.eval_size_caps:
-        out.append(
-            {
-                "key": "eval_size_s19",
-                "setting": "strategy.eval_size_s19",
-                "title": "Evaluation-Mode size (100K / 150K)",
-                "value": st.eval_size_s19,
-                "on_label": f"Session 19 lowest bust ({caps}) — default",
-                "off_label": "Previous (150K 4 micros, 100K grows to 4)",
-                "note": "EVAL accounts with Evaluation Mode on. This plan, Regular table (the capped sizes): "
-                f"{ov['regular']}. High-risk table (grows larger): {ov['high']}.",
             }
         )
     return out

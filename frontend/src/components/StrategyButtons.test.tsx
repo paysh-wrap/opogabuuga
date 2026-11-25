@@ -34,7 +34,6 @@ const resp: StrategiesResp = {
     { key: "fast_pass_25k", setting: "strategy.fast_pass_25k", title: "25K fast pass (evaluations)", value: false, on_label: "on", off_label: "off", note: "n",
       weekly: { target: "1250", median_days: "56.5", needed_week: "110.62", sim_week: "74.23", measured: false, source: "docs/results/pass_fastest/final_search/RESULTS.md" },
       late: { setting: "strategy.fast_pass_late_day", value: false, label: "3rd edge: late-day momentum (UNVERIFIED, held-out PF 1.12)", detail: "MNQ, 2 micro(s)" } },
-    { key: "fade_eval_off", setting: "strategy.pm_fade_cfg.eval_off", title: "Afternoon fade during evaluations", value: true, on_label: "Off on EVAL accounts (default — better pass/bust)", off_label: "On everywhere", note: "EVAL stage only" },
     { key: "eod_closed_balance", setting: "strategy.eod_closed_balance", title: "EOD drawdown: open losses don't stop the account", value: false, on_label: "EOD accounts: kill switch watches the closed balance only", off_label: "Kill switch watches balance + open P&L (default, safest)", note: "VERIFY with Lucid that an open loss touching the floor does not breach an EOD account.",
       compare: { text: "x", source: "docs/results/session22/eod_vs_intraday/RESULTS.md",
         current: { plan: "lucid_pro_25k", eod: { pass: 57, bust: 43, j_pass: 40, j_bust: 60 }, intraday: { pass: 39, bust: 61, j_pass: 21, j_bust: 79 } },
@@ -125,8 +124,8 @@ test("strategy buttons show tested win/pass rates and toggle via versioned setti
   expect(calls.some((c) => c.includes('"strategy.eod_closed_balance":false'))).toBe(false);
   await userEvent.click(screen.getByTestId("toggle-eod_closed_balance-on"));
   await waitFor(() => expect(calls.some((c) => c.includes('"strategy.eod_closed_balance":true'))).toBe(true));
-  // D132: session-20 toggles (fade off in evals ON by default; profit-lock trigger 100 pt by default)
-  expect(screen.getByTestId("toggle-fade_eval_off-on")).toHaveTextContent("✓ IN USE · Off on EVAL accounts");
+  // D132: session-20 toggles (profit-lock trigger 100 pt by default)
+  expect(screen.queryByTestId("toggle-fade_eval_off-on")).toBeNull(); // D183: card removed
   expect(screen.getByTestId("toggle-noise_lock_alt-off")).toHaveTextContent("✓ IN USE · 100 pt (default");
   expect(screen.getByTestId("toggle-noise_lock_alt-on")).toHaveTextContent("USE THIS · 80 pt — experimental, likely chance");
   await userEvent.click(screen.getByTestId("toggle-noise_lock_alt-on"));

@@ -40,7 +40,6 @@ def test_not_measured_yet_with_the_placeholder_file(authed, placeholder_odds):
     noise = next(s for s in d["strategies"] if s["key"] == "noise")
     assert noise["eval_odds"]["text"] == "not measured yet" and noise["pro25k_pass_pct"] is None
     assert all(r["pass_pct"] is None and r["odds_text"] == "not measured yet" for r in d["presets"]["rows"])
-    assert "not measured yet" in {t["key"]: t for t in d["toggles"]}["eval_size_s19"]["note"]
     assert authed.get("/api/risk/eval-mode").json()["odds"]["regular"]["text"] == "not measured yet"
 
 
@@ -55,7 +54,6 @@ def test_numbers_follow_plan_table_and_eod_toggle(authed, real_odds):
     main = next(s for s in d["strategies"] if s["key"] == "pm_fade")
     assert main["eval_odds"]["table"] == "regular_fade_on"
     assert d["size_profiles"]["odds"]["high"]["pass_pct"] == 50
-    assert "pass 50% / bust 50%" in {t["key"]: t for t in d["toggles"]}["fade_eval_off"]["note"]
     # presets map to their own plan (lucid_pro_50k is absent from this fixture -> not measured)
     rows = {r["key"]: r for r in d["presets"]["rows"]}
     assert rows["pro25k_s19"]["pass_pct"] == 50 and rows["pro50k_s19"]["odds_text"] == "not measured yet"
